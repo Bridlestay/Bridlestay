@@ -15,33 +15,33 @@ export default function TermsPage() {
 
           <div className="prose prose-lg max-w-none space-y-8">
             {/* Key Safety Alert */}
-            <Card className="border-red-200 bg-red-50 dark:bg-red-950">
+            <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-red-900 dark:text-red-100">
+                <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
                   <AlertTriangle className="h-5 w-5" />
-                  CRITICAL: Safety & Platform Rules
+                  Important: Safety & Platform Guidelines
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-red-900 dark:text-red-100">
+              <CardContent className="text-amber-900 dark:text-amber-100">
                 <p className="font-semibold mb-3">
-                  The following actions will result in IMMEDIATE account suspension or permanent ban:
+                  To maintain a safe and trusted community, the following actions may result in account suspension:
                 </p>
                 <ul className="list-disc list-inside space-y-2 ml-4 text-sm">
                   <li>
-                    <strong>Payment Circumvention:</strong> Attempting to pay or receive payment outside the platform (cash, bank transfer, PayPal, etc.)
+                    <strong>Off-Platform Payments:</strong> All payments must be processed through BridleStay to ensure protection for both guests and hosts
                   </li>
                   <li>
-                    <strong>Threats or Harassment:</strong> Any threatening language, harassment, discrimination, or abusive behavior
+                    <strong>Respectful Communication:</strong> Harassment, discrimination, or abusive language is not tolerated
                   </li>
                   <li>
-                    <strong>Fraudulent Activity:</strong> False listings, fake reviews, identity theft, or scam attempts
+                    <strong>Honest Listings:</strong> Property information must be accurate and truthful
                   </li>
                   <li>
-                    <strong>Property Misrepresentation:</strong> Deliberately misleading information about facilities, location, or capacity
+                    <strong>Genuine Engagement:</strong> Fake reviews, spam, or fraudulent activity undermines our community
                   </li>
                 </ul>
                 <p className="mt-4 text-sm font-medium">
-                  🔍 All messages are monitored by automated systems. We prioritize user safety above all else.
+                  💡 Our automated systems help keep the platform safe. If you have concerns, please contact our support team.
                 </p>
               </CardContent>
             </Card>

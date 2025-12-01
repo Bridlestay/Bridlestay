@@ -12,6 +12,7 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { PropertyBadges } from "@/components/property-badges";
 import { PropertyQA } from "@/components/property-qa";
 import { MessageButton } from "@/components/messaging/message-button";
+import { AmenitiesList } from "@/components/property/amenities-list";
 import { PropertyReviewsDisplay } from "@/components/reviews/property-reviews-display";
 import { NearbyRoutesWidget } from "@/components/routes/nearby-routes-widget";
 
@@ -265,56 +266,7 @@ export default async function PropertyPage({
                 <h2 className="font-serif text-2xl font-semibold mb-4">
                   Amenities
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {amenities.wifi && (
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium">WiFi</p>
-                      </div>
-                    </div>
-                  )}
-                  {amenities.kitchen && (
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Kitchen</p>
-                      </div>
-                    </div>
-                  )}
-                  {amenities.washer && (
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Washing Machine</p>
-                      </div>
-                    </div>
-                  )}
-                  {amenities.on_site_parking && (
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium">On-site Parking</p>
-                      </div>
-                    </div>
-                  )}
-                  {amenities.heating && (
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Heating</p>
-                      </div>
-                    </div>
-                  )}
-                  {amenities.tv && (
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium">TV</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <AmenitiesList amenities={amenities} />
               </div>
             )}
 

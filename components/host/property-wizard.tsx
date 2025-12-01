@@ -127,7 +127,7 @@ export function PropertyWizard({ userId, propertyId, initialData }: PropertyWiza
               }`}
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
                   step.number === currentStep
                     ? "bg-primary text-primary-foreground"
                     : step.number < currentStep

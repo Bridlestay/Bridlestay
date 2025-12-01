@@ -9,7 +9,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import { Send, MessageCircle, Trash2, ShieldAlert } from "lucide-react";
+import { Send, MessageCircle, Trash2, ShieldAlert, Search, Filter, Check, CheckCheck } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReservationCard } from "@/components/messaging/reservation-card";
 import { useSearchParams } from "next/navigation";
 import {
   AlertDialog,
@@ -74,6 +77,8 @@ export function MessagesInbox() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterTab, setFilterTab] = useState<"all" | "unread">("all");
 
   useEffect(() => {
     fetchCurrentUser();
@@ -165,6 +170,7 @@ export function MessagesInbox() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           recipientId: selectedUserId,
+          propertyId: selectedConversation?.propertyId || null,
           message: newMessage,
         }),
       });
@@ -236,6 +242,14 @@ export function MessagesInbox() {
 
   const selectedConversation = conversations.find((c) => c.userId === selectedUserId);
 
+  // Filter conversations based on search and tab
+  const filteredConversations = conversations.filter((conv) => {
+    const matchesSearch = conv.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (conv.propertyName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+    const matchesFilter = filterTab === "all" || (filterTab === "unread" && conv.unread);
+    return matchesSearch && matchesFilter;
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -260,13 +274,44 @@ export function MessagesInbox() {
     );
   }
 
+  // Determine if we should show the reservation card
+  const showReservationCard = selectedConversation?.propertyId && selectedUserId;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[600px]">
+    <div className={`flex flex-col lg:grid gap-4 h-auto lg:h-[600px] ${
+      showReservationCard ? 'lg:grid-cols-7' : 'lg:grid-cols-3'
+    }`}>
       {/* Conversations List */}
-      <Card className="md:col-span-1 flex flex-col h-[600px] overflow-hidden">
+      <Card className={`${showReservationCard ? 'lg:col-span-2' : 'lg:col-span-1'} flex flex-col h-[400px] lg:h-[600px] overflow-hidden`}>
+        <div className="p-4 border-b space-y-3">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          
+          {/* Filter Tabs */}
+          <Tabs value={filterTab} onValueChange={(v) => setFilterTab(v as "all" | "unread")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="unread">Unread</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+        
         <ScrollArea className="flex-1">
           <div className="p-2">
-            {conversations.map((conv) => (
+            {filteredConversations.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchQuery ? "No conversations found" : "No unread messages"}
+              </div>
+            ) : (
+              filteredConversations.map((conv) => (
               <button
                 key={conv.userId}
                 onClick={() => setSelectedUserId(conv.userId)}
@@ -306,26 +351,34 @@ export function MessagesInbox() {
                   </div>
                 </div>
               </button>
-            ))}
+              ))
+            )}
           </div>
         </ScrollArea>
       </Card>
 
       {/* Messages Thread */}
-      <Card className="md:col-span-2 flex flex-col h-[600px]">
+      <Card className={`${showReservationCard ? 'lg:col-span-3' : 'lg:col-span-2'} flex flex-col h-[400px] lg:h-[600px]`}>
         {selectedConversation && (
           <>
             {/* Header */}
             <div className="p-4 border-b flex-shrink-0">
               <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarImage
-                    src={selectedConversation.userAvatar || undefined}
-                  />
-                  <AvatarFallback>
-                    {selectedConversation.userName?.[0]?.toUpperCase() || "?"}
-                  </AvatarFallback>
-                </Avatar>
+                <a
+                  href={`/profile/${selectedConversation.userId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-shrink-0"
+                >
+                  <Avatar className="cursor-pointer hover:opacity-80 transition-opacity hover:ring-2 hover:ring-primary">
+                    <AvatarImage
+                      src={selectedConversation.userAvatar || undefined}
+                    />
+                    <AvatarFallback>
+                      {selectedConversation.userName?.[0]?.toUpperCase() || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                </a>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold">{selectedConversation.userName}</p>
@@ -408,12 +461,20 @@ export function MessagesInbox() {
                             </button>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                           {formatDistanceToNow(new Date(msg.created_at), {
                             addSuffix: true,
                           })}
                           {msg.deleted && msg.deleted_at && (
                             <span className="ml-1">• Deleted {formatDistanceToNow(new Date(msg.deleted_at), { addSuffix: true })}</span>
+                          )}
+                          {/* Read status for sent messages */}
+                          {isCurrentUser && !msg.deleted && (
+                            msg.read ? (
+                              <CheckCheck className="h-3 w-3 text-blue-500" title="Read" />
+                            ) : (
+                              <Check className="h-3 w-3" title="Sent" />
+                            )
                           )}
                         </p>
                       </div>
@@ -483,6 +544,16 @@ export function MessagesInbox() {
           </>
         )}
       </Card>
+
+      {/* Reservation Details Card */}
+      {showReservationCard && (
+        <div className="lg:col-span-2 h-[400px] lg:h-[600px] overflow-hidden">
+          <ReservationCard 
+            propertyId={selectedConversation.propertyId!} 
+            otherUserId={selectedUserId!}
+          />
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

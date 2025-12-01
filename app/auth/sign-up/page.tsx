@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -16,12 +17,12 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
+import { validateUsername } from "@/lib/moderation";
 
 export default function SignUpPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"guest" | "host">("guest");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -31,6 +32,18 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
+      // Validate username/name first
+      const nameValidation = validateUsername(name);
+      if (!nameValidation.valid) {
+        toast({
+          variant: "destructive",
+          title: "Invalid Name",
+          description: nameValidation.reason || "Please choose a different name.",
+        });
+        setLoading(false);
+        return;
+      }
+
       const supabase = createClient();
 
       // Sign up with Supabase Auth
@@ -45,26 +58,15 @@ export default function SignUpPage() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Create user profile
+        // Create user profile (always as guest)
         const { error: profileError } = await supabase.from("users").insert({
           id: authData.user.id,
           name,
           email,
-          role,
+          role: "guest",
         });
 
         if (profileError) throw profileError;
-
-        // If host, create host profile
-        if (role === "host") {
-          const { error: hostError } = await supabase
-            .from("host_profiles")
-            .insert({
-              user_id: authData.user.id,
-            });
-
-          if (hostError) throw hostError;
-        }
 
         // Send welcome email (non-blocking)
         try {
@@ -129,46 +131,14 @@ export default function SignUpPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder="At least 6 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>I want to</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="guest"
-                    checked={role === "guest"}
-                    onChange={(e) =>
-                      setRole(e.target.value as "guest" | "host")
-                    }
-                    className="w-4 h-4"
-                  />
-                  <span>Book stays</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="host"
-                    checked={role === "host"}
-                    onChange={(e) =>
-                      setRole(e.target.value as "guest" | "host")
-                    }
-                    className="w-4 h-4"
-                  />
-                  <span>Host properties</span>
-                </label>
-              </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-3">

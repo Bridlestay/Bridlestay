@@ -195,12 +195,12 @@ export const BookingConfirmationEmail = ({
             <li><strong>After check-out:</strong> Leave a review to help future guests</li>
           </ol>
 
-          <p style={{ color: #6b7280; fontSize: '14px' }}>
+          <p style={{ color: '#6b7280', fontSize: '14px' }}>
             <strong>Important:</strong> Your payment has been secured by Stripe and will be released to the host 24 hours after check-in. 
-            Please review our <a href="https://bridlestay.com/cancellation-policy" style={{ color: #2d5016 }}>Cancellation Policy</a> if your plans change.
+            Please review our <a href="https://bridlestay.com/cancellation-policy" style={{ color: '#2d5016' }}>Cancellation Policy</a> if your plans change.
           </p>
 
-          <p>Have questions? Reply to this email or contact us at <a href="mailto:support@bridlestay.com" style={{ color: #2d5016 }}>support@bridlestay.com</a></p>
+          <p>Have questions? Reply to this email or contact us at <a href="mailto:support@bridlestay.com" style={{ color: '#2d5016' }}>support@bridlestay.com</a></p>
 
           <p style={{ marginTop: '30px' }}>
             Happy trails! 🐎<br/>
@@ -211,9 +211,9 @@ export const BookingConfirmationEmail = ({
         <div className="footer">
           <p>© {new Date().getFullYear()} BridleStay. All rights reserved.</p>
           <p>
-            <a href="https://bridlestay.com/terms" style={{ color: #6b7280 }}>Terms</a> | 
-            <a href="https://bridlestay.com/privacy" style={{ color: #6b7280 }}>Privacy</a> | 
-            <a href="https://bridlestay.com/help" style={{ color: #6b7280 }}>Help</a>
+            <a href="https://bridlestay.com/terms" style={{ color: '#6b7280' }}>Terms</a> | 
+            <a href="https://bridlestay.com/privacy" style={{ color: '#6b7280' }}>Privacy</a> | 
+            <a href="https://bridlestay.com/help" style={{ color: '#6b7280' }}>Help</a>
           </p>
         </div>
       </body>

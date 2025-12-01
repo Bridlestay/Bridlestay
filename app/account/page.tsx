@@ -242,45 +242,6 @@ export default async function AccountPage() {
             </Card>
           )}
 
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Link href="/dashboard">
-                <Button variant="outline" className="w-full justify-start">
-                  Go to Dashboard
-                </Button>
-              </Link>
-              {userData.role === "guest" && (
-                <Link href="/search">
-                  <Button variant="outline" className="w-full justify-start">
-                    Browse Properties
-                  </Button>
-                </Link>
-              )}
-              {userData.role === "host" && (
-                <>
-                  <Link href="/host/property/new">
-                    <Button variant="outline" className="w-full justify-start">
-                      Add New Property
-                    </Button>
-                  </Link>
-                  <Link href="/host/listings">
-                    <Button variant="outline" className="w-full justify-start">
-                      Manage My Listings
-                    </Button>
-                  </Link>
-                </>
-              )}
-              <Link href="/account/edit">
-                <Button variant="outline" className="w-full justify-start">
-                  Change Password
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
         </div>
       </main>
     </>

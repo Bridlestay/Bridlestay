@@ -239,7 +239,16 @@ export function AboutMeSection({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CardTitle>My Horses</CardTitle>
-              <Badge variant="secondary">{horses.length}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">
+                  {horses.filter(h => h.public).length} Public
+                </Badge>
+                {horses.filter(h => !h.public).length > 0 && (
+                  <Badge variant="outline">
+                    {horses.filter(h => !h.public).length} Private
+                  </Badge>
+                )}
+              </div>
             </div>
             <Button onClick={handleAddHorse}>
               <Plus className="h-4 w-4 mr-2" />
@@ -269,15 +278,27 @@ export function AboutMeSection({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {horses.map((horse) => (
-                <Card key={horse.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                <Card 
+                  key={horse.id} 
+                  className={`overflow-hidden hover:shadow-lg transition-all ${
+                    !horse.public ? 'opacity-60 border-2 border-dashed border-muted-foreground/30' : ''
+                  }`}
+                >
                   <CardContent className="p-0">
                     {/* Horse Photo */}
                     <div className="relative h-48 bg-muted">
+                      {!horse.public && (
+                        <div className="absolute top-2 right-2 z-10">
+                          <Badge variant="secondary" className="bg-muted-foreground/80 text-white">
+                            Private
+                          </Badge>
+                        </div>
+                      )}
                       {horse.photo_url ? (
                         <img
                           src={horse.photo_url}
                           alt={horse.name}
-                          className="w-full h-full object-cover"
+                          className={`w-full h-full object-cover ${!horse.public ? 'grayscale' : ''}`}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">

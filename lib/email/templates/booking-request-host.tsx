@@ -213,7 +213,7 @@ export const BookingRequestHostEmail = ({
             </a>
           </div>
 
-          <div style={{ marginTop: '30px', padding: '15px', background: '#f9fafb', border-radius: '6px' }}>
+          <div style={{ marginTop: '30px', padding: '15px', background: '#f9fafb', borderRadius: '6px' }}>
             <h4 style={{ marginTop: 0 }}>👤 About the Guest</h4>
             <p style={{ marginBottom: '10px' }}><a href={guestProfileUrl} style={{ color: '#2d5016', fontWeight: '600' }}>View {guestName}'s Profile</a></p>
             <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>Check their reviews, verification status, and horse information before accepting.</p>

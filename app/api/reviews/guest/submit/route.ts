@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { moderateContent, getBlockedMessageText } from "@/lib/moderation";
 
 export async function POST(request: Request) {
   try {
@@ -88,6 +89,20 @@ export async function POST(request: Request) {
         { error: "You have already reviewed this guest" },
         { status: 400 }
       );
+    }
+
+    // Moderate review text
+    if (reviewText) {
+      const moderationResult = moderateContent(reviewText);
+      if (moderationResult.blocked) {
+        return NextResponse.json(
+          { 
+            error: getBlockedMessageText(moderationResult.reasons),
+            blocked: true 
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Create review

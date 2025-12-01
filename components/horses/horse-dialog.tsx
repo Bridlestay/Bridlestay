@@ -233,8 +233,14 @@ export function HorseDialog({ open, onOpenChange, horse, onSuccess }: HorseDialo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !breed || !gender) {
-      toast.error("Please fill in all required fields (Name, Breed, Gender)");
+    // Validate required fields
+    const missingFields = [];
+    if (!name) missingFields.push("Name");
+    if (!breed) missingFields.push("Breed");
+    if (!gender) missingFields.push("Gender");
+
+    if (missingFields.length > 0) {
+      toast.error(`Please fill in the following required fields: ${missingFields.join(", ")}`);
       return;
     }
 
@@ -463,7 +469,7 @@ export function HorseDialog({ open, onOpenChange, horse, onSuccess }: HorseDialo
                     id="age"
                     type="number"
                     min="0"
-                    max="50"
+                    max="65"
                     value={age}
                     onChange={(e) => setAge(e.target.value)}
                     placeholder="Auto-calculated from DOB"

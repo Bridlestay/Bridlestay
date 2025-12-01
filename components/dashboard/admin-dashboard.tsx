@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AnalyticsDashboard } from "@/components/admin/analytics-dashboard";
 import { ModerationDashboard } from "@/components/admin/moderation-dashboard";
 import { FeedbackDashboard } from "@/components/admin/feedback-dashboard";
+import { NewsManager } from "@/components/admin/news-manager";
 import { 
   BarChart3, 
   Shield, 
@@ -31,7 +32,8 @@ import {
   MoreVertical,
   MessageSquare,
   LayoutDashboard,
-  MessageSquarePlus
+  MessageSquarePlus,
+  Newspaper
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
@@ -500,6 +502,10 @@ export function AdminDashboard({ user }: { user: any }) {
           <MessageSquarePlus className="h-4 w-4" />
           Feedback
         </TabsTrigger>
+        <TabsTrigger value="news" className="gap-2">
+          <Newspaper className="h-4 w-4" />
+          News
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="analytics" className="space-y-6">
@@ -917,6 +923,10 @@ export function AdminDashboard({ user }: { user: any }) {
 
       <TabsContent value="feedback" className="space-y-6">
         <FeedbackDashboard />
+      </TabsContent>
+
+      <TabsContent value="news" className="space-y-6">
+        <NewsManager />
       </TabsContent>
     </Tabs>
 

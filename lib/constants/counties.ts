@@ -5,11 +5,13 @@
  * Launch Counties (Phase 1):
  * - Gloucestershire
  * - Herefordshire  
+ * - Shropshire
  * - Worcestershire
  */
 export const UK_COUNTIES = [
   "Gloucestershire",
   "Herefordshire",
+  "Shropshire",
   "Worcestershire",
 ];
 

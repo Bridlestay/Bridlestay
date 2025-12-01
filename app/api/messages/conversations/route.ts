@@ -92,6 +92,11 @@ export async function GET() {
         if (msg.recipient_id === user.id && !msg.read) {
           existing.unread = true;
         }
+        // Preserve property context if ANY message in the conversation has a property_id
+        if (msg.property_id && !existing.propertyId) {
+          existing.propertyId = msg.property_id;
+          existing.propertyName = msg.properties?.name;
+        }
       }
     });
 
@@ -123,6 +128,11 @@ export async function GET() {
         }
         if (msg.recipient_id === user.id && !msg.read) {
           existing.unread = true;
+        }
+        // Preserve property context if ANY message in the conversation has a property_id
+        if (msg.property_id && !existing.propertyId) {
+          existing.propertyId = msg.property_id;
+          existing.propertyName = msg.properties?.name;
         }
       }
     });

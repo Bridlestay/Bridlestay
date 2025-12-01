@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { CompletePropertySchema } from "@/lib/validations/property";
+import { moderateContent, validateUsername } from "@/lib/moderation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,6 +28,45 @@ export async function POST(request: NextRequest) {
 
     if (!userData || userData.role !== "host") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    // Moderate property name and description
+    if (propertyData.name) {
+      const nameValidation = validateUsername(propertyData.name);
+      if (!nameValidation.valid) {
+        return NextResponse.json(
+          { error: `Property name rejected: ${nameValidation.reason}` },
+          { status: 400 }
+        );
+      }
+
+      const nameModeration = moderateContent(propertyData.name);
+      if (nameModeration.blocked) {
+        return NextResponse.json(
+          { error: "Property name contains inappropriate content" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (propertyData.description) {
+      const descModeration = moderateContent(propertyData.description);
+      if (descModeration.blocked) {
+        return NextResponse.json(
+          { error: "Property description contains inappropriate or prohibited content (payment information, contact details, or offensive language)" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (propertyData.house_rules) {
+      const rulesModeration = moderateContent(propertyData.house_rules);
+      if (rulesModeration.blocked) {
+        return NextResponse.json(
+          { error: "House rules contain inappropriate content" },
+          { status: 400 }
+        );
+      }
     }
 
     // Create or update property

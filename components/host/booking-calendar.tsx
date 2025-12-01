@@ -303,6 +303,7 @@ export function BookingCalendar() {
                 onNavigate={handleNavigate}
                 onSelectEvent={handleSelectEvent}
                 eventPropGetter={eventStyleGetter}
+                views={['month', 'week']}
                 popup
               />
             </div>

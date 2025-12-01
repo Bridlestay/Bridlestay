@@ -14,8 +14,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Settings, LayoutDashboard, Heart, MessageCircle, MessageSquarePlus, Star } from "lucide-react";
+import { User, LogOut, Settings, LayoutDashboard, Heart, MessageCircle, MessageSquarePlus, Star, Menu, HelpCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function Header() {
   const [user, setUser] = useState<any>(null);
@@ -108,7 +109,7 @@ export function Header() {
           </span>
         </Link>
 
-        <nav className="hidden md:flex items-center space-x-6">
+        <nav className="hidden md:flex items-center space-x-6 flex-1 justify-center">
           <Link
             href="/search"
             className="text-sm font-medium transition-colors hover:text-primary"
@@ -121,116 +122,131 @@ export function Header() {
           >
             Routes
           </Link>
-          <Link
-            href="/host"
-            className="text-sm font-medium transition-colors hover:text-primary"
-          >
-            Become a Host
-          </Link>
-          <Link
-            href="/help"
-            className="text-sm font-medium transition-colors hover:text-primary"
-          >
-            Help
-          </Link>
+          {(!user || (user.role !== "host" && user.role !== "admin")) && (
+            <Link
+              href="/host"
+              className="text-sm font-medium transition-colors hover:text-primary"
+            >
+              Become a Host
+            </Link>
+          )}
         </nav>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
           {loading ? (
             <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
           ) : user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-5 w-5 text-primary" />
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {user.name}
-                    </p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user.email}
-                    </p>
-                    <p className="text-xs leading-none text-muted-foreground capitalize">
-                      {user.role} Account
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {user.role !== "admin" && (
+            <>
+              {/* Dashboard Button */}
+              {user.role !== "admin" && (
+                <Link href="/dashboard">
+                  <Button variant="ghost" size="sm">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Dashboard</span>
+                  </Button>
+                </Link>
+              )}
+
+              {/* Profile Picture - clickable to profile */}
+              <Link href="/profile">
+                <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                  <AvatarImage src={user.avatar_url || undefined} alt={user.name} />
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                    {user.name?.charAt(0).toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+
+              {/* Hamburger Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {user.name}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.email}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground capitalize">
+                        {user.role} Account
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard" className="cursor-pointer">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      Dashboard
+                    <Link href="/messages" className="cursor-pointer">
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Messages
+                      {unreadCount > 0 && (
+                        <Badge className="ml-auto bg-primary text-white">
+                          {unreadCount}
+                        </Badge>
+                      )}
                     </Link>
                   </DropdownMenuItem>
-                )}
-                <DropdownMenuItem asChild>
-                  <Link href="/messages" className="cursor-pointer">
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    Messages
-                    {unreadCount > 0 && (
-                      <Badge className="ml-auto bg-primary text-white">
-                        {unreadCount}
-                      </Badge>
-                    )}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/favorites" className="cursor-pointer">
-                    <Heart className="mr-2 h-4 w-4" />
-                    My Favorites
-                  </Link>
-                </DropdownMenuItem>
-                {(user.role === "host" || user.role === "admin") && (
                   <DropdownMenuItem asChild>
-                    <Link href="/host/listings" className="cursor-pointer">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      My Listings
+                    <Link href="/favorites" className="cursor-pointer">
+                      <Heart className="mr-2 h-4 w-4" />
+                      My Favorites
                     </Link>
                   </DropdownMenuItem>
-                )}
-                {user.role === "admin" && (
+                  {(user.role === "host" || user.role === "admin") && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/host/listings" className="cursor-pointer">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        My Listings
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {user.role === "admin" && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin/dashboard" className="cursor-pointer text-primary font-semibold">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Admin Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem asChild>
-                    <Link href="/admin/dashboard" className="cursor-pointer text-primary font-semibold">
+                    <Link href="/profile" className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/account" className="cursor-pointer">
                       <Settings className="mr-2 h-4 w-4" />
-                      Admin Dashboard
+                      Account Settings
                     </Link>
                   </DropdownMenuItem>
-                )}
-                <DropdownMenuItem asChild>
-                  <Link href="/profile" className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/account" className="cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Account Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/feedback" className="cursor-pointer">
-                    <MessageSquarePlus className="mr-2 h-4 w-4" />
-                    Send Feedback
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="cursor-pointer text-red-600 focus:text-red-600"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuItem asChild>
+                    <Link href="/help" className="cursor-pointer">
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      Help
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/feedback" className="cursor-pointer">
+                      <MessageSquarePlus className="mr-2 h-4 w-4" />
+                      Send Feedback
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           ) : (
             <div className="flex items-center space-x-2">
               <Link href="/auth/sign-in">

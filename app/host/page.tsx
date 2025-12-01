@@ -1,10 +1,92 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Header } from "@/components/header";
-import { CheckCircle2, Coins, Shield, Users } from "lucide-react";
+import { CheckCircle2, Coins, Shield, Users, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export default function HostPage() {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [upgrading, setUpgrading] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
+  const supabase = createClient();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+
+      if (authUser) {
+        const { data: userData } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", authUser.id)
+          .single();
+
+        setUser(userData);
+      }
+      setLoading(false);
+    };
+
+    getUser();
+  }, []);
+
+  const handleGetStarted = async () => {
+    // If not logged in, redirect to sign up
+    if (!user) {
+      router.push("/auth/sign-up");
+      return;
+    }
+
+    // If already a host or admin, go to new property page
+    if (user.role === "host" || user.role === "admin") {
+      router.push("/host/property/new");
+      return;
+    }
+
+    // If guest, upgrade to host first
+    setUpgrading(true);
+    try {
+      const response = await fetch("/api/host/become", {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to upgrade account");
+      }
+
+      toast({
+        title: "Welcome to hosting!",
+        description: "Your account has been upgraded to a host account.",
+      });
+
+      // Refresh the page to update the header and user state
+      router.refresh();
+      
+      // Wait a moment then redirect to new property page
+      setTimeout(() => {
+        router.push("/host/property/new");
+      }, 1000);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+      setUpgrading(false);
+    }
+  };
+
   return (
     <>
       <Header />
@@ -20,11 +102,22 @@ export default function HostPage() {
           <p className="text-xl md:text-2xl mb-8 opacity-90">
             Earn extra income while welcoming horse lovers to your countryside property
           </p>
-          <Link href="/host/property/new">
-            <Button size="lg" variant="secondary" className="text-lg px-8">
-              Get Started
-            </Button>
-          </Link>
+          <Button 
+            size="lg" 
+            variant="secondary" 
+            className="text-lg px-8"
+            onClick={handleGetStarted}
+            disabled={upgrading || loading}
+          >
+            {upgrading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Setting up your host account...
+              </>
+            ) : (
+              "Get Started"
+            )}
+          </Button>
         </div>
       </section>
 
@@ -187,11 +280,22 @@ export default function HostPage() {
           <p className="text-xl mb-8 opacity-90">
             Join BridleStay today and start earning from your property
           </p>
-          <Link href="/host/property/new">
-            <Button size="lg" variant="secondary" className="text-lg px-8">
-              Create Your Listing
-            </Button>
-          </Link>
+          <Button 
+            size="lg" 
+            variant="secondary" 
+            className="text-lg px-8"
+            onClick={handleGetStarted}
+            disabled={upgrading || loading}
+          >
+            {upgrading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Setting up...
+              </>
+            ) : (
+              "Create Your Listing"
+            )}
+          </Button>
         </div>
       </section>
     </main>
