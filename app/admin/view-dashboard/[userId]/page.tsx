@@ -51,7 +51,7 @@ export default async function AdminViewDashboardPage({
               <AlertTriangle className="h-12 w-12 text-yellow-600" />
               <h2 className="text-xl font-semibold">User Not Found</h2>
               <p className="text-muted-foreground text-center">
-                The user you're trying to view doesn't exist or has been deleted.
+                The user you&apos;re trying to view doesn&apos;t exist or has been deleted.
               </p>
               <Button asChild>
                 <Link href="/dashboard">
@@ -79,7 +79,7 @@ export default async function AdminViewDashboardPage({
                   Admin Viewing Mode
                 </p>
                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                  You are viewing {targetUser.name}'s dashboard ({targetUser.role})
+                  You are viewing {targetUser.name}&apos;s dashboard ({targetUser.role})
                 </p>
               </div>
             </div>

@@ -1,0 +1,61 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Riverside Walk", "type": "footpath" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.2456, 52.1912], [-2.2423, 52.1934], [-2.2389, 52.1956], [-2.2356, 52.1978],
+          [-2.2323, 52.2001], [-2.2289, 52.2023], [-2.2256, 52.2045]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Cathedral Path", "type": "footpath" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.7234, 52.0567], [-2.7201, 52.0589], [-2.7167, 52.0612], [-2.7134, 52.0634],
+          [-2.7101, 52.0656], [-2.7067, 52.0678]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Woodland Trail", "type": "footpath" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.3567, 52.0345], [-2.3534, 52.0367], [-2.3501, 52.0389], [-2.3467, 52.0412],
+          [-2.3434, 52.0434], [-2.3401, 52.0456]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Meadow Path", "type": "footpath" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.1234, 52.0912], [-2.1201, 52.0934], [-2.1167, 52.0956], [-2.1134, 52.0978],
+          [-2.1101, 52.1001], [-2.1067, 52.1023]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Hill Climb", "type": "footpath" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.4789, 52.1234], [-2.4756, 52.1256], [-2.4723, 52.1278], [-2.4689, 52.1301],
+          [-2.4656, 52.1323], [-2.4623, 52.1345]
+        ]
+      }
+    }
+  ]
+}
+

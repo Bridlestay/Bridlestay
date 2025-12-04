@@ -20,7 +20,7 @@ import { WaypointCard } from "./waypoint-card";
 import { NearbyPropertyCard } from "./nearby-property-card";
 import { RouteCompletion } from "./route-completion";
 import { calculateDistanceKm } from "@/lib/routes/distance-calculator";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/client";
 
 interface RouteDetailDrawerProps {
   routeId: string | null;
@@ -40,7 +40,7 @@ export function RouteDetailDrawer({
   const [loadingWaypoints, setLoadingWaypoints] = useState(false);
   const [loadingProperties, setLoadingProperties] = useState(false);
   const [userId, setUserId] = useState<string | undefined>();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
 
   useEffect(() => {
     const getUser = async () => {

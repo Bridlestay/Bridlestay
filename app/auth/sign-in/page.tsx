@@ -17,11 +17,19 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
+import { Shield } from "lucide-react";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // MFA states
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaVerifying, setMfaVerifying] = useState(false);
+  
   const router = useRouter();
   const { toast } = useToast();
 
@@ -31,12 +39,33 @@ export default function SignInPage() {
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+
+      // Check if MFA is required
+      if (data.session) {
+        // Get the current assurance level
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        
+        if (aal && aal.currentLevel !== aal.nextLevel && aal.nextLevel === "aal2") {
+          // MFA is required - get the factor
+          const { data: factorsData } = await supabase.auth.mfa.listFactors();
+          
+          if (factorsData && factorsData.totp.length > 0) {
+            const verifiedFactor = factorsData.totp.find(f => f.status === "verified");
+            if (verifiedFactor) {
+              setMfaFactorId(verifiedFactor.id);
+              setMfaRequired(true);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+      }
 
       toast({
         title: "Welcome back!",
@@ -53,6 +82,58 @@ export default function SignInPage() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMfaVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!mfaFactorId || mfaCode.length !== 6) {
+      toast({
+        variant: "destructive",
+        title: "Invalid code",
+        description: "Please enter a 6-digit verification code",
+      });
+      return;
+    }
+
+    setMfaVerifying(true);
+
+    try {
+      const supabase = createClient();
+      
+      // Create a challenge
+      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: mfaFactorId,
+      });
+
+      if (challengeError) throw challengeError;
+
+      // Verify the challenge
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challengeData.id,
+        code: mfaCode,
+      });
+
+      if (verifyError) throw verifyError;
+
+      toast({
+        title: "Welcome back!",
+        description: "Successfully signed in.",
+      });
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Verification failed",
+        description: error.message || "Invalid verification code. Please try again.",
+      });
+      setMfaCode("");
+    } finally {
+      setMfaVerifying(false);
     }
   };
 
@@ -93,6 +174,72 @@ export default function SignInPage() {
       setLoading(false);
     }
   };
+
+  // MFA Verification Screen
+  if (mfaRequired) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+              <Shield className="h-6 w-6 text-primary" />
+            </div>
+            <CardTitle className="font-serif text-2xl">Two-Factor Authentication</CardTitle>
+            <CardDescription>
+              Enter the 6-digit code from your authenticator app to continue
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleMfaVerify}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="mfa-code">Verification Code</Label>
+                <Input
+                  id="mfa-code"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={mfaCode}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "");
+                    setMfaCode(value);
+                  }}
+                  className="text-center text-2xl tracking-widest font-mono"
+                  autoFocus
+                  required
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Open your authenticator app (Google Authenticator, Authy, etc.) and enter the code for BridleStay
+              </p>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-3">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={mfaVerifying || mfaCode.length !== 6}
+              >
+                {mfaVerifying ? "Verifying..." : "Verify"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setMfaRequired(false);
+                  setMfaCode("");
+                  setMfaFactorId(null);
+                }}
+              >
+                Back to Sign In
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
@@ -159,4 +306,3 @@ export default function SignInPage() {
     </div>
   );
 }
-

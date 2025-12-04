@@ -1,0 +1,116 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Malvern Hills Bridleway", "type": "bridleway" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.3234, 52.1089], [-2.3198, 52.1102], [-2.3156, 52.1134], [-2.3112, 52.1167],
+          [-2.3078, 52.1198], [-2.3045, 52.1234], [-2.3012, 52.1267], [-2.2978, 52.1298]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Bromyard Bridleway", "type": "bridleway" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.5123, 52.1856], [-2.5089, 52.1878], [-2.5056, 52.1901], [-2.5023, 52.1923],
+          [-2.4989, 52.1945], [-2.4956, 52.1967], [-2.4923, 52.1989]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Ledbury Circular", "type": "bridleway" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.4234, 52.0345], [-2.4198, 52.0367], [-2.4167, 52.0389], [-2.4134, 52.0412],
+          [-2.4101, 52.0434], [-2.4067, 52.0456], [-2.4034, 52.0478], [-2.4001, 52.0501]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Hereford Loop", "type": "bridleway" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.7156, 52.0534], [-2.7123, 52.0556], [-2.7089, 52.0578], [-2.7056, 52.0601],
+          [-2.7023, 52.0623], [-2.6989, 52.0645], [-2.6956, 52.0667], [-2.6923, 52.0689]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Ross-on-Wye Trail", "type": "bridleway" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.5789, 51.9145], [-2.5756, 51.9167], [-2.5723, 51.9189], [-2.5689, 51.9212],
+          [-2.5656, 51.9234], [-2.5623, 51.9256], [-2.5589, 51.9278]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Worcester North", "type": "bridleway" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.2234, 52.2145], [-2.2198, 52.2167], [-2.2156, 52.2189], [-2.2123, 52.2212],
+          [-2.2089, 52.2234], [-2.2056, 52.2256], [-2.2023, 52.2278]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Upton Upon Severn", "type": "bridleway" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.2189, 52.0612], [-2.2156, 52.0634], [-2.2123, 52.0656], [-2.2089, 52.0678],
+          [-2.2056, 52.0701], [-2.2023, 52.0723], [-2.1989, 52.0745]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Pershore Path", "type": "bridleway" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.0789, 52.1123], [-2.0756, 52.1145], [-2.0723, 52.1167], [-2.0689, 52.1189],
+          [-2.0656, 52.1212], [-2.0623, 52.1234], [-2.0589, 52.1256]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Tewkesbury Bridleway", "type": "bridleway" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.1634, 51.9912], [-2.1601, 51.9934], [-2.1567, 51.9956], [-2.1534, 51.9978],
+          [-2.1501, 52.0001], [-2.1467, 52.0023], [-2.1434, 52.0045]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Evesham Vale", "type": "bridleway" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-1.9456, 52.0912], [-1.9423, 52.0934], [-1.9389, 52.0956], [-1.9356, 52.0978],
+          [-1.9323, 52.1001], [-1.9289, 52.1023], [-1.9256, 52.1045]
+        ]
+      }
+    }
+  ]
+}
+

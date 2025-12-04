@@ -15,6 +15,7 @@ import {
   Edit,
   CreditCard,
 } from "lucide-react";
+import { TwoFactorSettings } from "@/components/account/two-factor-settings";
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -152,6 +153,11 @@ export default async function AccountPage() {
             </CardContent>
           </Card>
 
+          {/* Two-Factor Authentication */}
+          <div className="mb-6">
+            <TwoFactorSettings />
+          </div>
+
           {/* Account Stats */}
           <Card className="mb-6">
             <CardHeader>
@@ -247,4 +253,3 @@ export default async function AccountPage() {
     </>
   );
 }
-

@@ -1,0 +1,28 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Estate Path", "type": "permissive" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.3012, 52.0789], [-2.2978, 52.0812], [-2.2945, 52.0834], [-2.2912, 52.0856],
+          [-2.2878, 52.0878], [-2.2845, 52.0901]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Farm Track", "type": "permissive" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.5234, 52.1567], [-2.5201, 52.1589], [-2.5167, 52.1612], [-2.5134, 52.1634],
+          [-2.5101, 52.1656]
+        ]
+      }
+    }
+  ]
+}
+

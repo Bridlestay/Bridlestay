@@ -1,32 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Card } from "@/components/ui/card";
 import { RouteCard } from "@/components/routes/route-card";
 import { RouteFilters } from "@/components/routes/route-filters";
-import { KMLLayerToggles } from "@/components/routes/kml-layer-toggles";
-import { RoutesMap } from "@/components/routes/routes-map";
+import { RoutesMapV2, RoutesMapV2Handle } from "@/components/routes/routes-map-v2";
 import { RouteDetailDrawer } from "@/components/routes/route-detail-drawer";
+import { RouteCreator, RouteCreatorToolbar, PathLayerToggles, Waypoint, RouteData, RouteStyle } from "@/components/routes/route-creator";
+import { KMLLayerToggles } from "@/components/routes/kml-layer-toggles";
+import { ClearRouteDialog, DiscardRouteDialog, DeleteRouteDialog } from "@/components/routes/confirm-dialog";
 import { Header } from "@/components/header";
 import { toast } from "sonner";
-import { MapPin, Plus, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Plus, Trash2, Compass, Route, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function RoutesPage() {
   const router = useRouter();
+  const mapRef = useRef<RoutesMapV2Handle>(null);
+  
   const [activeTab, setActiveTab] = useState("explore");
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -36,52 +30,54 @@ export default function RoutesPage() {
   const [exploreFilters, setExploreFilters] = useState<any>({});
   const [exploreLoading, setExploreLoading] = useState(false);
   const [exploreTotalCount, setExploreTotalCount] = useState(0);
-  
-  // All routes for map display
-  const [allMapRoutes, setAllMapRoutes] = useState<any[]>([]);
 
   // My Routes tab state
   const [myRoutes, setMyRoutes] = useState<any[]>([]);
   const [myRoutesLoading, setMyRoutesLoading] = useState(false);
 
-  // Create Route tab state
-  const [drawingMode, setDrawingMode] = useState(false);
-  const [drawnCoordinates, setDrawnCoordinates] = useState<[number, number][]>(
-    []
-  );
-  const [newRoute, setNewRoute] = useState({
-    title: "",
-    description: "",
-    county: "",
-    difficulty: "medium",
-    surface: "",
-    terrain_tags: [] as string[],
-    seasonal_notes: "",
-    is_public: true,
-    featured: false,
-  });
-  const [saving, setSaving] = useState(false);
+  // Create Route state
+  const [isCreating, setIsCreating] = useState(false);
+  const [isPlotting, setIsPlotting] = useState(false);
+  const [snapEnabled, setSnapEnabled] = useState(true);
+  const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
+  const [routeType, setRouteType] = useState<"circular" | "linear">("linear");
+  const [history, setHistory] = useState<Waypoint[][]>([]);
 
-  // Map state
-  const [kmlLayers, setKmlLayers] = useState({
-    bridleways: false,
+  // Dialog states
+  const [showClearDialog, setShowClearDialog] = useState(false);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [routeToDelete, setRouteToDelete] = useState<{id: string, name?: string} | null>(null);
+
+  // Path layer state
+  const [pathLayers, setPathLayers] = useState({
+    bridleways: true,
     boats: false,
     footpaths: false,
     permissive: false,
   });
 
+  // Route style state
+  const [routeStyle, setRouteStyle] = useState<RouteStyle>({
+    color: "#3B82F6",
+    thickness: 4,
+    opacity: 100,
+  });
+
+  const handlePathLayerToggle = (layer: string, enabled: boolean) => {
+    setPathLayers((prev) => ({ ...prev, [layer]: enabled }));
+  };
+
+  const handleStyleChange = (style: RouteStyle) => {
+    setRouteStyle(style);
+  };
+
   // Fetch explore routes
   useEffect(() => {
-    if (activeTab === "explore") {
+    if (activeTab === "explore" && !isCreating) {
       fetchExploreRoutes();
-      fetchAllMapRoutes(); // Load ALL routes for map
     }
-  }, [activeTab, exploreFilters]);
-  
-  // Fetch all routes for map on initial load
-  useEffect(() => {
-    fetchAllMapRoutes();
-  }, []);
+  }, [activeTab, exploreFilters, isCreating]);
 
   // Fetch my routes
   useEffect(() => {
@@ -96,7 +92,7 @@ export default function RoutesPage() {
       const res = await fetch("/api/routes/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(exploreFilters),
+        body: JSON.stringify({ ...exploreFilters, visibility: "public" }),
       });
 
       if (res.ok) {
@@ -111,24 +107,10 @@ export default function RoutesPage() {
       setExploreLoading(false);
     }
   };
-  
-  const fetchAllMapRoutes = async () => {
-    try {
-      const res = await fetch("/api/routes/map-routes");
-      if (res.ok) {
-        const data = await res.json();
-        setAllMapRoutes(data.routes || []);
-        console.log(`Loaded ${data.routes?.length || 0} routes for map`);
-      }
-    } catch (error) {
-      console.error("Failed to fetch map routes:", error);
-    }
-  };
 
   const fetchMyRoutes = async () => {
     setMyRoutesLoading(true);
     try {
-      // Fetch user's routes
       const res = await fetch("/api/routes/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -152,61 +134,102 @@ export default function RoutesPage() {
     setDrawerOpen(true);
   };
 
-  const handleKMLToggle = (layer: string, enabled: boolean) => {
-    setKmlLayers((prev) => ({ ...prev, [layer]: enabled }));
-  };
+  // Waypoint management
+  const addWaypoint = useCallback(
+    (lat: number, lng: number, snapped = false, pathType?: string) => {
+      setHistory((prev) => [...prev, waypoints]);
+      const newWaypoint: Waypoint = {
+        id: `wp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        lat,
+        lng,
+        snapped,
+        pathType: pathType as Waypoint["pathType"],
+      };
+      setWaypoints((prev) => [...prev, newWaypoint]);
+      toast.success(`Waypoint ${waypoints.length + 1} added${snapped ? " (snapped to path)" : ""}`);
+    },
+    [waypoints]
+  );
 
-  const handleDrawingComplete = (coordinates: [number, number][]) => {
-    setDrawnCoordinates(coordinates);
-    setDrawingMode(false);
-    toast.success("Route drawn! Fill in details below to save.");
-  };
+  const updateWaypoint = useCallback(
+    (id: string, lat: number, lng: number, snapped = false) => {
+      setHistory((prev) => [...prev, waypoints]);
+      setWaypoints((prev) =>
+        prev.map((wp) => (wp.id === id ? { ...wp, lat, lng, snapped } : wp))
+      );
+    },
+    [waypoints]
+  );
 
-  const handleSaveRoute = async () => {
-    if (!newRoute.title.trim()) {
-      toast.error("Please enter a route title");
-      return;
-    }
+  const removeWaypoint = useCallback(
+    (id: string) => {
+      setHistory((prev) => [...prev, waypoints]);
+      setWaypoints((prev) => prev.filter((wp) => wp.id !== id));
+      toast.info("Waypoint removed");
+    },
+    [waypoints]
+  );
 
-    if (drawnCoordinates.length < 2) {
-      toast.error("Please draw a route on the map first");
-      return;
-    }
+  const handleUndo = useCallback(() => {
+    if (history.length === 0) return;
+    const previousState = history[history.length - 1];
+    setHistory((prev) => prev.slice(0, -1));
+    setWaypoints(previousState);
+    toast.info("Undone");
+  }, [history]);
 
-    setSaving(true);
+  const handleClear = useCallback(() => {
+    if (waypoints.length === 0) return;
+    setShowClearDialog(true);
+  }, [waypoints]);
+
+  const confirmClear = useCallback(() => {
+    setHistory([]);
+    setWaypoints([]);
+    toast.info("Route cleared");
+  }, []);
+
+  const handleReverse = useCallback(() => {
+    if (waypoints.length < 2) return;
+    setHistory((prev) => [...prev, waypoints]);
+    setWaypoints((prev) => [...prev].reverse());
+    toast.success("Route reversed");
+  }, [waypoints]);
+
+  const handleRetrace = useCallback(() => {
+    if (waypoints.length < 2) return;
+    setHistory((prev) => [...prev, waypoints]);
+    // Create a return path by reversing and appending (excluding duplicate at junction)
+    const returnPath = [...waypoints].reverse().slice(1);
+    setWaypoints((prev) => [...prev, ...returnPath]);
+    toast.success("Route retraced back to start");
+  }, [waypoints]);
+
+  const handleSaveRoute = async (routeData: RouteData) => {
     try {
       const res = await fetch("/api/routes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...newRoute,
-          geometry: {
-            type: "LineString",
-            coordinates: drawnCoordinates,
-          },
+          title: routeData.title,
+          description: routeData.description,
+          visibility: routeData.visibility,
+          difficulty: routeData.difficulty,
+          route_type: routeData.routeType,
+          geometry: routeData.geometry,
+          distance_km: routeData.distanceKm,
+          estimated_time_minutes: routeData.estimatedTimeMinutes,
+          is_public: routeData.visibility === "public",
         }),
       });
 
       if (res.ok) {
-        const data = await res.json();
         toast.success("Route created successfully!");
-        
-        // Reset form
-        setNewRoute({
-          title: "",
-          description: "",
-          county: "",
-          difficulty: "medium",
-          surface: "",
-          terrain_tags: [],
-          seasonal_notes: "",
-          is_public: true,
-          featured: false,
-        });
-        setDrawnCoordinates([]);
-        
-        // Switch to My Routes tab
+        setIsCreating(false);
+        setWaypoints([]);
+        setHistory([]);
         setActiveTab("my-routes");
+        fetchMyRoutes();
       } else {
         const error = await res.json();
         toast.error(error.error || "Failed to create route");
@@ -214,16 +237,14 @@ export default function RoutesPage() {
     } catch (error) {
       console.error("Failed to save route:", error);
       toast.error("Failed to save route");
-    } finally {
-      setSaving(false);
     }
   };
 
-  const handleDeleteRoute = async (routeId: string) => {
-    if (!confirm("Are you sure you want to delete this route?")) return;
+  const handleDeleteRoute = async () => {
+    if (!routeToDelete) return;
 
     try {
-      const res = await fetch(`/api/routes/${routeId}`, {
+      const res = await fetch(`/api/routes/${routeToDelete.id}`, {
         method: "DELETE",
       });
 
@@ -235,105 +256,241 @@ export default function RoutesPage() {
       }
     } catch (error) {
       toast.error("Failed to delete route");
+    } finally {
+      setRouteToDelete(null);
     }
   };
 
+  const startCreating = () => {
+    setIsCreating(true);
+    setIsPlotting(true);
+  };
+
+  const cancelCreating = () => {
+    if (waypoints.length > 0) {
+      setShowDiscardDialog(true);
+    } else {
+      confirmCancel();
+    }
+  };
+
+  const confirmCancel = () => {
+    setIsCreating(false);
+    setIsPlotting(false);
+    setWaypoints([]);
+    setHistory([]);
+    setActiveTab("explore");
+  };
+
+  // Render Create Route view (sidebar layout)
+  if (isCreating) {
+    return (
+      <TooltipProvider>
+        <Header />
+        <div className="min-h-screen bg-background">
+          <div className="flex h-[calc(100vh-64px)]">
+            {/* Left sidebar - Route creator form + path toggles */}
+            <div className="w-80 border-r bg-background flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto">
+                <RouteCreator
+                  onSave={handleSaveRoute}
+                  onCancel={cancelCreating}
+                  mapRef={mapRef}
+                  existingRoute={{
+                    title: "",
+                    description: "",
+                    visibility: "private",
+                    difficulty: "unrated",
+                    routeType,
+                    waypoints,
+                    geometry: {
+                      type: "LineString",
+                      coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
+                    },
+                    distanceKm: 0,
+                    estimatedTimeMinutes: 0,
+                  }}
+                />
+              </div>
+              {/* Path layer toggles at bottom of sidebar */}
+              <div className="border-t p-4">
+                <PathLayerToggles
+                  layers={pathLayers}
+                  onToggle={handlePathLayerToggle}
+                />
+              </div>
+            </div>
+
+            {/* Map area - full width */}
+            <div className="flex-1 relative">
+              <RoutesMapV2
+                ref={mapRef}
+                isCreating={isCreating}
+                isPlotting={isPlotting}
+                snapEnabled={snapEnabled}
+                waypoints={waypoints}
+                routeType={routeType}
+                routeStyle={routeStyle}
+                pathLayers={pathLayers}
+                onWaypointAdd={addWaypoint}
+                onWaypointUpdate={updateWaypoint}
+                onWaypointRemove={removeWaypoint}
+              />
+
+              {/* Route creation toolbar */}
+              <RouteCreatorToolbar
+                isPlotting={isPlotting}
+                setIsPlotting={setIsPlotting}
+                snapEnabled={snapEnabled}
+                setSnapEnabled={setSnapEnabled}
+                onUndo={handleUndo}
+                onClear={handleClear}
+                onReverse={handleReverse}
+                onRetrace={handleRetrace}
+                canUndo={history.length > 0}
+                canReverse={waypoints.length >= 2}
+                canRetrace={waypoints.length >= 2}
+                routeStyle={routeStyle}
+                onStyleChange={handleStyleChange}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Dialogs */}
+        <ClearRouteDialog
+          open={showClearDialog}
+          onOpenChange={setShowClearDialog}
+          onConfirm={confirmClear}
+        />
+        <DiscardRouteDialog
+          open={showDiscardDialog}
+          onOpenChange={setShowDiscardDialog}
+          onConfirm={confirmCancel}
+        />
+      </TooltipProvider>
+    );
+  }
+
+  // Render Explore/My Routes view (original layout with map + cards)
   return (
-    <>
+    <TooltipProvider>
       <Header />
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
-          <div className="mb-6">
-            <h1 className="text-4xl font-bold mb-2">Routes</h1>
-            <p className="text-muted-foreground">
-              Explore riding routes, create your own, and discover bridleways
-            </p>
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">Routes</h1>
+              <p className="text-muted-foreground">
+                Discover riding routes or create your own
+              </p>
+            </div>
+            <Button onClick={startCreating} size="lg">
+              <Plus className="mr-2 h-5 w-5" />
+              Create Route
+            </Button>
           </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="explore">Explore</TabsTrigger>
-            <TabsTrigger value="my-routes">My Routes</TabsTrigger>
-            <TabsTrigger value="create">Create Route</TabsTrigger>
-          </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="explore">Explore Routes</TabsTrigger>
+              <TabsTrigger value="my-routes">My Routes</TabsTrigger>
+            </TabsList>
 
-          {/* EXPLORE TAB */}
-          <TabsContent value="explore" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left sidebar - Filters */}
-              <div className="space-y-4">
-                <RouteFilters onFilterChange={setExploreFilters} />
-                <KMLLayerToggles layers={kmlLayers} onToggle={handleKMLToggle} />
-              </div>
+            {/* EXPLORE TAB */}
+            <TabsContent value="explore" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left sidebar - Filters + Path Layers */}
+                <div className="space-y-4">
+                  <RouteFilters onFilterChange={setExploreFilters} />
+                  <KMLLayerToggles layers={pathLayers} onToggle={handlePathLayerToggle} />
+                </div>
 
-              {/* Main content - Map + Routes */}
-              <div className="lg:col-span-2 space-y-4">
-                {/* Map - shows ALL routes */}
-                <Card className="h-96 overflow-hidden">
-                  <RoutesMap
-                    routes={allMapRoutes}
-                    onRouteClick={handleRouteClick}
-                    kmlLayers={kmlLayers}
-                  />
-                </Card>
+                {/* Main content - Map + Routes */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Map */}
+                  <Card className="h-96 overflow-hidden">
+                    <RoutesMapV2
+                      routes={exploreRoutes}
+                      onRouteClick={handleRouteClick}
+                      pathLayers={pathLayers}
+                    />
+                  </Card>
 
-                {/* Routes list */}
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">
-                    {exploreLoading
-                      ? "Loading..."
-                      : `${exploreTotalCount} routes found${exploreRoutes.length < exploreTotalCount ? ` (showing ${exploreRoutes.length})` : ''}`}
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {exploreRoutes.map((route) => (
-                      <RouteCard
-                        key={route.id}
-                        route={route}
-                        onClick={() => handleRouteClick(route.id)}
-                      />
-                    ))}
+                  {/* Routes list */}
+                  <div>
+                    <h2 className="text-xl font-semibold mb-4">
+                      {exploreLoading
+                        ? "Loading..."
+                        : exploreTotalCount > 0
+                        ? `${exploreTotalCount} public routes`
+                        : "No public routes yet"}
+                    </h2>
+
+                    {exploreRoutes.length === 0 && !exploreLoading ? (
+                      <Card className="p-8 text-center">
+                        <Compass className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No routes found</h3>
+                        <p className="text-muted-foreground mb-6">
+                          Be the first to share a riding route in this area!
+                        </p>
+                        <Button onClick={startCreating}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Create First Route
+                        </Button>
+                      </Card>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {exploreRoutes.map((route) => (
+                          <RouteCard
+                            key={route.id}
+                            route={route}
+                            onClick={() => handleRouteClick(route.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {exploreRoutes.length === 0 && !exploreLoading && (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <p className="text-lg mb-2">No routes found</p>
-                      <p className="text-sm">Try adjusting your filters</p>
-                    </div>
-                  )}
                 </div>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          {/* MY ROUTES TAB */}
-          <TabsContent value="my-routes" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-4">
-                <Card className="h-96 overflow-hidden">
-                  <RoutesMap
-                    routes={myRoutes}
-                    onRouteClick={handleRouteClick}
-                    kmlLayers={kmlLayers}
-                  />
-                </Card>
+            {/* MY ROUTES TAB */}
+            <TabsContent value="my-routes" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Map + Path Layers */}
+                <div className="lg:col-span-2 space-y-4">
+                  <Card className="h-96 overflow-hidden">
+                    <RoutesMapV2
+                      routes={myRoutes}
+                      onRouteClick={handleRouteClick}
+                      pathLayers={pathLayers}
+                    />
+                  </Card>
+                  <KMLLayerToggles layers={pathLayers} onToggle={handlePathLayerToggle} />
+                </div>
 
+                {/* Routes list */}
                 <div>
                   <h2 className="text-xl font-semibold mb-4">
                     {myRoutesLoading
                       ? "Loading..."
                       : `Your Routes (${myRoutes.length})`}
                   </h2>
-                  {myRoutes.length === 0 ? (
-                    <Card className="p-8 text-center">
-                      <p className="text-muted-foreground mb-4">
+
+                  {myRoutes.length === 0 && !myRoutesLoading ? (
+                    <Card className="p-6 text-center">
+                      <Route className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                      <p className="text-sm text-muted-foreground mb-4">
                         You haven't created any routes yet
                       </p>
-                      <Button onClick={() => setActiveTab("create")}>
+                      <Button onClick={startCreating} variant="outline">
                         <Plus className="mr-2 h-4 w-4" />
                         Create Your First Route
                       </Button>
                     </Card>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
                       {myRoutes.map((route) => (
                         <div key={route.id} className="relative">
                           <RouteCard
@@ -343,10 +500,11 @@ export default function RoutesPage() {
                           <Button
                             variant="destructive"
                             size="icon"
-                            className="absolute top-2 right-2"
+                            className="absolute top-2 right-2 h-8 w-8"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteRoute(route.id);
+                              setRouteToDelete({ id: route.id, name: route.title });
+                              setShowDeleteDialog(true);
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -357,164 +515,28 @@ export default function RoutesPage() {
                   )}
                 </div>
               </div>
+            </TabsContent>
+          </Tabs>
+        </div>
 
-              <div className="space-y-4">
-                <KMLLayerToggles layers={kmlLayers} onToggle={handleKMLToggle} />
-              </div>
-            </div>
-          </TabsContent>
+        {/* Route Detail Drawer */}
+        <RouteDetailDrawer
+          routeId={selectedRouteId}
+          open={drawerOpen}
+          onClose={() => {
+            setDrawerOpen(false);
+            setSelectedRouteId(null);
+          }}
+        />
 
-          {/* CREATE ROUTE TAB */}
-          <TabsContent value="create" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Map with drawing */}
-              <div className="lg:col-span-2 space-y-4">
-                <Card className="h-[600px] overflow-hidden">
-                  <RoutesMap
-                    drawingMode={drawingMode}
-                    onDrawingComplete={handleDrawingComplete}
-                    kmlLayers={kmlLayers}
-                  />
-                </Card>
-
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => setDrawingMode(!drawingMode)}
-                    variant={drawingMode ? "default" : "outline"}
-                  >
-                    <MapPin className="mr-2 h-4 w-4" />
-                    {drawingMode ? "Drawing..." : "Start Drawing Route"}
-                  </Button>
-                  {drawnCoordinates.length > 0 && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setDrawnCoordinates([]);
-                        toast.info("Route cleared");
-                      }}
-                    >
-                      Clear Route
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Route details form */}
-              <div className="space-y-4">
-                <Card className="p-4 space-y-4">
-                  <h2 className="text-xl font-semibold">Route Details</h2>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Title *</Label>
-                    <Input
-                      id="title"
-                      value={newRoute.title}
-                      onChange={(e) =>
-                        setNewRoute({ ...newRoute, title: e.target.value })
-                      }
-                      placeholder="e.g., Malvern Hills Loop"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={newRoute.description}
-                      onChange={(e) =>
-                        setNewRoute({ ...newRoute, description: e.target.value })
-                      }
-                      placeholder="Describe the route..."
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="county">County</Label>
-                    <Select
-                      value={newRoute.county}
-                      onValueChange={(value) =>
-                        setNewRoute({ ...newRoute, county: value })
-                      }
-                    >
-                      <SelectTrigger id="county">
-                        <SelectValue placeholder="Select county" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Worcestershire">Worcestershire</SelectItem>
-                        <SelectItem value="Herefordshire">Herefordshire</SelectItem>
-                        <SelectItem value="Gloucestershire">
-                          Gloucestershire
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="difficulty">Difficulty</Label>
-                    <Select
-                      value={newRoute.difficulty}
-                      onValueChange={(value) =>
-                        setNewRoute({ ...newRoute, difficulty: value })
-                      }
-                    >
-                      <SelectTrigger id="difficulty">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="easy">Easy</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="hard">Hard</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="surface">Surface Type</Label>
-                    <Input
-                      id="surface"
-                      value={newRoute.surface}
-                      onChange={(e) =>
-                        setNewRoute({ ...newRoute, surface: e.target.value })
-                      }
-                      placeholder="e.g., Grass, Track, Mixed"
-                    />
-                  </div>
-
-                  {drawnCoordinates.length > 0 && (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-sm text-green-900">
-                        ✓ Route drawn ({drawnCoordinates.length} points)
-                      </p>
-                    </div>
-                  )}
-
-                  <Button
-                    onClick={handleSaveRoute}
-                    className="w-full"
-                    disabled={saving || drawnCoordinates.length < 2}
-                  >
-                    {saving ? "Saving..." : "Save Route"}
-                  </Button>
-                </Card>
-
-                <KMLLayerToggles layers={kmlLayers} onToggle={handleKMLToggle} />
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+        {/* Delete Route Dialog */}
+        <DeleteRouteDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          onConfirm={handleDeleteRoute}
+          routeName={routeToDelete?.name}
+        />
       </div>
-
-      {/* Route Detail Drawer */}
-      <RouteDetailDrawer
-        routeId={selectedRouteId}
-        open={drawerOpen}
-        onClose={() => {
-          setDrawerOpen(false);
-          setSelectedRouteId(null);
-        }}
-      />
-      </div>
-    </>
+    </TooltipProvider>
   );
 }

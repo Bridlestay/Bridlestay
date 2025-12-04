@@ -92,7 +92,7 @@ export const NewMessageEmail = ({
           <p>You have a new message from <strong>{senderName}</strong>{propertyName && ` about ${propertyName}`}.</p>
 
           <div className="message-preview">
-            "{messagePreview.length > 200 ? messagePreview.substring(0, 200) + '...' : messagePreview}"
+            &quot;{messagePreview.length > 200 ? messagePreview.substring(0, 200) + '...' : messagePreview}&quot;
           </div>
 
           <div style={{ textAlign: 'center' }}>
@@ -126,7 +126,7 @@ export const NewMessageEmail = ({
             <a href="https://bridlestay.com/help" style={{ color: '#6b7280' }}>Help</a>
           </p>
           <p style={{ marginTop: '15px' }}>
-            You're receiving this because someone sent you a message on BridleStay.<br/>
+            You&apos;re receiving this because someone sent you a message on BridleStay.<br/>
             You can manage your email preferences in your account settings.
           </p>
         </div>

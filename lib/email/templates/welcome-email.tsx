@@ -116,12 +116,12 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
           <p style={{ fontSize: '18px' }}>Hi {userName},</p>
           
           <p style={{ fontSize: '16px' }}>
-            We're thrilled to have you join the BridleStay community! 🎉
+            We&apos;re thrilled to have you join the BridleStay community! 🎉
           </p>
 
           <p>
-            Whether you're searching for the perfect equestrian-friendly accommodation or sharing your own property 
-            with fellow horse lovers, you're in the right place.
+            Whether you&apos;re searching for the perfect equestrian-friendly accommodation or sharing your own property 
+            with fellow horse lovers, you&apos;re in the right place.
           </p>
 
           <div className="cta-box">
@@ -202,7 +202,7 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
           </ul>
 
           <p style={{ marginTop: '35px', fontSize: '16px' }}>
-            Thank you for choosing BridleStay. We can't wait to see where your equestrian adventures take you!
+            Thank you for choosing BridleStay. We can&apos;t wait to see where your equestrian adventures take you!
           </p>
 
           <p style={{ fontSize: '16px' }}>
@@ -219,7 +219,7 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
             <a href="https://bridlestay.com/help" style={{ color: '#6b7280' }}>Help</a>
           </p>
           <p style={{ marginTop: '15px' }}>
-            You're receiving this email because you created an account at BridleStay.
+            You&apos;re receiving this email because you created an account at BridleStay.
           </p>
         </div>
       </body>

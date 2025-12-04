@@ -1,0 +1,39 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Ancient Byway 1", "type": "boat" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.4567, 52.0789], [-2.4534, 52.0812], [-2.4501, 52.0834], [-2.4467, 52.0856],
+          [-2.4434, 52.0878], [-2.4401, 52.0901], [-2.4367, 52.0923]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Old Roman Road", "type": "boat" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.3189, 52.1456], [-2.3156, 52.1478], [-2.3123, 52.1501], [-2.3089, 52.1523],
+          [-2.3056, 52.1545], [-2.3023, 52.1567], [-2.2989, 52.1589]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Forest Track BOAT", "type": "boat" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-2.5789, 52.0234], [-2.5756, 52.0256], [-2.5723, 52.0278], [-2.5689, 52.0301],
+          [-2.5656, 52.0323], [-2.5623, 52.0345]
+        ]
+      }
+    }
+  ]
+}
+
