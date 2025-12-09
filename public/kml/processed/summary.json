@@ -1,0 +1,43 @@
+{
+  "lastUpdated": "2025-12-09T18:34:45.783Z",
+  "types": {
+    "boat": {
+      "files": [
+        "boat.json"
+      ],
+      "totalCount": 10390,
+      "totalSizeMB": 6.106387138366699
+    },
+    "bridleway": {
+      "files": [
+        "bridleway.json"
+      ],
+      "totalCount": 77924,
+      "totalSizeMB": 49.799625396728516
+    },
+    "footpath": {
+      "files": [
+        "footpath_1.json",
+        "footpath_2.json",
+        "footpath_3.json"
+      ],
+      "totalCount": 434824,
+      "totalSizeMB": 234.80470275878906
+    },
+    "unknown": {
+      "files": [
+        "unknown.json"
+      ],
+      "totalCount": 11537,
+      "totalSizeMB": 6.901494026184082
+    }
+  },
+  "allFiles": [
+    "boat.json",
+    "bridleway.json",
+    "footpath_1.json",
+    "footpath_2.json",
+    "footpath_3.json",
+    "unknown.json"
+  ]
+}
