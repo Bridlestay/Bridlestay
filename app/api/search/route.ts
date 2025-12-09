@@ -22,6 +22,7 @@ export async function POST(request: Request) {
       paddock,
       washBay,
       sortBy,
+      bounds, // Map bounds for geo-filtering
     } = body;
 
     const supabase = await createClient();
@@ -229,6 +230,24 @@ export async function POST(request: Request) {
           ? property.property_equine[0]
           : property.property_equine;
         return equineData?.wash_bay === true;
+      });
+    }
+
+    // Filter by map bounds (geo-filtering)
+    if (bounds && bounds.north && bounds.south && bounds.east && bounds.west) {
+      filteredProperties = filteredProperties.filter((property) => {
+        // Skip properties without coordinates
+        if (!property.latitude || !property.longitude) return false;
+        
+        const lat = parseFloat(property.latitude);
+        const lng = parseFloat(property.longitude);
+        
+        return (
+          lat <= bounds.north &&
+          lat >= bounds.south &&
+          lng <= bounds.east &&
+          lng >= bounds.west
+        );
       });
     }
 
