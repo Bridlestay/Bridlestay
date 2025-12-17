@@ -33,19 +33,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update property verification status (always verify when this endpoint is called)
+    // Update property verification status and publish when verified
     const { error } = await supabase
       .from("properties")
       .update({
         admin_verified: true,
         verified_at: new Date().toISOString(),
         verified_by: user.id,
+        published: true,
+        pending_verification: false,
       })
       .eq("id", propertyId);
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true });
+    // TODO: Send email notification to host that their property is now live
+
+    return NextResponse.json({ success: true, message: "Property verified and published" });
   } catch (error: any) {
     console.error("Error verifying property:", error);
     return NextResponse.json(

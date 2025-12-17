@@ -41,7 +41,7 @@ export default function SafetyPage() {
                     </div>
                   </div>
                   <p className="text-sm text-red-700 dark:text-red-300 mt-3">
-                    After ensuring everyone's safety, report the incident through your BridleStay booking page.
+                    After ensuring everyone's safety, report the incident through your Bridlestay booking page.
                   </p>
                 </div>
               </div>
@@ -268,9 +268,9 @@ export default function SafetyPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h3 className="font-semibold mb-2">Always use BridleStay's platform</h3>
+                  <h3 className="font-semibold mb-2">Always use Bridlestay's platform</h3>
                   <p className="text-muted-foreground mb-3">
-                    For your protection, always book and communicate through BridleStay. Never arrange payment outside the platform.
+                    For your protection, always book and communicate through Bridlestay. Never arrange payment outside the platform.
                   </p>
                   <div className="space-y-2">
                     <div className="flex items-start gap-2 text-sm">
@@ -283,7 +283,7 @@ export default function SafetyPage() {
                     </div>
                     <div className="flex items-start gap-2 text-sm">
                       <span className="text-red-600 mt-1">✗</span>
-                      <span className="text-muted-foreground">Don't communicate or pay outside BridleStay</span>
+                      <span className="text-muted-foreground">Don't communicate or pay outside Bridlestay</span>
                     </div>
                     <div className="flex items-start gap-2 text-sm">
                       <span className="text-red-600 mt-1">✗</span>
@@ -344,7 +344,7 @@ export default function SafetyPage() {
                       <span className="text-primary font-semibold">3</span>
                     </div>
                     <div>
-                      <p className="font-medium">Report through BridleStay</p>
+                      <p className="font-medium">Report through Bridlestay</p>
                       <p className="text-sm text-muted-foreground">Use the feedback form or report option on your booking page</p>
                     </div>
                   </div>
@@ -375,7 +375,7 @@ export default function SafetyPage() {
                   <FileText className="h-12 w-12 text-primary mx-auto mb-4" />
                   <h2 className="font-serif text-2xl font-bold mb-2">Additional Resources</h2>
                   <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-                    Learn more about staying safe on BridleStay
+                    Learn more about staying safe on Bridlestay
                   </p>
                   <div className="flex flex-wrap gap-4 justify-center">
                     <Button variant="outline" asChild>

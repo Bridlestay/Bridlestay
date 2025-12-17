@@ -108,7 +108,7 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
       <body>
         <div className="header">
           <div className="horse-emoji">🐴</div>
-          <h1>Welcome to BridleStay!</h1>
+          <h1>Welcome to Bridlestay!</h1>
           <p style={{ margin: '5px 0 0 0', fontSize: '16px' }}>The home of equestrian travel</p>
         </div>
         
@@ -116,7 +116,7 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
           <p style={{ fontSize: '18px' }}>Hi {userName},</p>
           
           <p style={{ fontSize: '16px' }}>
-            We&apos;re thrilled to have you join the BridleStay community! 🎉
+            We&apos;re thrilled to have you join the Bridlestay community! 🎉
           </p>
 
           <p>
@@ -168,7 +168,7 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
             </a>
           </div>
 
-          <h3>What Makes BridleStay Special?</h3>
+          <h3>What Makes Bridlestay Special?</h3>
           <ul style={{ paddingLeft: '20px', color: '#4b5563' }}>
             <li>
               <strong>Horse-First Design:</strong> Every property includes detailed equine facilities information
@@ -202,24 +202,24 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
           </ul>
 
           <p style={{ marginTop: '35px', fontSize: '16px' }}>
-            Thank you for choosing BridleStay. We can&apos;t wait to see where your equestrian adventures take you!
+            Thank you for choosing Bridlestay. We can&apos;t wait to see where your equestrian adventures take you!
           </p>
 
           <p style={{ fontSize: '16px' }}>
             Happy trails! 🐎<br/>
-            <strong>The BridleStay Team</strong>
+            <strong>The Bridlestay Team</strong>
           </p>
         </div>
 
         <div className="footer">
-          <p>© {new Date().getFullYear()} BridleStay. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Bridlestay. All rights reserved.</p>
           <p>
             <a href="https://bridlestay.com/terms" style={{ color: '#6b7280' }}>Terms</a> | 
             <a href="https://bridlestay.com/privacy" style={{ color: '#6b7280' }}>Privacy</a> | 
             <a href="https://bridlestay.com/help" style={{ color: '#6b7280' }}>Help</a>
           </p>
           <p style={{ marginTop: '15px' }}>
-            You&apos;re receiving this email because you created an account at BridleStay.
+            You&apos;re receiving this email because you created an account at Bridlestay.
           </p>
         </div>
       </body>

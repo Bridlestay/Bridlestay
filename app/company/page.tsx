@@ -13,7 +13,7 @@ export default function CompanyPage() {
             <dl className="space-y-4">
               <div>
                 <dt className="font-semibold">Company Name:</dt>
-                <dd>BridleStay Limited</dd>
+                <dd>Bridlestay Limited</dd>
               </div>
               <div>
                 <dt className="font-semibold">Registered Office:</dt>
@@ -55,9 +55,9 @@ export default function CompanyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">About BridleStay</h2>
+            <h2 className="text-2xl font-semibold mb-4">About Bridlestay</h2>
             <p>
-              BridleStay is the UK&apos;s premier equestrian accommodation marketplace, connecting horse owners
+              Bridlestay is the UK&apos;s premier equestrian accommodation marketplace, connecting horse owners
               with verified hosts who offer specialized equestrian facilities. We are committed to providing
               safe, high-quality accommodations for both horses and riders throughout the UK.
             </p>

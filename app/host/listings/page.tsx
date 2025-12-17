@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { PencilIcon, Eye, Trash2 } from "lucide-react";
+import { PencilIcon, Eye, Trash2, Clock, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -101,10 +101,18 @@ export default function MyListingsPage() {
         return;
       }
 
-      toast({
-        title: "Success!",
-        description: "Your property has been published and is now live.",
-      });
+      // Check if it's pending verification or immediately published
+      if (data.pendingVerification) {
+        toast({
+          title: "Submitted for Verification",
+          description: data.message || "Your property has been submitted for verification. Our team will review it within 24-48 hours.",
+        });
+      } else {
+        toast({
+          title: "Success!",
+          description: "Your property has been published and is now live.",
+        });
+      }
 
       // Refresh the properties
       window.location.reload();
@@ -229,13 +237,21 @@ export default function MyListingsPage() {
                                 {property.city}, {property.county}
                               </p>
                             </div>
-                            <Badge
-                              variant={
-                                property.published ? "default" : "secondary"
-                              }
-                            >
-                              {property.published ? "Published" : "Draft"}
-                            </Badge>
+                            {property.published ? (
+                              <Badge variant="default" className="bg-green-600">
+                                <CheckCircle2 className="mr-1 h-3 w-3" />
+                                Published
+                              </Badge>
+                            ) : property.pending_verification ? (
+                              <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300">
+                                <Clock className="mr-1 h-3 w-3" />
+                                Pending Verification
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary">
+                                Draft
+                              </Badge>
+                            )}
                           </div>
 
                           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 my-4 text-sm">
@@ -263,16 +279,27 @@ export default function MyListingsPage() {
                             </div>
                           </div>
 
+                          {/* Verification Status Message */}
+                          {property.pending_verification && !property.published && (
+                            <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                              <p className="text-sm text-amber-800">
+                                <Clock className="inline h-4 w-4 mr-1" />
+                                <strong>Awaiting Verification</strong> - Our team is reviewing your listing. 
+                                This usually takes 24-48 hours. We&apos;ll notify you when it&apos;s approved.
+                              </p>
+                            </div>
+                          )}
+
                           {/* Publish Checklist */}
-                          {!property.published && (
+                          {!property.published && !property.pending_verification && (
                             <div className="mb-4">
                               <p className="text-sm font-medium text-yellow-600 mb-2">
-                                Complete these to publish:
+                                Complete these to submit for verification:
                               </p>
                               <ul className="text-sm space-y-1">
                                 {photoCount < 8 && (
                                   <li className="text-muted-foreground">
-                                    • Add at least 8 photos ({photoCount}/8)
+                                    • Add at least 8 property photos ({photoCount}/8)
                                   </li>
                                 )}
                                 {!property.description ||
@@ -307,6 +334,7 @@ export default function MyListingsPage() {
                               </Link>
                             )}
                             {!property.published &&
+                              !property.pending_verification &&
                               photoCount >= 8 &&
                               property.description?.length >= 200 &&
                               maxHorses > 0 && (
@@ -314,7 +342,7 @@ export default function MyListingsPage() {
                                   size="sm"
                                   onClick={() => handlePublish(property.id)}
                                 >
-                                  Publish
+                                  Submit for Verification
                                 </Button>
                               )}
                             <AlertDialog>

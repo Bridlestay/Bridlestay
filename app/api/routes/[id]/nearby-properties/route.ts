@@ -43,7 +43,7 @@ export async function GET(
     const minLng = centerLng - lngOffset;
     const maxLng = centerLng + lngOffset;
 
-    // Get properties in the area (published only)
+    // Get properties in the area (published only) - use correct column names lat/lng
     const { data: properties, error: propertiesError } = await supabase
       .from("properties")
       .select(
@@ -52,21 +52,23 @@ export async function GET(
         name,
         city,
         county,
-        latitude,
-        longitude,
+        lat,
+        lng,
         nightly_price_pennies,
         max_guests,
-        avg_rating,
+        average_rating,
         review_count,
-        property_photos!inner (url, order_index),
-        property_facilities (stable_count, paddock_count)
+        property_photos (url, order),
+        property_equine (stable_count, paddock_available)
       `
       )
       .eq("published", true)
-      .gte("latitude", minLat)
-      .lte("latitude", maxLat)
-      .gte("longitude", minLng)
-      .lte("longitude", maxLng)
+      .not("lat", "is", null)
+      .not("lng", "is", null)
+      .gte("lat", minLat)
+      .lte("lat", maxLat)
+      .gte("lng", minLng)
+      .lte("lng", maxLng)
       .limit(20);
 
     if (propertiesError) throw propertiesError;
@@ -75,9 +77,9 @@ export async function GET(
     const propertiesWithDistance = (properties || []).map((property) => {
       // Calculate distance from route midpoint using Haversine formula
       const lat1 = (centerLat * Math.PI) / 180;
-      const lat2 = (property.latitude * Math.PI) / 180;
-      const deltaLat = ((property.latitude - centerLat) * Math.PI) / 180;
-      const deltaLng = ((property.longitude - centerLng) * Math.PI) / 180;
+      const lat2 = (Number(property.lat) * Math.PI) / 180;
+      const deltaLat = ((Number(property.lat) - centerLat) * Math.PI) / 180;
+      const deltaLng = ((Number(property.lng) - centerLng) * Math.PI) / 180;
 
       const a =
         Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
@@ -87,14 +89,14 @@ export async function GET(
 
       // Get first photo
       const photos = Array.isArray(property.property_photos)
-        ? property.property_photos.sort((a: any, b: any) => a.order_index - b.order_index)
+        ? property.property_photos.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
         : [];
       const mainPhoto = photos[0]?.url || null;
 
       // Get facility info
-      const facilities = Array.isArray(property.property_facilities)
-        ? property.property_facilities[0]
-        : property.property_facilities;
+      const equineData = Array.isArray(property.property_equine)
+        ? property.property_equine[0]
+        : property.property_equine;
 
       return {
         id: property.id,
@@ -102,16 +104,16 @@ export async function GET(
         city: property.city,
         county: property.county,
         // Privacy: provide approximate lat/lng (rounded to 2 decimals ≈ 1km accuracy)
-        approximateLat: Math.round(property.latitude * 100) / 100,
-        approximateLng: Math.round(property.longitude * 100) / 100,
+        approximateLat: Math.round(Number(property.lat) * 100) / 100,
+        approximateLng: Math.round(Number(property.lng) * 100) / 100,
         distanceKm: Math.round(distance * 10) / 10, // Round to 1 decimal
         pricePerNight: property.nightly_price_pennies / 100,
         maxGuests: property.max_guests,
-        avgRating: property.avg_rating,
+        avgRating: property.average_rating,
         reviewCount: property.review_count,
         mainPhoto,
-        stableCount: facilities?.stable_count || 0,
-        paddockCount: facilities?.paddock_count || 0,
+        stableCount: equineData?.stable_count || 0,
+        hasPaddock: equineData?.paddock_available || false,
       };
     });
 

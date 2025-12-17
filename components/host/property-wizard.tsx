@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PropertyBasicsStep } from "@/components/host/steps/basics-step";
 import { PropertyAmenitiesStep } from "@/components/host/steps/amenities-step";
 import { PropertyEquineStep } from "@/components/host/steps/equine-step";
+import { PropertyFacilityPhotosStep } from "@/components/host/steps/facility-photos-step";
 import { PropertyPhotosStep } from "@/components/host/steps/photos-step";
 import { PropertyPricingStep } from "@/components/host/steps/pricing-step";
 import { ArrowLeft, ArrowRight } from "lucide-react";
@@ -29,8 +30,9 @@ export function PropertyWizard({ userId, propertyId, initialData }: PropertyWiza
     { number: 1, title: "Basics", component: PropertyBasicsStep },
     { number: 2, title: "Amenities", component: PropertyAmenitiesStep },
     { number: 3, title: "Horse Facilities", component: PropertyEquineStep },
-    { number: 4, title: "Photos", component: PropertyPhotosStep },
-    { number: 5, title: "Pricing", component: PropertyPricingStep },
+    { number: 4, title: "Facility Photos", component: PropertyFacilityPhotosStep },
+    { number: 5, title: "Property Photos", component: PropertyPhotosStep },
+    { number: 6, title: "Pricing", component: PropertyPricingStep },
   ];
 
   const CurrentStepComponent = steps[currentStep - 1].component;

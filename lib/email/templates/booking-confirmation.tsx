@@ -204,12 +204,12 @@ export const BookingConfirmationEmail = ({
 
           <p style={{ marginTop: '30px' }}>
             Happy trails! 🐎<br/>
-            <strong>The BridleStay Team</strong>
+            <strong>The Bridlestay Team</strong>
           </p>
         </div>
 
         <div className="footer">
-          <p>© {new Date().getFullYear()} BridleStay. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Bridlestay. All rights reserved.</p>
           <p>
             <a href="https://bridlestay.com/terms" style={{ color: '#6b7280' }}>Terms</a> | 
             <a href="https://bridlestay.com/privacy" style={{ color: '#6b7280' }}>Privacy</a> | 

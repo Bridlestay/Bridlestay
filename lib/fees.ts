@@ -1,5 +1,5 @@
 /**
- * Fee Calculations for BridleStay
+ * Fee Calculations for Bridlestay
  *
  * Business Rules:
  * - Guest fee: 12.5% of base price, capped at £150 (15000 pennies)

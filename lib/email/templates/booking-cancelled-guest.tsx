@@ -167,7 +167,7 @@ export const BookingCancelledGuestEmail = ({
               </div>
 
               <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '20px' }}>
-                <strong>Note:</strong> Host cancellations are taken very seriously at BridleStay. 
+                <strong>Note:</strong> Host cancellations are taken very seriously at Bridlestay. 
                 Repeated cancellations may result in penalties or removal from our platform.
               </p>
             </>
@@ -179,12 +179,12 @@ export const BookingCancelledGuestEmail = ({
 
           <p style={{ marginTop: '30px' }}>
             {isHostCancelled ? 'We apologize again for the inconvenience.' : 'We hope to see you again soon!'}<br/>
-            <strong>The BridleStay Team</strong>
+            <strong>The Bridlestay Team</strong>
           </p>
         </div>
 
         <div className="footer">
-          <p>© {new Date().getFullYear()} BridleStay. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Bridlestay. All rights reserved.</p>
           <p>
             <a href="https://bridlestay.com/cancellation-policy" style={{ color: '#6b7280' }}>Cancellation Policy</a> | 
             <a href="https://bridlestay.com/help" style={{ color: '#6b7280' }}>Help</a>

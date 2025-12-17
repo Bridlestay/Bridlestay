@@ -125,7 +125,7 @@ export default function HostPage() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <h2 className="font-serif text-4xl font-bold text-center mb-12">
-            Why Host with BridleStay?
+            Why Host with Bridlestay?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card>
@@ -278,7 +278,7 @@ export default function HostPage() {
             Ready to Start Hosting?
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Join BridleStay today and start earning from your property
+            Join Bridlestay today and start earning from your property
           </p>
           <Button 
             size="lg" 

@@ -151,12 +151,12 @@ export const BookingCancelledHostEmail = ({
 
           <p style={{ marginTop: '30px' }}>
             Best regards,<br/>
-            <strong>The BridleStay Team</strong>
+            <strong>The Bridlestay Team</strong>
           </p>
         </div>
 
         <div className="footer">
-          <p>© {new Date().getFullYear()} BridleStay. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Bridlestay. All rights reserved.</p>
           <p>
             <a href="https://bridlestay.com/cancellation-policy" style={{ color: '#6b7280' }}>Cancellation Policy</a> | 
             <a href="https://bridlestay.com/help" style={{ color: '#6b7280' }}>Help</a>

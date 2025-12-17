@@ -196,7 +196,7 @@ export function BookingForm({ propertyId, property }: BookingFormProps) {
       toast({
         variant: "destructive",
         title: "Horse Required",
-        description: "BridleStay is for equestrian accommodation - you must bring at least 1 horse to book.",
+        description: "Bridlestay is for equestrian accommodation - you must bring at least 1 horse to book.",
       });
       return;
     }

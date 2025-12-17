@@ -28,7 +28,7 @@ export default function TermsPage() {
                 </p>
                 <ul className="list-disc list-inside space-y-2 ml-4 text-sm">
                   <li>
-                    <strong>Off-Platform Payments:</strong> All payments must be processed through BridleStay to ensure protection for both guests and hosts
+                    <strong>Off-Platform Payments:</strong> All payments must be processed through Bridlestay to ensure protection for both guests and hosts
                   </li>
                   <li>
                     <strong>Respectful Communication:</strong> Harassment, discrimination, or abusive language is not tolerated
@@ -49,7 +49,7 @@ export default function TermsPage() {
             <section>
               <h2 className="font-serif text-3xl font-bold mb-4">1. Agreement to Terms</h2>
               <p>
-                By accessing or using BridleStay ("Platform," "Service," "we," "us"), you agree to be bound by these Terms of Service ("Terms"). 
+                By accessing or using Bridlestay ("Platform," "Service," "we," "us"), you agree to be bound by these Terms of Service ("Terms"). 
                 If you disagree with any part of these Terms, you may not access the Service.
               </p>
               <p className="mt-3">
@@ -64,7 +64,7 @@ export default function TermsPage() {
                 <li>Be at least 18 years old</li>
                 <li>Provide accurate, current, and complete information</li>
                 <li>Maintain the security of your account</li>
-                <li>Not have been previously banned from BridleStay</li>
+                <li>Not have been previously banned from Bridlestay</li>
                 <li>Comply with all applicable laws in your jurisdiction</li>
               </ul>
             </section>
@@ -82,7 +82,7 @@ export default function TermsPage() {
 
               <h3 className="font-semibold text-xl mt-4 mb-2">3.2 Verification</h3>
               <p>
-                BridleStay requires admin verification before you can make bookings or accept reservations. 
+                Bridlestay requires admin verification before you can make bookings or accept reservations. 
                 We may require additional identification or documentation at any time.
               </p>
 
@@ -160,7 +160,7 @@ export default function TermsPage() {
               <h3 className="font-semibold text-xl mt-4 mb-2">5.3 Property Damage</h3>
               <p>
                 Guests are financially responsible for any damage caused to property, equipment, or facilities by 
-                themselves, their guests, or their horses. BridleStay may charge the payment method on file to cover damages.
+                themselves, their guests, or their horses. Bridlestay may charge the payment method on file to cover damages.
               </p>
             </section>
 
@@ -193,7 +193,7 @@ export default function TermsPage() {
               <h3 className="font-semibold text-xl mt-4 mb-2">6.4 Taxes</h3>
               <p>
                 Hosts are responsible for determining and paying all applicable taxes (income tax, VAT, occupancy tax, etc.). 
-                BridleStay applies VAT to platform fees as required by UK law.
+                Bridlestay applies VAT to platform fees as required by UK law.
               </p>
             </section>
 
@@ -217,7 +217,7 @@ export default function TermsPage() {
                 <li>Submitted within 14 days after checkout</li>
               </ul>
               <p className="mt-3">
-                BridleStay reserves the right to remove reviews that violate these guidelines or our content policy.
+                Bridlestay reserves the right to remove reviews that violate these guidelines or our content policy.
               </p>
             </section>
 
@@ -230,7 +230,7 @@ export default function TermsPage() {
                     ⚠️ IMPORTANT LIMITATION OF LIABILITY
                   </p>
                   <p className="text-sm text-yellow-900 dark:text-yellow-100">
-                    BridleStay is a marketplace platform connecting Hosts and Guests. We do not own, operate, manage, 
+                    Bridlestay is a marketplace platform connecting Hosts and Guests. We do not own, operate, manage, 
                     or control any properties. We are not responsible for the actions or omissions of Hosts or Guests.
                   </p>
                 </CardContent>
@@ -255,13 +255,13 @@ export default function TermsPage() {
                 <li>Third-party claims</li>
               </ul>
               <p className="mt-3">
-                Our total liability for any claim shall not exceed the fees you paid to BridleStay in the 12 months 
+                Our total liability for any claim shall not exceed the fees you paid to Bridlestay in the 12 months 
                 prior to the claim.
               </p>
 
               <h3 className="font-semibold text-xl mt-4 mb-2">9.3 Indemnification</h3>
               <p>
-                You agree to indemnify and hold harmless BridleStay, its officers, directors, employees, and agents 
+                You agree to indemnify and hold harmless Bridlestay, its officers, directors, employees, and agents 
                 from any claims, damages, losses, or expenses (including legal fees) arising from:
               </p>
               <ul className="list-disc list-inside space-y-1 ml-4">
@@ -277,7 +277,7 @@ export default function TermsPage() {
               <h2 className="font-serif text-3xl font-bold mb-4">10. Insurance</h2>
               <p>
                 <strong>Hosts:</strong> You are strongly encouraged to maintain appropriate insurance for your property, 
-                including liability coverage. BridleStay does not provide property or liability insurance.
+                including liability coverage. Bridlestay does not provide property or liability insurance.
               </p>
               <p className="mt-3">
                 <strong>Guests:</strong> You should have appropriate equine and personal liability insurance. You are 
@@ -303,11 +303,11 @@ export default function TermsPage() {
             <section>
               <h2 className="font-serif text-3xl font-bold mb-4">12. Intellectual Property</h2>
               <p>
-                All content on BridleStay, including text, graphics, logos, and software, is owned by BridleStay or 
+                All content on Bridlestay, including text, graphics, logos, and software, is owned by Bridlestay or 
                 its licensors and is protected by copyright and trademark laws.
               </p>
               <p className="mt-3">
-                By uploading content (photos, descriptions, reviews), you grant BridleStay a worldwide, non-exclusive, 
+                By uploading content (photos, descriptions, reviews), you grant Bridlestay a worldwide, non-exclusive, 
                 royalty-free license to use, display, and distribute your content in connection with the Service.
               </p>
             </section>
@@ -325,7 +325,7 @@ export default function TermsPage() {
               
               <h3 className="font-semibold text-xl mt-4 mb-2">14.1 Internal Resolution</h3>
               <p>
-                We encourage users to resolve disputes directly. If issues arise, contact BridleStay support 
+                We encourage users to resolve disputes directly. If issues arise, contact Bridlestay support 
                 for mediation assistance.
               </p>
 
@@ -390,7 +390,7 @@ export default function TermsPage() {
             <section className="border-t pt-6 mt-8">
               <p className="text-sm text-muted-foreground italic">
                 These Terms of Service were last updated on {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}. 
-                By using BridleStay, you acknowledge that you have read, understood, and agree to be bound by these Terms.
+                By using Bridlestay, you acknowledge that you have read, understood, and agree to be bound by these Terms.
               </p>
             </section>
           </div>

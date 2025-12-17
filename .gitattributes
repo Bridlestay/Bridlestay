@@ -1,0 +1,5 @@
+# Git LFS tracking for large KML files
+*.kml filter=lfs diff=lfs merge=lfs -text
+*.KML filter=lfs diff=lfs merge=lfs -text
+# Also track large JSON files in kml folder (path data)
+public/kml/*.json filter=lfs diff=lfs merge=lfs -text

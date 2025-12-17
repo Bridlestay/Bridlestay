@@ -1,4 +1,4 @@
--- News/Blog system for BridleStay
+-- News/Blog system for Bridlestay
 
 -- Create news_posts table
 CREATE TABLE IF NOT EXISTS news_posts (

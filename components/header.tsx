@@ -96,7 +96,7 @@ export function Header() {
           <div className="relative w-12 h-12 flex-shrink-0 flex items-center">
             <Image
               src="/logo.png.png"
-              alt="BridleStay Logo"
+              alt="Bridlestay Logo"
               width={48}
               height={48}
               className="object-contain translate-y-0.5"
@@ -105,7 +105,7 @@ export function Header() {
             />
           </div>
           <span className="font-serif text-2xl font-bold text-primary">
-            BridleStay
+            Bridlestay
           </span>
         </Link>
 

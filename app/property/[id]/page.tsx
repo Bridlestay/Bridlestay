@@ -15,6 +15,7 @@ import { MessageButton } from "@/components/messaging/message-button";
 import { AmenitiesList } from "@/components/property/amenities-list";
 import { PropertyReviewsDisplay } from "@/components/reviews/property-reviews-display";
 import { NearbyRoutesWidget } from "@/components/routes/nearby-routes-widget";
+import { FacilityPhotosGallery } from "@/components/property/facility-photos-gallery";
 
 export default async function PropertyPage({
   params,
@@ -34,7 +35,7 @@ export default async function PropertyPage({
     .select(
       `
       *,
-      property_photos (url, "order", is_cover),
+      property_photos (url, "order", is_cover, category),
       property_amenities (*),
       property_equine (*),
       host:host_id (id, name, avg_response_time_hours)
@@ -53,7 +54,10 @@ export default async function PropertyPage({
   }
 
   const photos = property.property_photos || [];
-  const sortedPhotos = photos.sort((a: any, b: any) => a.order - b.order);
+  // Separate general photos from facility photos
+  const generalPhotos = photos.filter((p: any) => !p.category);
+  const facilityPhotos = photos.filter((p: any) => p.category);
+  const sortedPhotos = generalPhotos.sort((a: any, b: any) => a.order - b.order);
   const amenities = Array.isArray(property.property_amenities) 
     ? property.property_amenities[0] 
     : property.property_amenities;
@@ -144,6 +148,19 @@ export default async function PropertyPage({
                 {property.description}
               </p>
             </div>
+
+            {/* Horse Facilities Photos */}
+            {facilityPhotos.length > 0 && (
+              <div className="border-t pt-6">
+                <h2 className="font-serif text-2xl font-semibold mb-4">
+                  🐴 Horse Facility Photos
+                </h2>
+                <p className="text-muted-foreground mb-4">
+                  View our verified equine facilities - photos verified by the Bridlestay team
+                </p>
+                <FacilityPhotosGallery photos={facilityPhotos} />
+              </div>
+            )}
 
             {/* Horse Facilities */}
             {equine && (

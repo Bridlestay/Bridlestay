@@ -386,7 +386,7 @@ export function getBlockedMessageText(reasons: ModerationResult['reasons']): str
   const types = reasons.map(r => r.type);
   
   if (types.includes('payment_attempt')) {
-    return '⚠️ This message was blocked because it appears to contain payment or contact information. All payments must be made through BridleStay for your protection. Attempting to arrange off-platform payments violates our Terms of Service and may result in account suspension.';
+    return '⚠️ This message was blocked because it appears to contain payment or contact information. All payments must be made through Bridlestay for your protection. Attempting to arrange off-platform payments violates our Terms of Service and may result in account suspension.';
   }
   
   if (types.includes('antisocial_behavior')) {
@@ -398,7 +398,7 @@ export function getBlockedMessageText(reasons: ModerationResult['reasons']): str
   }
 
   if (types.includes('sexual_content')) {
-    return '⚠️ This message was blocked because it contains inappropriate sexual content. BridleStay is a professional platform for equestrian accommodation.';
+    return '⚠️ This message was blocked because it contains inappropriate sexual content. Bridlestay is a professional platform for equestrian accommodation.';
   }
   
   return '⚠️ This message was blocked because it violates our Community Guidelines. Please review our Terms of Service.';

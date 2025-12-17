@@ -18,14 +18,14 @@ export default function ModernSlaveryPage() {
             <h2 className="text-2xl font-semibold mb-4">Introduction</h2>
             <p>
               This statement is made pursuant to section 54(1) of the Modern Slavery Act 2015 and constitutes
-              BridleStay&apos;s slavery and human trafficking statement for the financial year ending 2024.
+              Bridlestay&apos;s slavery and human trafficking statement for the financial year ending 2024.
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">Our Business</h2>
             <p>
-              BridleStay operates an online marketplace connecting equestrian property hosts with guests
+              Bridlestay operates an online marketplace connecting equestrian property hosts with guests
               throughout the United Kingdom.
             </p>
           </section>

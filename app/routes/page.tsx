@@ -13,7 +13,9 @@ import { KMLLayerToggles } from "@/components/routes/kml-layer-toggles";
 import { ClearRouteDialog, DiscardRouteDialog, DeleteRouteDialog } from "@/components/routes/confirm-dialog";
 import { Header } from "@/components/header";
 import { toast } from "sonner";
-import { Plus, Trash2, Compass, Route, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Compass, Route, ArrowLeft, Home, Eye, EyeOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -34,6 +36,10 @@ export default function RoutesPage() {
   // My Routes tab state
   const [myRoutes, setMyRoutes] = useState<any[]>([]);
   const [myRoutesLoading, setMyRoutesLoading] = useState(false);
+
+  // Nearby properties for the map
+  const [nearbyProperties, setNearbyProperties] = useState<any[]>([]);
+  const [showProperties, setShowProperties] = useState(true);
 
   // Create Route state
   const [isCreating, setIsCreating] = useState(false);
@@ -86,6 +92,13 @@ export default function RoutesPage() {
     }
   }, [activeTab]);
 
+  // Fetch nearby properties when not creating
+  useEffect(() => {
+    if (!isCreating && showProperties) {
+      fetchNearbyProperties();
+    }
+  }, [isCreating, showProperties]);
+
   const fetchExploreRoutes = async () => {
     setExploreLoading(true);
     try {
@@ -126,6 +139,22 @@ export default function RoutesPage() {
       toast.error("Failed to load your routes");
     } finally {
       setMyRoutesLoading(false);
+    }
+  };
+
+  const fetchNearbyProperties = async () => {
+    try {
+      // Fetch all published properties with coordinates
+      const res = await fetch("/api/properties/nearby", {
+        method: "GET",
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setNearbyProperties(data.properties || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch nearby properties:", error);
     }
   };
 
@@ -409,12 +438,33 @@ export default function RoutesPage() {
                 {/* Main content - Map + Routes */}
                 <div className="lg:col-span-2 space-y-6">
                   {/* Map */}
-                  <Card className="h-96 overflow-hidden">
+                  <Card className="h-96 overflow-hidden relative">
                     <RoutesMapV2
                       routes={exploreRoutes}
                       onRouteClick={handleRouteClick}
                       pathLayers={pathLayers}
+                      propertyPins={showProperties ? nearbyProperties : []}
                     />
+                    {/* Property toggle */}
+                    <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 z-10">
+                      <Home className="h-4 w-4 text-purple-600" />
+                      <Label htmlFor="show-props-explore" className="text-sm font-medium cursor-pointer">
+                        Properties
+                      </Label>
+                      <Switch
+                        id="show-props-explore"
+                        checked={showProperties}
+                        onCheckedChange={setShowProperties}
+                      />
+                    </div>
+                    {showProperties && nearbyProperties.length > 0 && (
+                      <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg px-3 py-2 z-10">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="w-3 h-3 rounded-full bg-purple-500"></span>
+                          <span>{nearbyProperties.length} properties nearby</span>
+                        </div>
+                      </div>
+                    )}
                   </Card>
 
                   {/* Routes list */}
@@ -460,12 +510,25 @@ export default function RoutesPage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Map + Path Layers */}
                 <div className="lg:col-span-2 space-y-4">
-                  <Card className="h-96 overflow-hidden">
+                  <Card className="h-96 overflow-hidden relative">
                     <RoutesMapV2
                       routes={myRoutes}
                       onRouteClick={handleRouteClick}
                       pathLayers={pathLayers}
+                      propertyPins={showProperties ? nearbyProperties : []}
                     />
+                    {/* Property toggle */}
+                    <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 z-10">
+                      <Home className="h-4 w-4 text-purple-600" />
+                      <Label htmlFor="show-props-myroutes" className="text-sm font-medium cursor-pointer">
+                        Properties
+                      </Label>
+                      <Switch
+                        id="show-props-myroutes"
+                        checked={showProperties}
+                        onCheckedChange={setShowProperties}
+                      />
+                    </div>
                   </Card>
                   <KMLLayerToggles layers={pathLayers} onToggle={handlePathLayerToggle} />
                 </div>

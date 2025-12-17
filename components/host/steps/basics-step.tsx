@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PropertyBasicsSchema, type PropertyBasics } from "@/lib/validations/property";
@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MapPin, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { UK_COUNTIES } from "@/lib/constants/counties";
 
 interface BasicsStepProps {
@@ -25,6 +25,9 @@ interface BasicsStepProps {
 
 export function PropertyBasicsStep({ data, onNext }: BasicsStepProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodeStatus, setGeocodeStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [geocodeMessage, setGeocodeMessage] = useState<string>('');
 
   const {
     register,
@@ -43,6 +46,61 @@ export function PropertyBasicsStep({ data, onNext }: BasicsStepProps) {
       ...data,
     },
   });
+
+  const postcode = watch("postcode");
+
+  // Geocode postcode when it changes
+  const geocodePostcode = useCallback(async (postcodeValue: string) => {
+    if (!postcodeValue || postcodeValue.length < 5) {
+      setGeocodeStatus('idle');
+      return;
+    }
+
+    // Basic UK postcode format check
+    const postcodeRegex = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
+    if (!postcodeRegex.test(postcodeValue)) {
+      return;
+    }
+
+    setIsGeocoding(true);
+    setGeocodeStatus('idle');
+
+    try {
+      const response = await fetch('/api/geocode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postcode: postcodeValue }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setValue('latitude', result.latitude);
+        setValue('longitude', result.longitude);
+        setGeocodeStatus('success');
+        setGeocodeMessage(`Location found: ${result.admin_district || result.region || 'UK'}`);
+      } else {
+        setGeocodeStatus('error');
+        setGeocodeMessage('Could not find location for this postcode');
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      setGeocodeStatus('error');
+      setGeocodeMessage('Failed to lookup postcode');
+    } finally {
+      setIsGeocoding(false);
+    }
+  }, [setValue]);
+
+  // Debounce postcode geocoding
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (postcode) {
+        geocodePostcode(postcode);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [postcode, geocodePostcode]);
 
   const onSubmit = async (formData: PropertyBasics) => {
     setIsSubmitting(true);
@@ -164,14 +222,28 @@ export function PropertyBasicsStep({ data, onNext }: BasicsStepProps) {
 
         <div>
           <Label htmlFor="postcode">Postcode *</Label>
-          <Input
-            id="postcode"
-            {...register("postcode")}
-            placeholder="WR14 2AA"
-          />
+          <div className="relative">
+            <Input
+              id="postcode"
+              {...register("postcode")}
+              placeholder="WR14 2AA"
+              className="pr-10"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {isGeocoding && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              {!isGeocoding && geocodeStatus === 'success' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+              {!isGeocoding && geocodeStatus === 'error' && <AlertCircle className="h-4 w-4 text-amber-500" />}
+            </div>
+          </div>
           {errors.postcode && (
             <p className="text-sm text-destructive mt-1">
               {errors.postcode.message}
+            </p>
+          )}
+          {geocodeMessage && !errors.postcode && (
+            <p className={`text-xs mt-1 flex items-center gap-1 ${geocodeStatus === 'success' ? 'text-green-600' : 'text-amber-600'}`}>
+              <MapPin className="h-3 w-3" />
+              {geocodeMessage}
             </p>
           )}
         </div>

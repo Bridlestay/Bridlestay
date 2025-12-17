@@ -80,7 +80,7 @@ export default function SignUpPage() {
       }
 
       toast({
-        title: "Welcome to BridleStay!",
+        title: "Welcome to Bridlestay!",
         description: "Please check your email to verify your account.",
       });
 
@@ -102,7 +102,7 @@ export default function SignUpPage() {
         <CardHeader>
           <CardTitle className="font-serif text-3xl">Sign Up</CardTitle>
           <CardDescription>
-            Create your BridleStay account to get started
+            Create your Bridlestay account to get started
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSignUp}>

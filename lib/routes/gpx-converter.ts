@@ -34,7 +34,7 @@ export function convertToGPX(route: RouteData): string {
   
   // Build GPX XML
   let gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="BridleStay" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="Bridlestay" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata>
     <name>${escapeXml(title)}</name>
     ${description ? `<desc>${escapeXml(description)}</desc>` : ""}

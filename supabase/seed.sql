@@ -1,4 +1,4 @@
--- Seed data for BridleStay
+-- Seed data for Bridlestay
 -- This creates demo properties in key UK equestrian regions
 
 -- Note: In production, users would be created via Supabase Auth

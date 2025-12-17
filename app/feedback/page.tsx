@@ -28,7 +28,7 @@ export default async function FeedbackPage() {
           <div className="mb-8">
             <h1 className="font-serif text-4xl font-bold mb-2">Send Feedback</h1>
             <p className="text-muted-foreground">
-              Help us improve BridleStay by sharing your thoughts, suggestions, or reporting issues.
+              Help us improve Bridlestay by sharing your thoughts, suggestions, or reporting issues.
             </p>
           </div>
 

@@ -486,46 +486,81 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       }
     }, [isLoaded, isCreating, waypoints, routeType, snapEnabled, routeStyle, onWaypointUpdate, onWaypointRemove, snapToRoad]);
 
-    // Render property pins
+    // Render property pins with zoom-responsive sizing
     useEffect(() => {
       if (!mapRef.current || !isLoaded) return;
 
       propertyMarkersRef.current.forEach((m) => m.setMap(null));
       propertyMarkersRef.current = [];
 
+      // Create custom markers with price labels
       propertyPins.forEach((property) => {
         if (!property.latitude || !property.longitude) return;
 
+        const pricePerNight = property.nightly_price_pennies 
+          ? Math.round(property.nightly_price_pennies / 100) 
+          : 0;
+
+        // Create custom SVG marker with price - using simpler house icon
+        const createMarkerIcon = () => {
+          const svg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="56" viewBox="0 0 48 56">
+              <!-- Pin shape with house -->
+              <path d="M24 0C10.7 0 0 10.7 0 24c0 16 24 32 24 32s24-16 24-32C48 10.7 37.3 0 24 0z" fill="#7C3AED"/>
+              <path d="M24 0C10.7 0 0 10.7 0 24c0 16 24 32 24 32s24-16 24-32C48 10.7 37.3 0 24 0z" fill="url(#grad)" fill-opacity="0.3"/>
+              <!-- House icon -->
+              <path d="M24 12l-10 8v12h6v-6h8v6h6V20l-10-8z" fill="white"/>
+              <defs>
+                <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:#fff;stop-opacity:0.4"/>
+                  <stop offset="100%" style="stop-color:#000;stop-opacity:0.1"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          `;
+          return {
+            url: "data:image/svg+xml," + encodeURIComponent(svg),
+            scaledSize: new google.maps.Size(36, 42),
+            anchor: new google.maps.Point(18, 42),
+          };
+        };
+
         const marker = new google.maps.Marker({
-          position: { lat: property.latitude, lng: property.longitude },
+          position: { lat: Number(property.latitude), lng: Number(property.longitude) },
           map: mapRef.current,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: "#8B5CF6",
-            fillOpacity: 0.9,
-            strokeColor: "#ffffff",
-            strokeWeight: 2,
-          },
+          icon: createMarkerIcon(),
           title: property.name,
           zIndex: 50,
+          optimized: true,
         });
 
         marker.addListener("click", () => {
           if (infoWindowRef.current) {
+            const rating = property.average_rating 
+              ? `<div style="color: #f59e0b; font-size: 12px;">★ ${property.average_rating.toFixed(1)} (${property.review_count || 0})</div>`
+              : '';
+            const photoHtml = property.mainPhoto 
+              ? `<img src="${property.mainPhoto}" alt="${property.name}" style="width: 100%; height: 100px; object-fit: cover; border-radius: 4px 4px 0 0; margin-bottom: 8px;" />`
+              : '';
+            
             const content = `
-              <div style="padding: 12px; min-width: 220px; font-family: system-ui, sans-serif;">
-                <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">${property.name}</div>
-                <div style="font-size: 13px; color: #10B981; font-weight: 600; margin-bottom: 8px;">
-                  £${(property.nightly_price_pennies / 100).toFixed(0)}/night
+              <div style="min-width: 220px; font-family: system-ui, sans-serif;">
+                ${photoHtml}
+                <div style="padding: ${photoHtml ? '0 12px 12px' : '12px'};">
+                  <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px; color: #1a1a1a;">${property.name}</div>
+                  <div style="font-size: 12px; color: #666; margin-bottom: 4px;">${property.city || ''}, ${property.county || ''}</div>
+                  ${rating}
+                  <div style="font-size: 16px; color: #1d4d2b; font-weight: 700; margin: 8px 0;">
+                    £${pricePerNight}<span style="font-size: 12px; font-weight: 400; color: #666;">/night</span>
+                  </div>
+                  <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                    🐴 Up to ${property.max_horses || 0} horses
+                  </div>
+                  <a href="/property/${property.id}" 
+                     style="display: block; padding: 10px; background: #7C3AED; color: white; text-align: center; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">
+                    View Property
+                  </a>
                 </div>
-                <div style="font-size: 12px; color: #666;">
-                  <span>🐴 Max ${property.max_horses || 0} horses</span>
-                </div>
-                <a href="/property/${property.id}" 
-                   style="display: block; margin-top: 8px; padding: 8px; background: #8B5CF6; color: white; text-align: center; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: 600;">
-                  View Property
-                </a>
               </div>
             `;
             infoWindowRef.current.setContent(content);

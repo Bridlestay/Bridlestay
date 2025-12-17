@@ -23,7 +23,7 @@ export default function HostAgreementPage() {
                   </h3>
                   <p className="text-sm text-green-900 dark:text-green-100">
                     This agreement supplements our Terms of Service and outlines specific responsibilities, 
-                    liabilities, and requirements for property hosts on BridleStay.
+                    liabilities, and requirements for property hosts on Bridlestay.
                   </p>
                 </div>
               </div>
@@ -121,9 +121,9 @@ export default function HostAgreementPage() {
                 <li><strong>Equine Liability Insurance:</strong> For horse-related activities</li>
               </ul>
 
-              <h3 className="font-semibold text-xl mt-4 mb-2">3.2 BridleStay's Insurance</h3>
+              <h3 className="font-semibold text-xl mt-4 mb-2">3.2 Bridlestay's Insurance</h3>
               <p className="text-sm italic bg-muted p-4 rounded-lg">
-                <strong>Important:</strong> BridleStay does not provide property damage, public liability, or 
+                <strong>Important:</strong> Bridlestay does not provide property damage, public liability, or 
                 contents insurance for hosts. You are solely responsible for insuring your property and operations.
               </p>
             </section>
@@ -142,7 +142,7 @@ export default function HostAgreementPage() {
 
               <h3 className="font-semibold text-xl mt-4 mb-2">4.2 Indemnification</h3>
               <p>
-                You agree to indemnify and hold harmless BridleStay from any claims, damages, or expenses 
+                You agree to indemnify and hold harmless Bridlestay from any claims, damages, or expenses 
                 (including legal fees) arising from:
               </p>
               <ul className="list-disc list-inside space-y-1 ml-4">
@@ -181,7 +181,7 @@ export default function HostAgreementPage() {
               </ul>
 
               <h3 className="font-semibold text-xl mt-4 mb-2">5.2 Payment Holds</h3>
-              <p>BridleStay may withhold payouts if:</p>
+              <p>Bridlestay may withhold payouts if:</p>
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li>There is a dispute or claim against you</li>
                 <li>We suspect fraud or policy violations</li>
@@ -225,7 +225,7 @@ export default function HostAgreementPage() {
               </ul>
               <p className="mt-3 text-sm italic bg-muted p-3 rounded-lg">
                 <strong>Exceptions:</strong> Cancellations due to emergencies (family emergency, property damage, guest policy violations) 
-                may be waived at BridleStay's discretion.
+                may be waived at Bridlestay's discretion.
               </p>
             </section>
 
@@ -236,7 +236,7 @@ export default function HostAgreementPage() {
               <p>If a guest damages your property:</p>
               <ol className="list-decimal pl-6 space-y-2">
                 <li>Document the damage with photos and descriptions</li>
-                <li>Report it to BridleStay within 48 hours of checkout</li>
+                <li>Report it to Bridlestay within 48 hours of checkout</li>
                 <li>Provide evidence (photos, receipts, repair quotes)</li>
                 <li>Submit a claim through the platform</li>
               </ol>
@@ -264,7 +264,7 @@ export default function HostAgreementPage() {
 
             <section>
               <h2 className="font-serif text-3xl font-bold mb-4">9. Account Termination</h2>
-              <p>BridleStay may suspend or terminate your Host account for:</p>
+              <p>Bridlestay may suspend or terminate your Host account for:</p>
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li>Repeated policy violations</li>
                 <li>Fraudulent activity or misrepresentation</li>
@@ -287,7 +287,7 @@ export default function HostAgreementPage() {
             <section className="border-t pt-6 mt-8">
               <p className="text-sm text-muted-foreground italic">
                 This Host Agreement was last updated on {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}. 
-                By listing your property on BridleStay, you acknowledge that you have read, understood, and agree to be bound by this agreement.
+                By listing your property on Bridlestay, you acknowledge that you have read, understood, and agree to be bound by this agreement.
               </p>
             </section>
           </div>

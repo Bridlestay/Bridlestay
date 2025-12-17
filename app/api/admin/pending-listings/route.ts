@@ -24,19 +24,42 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Get all unpublished properties (proposed listings)
-    const { data: properties, error } = await supabase
+    // Get properties pending verification (prioritize these)
+    const { data: pendingVerification, error: pvError } = await supabase
       .from("properties")
       .select(`
         *,
         host:host_id (id, name, email, admin_verified),
-        property_photos (url, is_cover, order),
+        property_photos (url, is_cover, "order", category),
+        property_amenities (*),
+        property_equine (*)
+      `)
+      .eq("pending_verification", true)
+      .eq("removed", false)
+      .order("submitted_for_verification_at", { ascending: true });
+
+    // Get other unpublished properties (drafts)
+    const { data: drafts, error: dError } = await supabase
+      .from("properties")
+      .select(`
+        *,
+        host:host_id (id, name, email, admin_verified),
+        property_photos (url, is_cover, "order", category),
         property_amenities (*),
         property_equine (*)
       `)
       .eq("published", false)
-      .eq("removed", false) // Don't show removed properties
+      .neq("pending_verification", true)
+      .eq("removed", false)
       .order("created_at", { ascending: false });
+
+    const error = pvError || dError;
+
+    // Combine with pending verification first
+    const properties = [
+      ...(pendingVerification || []).map(p => ({ ...p, _status: 'pending_verification' })),
+      ...(drafts || []).map(p => ({ ...p, _status: 'draft' })),
+    ];
 
     if (error) {
       console.error("Error fetching pending listings:", error);

@@ -211,7 +211,7 @@ export default function SignInPage() {
                 />
               </div>
               <p className="text-xs text-muted-foreground text-center">
-                Open your authenticator app (Google Authenticator, Authy, etc.) and enter the code for BridleStay
+                Open your authenticator app (Google Authenticator, Authy, etc.) and enter the code for Bridlestay
               </p>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
@@ -247,7 +247,7 @@ export default function SignInPage() {
         <CardHeader>
           <CardTitle className="font-serif text-3xl">Sign In</CardTitle>
           <CardDescription>
-            Sign in to access your BridleStay account
+            Sign in to access your Bridlestay account
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSignIn}>

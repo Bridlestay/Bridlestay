@@ -16,7 +16,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "BridleStay - Equestrian Stays Marketplace",
+  title: "Bridlestay - Equestrian Stays Marketplace",
   description: "Find the perfect equestrian stay in the UK countryside",
 };
 

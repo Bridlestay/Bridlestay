@@ -233,14 +233,14 @@ export async function POST(request: Request) {
       });
     }
 
-    // Filter by map bounds (geo-filtering)
+    // Filter by map bounds (geo-filtering) - using correct column names lat/lng
     if (bounds && bounds.north && bounds.south && bounds.east && bounds.west) {
       filteredProperties = filteredProperties.filter((property) => {
         // Skip properties without coordinates
-        if (!property.latitude || !property.longitude) return false;
+        if (!property.lat || !property.lng) return false;
         
-        const lat = parseFloat(property.latitude);
-        const lng = parseFloat(property.longitude);
+        const lat = parseFloat(property.lat);
+        const lng = parseFloat(property.lng);
         
         return (
           lat <= bounds.north &&

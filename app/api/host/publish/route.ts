@@ -31,12 +31,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("Publishing property:", propertyId);
+    console.log("Submitting property for verification:", propertyId);
 
     // Verify ownership and get all data
     const { data: property, error: fetchError } = await supabase
       .from("properties")
-      .select("*, property_photos(id), property_equine(*)")
+      .select("*, property_photos(id, category), property_equine(*)")
       .eq("id", propertyId)
       .eq("host_id", user.id)
       .single();
@@ -53,7 +53,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate requirements
-    const photoCount = property.property_photos?.length || 0;
+    const allPhotos = property.property_photos || [];
+    const photoCount = allPhotos.length;
+    const facilityPhotos = allPhotos.filter((p: any) => p.category);
+    const stablesPhotos = allPhotos.filter((p: any) => p.category === "stables");
     
     // Handle both array and single object for property_equine
     const equineData = Array.isArray(property.property_equine) 
@@ -62,12 +65,23 @@ export async function POST(request: NextRequest) {
     const maxHorses = equineData?.max_horses || 0;
 
     console.log("Photo count:", photoCount);
+    console.log("Facility photos:", facilityPhotos.length);
+    console.log("Stables photos:", stablesPhotos.length);
     console.log("Max horses:", maxHorses);
     console.log("Description length:", property.description?.length);
 
+    // Minimum 8 general photos
     if (photoCount < 8) {
       return NextResponse.json(
         { error: "At least 8 photos required" },
+        { status: 400 }
+      );
+    }
+
+    // Minimum 2 stables photos for verification
+    if (stablesPhotos.length < 2) {
+      return NextResponse.json(
+        { error: "At least 2 photos of stables required for verification" },
         { status: 400 }
       );
     }
@@ -86,10 +100,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Publish the property
+    // Mark as pending verification instead of directly publishing
+    // Properties need admin verification before going live
     const { error: updateError } = await supabase
       .from("properties")
-      .update({ published: true })
+      .update({ 
+        pending_verification: true,
+        submitted_for_verification_at: new Date().toISOString(),
+      })
       .eq("id", propertyId);
 
     if (updateError) {
@@ -97,13 +115,18 @@ export async function POST(request: NextRequest) {
       throw updateError;
     }
 
-    console.log("Successfully published property:", propertyId);
+    console.log("Successfully submitted property for verification:", propertyId);
 
-    return NextResponse.json({ success: true, propertyId });
+    return NextResponse.json({ 
+      success: true, 
+      propertyId,
+      message: "Your listing has been submitted for verification. Our team will review it within 24-48 hours.",
+      pendingVerification: true
+    });
   } catch (error: any) {
-    console.error("Error publishing listing:", error);
+    console.error("Error submitting listing:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to publish listing" },
+      { error: error.message || "Failed to submit listing" },
       { status: 500 }
     );
   }

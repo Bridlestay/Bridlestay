@@ -223,7 +223,7 @@ export const BookingRequestHostEmail = ({
           <ul style={{ paddingLeft: '20px', color: '#4b5563' }}>
             <li><strong>If you accept:</strong> Guest will be notified immediately and can prepare for their stay</li>
             <li><strong>Payment:</strong> Funds are held securely by Stripe until 24 hours after check-in</li>
-            <li><strong>Communication:</strong> You can message the guest directly through BridleStay</li>
+            <li><strong>Communication:</strong> You can message the guest directly through Bridlestay</li>
             <li><strong>If you decline:</strong> The guest will be refunded in full within 5-10 business days</li>
           </ul>
 
@@ -236,12 +236,12 @@ export const BookingRequestHostEmail = ({
 
           <p style={{ marginTop: '30px' }}>
             Best regards,<br/>
-            <strong>The BridleStay Team</strong>
+            <strong>The Bridlestay Team</strong>
           </p>
         </div>
 
         <div className="footer">
-          <p>© {new Date().getFullYear()} BridleStay. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Bridlestay. All rights reserved.</p>
           <p>
             <a href="https://bridlestay.com/host-agreement" style={{ color: '#6b7280' }}>Host Agreement</a> | 
             <a href="https://bridlestay.com/help" style={{ color: '#6b7280' }}>Help</a>

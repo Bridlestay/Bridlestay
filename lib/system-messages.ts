@@ -16,10 +16,10 @@ export interface SystemMessageData {
 export function getWelcomeMessage(userId: string, userName: string): SystemMessageData {
   return {
     recipientId: userId,
-    subject: 'Welcome to BridleStay! 🐴',
+    subject: 'Welcome to Bridlestay! 🐴',
     message: `Hello ${userName}!
 
-Welcome to BridleStay, the UK's premier equestrian accommodation marketplace!
+Welcome to Bridlestay, the UK's premier equestrian accommodation marketplace!
 
 We're thrilled to have you join our community of horse lovers. Whether you're looking for the perfect countryside escape with your horses or hosting riders at your property, you're in the right place.
 
@@ -38,7 +38,7 @@ If you have any questions, feel free to reach out to our support team.
 
 Happy riding! 🏇
 
-The BridleStay Team`,
+The Bridlestay Team`,
     messageType: 'system',
     systemPriority: true,
   };
@@ -58,7 +58,7 @@ export function getBanMessage(
     subject: 'Account Suspended',
     message: `Dear ${userName},
 
-Your BridleStay account has been suspended.
+Your Bridlestay account has been suspended.
 
 **Action Taken:** Account Ban
 **Reason:** ${reason}
@@ -73,7 +73,7 @@ Your BridleStay account has been suspended.
 **Next Steps:**
 If you believe this action was taken in error, please contact our support team at support@bridlestay.com with your account details.
 
-BridleStay Admin Team`,
+Bridlestay Admin Team`,
     messageType: 'admin_action',
     systemPriority: true,
   };
@@ -94,7 +94,7 @@ export function getSoftbanMessage(
     subject: 'Account Temporarily Restricted',
     message: `Dear ${userName},
 
-Your BridleStay account has been temporarily restricted.
+Your Bridlestay account has been temporarily restricted.
 
 **Action Taken:** Temporary Restriction (Soft Ban)
 **Reason:** ${reason}
@@ -111,7 +111,7 @@ Your BridleStay account has been temporarily restricted.
 **Next Steps:**
 Please review our Community Guidelines and Terms of Service. If you have questions about this restriction, contact support@bridlestay.com.
 
-BridleStay Admin Team`,
+Bridlestay Admin Team`,
     messageType: 'admin_action',
     systemPriority: true,
   };
@@ -132,7 +132,7 @@ export function getPropertyRemovalMessage(
     subject: `Property Removed: ${propertyName}`,
     message: `Dear ${userName},
 
-Your property listing "${propertyName}" has been removed from BridleStay.
+Your property listing "${propertyName}" has been removed from Bridlestay.
 
 **Action Taken:** Property Removal
 **Reason:** ${reason}
@@ -147,7 +147,7 @@ Your property listing "${propertyName}" has been removed from BridleStay.
 **Next Steps:**
 If you believe this action was taken in error or if you've addressed the issues, please contact support@bridlestay.com to discuss reinstatement.
 
-BridleStay Admin Team`,
+Bridlestay Admin Team`,
     messageType: 'admin_action',
     systemPriority: true,
   };
@@ -165,7 +165,7 @@ export function getVerificationApprovedMessage(
     subject: 'Account Verified ✅',
     message: `Congratulations ${userName}!
 
-Your BridleStay account has been verified!
+Your Bridlestay account has been verified!
 
 **What's Changed:**
 • You can now make bookings
@@ -177,7 +177,7 @@ Thank you for completing the verification process. We're excited to have you as 
 
 Happy riding! 🏇
 
-BridleStay Team`,
+Bridlestay Team`,
     messageType: 'system',
     systemPriority: true,
   };
@@ -197,7 +197,7 @@ export function getWarningMessage(
     subject: 'Important: Community Guidelines Warning',
     message: `Dear ${userName},
 
-This is a warning regarding your activity on BridleStay.
+This is a warning regarding your activity on Bridlestay.
 
 **Warning Reason:** ${reason}
 **Date:** ${new Date().toLocaleDateString()}
@@ -209,9 +209,9 @@ This is a warning regarding your activity on BridleStay.
 • Please review our Community Guidelines
 
 **Next Steps:**
-Please ensure your future interactions on BridleStay comply with our Terms of Service and Community Guidelines. If you have questions, contact support@bridlestay.com.
+Please ensure your future interactions on Bridlestay comply with our Terms of Service and Community Guidelines. If you have questions, contact support@bridlestay.com.
 
-BridleStay Admin Team`,
+Bridlestay Admin Team`,
     messageType: 'admin_action',
     systemPriority: true,
   };

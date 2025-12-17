@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
 
     // Create iCal calendar
     const calendar = ical({
-      name: 'BridleStay Bookings',
-      description: 'Your confirmed bookings from BridleStay',
+      name: 'Bridlestay Bookings',
+      description: 'Your confirmed bookings from Bridlestay',
       timezone: 'Europe/London',
       ttl: 3600, // Refresh every hour
     });
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
         location: `${property.city}, ${property.county}`,
         url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/dashboard`,
         organizer: {
-          name: 'BridleStay',
+          name: 'Bridlestay',
           email: 'bookings@bridlestay.com'
         },
         attendees: guest?.name ? [{

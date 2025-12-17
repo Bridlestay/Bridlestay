@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     console.log("Received body:", body);
-    const { userId, propertyId, amenities, equine, photos, ...propertyData } = body;
+    const { userId, propertyId, amenities, equine, photos, facilityPhotos, ...propertyData } = body;
 
     // Verify user is host only
     const { data: userData } = await supabase
@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
           county: propertyData.county,
           postcode: propertyData.postcode,
           country: propertyData.country,
-          latitude: propertyData.latitude,
-          longitude: propertyData.longitude,
+          lat: propertyData.latitude,
+          lng: propertyData.longitude,
           max_guests: propertyData.max_guests,
           bedrooms: propertyData.bedrooms,
           beds: propertyData.beds,
@@ -120,8 +120,8 @@ export async function POST(request: NextRequest) {
           county: propertyData.county || "Worcestershire",
           postcode: propertyData.postcode || "",
           country: propertyData.country || "UK",
-          latitude: propertyData.latitude || 52.2053,
-          longitude: propertyData.longitude || -2.2216,
+          lat: propertyData.latitude || null,
+          lng: propertyData.longitude || null,
           max_guests: propertyData.max_guests || 2,
           bedrooms: propertyData.bedrooms || 0,
           beds: propertyData.beds || 0,
@@ -181,15 +181,16 @@ export async function POST(request: NextRequest) {
       console.log("Equine facilities saved");
     }
 
-    // Handle photos
+    // Handle photos (general property photos)
     if (photos && photos.length > 0) {
-      console.log("Processing photos:", photos.length);
+      console.log("Processing general photos:", photos.length);
       
-      // Delete existing photos for this property
+      // Delete existing general photos (photos without a category) for this property
       const { error: deleteError } = await supabase
         .from("property_photos")
         .delete()
-        .eq("property_id", finalPropertyId);
+        .eq("property_id", finalPropertyId)
+        .is("category", null);
 
       if (deleteError) {
         console.error("Delete photos error:", deleteError);
@@ -201,9 +202,10 @@ export async function POST(request: NextRequest) {
         url: photo.url,
         order: index,
         is_cover: photo.is_cover || index === 0,
+        category: null, // General photos have no category
       }));
 
-      console.log("Inserting photos:", photoInserts);
+      console.log("Inserting general photos:", photoInserts);
 
       const { error: photosError } = await supabase
         .from("property_photos")
@@ -213,7 +215,53 @@ export async function POST(request: NextRequest) {
         console.error("Photos insert error:", photosError);
         throw photosError;
       }
-      console.log("Photos saved successfully");
+      console.log("General photos saved successfully");
+    }
+
+    // Handle facility photos (categorized photos for verification)
+    if (facilityPhotos && Object.keys(facilityPhotos).length > 0) {
+      console.log("Processing facility photos:", Object.keys(facilityPhotos));
+      
+      // Delete existing facility photos (photos WITH a category) for this property
+      const { error: deleteFacilityError } = await supabase
+        .from("property_photos")
+        .delete()
+        .eq("property_id", finalPropertyId)
+        .not("category", "is", null);
+
+      if (deleteFacilityError) {
+        console.error("Delete facility photos error:", deleteFacilityError);
+      }
+
+      // Insert facility photos for each category
+      const facilityPhotoInserts: any[] = [];
+      for (const [category, categoryPhotos] of Object.entries(facilityPhotos)) {
+        if (Array.isArray(categoryPhotos)) {
+          categoryPhotos.forEach((photo: any, index: number) => {
+            facilityPhotoInserts.push({
+              property_id: finalPropertyId,
+              url: photo.url,
+              order: index,
+              is_cover: false,
+              category: category,
+            });
+          });
+        }
+      }
+
+      if (facilityPhotoInserts.length > 0) {
+        console.log("Inserting facility photos:", facilityPhotoInserts);
+
+        const { error: facilityPhotosError } = await supabase
+          .from("property_photos")
+          .insert(facilityPhotoInserts);
+
+        if (facilityPhotosError) {
+          console.error("Facility photos insert error:", facilityPhotosError);
+          throw facilityPhotosError;
+        }
+        console.log("Facility photos saved successfully");
+      }
     }
 
     console.log("Successfully saved listing:", finalPropertyId);
