@@ -15,7 +15,7 @@ ADD COLUMN IF NOT EXISTS obsessed_with TEXT,
 ADD COLUMN IF NOT EXISTS languages TEXT;
 
 -- Add comments for documentation
-COMMENT ON COLUMN users.dream_destination IS 'Where I''ve always wanted to go (e.g., Patagonia + Japan)';
+COMMENT ON COLUMN users.dream_destination IS 'Where I''ve always wanted to go (e.g., New Zealand or Iceland)';
 COMMENT ON COLUMN users.work IS 'My work or occupation';
 COMMENT ON COLUMN users.spend_time IS 'What I spend too much time doing';
 COMMENT ON COLUMN users.pets IS 'My pets or pet preferences';

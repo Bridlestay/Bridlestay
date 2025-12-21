@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
+import { LabelWithInfo, InfoTooltip } from "@/components/ui/info-tooltip";
 import {
   Card,
   CardContent,
@@ -192,7 +193,13 @@ export default function SignInPage() {
           <form onSubmit={handleMfaVerify}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="mfa-code">Verification Code</Label>
+                <LabelWithInfo 
+                  htmlFor="mfa-code"
+                  info="This is a 6-digit code that changes every 30 seconds. You set this up when you enabled two-factor authentication on your account."
+                  asPopover
+                >
+                  Verification Code
+                </LabelWithInfo>
                 <Input
                   id="mfa-code"
                   type="text"
@@ -285,15 +292,21 @@ export default function SignInPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in..." : "Sign In"}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={handleMagicLink}
-              disabled={loading}
-            >
-              Send Magic Link
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={handleMagicLink}
+                disabled={loading}
+              >
+                Send Magic Link
+              </Button>
+              <InfoTooltip 
+                content="A magic link is a password-free way to sign in. We'll email you a special link that logs you in automatically when clicked. Great if you've forgotten your password!"
+                asPopover
+              />
+            </div>
             <p className="text-sm text-muted-foreground text-center">
               Don&apos;t have an account?{" "}
               <Link href="/auth/sign-up" className="text-primary hover:underline">

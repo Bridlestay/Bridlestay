@@ -163,7 +163,7 @@ export function AboutMeSection({
             <div className="flex-1">
               <h3 className="font-serif text-3xl font-bold mb-2">{user.name}</h3>
               <p className="text-muted-foreground mb-6">
-                {user.city || "Great Malvern"}, United Kingdom
+                {user.city || "United Kingdom"}
               </p>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">

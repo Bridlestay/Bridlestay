@@ -8,6 +8,7 @@ import { PropertyPricingSchema, type PropertyPricing } from "@/lib/validations/p
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LabelWithInfo } from "@/components/ui/info-tooltip";
 import {
   Select,
   SelectContent,
@@ -105,7 +106,14 @@ export function PropertyPricingStep({ data, onNext, userId, propertyId }: Pricin
         
         <div className="space-y-4">
           <div>
-            <Label htmlFor="nightly_price">Nightly Price (£) *</Label>
+            <LabelWithInfo 
+              htmlFor="nightly_price" 
+              info="This is the base price guests pay per night. It should include the property accommodation. You can add horse fees separately below."
+              asPopover
+              required
+            >
+              Nightly Price (£)
+            </LabelWithInfo>
             <div className="flex items-center gap-2">
               <span className="text-2xl">£</span>
               <Input
@@ -129,7 +137,13 @@ export function PropertyPricingStep({ data, onNext, userId, propertyId }: Pricin
           </div>
 
           <div>
-            <Label htmlFor="per_horse_fee">Per Horse Fee (£)</Label>
+            <LabelWithInfo 
+              htmlFor="per_horse_fee" 
+              info="Charge per horse per night. This covers stabling, hay, bedding etc. Set to £0 if horse accommodation is included in your nightly rate. Guests will specify how many horses they're bringing when booking."
+              asPopover
+            >
+              Per Horse Fee (£)
+            </LabelWithInfo>
             <div className="flex items-center gap-2">
               <span className="text-2xl">£</span>
               <Input
@@ -148,7 +162,12 @@ export function PropertyPricingStep({ data, onNext, userId, propertyId }: Pricin
           </div>
 
           <div>
-            <Label htmlFor="cleaning_fee">Cleaning Fee (£)</Label>
+            <LabelWithInfo 
+              htmlFor="cleaning_fee" 
+              info="A one-time fee added to each booking to cover cleaning after guests depart. This is optional and only charged once per booking, not per night."
+            >
+              Cleaning Fee (£)
+            </LabelWithInfo>
             <div className="flex items-center gap-2">
               <span className="text-2xl">£</span>
               <Input
@@ -194,7 +213,13 @@ export function PropertyPricingStep({ data, onNext, userId, propertyId }: Pricin
       </div>
 
       <div>
-        <Label htmlFor="cancellation_policy">Cancellation Policy</Label>
+        <LabelWithInfo 
+          htmlFor="cancellation_policy" 
+          info="This determines how refunds work if a guest cancels. Flexible policies may attract more bookings, but stricter policies protect you from last-minute cancellations. You can change this at any time."
+          asPopover
+        >
+          Cancellation Policy
+        </LabelWithInfo>
         <Select
           onValueChange={(value) => setValue("cancellation_policy", value as any)}
           defaultValue={data?.cancellation_policy || "moderate"}

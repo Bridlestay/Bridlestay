@@ -7,6 +7,7 @@ import { PropertyBasicsSchema, type PropertyBasics } from "@/lib/validations/pro
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LabelWithInfo } from "@/components/ui/info-tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -112,11 +113,17 @@ export function PropertyBasicsStep({ data, onNext }: BasicsStepProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Property Name */}
       <div>
-        <Label htmlFor="name">Property Name *</Label>
+        <LabelWithInfo 
+          htmlFor="name" 
+          info="Give your property a memorable name that guests will recognise. This will be displayed in search results."
+          required
+        >
+          Property Name
+        </LabelWithInfo>
         <Input
           id="name"
           {...register("name")}
-          placeholder="e.g., The Stables at Malvern"
+          placeholder="e.g., Willow Farm Stables"
         />
         {errors.name && (
           <p className="text-sm text-destructive mt-1">{errors.name.message}</p>
@@ -125,7 +132,14 @@ export function PropertyBasicsStep({ data, onNext }: BasicsStepProps) {
 
       {/* Description */}
       <div>
-        <Label htmlFor="description">Description * (min 200 characters)</Label>
+        <LabelWithInfo 
+          htmlFor="description" 
+          info="Write a detailed description of your property. Include what makes it special for horse owners, nearby riding routes, and any unique features. A good description helps guests decide if your property is right for them."
+          asPopover
+          required
+        >
+          Description (min 200 characters)
+        </LabelWithInfo>
         <Textarea
           id="description"
           {...register("description")}
@@ -189,7 +203,7 @@ export function PropertyBasicsStep({ data, onNext }: BasicsStepProps) {
           <Input
             id="city"
             {...register("city")}
-            placeholder="e.g., Malvern"
+            placeholder="e.g., Cheltenham"
           />
           {errors.city && (
             <p className="text-sm text-destructive mt-1">{errors.city.message}</p>
@@ -221,12 +235,19 @@ export function PropertyBasicsStep({ data, onNext }: BasicsStepProps) {
         </div>
 
         <div>
-          <Label htmlFor="postcode">Postcode *</Label>
+          <LabelWithInfo 
+            htmlFor="postcode" 
+            info="Your postcode is used to show your property's approximate location on the map. We add a small offset for privacy, so your exact address isn't revealed until a booking is confirmed."
+            asPopover
+            required
+          >
+            Postcode
+          </LabelWithInfo>
           <div className="relative">
             <Input
               id="postcode"
               {...register("postcode")}
-              placeholder="WR14 2AA"
+              placeholder="GL50 1AA"
               className="pr-10"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -252,7 +273,13 @@ export function PropertyBasicsStep({ data, onNext }: BasicsStepProps) {
       {/* Capacity */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div>
-          <Label htmlFor="max_guests">Max Guests *</Label>
+          <LabelWithInfo 
+            htmlFor="max_guests" 
+            info="The maximum number of people who can stay at your property. This should match your accommodation capacity."
+            required
+          >
+            Max Guests
+          </LabelWithInfo>
           <Input
             id="max_guests"
             type="number"

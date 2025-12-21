@@ -234,7 +234,7 @@ export function EditProfileDialog({
                 id="dreamDestination"
                 value={dreamDestination}
                 onChange={(e) => setDreamDestination(e.target.value)}
-                placeholder="e.g., Patagonia + Japan"
+                placeholder="e.g., New Zealand or Iceland"
               />
             </div>
 
@@ -247,7 +247,7 @@ export function EditProfileDialog({
                 id="work"
                 value={work}
                 onChange={(e) => setWork(e.target.value)}
-                placeholder="e.g., Caviste"
+                placeholder="e.g., Equine Vet, Teacher, Farmer"
               />
             </div>
 
@@ -299,7 +299,7 @@ export function EditProfileDialog({
                 id="school"
                 value={school}
                 onChange={(e) => setSchool(e.target.value)}
-                placeholder="e.g., Hereford Sixth Form College"
+                placeholder="e.g., University of Bristol"
               />
             </div>
 
@@ -338,7 +338,7 @@ export function EditProfileDialog({
                 id="favoriteSong"
                 value={favoriteSong}
                 onChange={(e) => setFavoriteSong(e.target.value)}
-                placeholder="e.g., Peg - Steely Dan"
+                placeholder="e.g., Here Comes the Sun - The Beatles"
               />
             </div>
 

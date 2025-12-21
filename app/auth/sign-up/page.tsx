@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
+import { LabelWithInfo } from "@/components/ui/info-tooltip";
 import {
   Card,
   CardContent,
@@ -108,18 +109,30 @@ export default function SignUpPage() {
         <form onSubmit={handleSignUp}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <LabelWithInfo 
+                htmlFor="name" 
+                info="This is how other users will see you on Bridlestay. You can use your real name or a nickname."
+                required
+              >
+                Full Name
+              </LabelWithInfo>
               <Input
                 id="name"
                 type="text"
-                placeholder="Jane Smith"
+                placeholder="Your full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <LabelWithInfo 
+                htmlFor="email" 
+                info="We'll send a verification email to this address. Make sure you have access to it."
+                required
+              >
+                Email
+              </LabelWithInfo>
               <Input
                 id="email"
                 type="email"
@@ -130,7 +143,13 @@ export default function SignUpPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <LabelWithInfo 
+                htmlFor="password" 
+                info="Choose a strong password with at least 6 characters. We recommend using a mix of letters, numbers, and symbols."
+                required
+              >
+                Password
+              </LabelWithInfo>
               <PasswordInput
                 id="password"
                 placeholder="At least 6 characters"

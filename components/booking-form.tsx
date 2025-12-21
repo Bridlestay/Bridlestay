@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LabelWithInfo } from "@/components/ui/info-tooltip";
 import { PriceBreakdownDisplay } from "@/components/price-breakdown";
 import { calculatePriceBreakdown } from "@/lib/fees";
 import { useToast } from "@/hooks/use-toast";
@@ -346,7 +347,12 @@ export function BookingForm({ propertyId, property }: BookingFormProps) {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="guests">Guests</Label>
+            <LabelWithInfo 
+              htmlFor="guests"
+              info="How many people will be staying? This includes adults and children."
+            >
+              Guests
+            </LabelWithInfo>
             <Input
               id="guests"
               type="number"
@@ -363,7 +369,13 @@ export function BookingForm({ propertyId, property }: BookingFormProps) {
             </p>
           </div>
           <div>
-            <Label htmlFor="horses">Number of Horses</Label>
+            <LabelWithInfo 
+              htmlFor="horses"
+              info="The number of horses you'll be bringing. Select them from your saved horses below. Each horse adds the per-horse fee to your total."
+              asPopover
+            >
+              Number of Horses
+            </LabelWithInfo>
             <Input
               id="horses"
               type="number"

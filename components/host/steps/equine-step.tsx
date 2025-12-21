@@ -7,6 +7,7 @@ import { PropertyEquineSchema, type PropertyEquine } from "@/lib/validations/pro
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LabelWithInfo } from "@/components/ui/info-tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -58,7 +59,14 @@ export function PropertyEquineStep({ data, onNext }: EquineStepProps) {
         <h3 className="font-semibold text-lg mb-4">Capacity</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="max_horses">Max Horses * (Required)</Label>
+            <LabelWithInfo 
+              htmlFor="max_horses" 
+              info="This is an important field for guests searching for accommodation. Enter the total number of horses you can accommodate at any one time, including all stables and paddock space."
+              asPopover
+              required
+            >
+              Max Horses
+            </LabelWithInfo>
             <Input
               id="max_horses"
               type="number"
@@ -69,12 +77,14 @@ export function PropertyEquineStep({ data, onNext }: EquineStepProps) {
             {errors.max_horses && (
               <p className="text-sm text-destructive mt-1">{errors.max_horses.message}</p>
             )}
-            <p className="text-sm text-muted-foreground mt-1">
-              How many horses can your property accommodate?
-            </p>
           </div>
           <div>
-            <Label htmlFor="stable_count">Number of Stables</Label>
+            <LabelWithInfo 
+              htmlFor="stable_count" 
+              info="The number of individual stables or loose boxes available for guest horses. Leave as 0 if you only offer paddock grazing."
+            >
+              Number of Stables
+            </LabelWithInfo>
             <Input
               id="stable_count"
               type="number"
