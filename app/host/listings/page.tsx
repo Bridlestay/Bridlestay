@@ -53,7 +53,7 @@ export default function MyListingsPage() {
         return;
       }
 
-      // Fetch user's properties
+      // Fetch user's properties (exclude removed properties)
       const { data: props } = await supabase
         .from("properties")
         .select(`
@@ -62,6 +62,7 @@ export default function MyListingsPage() {
           property_equine (max_horses)
         `)
         .eq("host_id", user.id)
+        .or("removed.is.null,removed.eq.false")
         .order("created_at", { ascending: false });
 
       // Add favorite counts to each property

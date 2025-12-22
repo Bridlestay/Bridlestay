@@ -34,6 +34,8 @@ export async function GET(request: Request) {
           city,
           county,
           nightly_price_pennies,
+          removed,
+          removal_reason,
           property_photos (*)
         ),
         guest:guest_id (
@@ -63,6 +65,8 @@ export async function GET(request: Request) {
           city,
           county,
           nightly_price_pennies,
+          removed,
+          removal_reason,
           property_photos (*)
         `)
         .eq("id", propertyId)

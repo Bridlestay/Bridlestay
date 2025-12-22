@@ -49,6 +49,11 @@ export default async function PropertyPage({
     notFound();
   }
 
+  // If property was removed by admin, show not found (unless owner viewing)
+  if (property?.removed && property?.host_id !== user?.id) {
+    notFound();
+  }
+
   if (error || !property) {
     notFound();
   }
@@ -70,6 +75,31 @@ export default async function PropertyPage({
       <Header />
       <main className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
+        
+        {/* Show warning if property is removed (owner viewing) */}
+        {property.removed && property.host_id === user?.id && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <Shield className="h-5 w-5 text-red-600 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-red-800">Property Removed</h3>
+                <p className="text-red-700 text-sm mt-1">
+                  This property has been removed from Bridlestay by an administrator. 
+                  It is no longer visible to other users.
+                  {property.removal_reason && (
+                    <span className="block mt-2">
+                      <strong>Reason:</strong> {property.removal_reason}
+                    </span>
+                  )}
+                </p>
+                <p className="text-red-600 text-sm mt-2">
+                  Please check your messages for more information from our admin team.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Gallery */}
         <ImageGallery images={sortedPhotos} propertyName={property.name} />
 

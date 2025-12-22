@@ -153,6 +153,8 @@ export function MessagesInbox() {
 
       if (response.ok) {
         setMessages(data.messages || []);
+        // Refresh conversations to update unread/New status after messages are marked as read
+        await fetchConversations();
       }
     } catch (error) {
       console.error("Error fetching messages:", error);

@@ -52,11 +52,12 @@ export function HostDashboard({ user }: { user: any }) {
 
       setHostProfile(profile);
 
-      // Fetch properties
+      // Fetch properties (exclude removed properties)
       const { data: props } = await supabase
         .from("properties")
         .select("*")
         .eq("host_id", user.id)
+        .or("removed.is.null,removed.eq.false")
         .order("created_at", { ascending: false });
 
       setProperties(props || []);

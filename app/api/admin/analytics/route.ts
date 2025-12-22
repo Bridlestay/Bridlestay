@@ -84,10 +84,10 @@ export async function GET() {
         .select("county")
         .eq("published", true),
 
-      // Top properties by bookings
+      // Top properties by bookings (exclude removed properties)
       supabase
         .from("bookings")
-        .select("property_id, properties(id, name, county, city)")
+        .select("property_id, properties(id, name, county, city, removed)")
         .not("properties", "is", null),
 
       // Monthly growth (last 12 months)
@@ -221,12 +221,13 @@ export async function GET() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    // Top properties by bookings
+    // Top properties by bookings (filter out removed properties)
     const propertyBookingCounts: Record<string, { property: any; count: number }> = {};
     (topPropertiesData.data || []).forEach((booking: any) => {
       if (booking.properties) {
         const prop = Array.isArray(booking.properties) ? booking.properties[0] : booking.properties;
-        if (prop) {
+        // Skip removed properties
+        if (prop && !prop.removed) {
           const propId = prop.id;
           if (!propertyBookingCounts[propId]) {
             propertyBookingCounts[propId] = {

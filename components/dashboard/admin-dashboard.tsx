@@ -19,6 +19,7 @@ import { AnalyticsDashboard } from "@/components/admin/analytics-dashboard";
 import { ModerationDashboard } from "@/components/admin/moderation-dashboard";
 import { FeedbackDashboard } from "@/components/admin/feedback-dashboard";
 import { NewsManager } from "@/components/admin/news-manager";
+import { InspectDashboard } from "@/components/admin/inspect-dashboard";
 import { 
   BarChart3, 
   Shield, 
@@ -33,7 +34,8 @@ import {
   MessageSquare,
   LayoutDashboard,
   MessageSquarePlus,
-  Newspaper
+  Newspaper,
+  Inspect,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
@@ -113,6 +115,13 @@ export function AdminDashboard({ user }: { user: any }) {
   const [propertyVerifiedFilter, setPropertyVerifiedFilter] = useState<string>('all');
   const [propertyPublishedFilter, setPropertyPublishedFilter] = useState<string>('all');
   const [propertyCountyFilter, setPropertyCountyFilter] = useState<string>('all');
+  const [propertyRemovedFilter, setPropertyRemovedFilter] = useState<string>('active');
+
+  // Inspect states
+  const [activeTab, setActiveTab] = useState<string>('analytics');
+  const [inspectUserId, setInspectUserId] = useState<string | undefined>(undefined);
+  const [inspectPropertyId, setInspectPropertyId] = useState<string | undefined>(undefined);
+  const [inspectInitialTab, setInspectInitialTab] = useState<'users' | 'properties'>('users');
   
   // Message dialog states
   const [messageDialog, setMessageDialog] = useState<{
@@ -472,16 +481,34 @@ export function AdminDashboard({ user }: { user: any }) {
     // County filter
     if (propertyCountyFilter !== 'all' && p.county !== propertyCountyFilter) return false;
 
+    // Removed filter (default to showing only active/non-removed properties)
+    if (propertyRemovedFilter === 'active' && p.removed) return false;
+    if (propertyRemovedFilter === 'removed' && !p.removed) return false;
+
     return true;
   });
 
   // Get unique counties for filter
   const uniqueCounties = Array.from(new Set(properties.map(p => p.county).filter(Boolean)));
 
+  const handleInspectUser = (userId: string) => {
+    setInspectUserId(userId);
+    setInspectPropertyId(undefined);
+    setInspectInitialTab('users');
+    setActiveTab('inspect');
+  };
+
+  const handleInspectProperty = (propertyId: string) => {
+    setInspectPropertyId(propertyId);
+    setInspectUserId(undefined);
+    setInspectInitialTab('properties');
+    setActiveTab('inspect');
+  };
+
   return (
     <>
-    <Tabs defaultValue="analytics" className="space-y-6">
-      <TabsList>
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <TabsList className="flex-wrap">
         <TabsTrigger value="analytics" className="gap-2">
           <BarChart3 className="h-4 w-4" />
           Analytics
@@ -497,6 +524,10 @@ export function AdminDashboard({ user }: { user: any }) {
         <TabsTrigger value="properties" className="gap-2">
           <Home className="h-4 w-4" />
           Properties
+        </TabsTrigger>
+        <TabsTrigger value="inspect" className="gap-2">
+          <Inspect className="h-4 w-4" />
+          Inspect
         </TabsTrigger>
         <TabsTrigger value="feedback" className="gap-2">
           <MessageSquarePlus className="h-4 w-4" />
@@ -709,6 +740,12 @@ export function AdminDashboard({ user }: { user: any }) {
                                 <LayoutDashboard className="mr-2 h-4 w-4" />
                                 View Dashboard
                               </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleInspectUser(u.id)}
+                              >
+                                <Inspect className="mr-2 h-4 w-4" />
+                                Inspect User
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-yellow-600"
@@ -815,7 +852,18 @@ export function AdminDashboard({ user }: { user: any }) {
                   </SelectContent>
                 </Select>
 
-                {(propertySearch || propertyVerifiedFilter !== 'all' || propertyPublishedFilter !== 'all' || propertyCountyFilter !== 'all') && (
+                <Select value={propertyRemovedFilter} onValueChange={setPropertyRemovedFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All (incl. removed)</SelectItem>
+                    <SelectItem value="active">Active Only</SelectItem>
+                    <SelectItem value="removed">Removed Only</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {(propertySearch || propertyVerifiedFilter !== 'all' || propertyPublishedFilter !== 'all' || propertyCountyFilter !== 'all' || propertyRemovedFilter !== 'active') && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -824,6 +872,7 @@ export function AdminDashboard({ user }: { user: any }) {
                       setPropertyVerifiedFilter('all');
                       setPropertyPublishedFilter('all');
                       setPropertyCountyFilter('all');
+                      setPropertyRemovedFilter('active');
                     }}
                   >
                     <X className="h-4 w-4 mr-1" />
@@ -847,28 +896,47 @@ export function AdminDashboard({ user }: { user: any }) {
                     <TableHead>Host</TableHead>
                     <TableHead>County</TableHead>
                     <TableHead>Verified</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredProperties.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         No properties found matching your filters
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredProperties.map((property) => (
-                    <TableRow key={property.id}>
-                      <TableCell>{property.name}</TableCell>
+                    <TableRow key={property.id} className={property.removed ? "opacity-60 bg-red-50" : ""}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {property.name}
+                          {property.removed && (
+                            <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
+                              REMOVED
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>{property.users?.name}</TableCell>
                       <TableCell>{property.county}</TableCell>
                       <TableCell>
                         {property.admin_verified ? "✅" : "❌"}
                       </TableCell>
                       <TableCell>
+                        {property.removed ? (
+                          <span className="text-red-600 text-sm">Removed</span>
+                        ) : property.published ? (
+                          <span className="text-green-600 text-sm">Published</span>
+                        ) : (
+                          <span className="text-yellow-600 text-sm">Draft</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <div className="flex items-center gap-2">
-                          {!property.admin_verified && (
+                          {!property.admin_verified && !property.removed && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -899,14 +967,30 @@ export function AdminDashboard({ user }: { user: any }) {
                                   View Property
                                 </Link>
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => openActionDialog('remove', property.id, property.name, 'property')}
+                                onClick={() => handleInspectProperty(property.id)}
                               >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Remove Property
+                                <Inspect className="mr-2 h-4 w-4" />
+                                Inspect Property
                               </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              {property.removed ? (
+                                <DropdownMenuItem
+                                  className="text-muted-foreground"
+                                  disabled
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Already Removed
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  onClick={() => openActionDialog('remove', property.id, property.name, 'property')}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Remove Property
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -927,6 +1011,15 @@ export function AdminDashboard({ user }: { user: any }) {
 
       <TabsContent value="news" className="space-y-6">
         <NewsManager />
+      </TabsContent>
+
+      <TabsContent value="inspect" className="space-y-6">
+        <InspectDashboard 
+          initialUserId={inspectUserId}
+          initialPropertyId={inspectPropertyId}
+          initialTab={inspectInitialTab}
+          key={`${inspectUserId}-${inspectPropertyId}`}
+        />
       </TabsContent>
     </Tabs>
 

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, MapPin, Users, Loader2, ExternalLink, Hash, Moon } from "lucide-react";
+import { Calendar, MapPin, Users, Loader2, ExternalLink, Hash, Moon, ShieldAlert } from "lucide-react";
 import { formatGBP } from "@/lib/fees";
 import { format, differenceInDays } from "date-fns";
 import Link from "next/link";
@@ -57,6 +57,10 @@ export function ReservationCard({ propertyId, otherUserId }: ReservationCardProp
   if (!property) {
     return null;
   }
+
+  // Check if property is removed
+  const isRemoved = property.removed === true;
+
   // Sort photos by sort_order and get the first one as cover
   const sortedPhotos = property.property_photos?.sort((a: any, b: any) => a.sort_order - b.sort_order) || [];
   const coverPhoto = sortedPhotos[0];
@@ -132,9 +136,29 @@ export function ReservationCard({ propertyId, otherUserId }: ReservationCardProp
 
       <ScrollArea className="flex-1">
         <CardContent className="space-y-4 pb-6">
+        {/* Property Removed Notice */}
+        {isRemoved && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <div className="flex items-start gap-2">
+              <ShieldAlert className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-semibold text-red-800 text-sm">Property Removed</h4>
+                <p className="text-red-700 text-xs mt-1">
+                  This property has been removed from Bridlestay by an administrator.
+                  {property.removal_reason && (
+                    <span className="block mt-1">
+                      <strong>Reason:</strong> {property.removal_reason}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Property Image */}
         {coverPhoto?.url && (
-          <div className="relative h-40 rounded-lg overflow-hidden">
+          <div className={`relative h-40 rounded-lg overflow-hidden ${isRemoved ? 'opacity-60' : ''}`}>
             <Image
               src={coverPhoto.url}
               alt={property.name}
@@ -145,7 +169,7 @@ export function ReservationCard({ propertyId, otherUserId }: ReservationCardProp
         )}
 
         {/* Property Name */}
-        <div>
+        <div className={isRemoved ? 'opacity-60' : ''}>
           <h3 className="font-semibold text-base mb-1">{property.name}</h3>
           <p className="text-sm text-muted-foreground flex items-center gap-1">
             <MapPin className="h-3 w-3" />
@@ -260,12 +284,19 @@ export function ReservationCard({ propertyId, otherUserId }: ReservationCardProp
 
         {/* Action Buttons */}
         <div className="space-y-2 pt-2">
-          <Link href={`/property/${property.id}`} target="_blank" className="block">
-            <Button variant="outline" className="w-full" size="sm">
-              <ExternalLink className="h-4 w-4 mr-2" />
-              View Listing
+          {isRemoved ? (
+            <Button variant="outline" className="w-full opacity-50" size="sm" disabled>
+              <ShieldAlert className="h-4 w-4 mr-2" />
+              Listing Unavailable
             </Button>
-          </Link>
+          ) : (
+            <Link href={`/property/${property.id}`} target="_blank" className="block">
+              <Button variant="outline" className="w-full" size="sm">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Listing
+              </Button>
+            </Link>
+          )}
           {booking && (
             <Link href={`/dashboard`} className="block">
               <Button variant="default" className="w-full" size="sm">
