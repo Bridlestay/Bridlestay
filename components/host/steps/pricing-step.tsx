@@ -17,7 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 interface PricingStepProps {
   data: any;
@@ -28,6 +29,7 @@ interface PricingStepProps {
 
 export function PropertyPricingStep({ data, onNext, userId, propertyId }: PricingStepProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [insuranceAcknowledged, setInsuranceAcknowledged] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -264,9 +266,49 @@ export function PropertyPricingStep({ data, onNext, userId, propertyId }: Pricin
         </div>
       </div>
 
+      {/* Insurance Acknowledgment */}
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="space-y-3">
+            <div>
+              <h4 className="font-semibold text-amber-900">Important: Insurance Required</h4>
+              <p className="text-sm text-amber-800 mt-1">
+                Cantra does not provide insurance. As a host, you are responsible for ensuring you have:
+              </p>
+              <ul className="text-sm text-amber-800 list-disc list-inside mt-2 space-y-1">
+                <li>Public liability insurance for guests visiting your property</li>
+                <li>Property insurance that covers short-term letting</li>
+                <li>Equine liability cover if providing horse facilities</li>
+              </ul>
+            </div>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="insurance-acknowledgment"
+                checked={insuranceAcknowledged}
+                onCheckedChange={(checked) => setInsuranceAcknowledged(checked === true)}
+                className="mt-0.5"
+              />
+              <label 
+                htmlFor="insurance-acknowledgment" 
+                className="text-sm text-amber-900 cursor-pointer leading-tight"
+              >
+                I confirm that I understand I am responsible for arranging my own insurance coverage 
+                and that Cantra does not provide any insurance for hosts or guests.
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Submit */}
       <div className="flex justify-end">
-        <Button type="submit" disabled={isSubmitting} size="lg">
+        <Button 
+          type="submit" 
+          disabled={isSubmitting || !insuranceAcknowledged} 
+          size="lg"
+          title={!insuranceAcknowledged ? "Please acknowledge the insurance requirement above" : ""}
+        >
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

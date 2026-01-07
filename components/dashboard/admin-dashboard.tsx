@@ -20,6 +20,8 @@ import { ModerationDashboard } from "@/components/admin/moderation-dashboard";
 import { FeedbackDashboard } from "@/components/admin/feedback-dashboard";
 import { NewsManager } from "@/components/admin/news-manager";
 import { InspectDashboard } from "@/components/admin/inspect-dashboard";
+import { BadgesDashboard } from "@/components/admin/badges-dashboard";
+import { ReferralsDashboard } from "@/components/admin/referrals-dashboard";
 import { 
   BarChart3, 
   Shield, 
@@ -36,6 +38,8 @@ import {
   MessageSquarePlus,
   Newspaper,
   Inspect,
+  Trophy,
+  Gift,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
@@ -107,7 +111,6 @@ export function AdminDashboard({ user }: { user: any }) {
   // Search and filter states
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState<string>('all');
-  const [userVerifiedFilter, setUserVerifiedFilter] = useState<string>('all');
   const [userBannedFilter, setUserBannedFilter] = useState<string>('all');
   const [userDateFilter, setUserDateFilter] = useState<string>('all');
   
@@ -159,43 +162,6 @@ export function AdminDashboard({ user }: { user: any }) {
 
     fetchData();
   }, []);
-
-  const handleVerifyUser = async (userId: string) => {
-    try {
-      const response = await fetch("/api/admin/verify-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Verification failed");
-      }
-
-      toast({
-        title: "Success",
-        description: "User verified successfully",
-      });
-
-      // Refresh users
-      const supabase = createClient();
-      const { data: refreshedUsers } = await supabase
-        .from("users")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      setUsers(refreshedUsers || []);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    }
-  };
 
   const handleVerifyProperty = async (propertyId: string) => {
     try {
@@ -435,10 +401,6 @@ export function AdminDashboard({ user }: { user: any }) {
     // Role filter
     if (userRoleFilter !== 'all' && u.role !== userRoleFilter) return false;
 
-    // Verified filter
-    if (userVerifiedFilter === 'verified' && !u.admin_verified) return false;
-    if (userVerifiedFilter === 'unverified' && u.admin_verified) return false;
-
     // Banned filter
     if (userBannedFilter === 'banned' && !u.banned) return false;
     if (userBannedFilter === 'active' && u.banned) return false;
@@ -529,6 +491,14 @@ export function AdminDashboard({ user }: { user: any }) {
           <Inspect className="h-4 w-4" />
           Inspect
         </TabsTrigger>
+        <TabsTrigger value="badges" className="gap-2">
+          <Trophy className="h-4 w-4" />
+          Badges
+        </TabsTrigger>
+        <TabsTrigger value="referrals" className="gap-2">
+          <Gift className="h-4 w-4" />
+          Referrals
+        </TabsTrigger>
         <TabsTrigger value="feedback" className="gap-2">
           <MessageSquarePlus className="h-4 w-4" />
           Feedback
@@ -593,17 +563,6 @@ export function AdminDashboard({ user }: { user: any }) {
                   </SelectContent>
                 </Select>
 
-                <Select value={userVerifiedFilter} onValueChange={setUserVerifiedFilter}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Verified" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="verified">Verified</SelectItem>
-                    <SelectItem value="unverified">Unverified</SelectItem>
-                  </SelectContent>
-                </Select>
-
                 <Select value={userBannedFilter} onValueChange={setUserBannedFilter}>
                   <SelectTrigger className="w-[140px]">
                     <SelectValue placeholder="Status" />
@@ -628,14 +587,13 @@ export function AdminDashboard({ user }: { user: any }) {
                   </SelectContent>
                 </Select>
 
-                {(userSearch || userRoleFilter !== 'all' || userVerifiedFilter !== 'all' || userBannedFilter !== 'all' || userDateFilter !== 'all') && (
+                {(userSearch || userRoleFilter !== 'all' || userBannedFilter !== 'all' || userDateFilter !== 'all') && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => {
                       setUserSearch('');
                       setUserRoleFilter('all');
-                      setUserVerifiedFilter('all');
                       setUserBannedFilter('all');
                       setUserDateFilter('all');
                     }}
@@ -661,7 +619,7 @@ export function AdminDashboard({ user }: { user: any }) {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Verified</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -690,22 +648,19 @@ export function AdminDashboard({ user }: { user: any }) {
                       <TableCell>{u.email}</TableCell>
                       <TableCell className="capitalize">{u.role}</TableCell>
                       <TableCell>
-                        {u.admin_verified ? "✅" : "❌"}
+                        {u.banned ? (
+                          <Badge variant="destructive">Banned</Badge>
+                        ) : u.soft_banned ? (
+                          <Badge variant="outline" className="text-amber-600 border-amber-600">Restricted</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-green-600 border-green-600">Active</Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         {new Date(u.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {!u.admin_verified && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleVerifyUser(u.id)}
-                            >
-                              Verify
-                            </Button>
-                          )}
                           
                           {/* Admin Actions Dropdown */}
                           <DropdownMenu>
@@ -1020,6 +975,14 @@ export function AdminDashboard({ user }: { user: any }) {
           initialTab={inspectInitialTab}
           key={`${inspectUserId}-${inspectPropertyId}`}
         />
+      </TabsContent>
+
+      <TabsContent value="badges" className="space-y-6">
+        <BadgesDashboard />
+      </TabsContent>
+
+      <TabsContent value="referrals" className="space-y-6">
+        <ReferralsDashboard />
       </TabsContent>
     </Tabs>
 

@@ -149,7 +149,7 @@ export default function HostPage() {
               <CardContent>
                 <p className="text-muted-foreground">
                   Payments are held securely until you accept. Full control over
-                  bookings. Built-in insurance and support.
+                  bookings with 24/7 platform support.
                 </p>
               </CardContent>
             </Card>
@@ -211,6 +211,38 @@ export default function HostPage() {
                 <p className="text-muted-foreground">{item.description}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Important Insurance Notice */}
+      <section className="py-12 bg-amber-50 border-y border-amber-200">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <Shield className="h-6 w-6 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-xl text-amber-900 mb-2">
+                  Important: Insurance Responsibility
+                </h3>
+                <p className="text-amber-800 mb-3">
+                  Cantra is a booking platform and does not provide insurance coverage for hosts or guests. 
+                  As a host, <strong>you are responsible for ensuring you have appropriate insurance</strong> for:
+                </p>
+                <ul className="list-disc list-inside text-amber-800 space-y-1 mb-3">
+                  <li>Public liability insurance for visitors to your property</li>
+                  <li>Property and contents insurance that covers short-term letting</li>
+                  <li>Equine-specific liability if you provide horse facilities</li>
+                  <li>Any other coverage required for your specific offering</li>
+                </ul>
+                <p className="text-amber-800 text-sm">
+                  We strongly recommend consulting with an insurance professional to ensure you have adequate coverage 
+                  before accepting bookings. Guests are also advised to have their own travel and horse insurance.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

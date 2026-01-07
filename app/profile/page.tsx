@@ -6,6 +6,8 @@ import { AboutMeSection } from "@/components/profile/about-me-section";
 import { TripsSection } from "@/components/profile/trips-section";
 import { ReviewsSection } from "@/components/profile/reviews-section";
 import { HorsesSection } from "@/components/profile/horses-section";
+import { BadgesSection } from "@/components/profile/badges-section";
+import { ReferralsSection } from "@/components/profile/referrals-section";
 
 export default async function ProfilePage({
   searchParams,
@@ -72,6 +74,9 @@ export default async function ProfilePage({
                   horsesCount={horsesCount || 0}
                 />
               )}
+              {activeSection === "badges" && (
+                <BadgesSection userId={user.id} isOwnProfile={true} />
+              )}
               {activeSection === "trips" && (
                 <TripsSection bookings={completedBookings || []} />
               )}
@@ -80,6 +85,9 @@ export default async function ProfilePage({
               )}
               {activeSection === "reviews" && (
                 <ReviewsSection userId={user.id} />
+              )}
+              {activeSection === "referrals" && (
+                <ReferralsSection userId={user.id} userName={userData.name || ""} />
               )}
             </div>
           </div>

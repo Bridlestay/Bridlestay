@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { User, Plane, Settings, Star } from "lucide-react";
+import { User, Plane, Settings, Star, Trophy, Gift } from "lucide-react";
 import { HorseshoeIcon } from "@/components/icons/horseshoe";
 
 interface ProfileSidebarProps {
@@ -12,9 +12,11 @@ interface ProfileSidebarProps {
 export function ProfileSidebar({ activeSection }: ProfileSidebarProps) {
   const sections = [
     { id: "about", label: "About me", icon: User, href: "/profile?section=about" },
+    { id: "badges", label: "Badges", icon: Trophy, href: "/profile?section=badges" },
     { id: "trips", label: "Past trips", icon: Plane, href: "/profile?section=trips" },
     { id: "horses", label: "My Horses", icon: HorseshoeIcon, href: "/profile?section=horses" },
     { id: "reviews", label: "Reviews", icon: Star, href: "/profile?section=reviews" },
+    { id: "referrals", label: "Referrals", icon: Gift, href: "/profile?section=referrals" },
     { id: "settings", label: "Account settings", icon: Settings, href: "/account" },
   ];
 
