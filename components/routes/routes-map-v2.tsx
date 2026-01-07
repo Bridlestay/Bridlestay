@@ -159,6 +159,17 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       };
     }, [isLoaded, center, zoom]);
 
+    // Update cursor based on mode
+    useEffect(() => {
+      if (!mapRef.current) return;
+      
+      if (isCreating && isPlotting) {
+        mapRef.current.setOptions({ draggableCursor: "crosshair" });
+      } else {
+        mapRef.current.setOptions({ draggableCursor: undefined });
+      }
+    }, [isCreating, isPlotting]);
+
     // Load public rights of way from JSON (Worcestershire data)
     useEffect(() => {
       if (!mapRef.current || !isLoaded) return;
@@ -220,13 +231,11 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
                     zIndex: type === "bridleway" ? 10 : 5,
                   });
 
-                  // Store path data for snapping (bridleways only for now)
-                  if (type === "bridleway") {
-                    const latLngPath = path.map((p: {lat: number, lng: number}) => 
-                      new google.maps.LatLng(p.lat, p.lng)
-                    );
-                    pathDataRef.current.push({ path: latLngPath, type });
-                  }
+                  // Store path data for snapping (all visible path types)
+                  const latLngPath = path.map((p: {lat: number, lng: number}) => 
+                    new google.maps.LatLng(p.lat, p.lng)
+                  );
+                  pathDataRef.current.push({ path: latLngPath, type });
 
                   // Highlight on hover (visual feedback only)
                   polyline.addListener("mouseover", () => {
@@ -310,13 +319,14 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       return { x: ax + t * dx, y: ay + t * dy };
     }, []);
 
-    // Snap to bridleway - finds nearest point on any loaded bridleway
-    const snapToBridleway = useCallback((lat: number, lng: number): { lat: number; lng: number; snapped: boolean; pathType?: string } => {
-      const SNAP_THRESHOLD_METERS = 50; // Snap if within 50 meters of a bridleway
+    // Snap to any public path (bridleways, footpaths, byways, etc.) - finds nearest point
+    const snapToPath = useCallback((lat: number, lng: number): { lat: number; lng: number; snapped: boolean; pathType?: string } => {
+      const SNAP_THRESHOLD_METERS = 50; // Snap if within 50 meters of a path
       
       let nearestDist = Infinity;
       let nearestPoint = { lat, lng };
       let snapped = false;
+      let snappedPathType: string | undefined;
 
       for (const { path, type } of pathDataRef.current) {
         // Check each segment of the path
@@ -337,26 +347,27 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
             nearestDist = dist;
             nearestPoint = { lat: nearest.y, lng: nearest.x };
             snapped = true;
+            snappedPathType = type;
           }
         }
       }
 
-      return { ...nearestPoint, snapped, pathType: snapped ? "bridleway" : undefined };
+      return { ...nearestPoint, snapped, pathType: snappedPathType };
     }, [getDistanceMeters, nearestPointOnSegment]);
 
-    // Snap to roads using Google's Roads API / Directions (fallback if not near bridleway)
+    // Snap to roads using Google's Roads API / Directions (fallback if not near public path)
     const snapToRoad = useCallback(async (lat: number, lng: number): Promise<{lat: number, lng: number, snapped: boolean, pathType?: string}> => {
       if (!snapEnabled) {
         return { lat, lng, snapped: false };
       }
 
-      // First, try to snap to bridleway
-      const bridlewaySnap = snapToBridleway(lat, lng);
-      if (bridlewaySnap.snapped) {
-        return bridlewaySnap;
+      // First, try to snap to any public path (bridleway, footpath, etc.)
+      const pathSnap = snapToPath(lat, lng);
+      if (pathSnap.snapped) {
+        return pathSnap;
       }
 
-      // If not near a bridleway and we have waypoints, try Google Directions
+      // If not near a public path and we have waypoints, try Google Directions
       if (!directionsServiceRef.current || waypoints.length === 0) {
         return { lat, lng, snapped: false };
       }
@@ -396,7 +407,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       }
 
       return { lat, lng, snapped: false };
-    }, [snapEnabled, waypoints, snapToBridleway]);
+    }, [snapEnabled, waypoints, snapToPath]);
 
     // Handle map clicks for route creation
     useEffect(() => {
@@ -411,9 +422,9 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
           const lng = e.latLng.lng();
 
           if (snapEnabled && waypoints.length > 0) {
-            // Try to snap to road/path
+            // Try to snap to path (only snaps THIS point, not existing route)
             const snapped = await snapToRoad(lat, lng);
-            onWaypointAdd?.(snapped.lat, snapped.lng, snapped.snapped, snapped.snapped ? "road" : undefined);
+            onWaypointAdd?.(snapped.lat, snapped.lng, snapped.snapped, snapped.pathType);
           } else {
             onWaypointAdd?.(lat, lng, false);
           }
@@ -425,7 +436,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       };
     }, [isLoaded, isCreating, isPlotting, snapEnabled, onWaypointAdd, waypoints, snapToRoad]);
 
-    // Helper: Find path along bridleway between two points
+    // Helper: Find path along any public right of way between two points
     const findBridlewayPath = useCallback((
       fromLat: number, fromLng: number, 
       toLat: number, toLng: number
@@ -434,7 +445,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       let bestPath: google.maps.LatLng[] = [];
       let bestDist = Infinity;
 
-      // Look for bridleway segments that connect these points
+      // Look for public path segments that connect these points
       for (const { path } of pathDataRef.current) {
         // Find indices of path points closest to from/to
         let fromIdx = -1;
@@ -457,7 +468,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
           }
         }
 
-        // If both points are near this bridleway, extract the path segment
+        // If both points are near this path, extract the segment
         if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx) {
           const start = Math.min(fromIdx, toIdx);
           const end = Math.max(fromIdx, toIdx);
@@ -496,7 +507,8 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       
       if (waypoints.length < 2) return;
 
-      // Build the full path, trying to follow bridleways
+      // Build the full path, trying to follow public rights of way
+      // Snap only affects segments where BOTH endpoints were snapped (respects per-point snap state)
       const buildRoutePath = () => {
         const fullPath: google.maps.LatLng[] = [];
         
@@ -509,13 +521,14 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
             fullPath.push(new google.maps.LatLng(from.lat, from.lng));
           }
           
-          // Try to find a bridleway path between these points
-          if (snapEnabled) {
-            const bridlewayPath = findBridlewayPath(from.lat, from.lng, to.lat, to.lng);
+          // Try to find a public path between these points ONLY if both points were snapped
+          // This means toggling snap only affects future segments, not existing ones
+          if (from.snapped && to.snapped) {
+            const publicPath = findBridlewayPath(from.lat, from.lng, to.lat, to.lng);
             
-            if (bridlewayPath.length > 0) {
-              // Add bridleway path (skip first point as it's already added)
-              bridlewayPath.slice(1).forEach(p => fullPath.push(p));
+            if (publicPath.length > 0) {
+              // Add public path (skip first point as it's already added)
+              publicPath.slice(1).forEach(p => fullPath.push(p));
             }
           }
           
@@ -528,7 +541,8 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
           const first = waypoints[0];
           const last = waypoints[waypoints.length - 1];
           
-          if (snapEnabled) {
+          // Only follow path for closing segment if both endpoints were snapped
+          if (first.snapped && last.snapped) {
             const closingPath = findBridlewayPath(last.lat, last.lng, first.lat, first.lng);
             if (closingPath.length > 0) {
               closingPath.slice(1).forEach(p => fullPath.push(p));

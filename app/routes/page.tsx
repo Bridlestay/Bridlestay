@@ -325,6 +325,7 @@ export default function RoutesPage() {
                   onSave={handleSaveRoute}
                   onCancel={cancelCreating}
                   mapRef={mapRef}
+                  onRouteTypeChange={setRouteType}
                   existingRoute={{
                     title: "",
                     description: "",

@@ -28,13 +28,13 @@ import {
   Circle,
   Route,
   Lock,
+  Navigation,
   Globe,
   Link2,
   X,
   GripVertical,
   RotateCcw,
   Palette,
-  Navigation,
 } from "lucide-react";
 
 // Types
@@ -51,6 +51,7 @@ export interface RouteCreatorProps {
   onCancel: () => void;
   mapRef: React.RefObject<any>;
   existingRoute?: RouteData | null;
+  onRouteTypeChange?: (routeType: "circular" | "linear") => void;
 }
 
 export interface RouteData {
@@ -73,6 +74,7 @@ export function RouteCreator({
   onCancel,
   mapRef,
   existingRoute,
+  onRouteTypeChange,
 }: RouteCreatorProps) {
   // Route metadata
   const [title, setTitle] = useState(existingRoute?.title || "");
@@ -87,9 +89,9 @@ export function RouteCreator({
     existingRoute?.routeType || "linear"
   );
 
-  // Drawing state
-  const [waypoints] = useState<Waypoint[]>(existingRoute?.waypoints || []);
-  const [distanceKm, setDistanceKm] = useState(existingRoute?.distanceKm || 0);
+  // Use waypoints from existingRoute prop (controlled by parent)
+  const waypoints = existingRoute?.waypoints || [];
+  const [distanceKm, setDistanceKm] = useState(0);
   const [displayUnits, setDisplayUnits] = useState<"km" | "miles">("km");
   const [saving, setSaving] = useState(false);
 
@@ -110,7 +112,9 @@ export function RouteCreator({
       );
     }
 
-    if (routeType === "circular" && waypoints.length > 2) {
+    // Use routeType from existingRoute if available
+    const currentRouteType = existingRoute?.routeType || routeType;
+    if (currentRouteType === "circular" && waypoints.length > 2) {
       total += haversineDistance(
         waypoints[waypoints.length - 1].lat,
         waypoints[waypoints.length - 1].lng,
@@ -120,7 +124,7 @@ export function RouteCreator({
     }
 
     setDistanceKm(total);
-  }, [waypoints, routeType]);
+  }, [waypoints, routeType, existingRoute?.routeType]);
 
   const haversineDistance = (
     lat1: number,
@@ -166,12 +170,15 @@ export function RouteCreator({
 
     setSaving(true);
     try {
+      // Use current routeType from existingRoute prop (in case it was changed)
+      const currentRouteType = existingRoute?.routeType || routeType;
+      
       const routeData: RouteData = {
         title,
         description,
         visibility,
         difficulty,
-        routeType,
+        routeType: currentRouteType,
         waypoints,
         geometry: {
           type: "LineString",
@@ -208,18 +215,24 @@ export function RouteCreator({
           <Label className="text-sm font-medium">Activity Type</Label>
           <div className="flex gap-2">
             <Button
-              variant={routeType === "linear" ? "default" : "outline"}
+              variant={(existingRoute?.routeType || routeType) === "linear" ? "default" : "outline"}
               size="sm"
-              onClick={() => setRouteType("linear")}
+              onClick={() => {
+                setRouteType("linear");
+                onRouteTypeChange?.("linear");
+              }}
               className="flex-1"
             >
               <Route className="h-4 w-4 mr-2" />
               Linear
             </Button>
             <Button
-              variant={routeType === "circular" ? "default" : "outline"}
+              variant={(existingRoute?.routeType || routeType) === "circular" ? "default" : "outline"}
               size="sm"
-              onClick={() => setRouteType("circular")}
+              onClick={() => {
+                setRouteType("circular");
+                onRouteTypeChange?.("circular");
+              }}
               className="flex-1"
             >
               <Circle className="h-4 w-4 mr-2" />
@@ -227,7 +240,7 @@ export function RouteCreator({
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            {routeType === "circular"
+            {(existingRoute?.routeType || routeType) === "circular"
               ? "Route will connect back to the start"
               : "Route has separate start and end points"}
           </p>
@@ -243,7 +256,7 @@ export function RouteCreator({
               Route time
             </div>
             <div className="text-2xl font-bold">
-              {waypoints.length >= 2 ? formatTime(rideTimeMinutes) : "0 min"}
+              {distanceKm > 0 ? formatTime(rideTimeMinutes) : "0 min"}
             </div>
           </div>
           <div className="text-center p-3 bg-muted/50 rounded-lg">
@@ -252,7 +265,7 @@ export function RouteCreator({
               Route distance
             </div>
             <div className="text-2xl font-bold">
-              {displayDistance.toFixed(2)} {distanceLabel}
+              {distanceKm > 0 ? displayDistance.toFixed(2) : "0.00"} {distanceLabel}
             </div>
           </div>
         </div>
@@ -318,43 +331,59 @@ export function RouteCreator({
           <RadioGroup
             value={visibility}
             onValueChange={(v) => setVisibility(v as typeof visibility)}
+            className="space-y-2"
           >
-            <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
+            <label 
+              htmlFor="private"
+              className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                visibility === "private" ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+              }`}
+            >
               <RadioGroupItem value="private" id="private" className="mt-0.5" />
               <div className="flex-1">
-                <Label htmlFor="private" className="font-medium cursor-pointer flex items-center gap-2">
+                <div className="font-medium flex items-center gap-2">
                   <Lock className="h-4 w-4" />
                   Private
-                </Label>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Only you can see this route
                 </p>
               </div>
-            </div>
-            <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
+            </label>
+            <label 
+              htmlFor="link"
+              className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                visibility === "link" ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+              }`}
+            >
               <RadioGroupItem value="link" id="link" className="mt-0.5" />
               <div className="flex-1">
-                <Label htmlFor="link" className="font-medium cursor-pointer flex items-center gap-2">
+                <div className="font-medium flex items-center gap-2">
                   <Link2 className="h-4 w-4" />
                   Anyone with Link
-                </Label>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Only people with a link can see
                 </p>
               </div>
-            </div>
-            <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
+            </label>
+            <label 
+              htmlFor="public"
+              className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                visibility === "public" ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+              }`}
+            >
               <RadioGroupItem value="public" id="public" className="mt-0.5" />
               <div className="flex-1">
-                <Label htmlFor="public" className="font-medium cursor-pointer flex items-center gap-2">
+                <div className="font-medium flex items-center gap-2">
                   <Globe className="h-4 w-4" />
                   Public
-                </Label>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Anyone can see the route
                 </p>
               </div>
-            </div>
+            </label>
           </RadioGroup>
         </div>
 
