@@ -144,7 +144,7 @@ export function ReservationCard({ propertyId, otherUserId }: ReservationCardProp
               <div>
                 <h4 className="font-semibold text-red-800 text-sm">Property Removed</h4>
                 <p className="text-red-700 text-xs mt-1">
-                  This property has been removed from Bridlestay by an administrator.
+                  This property has been removed from Cantra by an administrator.
                   {property.removal_reason && (
                     <span className="block mt-1">
                       <strong>Reason:</strong> {property.removal_reason}

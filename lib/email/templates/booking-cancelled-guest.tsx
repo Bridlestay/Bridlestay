@@ -161,33 +161,33 @@ export const BookingCancelledGuestEmail = ({
               </ul>
 
               <div style={{ textAlign: 'center' }}>
-                <a href="https://bridlestay.com/search" className="button">
+                <a href="https://cantra.app/search" className="button">
                   Find Alternative Properties
                 </a>
               </div>
 
               <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '20px' }}>
-                <strong>Note:</strong> Host cancellations are taken very seriously at Bridlestay. 
+                <strong>Note:</strong> Host cancellations are taken very seriously at Cantra. 
                 Repeated cancellations may result in penalties or removal from our platform.
               </p>
             </>
           )}
 
           <p>If you have any questions about your refund or need assistance, please contact us at 
-            <a href="mailto:support@bridlestay.com" style={{ color: '#2d5016' }}> support@bridlestay.com</a>
+            <a href="mailto:support@cantra.app" style={{ color: '#2d5016' }}> support@cantra.app</a>
           </p>
 
           <p style={{ marginTop: '30px' }}>
             {isHostCancelled ? 'We apologize again for the inconvenience.' : 'We hope to see you again soon!'}<br/>
-            <strong>The Bridlestay Team</strong>
+            <strong>The Cantra Team</strong>
           </p>
         </div>
 
         <div className="footer">
-          <p>© {new Date().getFullYear()} Bridlestay. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Cantra. All rights reserved.</p>
           <p>
-            <a href="https://bridlestay.com/cancellation-policy" style={{ color: '#6b7280' }}>Cancellation Policy</a> | 
-            <a href="https://bridlestay.com/help" style={{ color: '#6b7280' }}>Help</a>
+            <a href="https://cantra.app/cancellation-policy" style={{ color: '#6b7280' }}>Cancellation Policy</a> | 
+            <a href="https://cantra.app/help" style={{ color: '#6b7280' }}>Help</a>
           </p>
         </div>
       </body>

@@ -121,7 +121,7 @@ export const ReviewReminderEmail = ({
           </p>
 
           <div style={{ textAlign: 'center' }}>
-            <a href={`https://bridlestay.com/profile?review=${bookingId}`} className="button">
+            <a href={`https://cantra.app/profile?review=${bookingId}`} className="button">
               Leave a Review
             </a>
           </div>
@@ -132,14 +132,14 @@ export const ReviewReminderEmail = ({
               <>
                 <li>Help other equestrians find the perfect place</li>
                 <li>Give valuable feedback to your host</li>
-                <li>Build trust in the Bridlestay community</li>
+                <li>Build trust in the Cantra community</li>
                 <li>Your honest opinion makes a difference</li>
               </>
             ) : (
               <>
                 <li>Help other hosts understand guest behavior</li>
                 <li>Provide valuable feedback for the guest</li>
-                <li>Build trust in the Bridlestay community</li>
+                <li>Build trust in the Cantra community</li>
                 <li>Recognition for being a great guest</li>
               </>
             )}
@@ -152,23 +152,23 @@ export const ReviewReminderEmail = ({
           </div>
 
           <p style={{ fontSize: '14px', color: '#6b7280' }}>
-            Reviews are public and help maintain quality across the Bridlestay community. 
+            Reviews are public and help maintain quality across the Cantra community. 
             Please be honest, constructive, and respectful in your feedback.
           </p>
 
-          <p>Thank you for being part of Bridlestay! 🐎</p>
+          <p>Thank you for being part of Cantra! 🐎</p>
 
           <p style={{ marginTop: '30px' }}>
             Best regards,<br/>
-            <strong>The Bridlestay Team</strong>
+            <strong>The Cantra Team</strong>
           </p>
         </div>
 
         <div className="footer">
-          <p>© {new Date().getFullYear()} Bridlestay. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Cantra. All rights reserved.</p>
           <p>
-            <a href="https://bridlestay.com/help" style={{ color: '#6b7280' }}>Help Center</a> | 
-            <a href="https://bridlestay.com/privacy" style={{ color: '#6b7280' }}>Privacy</a>
+            <a href="https://cantra.app/help" style={{ color: '#6b7280' }}>Help Center</a> | 
+            <a href="https://cantra.app/privacy" style={{ color: '#6b7280' }}>Privacy</a>
           </p>
         </div>
       </body>

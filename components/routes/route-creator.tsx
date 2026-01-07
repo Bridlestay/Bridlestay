@@ -511,7 +511,7 @@ export function RouteCreatorToolbar({
     routeStyle || { color: "#3B82F6", thickness: 4, opacity: 100 }
   );
 
-  // Bridlestay brand green color
+  // Cantra brand green color
   const activeColor = "bg-[#2E8B57]";
   const activeTextColor = "text-white";
 

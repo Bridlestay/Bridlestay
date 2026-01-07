@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
 
     // Create iCal calendar
     const calendar = ical({
-      name: 'Bridlestay Bookings',
-      description: 'Your confirmed bookings from Bridlestay',
+      name: 'Cantra Bookings',
+      description: 'Your confirmed bookings from Cantra',
       timezone: 'Europe/London',
       ttl: 3600, // Refresh every hour
     });
@@ -67,8 +67,8 @@ export async function GET(request: NextRequest) {
         location: `${property.city}, ${property.county}`,
         url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/dashboard`,
         organizer: {
-          name: 'Bridlestay',
-          email: 'bookings@bridlestay.com'
+          name: 'Cantra',
+          email: 'bookings@cantra.app'
         },
         attendees: guest?.name ? [{
           name: guest.name,
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
-        'Content-Disposition': 'attachment; filename="bridlestay-bookings.ics"',
+        'Content-Disposition': 'attachment; filename="cantra-bookings.ics"',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
     });

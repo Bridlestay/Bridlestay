@@ -16,7 +16,7 @@ export default function HelpPage() {
           <div className="text-center mb-12">
             <h1 className="font-serif text-5xl font-bold mb-4">Help Center</h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Find answers to common questions about booking, hosting, and using Bridlestay
+              Find answers to common questions about booking, hosting, and using Cantra
             </p>
           </div>
 
@@ -165,7 +165,7 @@ export default function HelpPage() {
                           <li><strong>Nightly rate:</strong> Base price per night</li>
                           <li><strong>Per-horse fee:</strong> Additional charge per horse per night (if applicable)</li>
                           <li><strong>Cleaning fee:</strong> One-time fee (if applicable)</li>
-                          <li><strong>Service fee (12.5%):</strong> Bridlestay platform fee (capped at £150)</li>
+                          <li><strong>Service fee (12.5%):</strong> Cantra platform fee (capped at £150)</li>
                           <li><strong>VAT (20%):</strong> Applied to service fee only</li>
                         </ul>
                         <p className="mt-3">You'll see a complete, transparent breakdown before confirming your booking.</p>
@@ -212,7 +212,7 @@ export default function HelpPage() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <Home className="h-6 w-6 text-primary" />
-                  <CardTitle className="text-2xl">Hosting on Bridlestay</CardTitle>
+                  <CardTitle className="text-2xl">Hosting on Cantra</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -250,7 +250,7 @@ export default function HelpPage() {
                   </AccordionItem>
 
                   <AccordionItem value="item-3">
-                    <AccordionTrigger>How much does Bridlestay charge?</AccordionTrigger>
+                    <AccordionTrigger>How much does Cantra charge?</AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-3 text-muted-foreground">
                         <p className="font-semibold text-foreground">Guest Service Fee:</p>
@@ -325,7 +325,7 @@ export default function HelpPage() {
                     <AccordionContent>
                       <p className="text-muted-foreground">
                         Absolutely. We use Stripe, an industry-leading payment processor trusted by millions of businesses worldwide. 
-                        Your payment information is encrypted and never stored on Bridlestay servers. We are PCI-DSS compliant and take security seriously.
+                        Your payment information is encrypted and never stored on Cantra servers. We are PCI-DSS compliant and take security seriously.
                       </p>
                     </AccordionContent>
                   </AccordionItem>

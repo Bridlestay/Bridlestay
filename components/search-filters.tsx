@@ -41,11 +41,26 @@ export interface FilterState {
 
 const PROPERTY_TYPES = [
   { value: "all", label: "All Types" },
+  // Accommodation types
   { value: "bnb", label: "B&B" },
   { value: "cottage", label: "Cottage" },
   { value: "farm_stay", label: "Farm Stay" },
   { value: "manor", label: "Manor House" },
   { value: "glamping", label: "Glamping" },
+  // Camping/Outdoor types
+  { value: "campsite", label: "Campsite" },
+  { value: "caravan_park", label: "Caravan Park" },
+  { value: "shepherds_hut", label: "Shepherd's Hut" },
+  { value: "yurt", label: "Yurt" },
+  { value: "tipi", label: "Tipi" },
+  { value: "bell_tent", label: "Bell Tent" },
+  { value: "pod", label: "Camping Pod" },
+  { value: "treehouse", label: "Treehouse" },
+  // Equine-specific types
+  { value: "livery_yard", label: "Livery Yard" },
+  { value: "equestrian_centre", label: "Equestrian Centre" },
+  { value: "riding_school", label: "Riding School" },
+  // Other
   { value: "other", label: "Other" },
 ];
 

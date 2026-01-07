@@ -205,10 +205,10 @@ export const BookingRequestHostEmail = ({
           </div>
 
           <div style={{ textAlign: 'center', marginTop: '30px' }}>
-            <a href={`https://bridlestay.com/host/bookings`} className="button button-primary">
+            <a href={`https://cantra.app/host/bookings`} className="button button-primary">
               ✅ Accept Booking
             </a>
-            <a href={`https://bridlestay.com/host/bookings`} className="button button-secondary">
+            <a href={`https://cantra.app/host/bookings`} className="button button-secondary">
               ❌ Decline
             </a>
           </div>
@@ -223,7 +223,7 @@ export const BookingRequestHostEmail = ({
           <ul style={{ paddingLeft: '20px', color: '#4b5563' }}>
             <li><strong>If you accept:</strong> Guest will be notified immediately and can prepare for their stay</li>
             <li><strong>Payment:</strong> Funds are held securely by Stripe until 24 hours after check-in</li>
-            <li><strong>Communication:</strong> You can message the guest directly through Bridlestay</li>
+            <li><strong>Communication:</strong> You can message the guest directly through Cantra</li>
             <li><strong>If you decline:</strong> The guest will be refunded in full within 5-10 business days</li>
           </ul>
 
@@ -232,19 +232,19 @@ export const BookingRequestHostEmail = ({
             Only accept bookings you can honor.
           </p>
 
-          <p>Questions? Contact us at <a href="mailto:support@bridlestay.com" style={{ color: '#2d5016' }}>support@bridlestay.com</a></p>
+          <p>Questions? Contact us at <a href="mailto:support@cantra.app" style={{ color: '#2d5016' }}>support@cantra.app</a></p>
 
           <p style={{ marginTop: '30px' }}>
             Best regards,<br/>
-            <strong>The Bridlestay Team</strong>
+            <strong>The Cantra Team</strong>
           </p>
         </div>
 
         <div className="footer">
-          <p>© {new Date().getFullYear()} Bridlestay. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Cantra. All rights reserved.</p>
           <p>
-            <a href="https://bridlestay.com/host-agreement" style={{ color: '#6b7280' }}>Host Agreement</a> | 
-            <a href="https://bridlestay.com/help" style={{ color: '#6b7280' }}>Help</a>
+            <a href="https://cantra.app/host-agreement" style={{ color: '#6b7280' }}>Host Agreement</a> | 
+            <a href="https://cantra.app/help" style={{ color: '#6b7280' }}>Help</a>
           </p>
         </div>
       </body>

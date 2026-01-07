@@ -16,8 +16,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Bridlestay - Equestrian Stays Marketplace",
-  description: "Find the perfect equestrian stay in the UK countryside",
+  title: "Cantra - Your Complete Horse Companion",
+  description: "The UK's complete horse app - find equestrian stays, riding routes, and connect with the horse community",
 };
 
 export default function RootLayout({
@@ -30,7 +30,7 @@ export default function RootLayout({
       <head>
         <script
           defer
-          data-domain={process.env.PLAUSIBLE_DOMAIN || "bridlestay.app"}
+          data-domain={process.env.PLAUSIBLE_DOMAIN || "cantra.app"}
           src="https://plausible.io/js/script.js"
         ></script>
       </head>

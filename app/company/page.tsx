@@ -13,7 +13,7 @@ export default function CompanyPage() {
             <dl className="space-y-4">
               <div>
                 <dt className="font-semibold">Company Name:</dt>
-                <dd>Bridlestay Limited</dd>
+                <dd>Cantra Limited</dd>
               </div>
               <div>
                 <dt className="font-semibold">Registered Office:</dt>
@@ -41,11 +41,11 @@ export default function CompanyPage() {
             <dl className="space-y-4">
               <div>
                 <dt className="font-semibold">Email:</dt>
-                <dd>info@bridlestay.com</dd>
+                <dd>info@cantra.app</dd>
               </div>
               <div>
                 <dt className="font-semibold">Support:</dt>
-                <dd>support@bridlestay.com</dd>
+                <dd>support@cantra.app</dd>
               </div>
               <div>
                 <dt className="font-semibold">Phone:</dt>
@@ -55,9 +55,9 @@ export default function CompanyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">About Bridlestay</h2>
+            <h2 className="text-2xl font-semibold mb-4">About Cantra</h2>
             <p>
-              Bridlestay is the UK&apos;s premier equestrian accommodation marketplace, connecting horse owners
+              Cantra is the UK&apos;s complete horse app - stays, routes, and community. We connect horse owners
               with verified hosts who offer specialized equestrian facilities. We are committed to providing
               safe, high-quality accommodations for both horses and riders throughout the UK.
             </p>

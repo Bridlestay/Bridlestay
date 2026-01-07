@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 
     // Create admin message
     // message_type: 'admin_action' but system_priority: false
-    // This makes it appear below Bridlestay system messages (which have system_priority: true)
+    // This makes it appear below Cantra system messages (which have system_priority: true)
     // but above regular user messages
     const { data: adminMessage, error } = await serviceClient
       .from("messages")

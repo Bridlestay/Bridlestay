@@ -1,4 +1,4 @@
--- News/Blog system for Bridlestay
+-- News/Blog system for Cantra
 
 -- Create news_posts table
 CREATE TABLE IF NOT EXISTS news_posts (
@@ -38,6 +38,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to auto-generate slug
+DROP TRIGGER IF EXISTS generate_news_post_slug ON news_posts;
 CREATE TRIGGER generate_news_post_slug
   BEFORE INSERT OR UPDATE ON news_posts
   FOR EACH ROW
@@ -55,6 +56,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to set published_at
+DROP TRIGGER IF EXISTS set_news_post_published_at ON news_posts;
 CREATE TRIGGER set_news_post_published_at
   BEFORE INSERT OR UPDATE ON news_posts
   FOR EACH ROW
@@ -72,6 +74,10 @@ CREATE INDEX IF NOT EXISTS idx_news_posts_author_id ON news_posts(author_id);
 ALTER TABLE news_posts ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
+-- Drop existing policies if they exist (for re-running migration)
+DROP POLICY IF EXISTS "Anyone can view published news posts" ON news_posts;
+DROP POLICY IF EXISTS "Admins can manage all news posts" ON news_posts;
+
 -- Anyone can view published posts
 CREATE POLICY "Anyone can view published news posts"
   ON news_posts FOR SELECT

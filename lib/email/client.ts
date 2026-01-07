@@ -6,7 +6,7 @@ if (!process.env.RESEND_API_KEY) {
 
 export const resend = new Resend(process.env.RESEND_API_KEY);
 
-export const FROM_EMAIL = 'Bridlestay <noreply@bridlestay.com>';
-export const SUPPORT_EMAIL = 'support@bridlestay.com';
-export const NO_REPLY_EMAIL = 'noreply@bridlestay.com';
+export const FROM_EMAIL = 'Cantra <noreply@cantra.app>';
+export const SUPPORT_EMAIL = 'support@cantra.app';
+export const NO_REPLY_EMAIL = 'noreply@cantra.app';
 

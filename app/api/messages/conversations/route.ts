@@ -48,11 +48,11 @@ export async function GET() {
 
     const conversationsMap = new Map();
 
-    // 1. Add system priority messages at the top (Bridlestay system messages)
+    // 1. Add system priority messages at the top (Cantra system messages)
     systemPriorityMessages.forEach((msg: any) => {
       conversationsMap.set(`system-${msg.id}`, {
         userId: user.id,
-        userName: msg.message_type === 'admin_action' ? 'Bridlestay Admin' : 'Bridlestay',
+        userName: msg.message_type === 'admin_action' ? 'Cantra Admin' : 'Cantra',
         userAvatar: null,
         lastMessage: msg.subject || msg.message,
         lastMessageTime: msg.created_at,

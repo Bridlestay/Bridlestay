@@ -84,7 +84,7 @@ export default async function PropertyPage({
               <div>
                 <h3 className="font-semibold text-red-800">Property Removed</h3>
                 <p className="text-red-700 text-sm mt-1">
-                  This property has been removed from Bridlestay by an administrator. 
+                  This property has been removed from Cantra by an administrator. 
                   It is no longer visible to other users.
                   {property.removal_reason && (
                     <span className="block mt-2">
@@ -186,7 +186,7 @@ export default async function PropertyPage({
                   🐴 Horse Facility Photos
                 </h2>
                 <p className="text-muted-foreground mb-4">
-                  View our verified equine facilities - photos verified by the Bridlestay team
+                  View our verified equine facilities - photos verified by the Cantra team
                 </p>
                 <FacilityPhotosGallery photos={facilityPhotos} />
               </div>

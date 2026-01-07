@@ -265,7 +265,7 @@ export async function POST(request: Request) {
           nightsCount: nights,
           hostEarningsPennies: breakdown.hostPayoutPennies,
           bookingId: booking.id,
-          guestProfileUrl: `https://bridlestay.com/profile/${user.id}`,
+          guestProfileUrl: `https://cantra.app/profile/${user.id}`,
         });
         console.log("✅ Booking request email sent to host");
       }

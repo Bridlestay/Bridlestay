@@ -1,5 +1,5 @@
 /**
- * List of UK counties available for Bridlestay properties
+ * List of UK counties available for Cantra properties
  * Currently limited to launch regions - will expand to more counties soon!
  * 
  * Launch Counties (Phase 1):

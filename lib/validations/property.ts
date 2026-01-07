@@ -4,7 +4,16 @@ import { z } from "zod";
 export const PropertyBasicsSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   description: z.string().min(200, "Description must be at least 200 characters"),
-  property_type: z.enum(["bnb", "cottage", "farm_stay", "manor", "glamping", "other"]).default("cottage"),
+  property_type: z.enum([
+    // Accommodation types
+    "bnb", "cottage", "farm_stay", "manor", "glamping",
+    // Camping/Outdoor types
+    "campsite", "caravan_park", "shepherds_hut", "yurt", "tipi", "bell_tent", "pod", "treehouse",
+    // Equine-specific types
+    "livery_yard", "equestrian_centre", "riding_school",
+    // Other
+    "other"
+  ]).default("cottage"),
   address_line: z.string().min(5, "Address is required"),
   city: z.string().min(2, "City is required"),
   county: z.string().min(2, "County is required"),

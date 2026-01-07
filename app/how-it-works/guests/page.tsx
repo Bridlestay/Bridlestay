@@ -15,7 +15,7 @@ export default function GuestsGuidePage() {
           <div className="text-center mb-16">
             <Badge className="mb-4 text-base px-4 py-1">For Guests</Badge>
             <h1 className="font-serif text-5xl font-bold mb-4">
-              How Bridlestay Works for Guests
+              How Cantra Works for Guests
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Book unique equestrian accommodation across the UK in 5 simple steps

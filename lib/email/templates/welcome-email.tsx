@@ -108,7 +108,7 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
       <body>
         <div className="header">
           <div className="horse-emoji">🐴</div>
-          <h1>Welcome to Bridlestay!</h1>
+          <h1>Welcome to Cantra!</h1>
           <p style={{ margin: '5px 0 0 0', fontSize: '16px' }}>The home of equestrian travel</p>
         </div>
         
@@ -116,7 +116,7 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
           <p style={{ fontSize: '18px' }}>Hi {userName},</p>
           
           <p style={{ fontSize: '16px' }}>
-            We&apos;re thrilled to have you join the Bridlestay community! 🎉
+            We&apos;re thrilled to have you join the Cantra community! 🎉
           </p>
 
           <p>
@@ -126,10 +126,10 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
 
           <div className="cta-box">
             <h3 style={{ margin: '0 0 15px 0', color: '#2d5016' }}>Ready to Get Started?</h3>
-            <a href="https://bridlestay.com/profile" className="button">
+            <a href="https://cantra.app/profile" className="button">
               Complete Your Profile
             </a>
-            <a href="https://bridlestay.com/search" className="button" style={{ background: '#4a7c2a' }}>
+            <a href="https://cantra.app/search" className="button" style={{ background: '#4a7c2a' }}>
               Search Properties
             </a>
           </div>
@@ -163,12 +163,12 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
               Turn your equestrian facilities into income! List your property, barns, or stable blocks 
               and connect with travelers who share your passion for horses.
             </p>
-            <a href="https://bridlestay.com/host/property/new" style={{ color: '#2d5016', fontWeight: '600' }}>
+            <a href="https://cantra.app/host/property/new" style={{ color: '#2d5016', fontWeight: '600' }}>
               List Your Property →
             </a>
           </div>
 
-          <h3>What Makes Bridlestay Special?</h3>
+          <h3>What Makes Cantra Special?</h3>
           <ul style={{ paddingLeft: '20px', color: '#4b5563' }}>
             <li>
               <strong>Horse-First Design:</strong> Every property includes detailed equine facilities information
@@ -195,31 +195,31 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
           <h3 style={{ marginTop: '35px' }}>Need Help Getting Started?</h3>
           <p>Our team is here to help:</p>
           <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
-            <li>📧 Email: <a href="mailto:support@bridlestay.com" style={{ color: '#2d5016' }}>support@bridlestay.com</a></li>
-            <li>📖 <a href="https://bridlestay.com/help" style={{ color: '#2d5016' }}>Help Center & FAQs</a></li>
-            <li>🤝 <a href="https://bridlestay.com/how-it-works/guests" style={{ color: '#2d5016' }}>How It Works (Guests)</a></li>
-            <li>🏠 <a href="https://bridlestay.com/how-it-works/hosts" style={{ color: '#2d5016' }}>How It Works (Hosts)</a></li>
+            <li>📧 Email: <a href="mailto:support@cantra.app" style={{ color: '#2d5016' }}>support@cantra.app</a></li>
+            <li>📖 <a href="https://cantra.app/help" style={{ color: '#2d5016' }}>Help Center & FAQs</a></li>
+            <li>🤝 <a href="https://cantra.app/how-it-works/guests" style={{ color: '#2d5016' }}>How It Works (Guests)</a></li>
+            <li>🏠 <a href="https://cantra.app/how-it-works/hosts" style={{ color: '#2d5016' }}>How It Works (Hosts)</a></li>
           </ul>
 
           <p style={{ marginTop: '35px', fontSize: '16px' }}>
-            Thank you for choosing Bridlestay. We can&apos;t wait to see where your equestrian adventures take you!
+            Thank you for choosing Cantra. We can&apos;t wait to see where your equestrian adventures take you!
           </p>
 
           <p style={{ fontSize: '16px' }}>
             Happy trails! 🐎<br/>
-            <strong>The Bridlestay Team</strong>
+            <strong>The Cantra Team</strong>
           </p>
         </div>
 
         <div className="footer">
-          <p>© {new Date().getFullYear()} Bridlestay. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Cantra. All rights reserved.</p>
           <p>
-            <a href="https://bridlestay.com/terms" style={{ color: '#6b7280' }}>Terms</a> | 
-            <a href="https://bridlestay.com/privacy" style={{ color: '#6b7280' }}>Privacy</a> | 
-            <a href="https://bridlestay.com/help" style={{ color: '#6b7280' }}>Help</a>
+            <a href="https://cantra.app/terms" style={{ color: '#6b7280' }}>Terms</a> | 
+            <a href="https://cantra.app/privacy" style={{ color: '#6b7280' }}>Privacy</a> | 
+            <a href="https://cantra.app/help" style={{ color: '#6b7280' }}>Help</a>
           </p>
           <p style={{ marginTop: '15px' }}>
-            You&apos;re receiving this email because you created an account at Bridlestay.
+            You&apos;re receiving this email because you created an account at Cantra.
           </p>
         </div>
       </body>

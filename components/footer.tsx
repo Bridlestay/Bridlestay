@@ -8,9 +8,9 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {/* Company */}
           <div>
-            <h3 className="font-serif font-semibold text-lg mb-4">Bridlestay</h3>
+            <h3 className="font-serif font-semibold text-lg mb-4">Cantra</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              The UK&apos;s premier equestrian accommodation marketplace
+              The UK&apos;s complete horse app - stays, routes, and community
             </p>
             <div className="flex gap-4">
               <Link
@@ -67,7 +67,7 @@ export function Footer() {
                   href="/news"
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
-                  Bridlestay News
+                  Cantra News
                 </Link>
               </li>
               <li>
@@ -194,7 +194,7 @@ export function Footer() {
         </div>
 
         <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Bridlestay. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Cantra. All rights reserved.</p>
           <p className="mt-2">
             Company Registration No: 12345678 | Registered in England and Wales
           </p>

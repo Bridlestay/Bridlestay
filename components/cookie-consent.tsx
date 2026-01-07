@@ -10,7 +10,7 @@ export function CookieConsent() {
 
   useEffect(() => {
     // Check if user has already consented
-    const consent = localStorage.getItem("bridlestay-cookie-consent");
+    const consent = localStorage.getItem("cantra-cookie-consent");
     if (!consent) {
       // Show banner after a short delay for better UX
       setTimeout(() => setShowBanner(true), 1000);
@@ -18,12 +18,12 @@ export function CookieConsent() {
   }, []);
 
   const acceptCookies = () => {
-    localStorage.setItem("bridlestay-cookie-consent", "accepted");
+    localStorage.setItem("cantra-cookie-consent", "accepted");
     setShowBanner(false);
   };
 
   const declineCookies = () => {
-    localStorage.setItem("bridlestay-cookie-consent", "declined");
+    localStorage.setItem("cantra-cookie-consent", "declined");
     setShowBanner(false);
   };
 

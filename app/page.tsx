@@ -54,11 +54,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Why Bridlestay */}
+      {/* Why Cantra */}
       <section className="py-16 bg-background border-b">
         <div className="container mx-auto px-4">
           <h2 className="font-serif text-3xl font-bold text-center mb-12">
-            Why Choose Bridlestay?
+            Why Choose Cantra?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
@@ -201,8 +201,8 @@ export default async function HomePage() {
               Share Your Property with Equestrians
             </h2>
             <p className="text-xl mb-8 opacity-90 leading-relaxed">
-              Do you have stables, paddocks, or equine facilities? List your property on Bridlestay 
-              and welcome horse owners looking for their perfect countryside escape.
+            Do you have stables, paddocks, or equine facilities? List your property on Cantra 
+            and welcome horse owners looking for their perfect countryside escape.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/host">

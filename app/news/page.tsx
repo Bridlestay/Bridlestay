@@ -9,8 +9,8 @@ import { format } from "date-fns";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Bridlestay News | Updates, Features & Community Stories",
-  description: "Stay up to date with the latest Bridlestay updates, new features, and community stories",
+  title: "Cantra News | Updates, Features & Community Stories",
+  description: "Stay up to date with the latest Cantra updates, new features, and community stories",
 };
 
 export default async function NewsPage() {
@@ -72,10 +72,10 @@ export default async function NewsPage() {
           <div className="container mx-auto px-4 py-12">
             <div className="max-w-3xl">
               <h1 className="font-serif text-5xl font-bold mb-4">
-                Bridlestay News
+                Cantra News
               </h1>
               <p className="text-xl text-muted-foreground">
-                Stay informed with the latest updates, features, and stories from the Bridlestay community
+                Stay informed with the latest updates, features, and stories from the Cantra community
               </p>
             </div>
           </div>
@@ -132,7 +132,7 @@ export default async function NewsPage() {
                       )}
                       <div>
                         <p className="text-sm font-medium">
-                          {featuredPost.author?.name || "Bridlestay Team"}
+                          {featuredPost.author?.name || "Cantra Team"}
                         </p>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" />

@@ -165,7 +165,7 @@ export function BookingCalendar() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'bridlestay-bookings.ics';
+        a.download = 'cantra-bookings.ics';
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);

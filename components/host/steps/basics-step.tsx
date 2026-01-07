@@ -158,20 +158,35 @@ export function PropertyBasicsStep({ data, onNext }: BasicsStepProps) {
 
       {/* Property Type */}
       <div>
-        <Label htmlFor="property_type">Property Type *</Label>
+        <Label htmlFor="property_type">Listing Type *</Label>
         <Select
-          onValueChange={(value) => setValue("property_type", value as "bnb" | "cottage" | "farm_stay" | "manor" | "glamping" | "other")}
+          onValueChange={(value) => setValue("property_type", value as any)}
           defaultValue={data?.property_type || "cottage"}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select property type" />
+            <SelectValue placeholder="Select listing type" />
           </SelectTrigger>
           <SelectContent>
+            {/* Accommodation types */}
             <SelectItem value="bnb">B&B</SelectItem>
             <SelectItem value="cottage">Cottage</SelectItem>
             <SelectItem value="farm_stay">Farm Stay</SelectItem>
             <SelectItem value="manor">Manor House</SelectItem>
             <SelectItem value="glamping">Glamping</SelectItem>
+            {/* Camping/Outdoor types */}
+            <SelectItem value="campsite">Campsite</SelectItem>
+            <SelectItem value="caravan_park">Caravan Park</SelectItem>
+            <SelectItem value="shepherds_hut">Shepherd's Hut</SelectItem>
+            <SelectItem value="yurt">Yurt</SelectItem>
+            <SelectItem value="tipi">Tipi</SelectItem>
+            <SelectItem value="bell_tent">Bell Tent</SelectItem>
+            <SelectItem value="pod">Camping Pod</SelectItem>
+            <SelectItem value="treehouse">Treehouse</SelectItem>
+            {/* Equine-specific types */}
+            <SelectItem value="livery_yard">Livery Yard</SelectItem>
+            <SelectItem value="equestrian_centre">Equestrian Centre</SelectItem>
+            <SelectItem value="riding_school">Riding School</SelectItem>
+            {/* Other */}
             <SelectItem value="other">Other</SelectItem>
           </SelectContent>
         </Select>
