@@ -4,6 +4,14 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
+// Path colors matching routes-map-v2.tsx
+const PATH_COLORS = {
+  bridleway: "#8B4513",
+  footpath: "#228B22",
+  byway: "#9932CC",
+  restricted_byway: "#FF8C00",
+};
+
 interface KMLLayerTogglesProps {
   layers: {
     bridleways: boolean;
@@ -21,8 +29,13 @@ export function KMLLayerToggles({ layers, onToggle }: KMLLayerTogglesProps) {
       
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="bridleways" className="text-sm font-normal">
+          <Label htmlFor="bridleways" className="text-sm font-normal flex items-center gap-2">
+            <span 
+              className="w-3 h-3 rounded-sm" 
+              style={{ backgroundColor: PATH_COLORS.bridleway }}
+            />
             Bridleways
+            <span className="text-xs text-muted-foreground">(horse-friendly)</span>
           </Label>
           <Switch
             id="bridleways"
@@ -32,8 +45,12 @@ export function KMLLayerToggles({ layers, onToggle }: KMLLayerTogglesProps) {
         </div>
 
         <div className="flex items-center justify-between">
-          <Label htmlFor="boats" className="text-sm font-normal">
-            BOATs
+          <Label htmlFor="boats" className="text-sm font-normal flex items-center gap-2">
+            <span 
+              className="w-3 h-3 rounded-sm" 
+              style={{ backgroundColor: PATH_COLORS.byway }}
+            />
+            Byways (BOATs)
           </Label>
           <Switch
             id="boats"
@@ -43,7 +60,11 @@ export function KMLLayerToggles({ layers, onToggle }: KMLLayerTogglesProps) {
         </div>
 
         <div className="flex items-center justify-between">
-          <Label htmlFor="footpaths" className="text-sm font-normal">
+          <Label htmlFor="footpaths" className="text-sm font-normal flex items-center gap-2">
+            <span 
+              className="w-3 h-3 rounded-sm" 
+              style={{ backgroundColor: PATH_COLORS.footpath }}
+            />
             Footpaths
           </Label>
           <Switch
@@ -54,8 +75,12 @@ export function KMLLayerToggles({ layers, onToggle }: KMLLayerTogglesProps) {
         </div>
 
         <div className="flex items-center justify-between">
-          <Label htmlFor="permissive" className="text-sm font-normal">
-            Permissive Paths
+          <Label htmlFor="permissive" className="text-sm font-normal flex items-center gap-2">
+            <span 
+              className="w-3 h-3 rounded-sm" 
+              style={{ backgroundColor: PATH_COLORS.restricted_byway }}
+            />
+            Restricted Byways
           </Label>
           <Switch
             id="permissive"
@@ -66,7 +91,7 @@ export function KMLLayerToggles({ layers, onToggle }: KMLLayerTogglesProps) {
       </div>
 
       <p className="text-xs text-muted-foreground pt-2 border-t">
-        Toggle layers to see public paths on the map
+        Worcestershire public rights of way data
       </p>
     </Card>
   );

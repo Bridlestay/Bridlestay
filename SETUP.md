@@ -124,14 +124,14 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
+# Google Maps (REQUIRED for Routes)
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIza...
+
 # Optional: Resend (for emails)
 RESEND_API_KEY=re_...
 
-# Optional: Mapbox (for interactive maps)
-NEXT_PUBLIC_MAPBOX_TOKEN=pk.eyJ...
-
 # Optional: Plausible (for analytics)
-PLAUSIBLE_DOMAIN=bridlestay.app
+PLAUSIBLE_DOMAIN=cantra.app
 ```
 
 ## Step 5: Run the App
