@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useGoogleMaps } from "@/lib/hooks/use-google-maps";
 import { Loader2, AlertCircle, Info } from "lucide-react";
-import type { Waypoint, RouteStyle } from "./route-creator";
+import type { Waypoint, RouteStyle, ToolMode } from "./route-creator";
 
 // Route difficulty colors
 const DIFFICULTY_COLORS = {
@@ -44,9 +44,12 @@ export interface RoutesMapV2Props {
   waypoints?: Waypoint[];
   routeType?: "circular" | "linear";
   routeStyle?: RouteStyle;
+  toolMode?: ToolMode;
   onWaypointAdd?: (lat: number, lng: number, snapped: boolean, pathType?: string) => void;
   onWaypointUpdate?: (id: string, lat: number, lng: number, snapped: boolean) => void;
   onWaypointRemove?: (id: string) => void;
+  onWaypointInsert?: (index: number, lat: number, lng: number, snapped: boolean, pathType?: string) => void;
+  onCircularDetected?: () => void;
   // Path layer visibility
   pathLayers?: PathLayers;
 }
@@ -56,6 +59,9 @@ export interface RoutesMapV2Handle {
   panTo: (lat: number, lng: number) => void;
   setZoom: (zoom: number) => void;
 }
+
+// Distance threshold for detecting circular route (in meters)
+const CIRCULAR_THRESHOLD_METERS = 50;
 
 export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
   (
@@ -71,9 +77,12 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       waypoints = [],
       routeType = "linear",
       routeStyle = { color: "#3B82F6", thickness: 4, opacity: 100 },
+      toolMode = "plot",
       onWaypointAdd,
       onWaypointUpdate,
       onWaypointRemove,
+      onWaypointInsert,
+      onCircularDetected,
       pathLayers = { bridleways: true, boats: true, footpaths: true, permissive: true },
     },
     ref
@@ -93,12 +102,18 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
     // Refs for creation state (so path click handlers can access latest values)
     const isCreatingRef = useRef(isCreating);
     const isPlottingRef = useRef(isPlotting);
+    const toolModeRef = useRef(toolMode);
     const onWaypointAddRef = useRef(onWaypointAdd);
+    const waypointsRef = useRef(waypoints);
+    const onCircularDetectedRef = useRef(onCircularDetected);
     
     // Keep refs up to date
     useEffect(() => { isCreatingRef.current = isCreating; }, [isCreating]);
     useEffect(() => { isPlottingRef.current = isPlotting; }, [isPlotting]);
+    useEffect(() => { toolModeRef.current = toolMode; }, [toolMode]);
     useEffect(() => { onWaypointAddRef.current = onWaypointAdd; }, [onWaypointAdd]);
+    useEffect(() => { waypointsRef.current = waypoints; }, [waypoints]);
+    useEffect(() => { onCircularDetectedRef.current = onCircularDetected; }, [onCircularDetected]);
     
     const [pathsLoading, setPathsLoading] = useState(false);
     const [pathsError, setPathsError] = useState<string | null>(null);
@@ -136,6 +151,8 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
         zoomControlOptions: {
           position: google.maps.ControlPosition.RIGHT_CENTER,
         },
+        // Default cursor (not hand tool)
+        draggableCursor: "default",
         // Custom styling to highlight paths and trails
         styles: [
           {
@@ -170,16 +187,20 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       };
     }, [isLoaded, center, zoom]);
 
-    // Update cursor based on mode
+    // Update cursor based on mode and tool
     useEffect(() => {
       if (!mapRef.current) return;
       
       if (isCreating && isPlotting) {
-        mapRef.current.setOptions({ draggableCursor: "crosshair" });
+        if (toolMode === "plot" || toolMode === "insert") {
+          mapRef.current.setOptions({ draggableCursor: "crosshair" });
+        } else if (toolMode === "erase") {
+          mapRef.current.setOptions({ draggableCursor: "not-allowed" });
+        }
       } else {
-        mapRef.current.setOptions({ draggableCursor: undefined });
+        mapRef.current.setOptions({ draggableCursor: "default" });
       }
-    }, [isCreating, isPlotting]);
+    }, [isCreating, isPlotting, toolMode]);
 
     // Load public rights of way from JSON (Worcestershire data)
     useEffect(() => {
@@ -260,11 +281,25 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
                     });
                   });
 
-                  // Click on path to place waypoint when in creation mode
+                  // Click on path to place waypoint when in plot mode
                   polyline.addListener("click", (e: google.maps.MapMouseEvent) => {
-                    if (isCreatingRef.current && isPlottingRef.current && e.latLng && onWaypointAddRef.current) {
+                    if (isCreatingRef.current && isPlottingRef.current && toolModeRef.current === "plot" && e.latLng && onWaypointAddRef.current) {
+                      const lat = e.latLng.lat();
+                      const lng = e.latLng.lng();
+                      
+                      // Check if clicking near start point (to make circular)
+                      if (waypointsRef.current.length >= 2) {
+                        const start = waypointsRef.current[0];
+                        const distToStart = getDistanceMetersStatic(lat, lng, start.lat, start.lng);
+                        if (distToStart < CIRCULAR_THRESHOLD_METERS) {
+                          // Close the loop - trigger circular detection
+                          onCircularDetectedRef.current?.();
+                          return;
+                        }
+                      }
+                      
                       // Place waypoint at the exact click location on the path
-                      onWaypointAddRef.current(e.latLng.lat(), e.latLng.lng(), true, type);
+                      onWaypointAddRef.current(lat, lng, true, type);
                     }
                   });
 
@@ -292,8 +327,8 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       loadPaths();
     }, [isLoaded, pathLayers]);
 
-    // Helper: Calculate distance between two points (Haversine formula in meters)
-    const getDistanceMeters = useCallback((lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    // Static helper for distance calculation (used in callbacks)
+    const getDistanceMetersStatic = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
       const R = 6371000; // Earth's radius in meters
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLng = (lng2 - lng1) * Math.PI / 180;
@@ -303,6 +338,11 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
         Math.sin(dLng / 2) * Math.sin(dLng / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return R * c;
+    };
+
+    // Helper: Calculate distance between two points (Haversine formula in meters)
+    const getDistanceMeters = useCallback((lat1: number, lng1: number, lat2: number, lng2: number): number => {
+      return getDistanceMetersStatic(lat1, lng1, lat2, lng2);
     }, []);
 
     // Helper: Find nearest point on a line segment
@@ -407,6 +447,34 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       return { lat, lng, snapped: false };
     }, [snapEnabled, waypoints, snapToPath]);
 
+    // Find which segment a click is nearest to (for insert mode)
+    const findNearestSegment = useCallback((lat: number, lng: number): number => {
+      if (waypoints.length < 2) return -1;
+      
+      let nearestIdx = -1;
+      let nearestDist = Infinity;
+      
+      for (let i = 0; i < waypoints.length - 1; i++) {
+        const a = waypoints[i];
+        const b = waypoints[i + 1];
+        
+        const nearest = nearestPointOnSegment(
+          lng, lat,
+          a.lng, a.lat,
+          b.lng, b.lat
+        );
+        
+        const dist = getDistanceMeters(lat, lng, nearest.y, nearest.x);
+        
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestIdx = i + 1; // Insert after index i
+        }
+      }
+      
+      return nearestIdx;
+    }, [waypoints, getDistanceMeters, nearestPointOnSegment]);
+
     // Handle map clicks for route creation
     useEffect(() => {
       if (!mapRef.current || !isLoaded) return;
@@ -419,29 +487,59 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
           const lat = e.latLng.lat();
           const lng = e.latLng.lng();
 
-          if (snapEnabled) {
-            // Always try to snap to nearest path (works for first point too!)
-            const pathSnap = snapToPath(lat, lng);
-            if (pathSnap.snapped) {
-              onWaypointAdd?.(pathSnap.lat, pathSnap.lng, true, pathSnap.pathType);
-            } else if (waypoints.length > 0) {
-              // Only try road snapping if we have previous waypoints
-              const snapped = await snapToRoad(lat, lng);
-              onWaypointAdd?.(snapped.lat, snapped.lng, snapped.snapped, snapped.pathType);
+          // Handle different tool modes
+          if (toolMode === "plot") {
+            // Check if clicking near start point (to make circular)
+            if (waypoints.length >= 2) {
+              const start = waypoints[0];
+              const distToStart = getDistanceMeters(lat, lng, start.lat, start.lng);
+              if (distToStart < CIRCULAR_THRESHOLD_METERS) {
+                // Close the loop - trigger circular detection
+                onCircularDetected?.();
+                return;
+              }
+            }
+
+            if (snapEnabled) {
+              // Always try to snap to nearest path (works for first point too!)
+              const pathSnap = snapToPath(lat, lng);
+              if (pathSnap.snapped) {
+                onWaypointAdd?.(pathSnap.lat, pathSnap.lng, true, pathSnap.pathType);
+              } else if (waypoints.length > 0) {
+                // Only try road snapping if we have previous waypoints
+                const snapped = await snapToRoad(lat, lng);
+                onWaypointAdd?.(snapped.lat, snapped.lng, snapped.snapped, snapped.pathType);
+              } else {
+                // First point, not near a path - place unsnapped
+                onWaypointAdd?.(lat, lng, false);
+              }
             } else {
-              // First point, not near a path - place unsnapped
               onWaypointAdd?.(lat, lng, false);
             }
-          } else {
-            onWaypointAdd?.(lat, lng, false);
+          } else if (toolMode === "insert") {
+            // Find nearest segment and insert
+            const insertIdx = findNearestSegment(lat, lng);
+            if (insertIdx > 0) {
+              if (snapEnabled) {
+                const pathSnap = snapToPath(lat, lng);
+                if (pathSnap.snapped) {
+                  onWaypointInsert?.(insertIdx, pathSnap.lat, pathSnap.lng, true, pathSnap.pathType);
+                } else {
+                  onWaypointInsert?.(insertIdx, lat, lng, false);
+                }
+              } else {
+                onWaypointInsert?.(insertIdx, lat, lng, false);
+              }
+            }
           }
+          // Erase mode is handled by marker clicks, not map clicks
         }
       );
 
       return () => {
         google.maps.event.removeListener(clickListener);
       };
-    }, [isLoaded, isCreating, isPlotting, snapEnabled, onWaypointAdd, waypoints, snapToRoad, snapToPath]);
+    }, [isLoaded, isCreating, isPlotting, snapEnabled, toolMode, onWaypointAdd, onWaypointInsert, onCircularDetected, waypoints, snapToRoad, snapToPath, getDistanceMeters, findNearestSegment]);
 
     // Helper: Find path along any public right of way between two points
     const findBridlewayPath = useCallback((
@@ -564,7 +662,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
 
       const path = buildRoutePath();
       
-      // Draw the route line
+      // Draw the route line (clickable for insert mode)
       routeLineRef.current = new google.maps.Polyline({
         path,
         strokeColor: routeStyle.color,
@@ -572,8 +670,31 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
         strokeOpacity: routeStyle.opacity / 100,
         map: mapRef.current,
         zIndex: 100,
+        clickable: true,
       });
-    }, [isLoaded, isCreating, waypoints, snapEnabled, routeStyle, routeType, findBridlewayPath]);
+
+      // Make route line clickable for insert mode
+      routeLineRef.current.addListener("click", async (e: google.maps.MapMouseEvent) => {
+        if (!isPlotting || toolMode !== "insert" || !e.latLng) return;
+        
+        const lat = e.latLng.lat();
+        const lng = e.latLng.lng();
+        const insertIdx = findNearestSegment(lat, lng);
+        
+        if (insertIdx > 0) {
+          if (snapEnabled) {
+            const pathSnap = snapToPath(lat, lng);
+            if (pathSnap.snapped) {
+              onWaypointInsert?.(insertIdx, pathSnap.lat, pathSnap.lng, true, pathSnap.pathType);
+            } else {
+              onWaypointInsert?.(insertIdx, lat, lng, false);
+            }
+          } else {
+            onWaypointInsert?.(insertIdx, lat, lng, false);
+          }
+        }
+      });
+    }, [isLoaded, isCreating, isPlotting, toolMode, waypoints, snapEnabled, routeStyle, routeType, findBridlewayPath, findNearestSegment, snapToPath, onWaypointInsert]);
 
     // Render user routes
     useEffect(() => {
@@ -679,10 +800,13 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
             ? { text: "E", color: "white", fontSize: "11px", fontWeight: "bold" }
             : undefined,
           zIndex: isStart || isEnd ? 300 : 250,
+          cursor: toolMode === "erase" ? "pointer" : "move",
         });
 
-        // Drag handler with snapping
+        // Drag handler with snapping (only in non-erase mode)
         marker.addListener("dragend", async () => {
+          if (toolMode === "erase") return;
+          
           const pos = marker.getPosition();
           if (!pos) return;
 
@@ -703,14 +827,23 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
           onWaypointUpdate?.(wp.id, newLat, newLng, snapped);
         });
 
-        // Right-click to remove
-        marker.addListener("rightclick", () => {
-          onWaypointRemove?.(wp.id);
+        // Click to remove in erase mode
+        marker.addListener("click", () => {
+          if (toolMode === "erase") {
+            onWaypointRemove?.(wp.id);
+          }
+        });
+
+        // Update cursor on hover in erase mode
+        marker.addListener("mouseover", () => {
+          if (toolMode === "erase") {
+            marker.setCursor("pointer");
+          }
         });
 
         waypointMarkersRef.current.set(wp.id, marker);
       });
-    }, [isLoaded, isCreating, waypoints, routeType, snapEnabled, onWaypointUpdate, onWaypointRemove, snapToRoad]);
+    }, [isLoaded, isCreating, waypoints, routeType, snapEnabled, toolMode, onWaypointUpdate, onWaypointRemove, snapToRoad]);
 
     // Render property pins with zoom-responsive sizing
     useEffect(() => {

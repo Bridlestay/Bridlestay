@@ -8,19 +8,17 @@ import { RouteCard } from "@/components/routes/route-card";
 import { RouteFilters } from "@/components/routes/route-filters";
 import { RoutesMapV2, RoutesMapV2Handle } from "@/components/routes/routes-map-v2";
 import { RouteDetailDrawer } from "@/components/routes/route-detail-drawer";
-import { RouteCreator, RouteCreatorToolbar, PathLayerToggles, Waypoint, RouteData, RouteStyle } from "@/components/routes/route-creator";
+import { RouteCreator, RouteCreatorToolbar, PathLayerToggles, Waypoint, RouteData, RouteStyle, ToolMode } from "@/components/routes/route-creator";
 import { KMLLayerToggles } from "@/components/routes/kml-layer-toggles";
 import { ClearRouteDialog, DiscardRouteDialog, DeleteRouteDialog } from "@/components/routes/confirm-dialog";
 import { Header } from "@/components/header";
 import { toast } from "sonner";
-import { Plus, Trash2, Compass, Route, ArrowLeft, Home, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, Compass, Route, Home } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useRouter } from "next/navigation";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function RoutesPage() {
-  const router = useRouter();
   const mapRef = useRef<RoutesMapV2Handle>(null);
   
   const [activeTab, setActiveTab] = useState("explore");
@@ -48,6 +46,7 @@ export default function RoutesPage() {
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [routeType, setRouteType] = useState<"circular" | "linear">("linear");
   const [history, setHistory] = useState<Waypoint[][]>([]);
+  const [toolMode, setToolMode] = useState<ToolMode>("plot");
 
   // Dialog states
   const [showClearDialog, setShowClearDialog] = useState(false);
@@ -175,7 +174,27 @@ export default function RoutesPage() {
         pathType: pathType as Waypoint["pathType"],
       };
       setWaypoints((prev) => [...prev, newWaypoint]);
-      toast.success(`Waypoint ${waypoints.length + 1} added${snapped ? " (snapped to path)" : ""}`);
+      toast.success(`Waypoint ${waypoints.length + 1} added${snapped ? " (snapped)" : ""}`);
+    },
+    [waypoints]
+  );
+
+  const insertWaypoint = useCallback(
+    (index: number, lat: number, lng: number, snapped = false, pathType?: string) => {
+      setHistory((prev) => [...prev, waypoints]);
+      const newWaypoint: Waypoint = {
+        id: `wp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        lat,
+        lng,
+        snapped,
+        pathType: pathType as Waypoint["pathType"],
+      };
+      setWaypoints((prev) => {
+        const newArr = [...prev];
+        newArr.splice(index, 0, newWaypoint);
+        return newArr;
+      });
+      toast.success(`Waypoint inserted at position ${index + 1}`);
     },
     [waypoints]
   );
@@ -199,13 +218,34 @@ export default function RoutesPage() {
     [waypoints]
   );
 
+  // Handle circular route detection
+  const handleCircularDetected = useCallback(() => {
+    if (routeType === "linear") {
+      setRouteType("circular");
+      setIsPlotting(false); // Stop plotting when route is closed
+      toast.success("Route closed! Now a circular route.");
+    } else {
+      // Already circular - clicking start again removes the last point to continue linear
+      if (waypoints.length > 0) {
+        setHistory((prev) => [...prev, waypoints]);
+        setWaypoints((prev) => prev.slice(0, -1));
+        setRouteType("linear");
+        toast.info("Route reopened - continue plotting");
+      }
+    }
+  }, [routeType, waypoints]);
+
   const handleUndo = useCallback(() => {
     if (history.length === 0) return;
     const previousState = history[history.length - 1];
     setHistory((prev) => prev.slice(0, -1));
     setWaypoints(previousState);
+    // Reset to linear if we undo to less than 3 points
+    if (previousState.length < 3 && routeType === "circular") {
+      setRouteType("linear");
+    }
     toast.info("Undone");
-  }, [history]);
+  }, [history, routeType]);
 
   const handleClear = useCallback(() => {
     if (waypoints.length === 0) return;
@@ -215,24 +255,9 @@ export default function RoutesPage() {
   const confirmClear = useCallback(() => {
     setHistory([]);
     setWaypoints([]);
+    setRouteType("linear");
     toast.info("Route cleared");
   }, []);
-
-  const handleReverse = useCallback(() => {
-    if (waypoints.length < 2) return;
-    setHistory((prev) => [...prev, waypoints]);
-    setWaypoints((prev) => [...prev].reverse());
-    toast.success("Route reversed");
-  }, [waypoints]);
-
-  const handleRetrace = useCallback(() => {
-    if (waypoints.length < 2) return;
-    setHistory((prev) => [...prev, waypoints]);
-    // Create a return path by reversing and appending (excluding duplicate at junction)
-    const returnPath = [...waypoints].reverse().slice(1);
-    setWaypoints((prev) => [...prev, ...returnPath]);
-    toast.success("Route retraced back to start");
-  }, [waypoints]);
 
   const handleSaveRoute = async (routeData: RouteData) => {
     try {
@@ -244,8 +269,11 @@ export default function RoutesPage() {
           description: routeData.description,
           visibility: routeData.visibility,
           difficulty: routeData.difficulty,
-          route_type: routeData.routeType,
-          geometry: routeData.geometry,
+          route_type: routeType, // Use our state
+          geometry: {
+            type: "LineString",
+            coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
+          },
           distance_km: routeData.distanceKm,
           estimated_time_minutes: routeData.estimatedTimeMinutes,
           is_public: routeData.visibility === "public",
@@ -253,15 +281,16 @@ export default function RoutesPage() {
       });
 
       if (res.ok) {
-        toast.success("Route created successfully!");
+        toast.success("Route saved successfully!");
         setIsCreating(false);
         setWaypoints([]);
         setHistory([]);
+        setRouteType("linear");
         setActiveTab("my-routes");
         fetchMyRoutes();
       } else {
         const error = await res.json();
-        toast.error(error.error || "Failed to create route");
+        toast.error(error.error || "Failed to save route");
       }
     } catch (error) {
       console.error("Failed to save route:", error);
@@ -293,6 +322,7 @@ export default function RoutesPage() {
   const startCreating = () => {
     setIsCreating(true);
     setIsPlotting(true);
+    setToolMode("plot");
   };
 
   const cancelCreating = () => {
@@ -308,6 +338,8 @@ export default function RoutesPage() {
     setIsPlotting(false);
     setWaypoints([]);
     setHistory([]);
+    setRouteType("linear");
+    setToolMode("plot");
     setActiveTab("explore");
   };
 
@@ -325,7 +357,6 @@ export default function RoutesPage() {
                   onSave={handleSaveRoute}
                   onCancel={cancelCreating}
                   mapRef={mapRef}
-                  onRouteTypeChange={setRouteType}
                   existingRoute={{
                     title: "",
                     description: "",
@@ -361,10 +392,13 @@ export default function RoutesPage() {
                 waypoints={waypoints}
                 routeType={routeType}
                 routeStyle={routeStyle}
+                toolMode={toolMode}
                 pathLayers={pathLayers}
                 onWaypointAdd={addWaypoint}
                 onWaypointUpdate={updateWaypoint}
                 onWaypointRemove={removeWaypoint}
+                onWaypointInsert={insertWaypoint}
+                onCircularDetected={handleCircularDetected}
               />
 
               {/* Route creation toolbar */}
@@ -373,13 +407,11 @@ export default function RoutesPage() {
                 setIsPlotting={setIsPlotting}
                 snapEnabled={snapEnabled}
                 setSnapEnabled={setSnapEnabled}
+                toolMode={toolMode}
+                setToolMode={setToolMode}
                 onUndo={handleUndo}
                 onClear={handleClear}
-                onReverse={handleReverse}
-                onRetrace={handleRetrace}
                 canUndo={history.length > 0}
-                canReverse={waypoints.length >= 2}
-                canRetrace={waypoints.length >= 2}
                 routeStyle={routeStyle}
                 onStyleChange={handleStyleChange}
               />
@@ -546,7 +578,7 @@ export default function RoutesPage() {
                     <Card className="p-6 text-center">
                       <Route className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
                       <p className="text-sm text-muted-foreground mb-4">
-                        You haven't created any routes yet
+                        You haven&apos;t created any routes yet
                       </p>
                       <Button onClick={startCreating} variant="outline">
                         <Plus className="mr-2 h-4 w-4" />

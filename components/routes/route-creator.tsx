@@ -21,20 +21,17 @@ import {
   Magnet,
   Undo2,
   Trash2,
-  ArrowLeftRight,
   Clock,
   Ruler,
-  MapPin,
   Circle,
   Route,
   Lock,
-  Navigation,
   Globe,
   Link2,
   X,
-  GripVertical,
-  RotateCcw,
   Palette,
+  Eraser,
+  PlusCircle,
 } from "lucide-react";
 
 // Types
@@ -85,12 +82,10 @@ export function RouteCreator({
   const [difficulty, setDifficulty] = useState<
     "unrated" | "easy" | "moderate" | "difficult" | "severe"
   >(existingRoute?.difficulty || "unrated");
-  const [routeType, setRouteType] = useState<"circular" | "linear">(
-    existingRoute?.routeType || "linear"
-  );
 
   // Use waypoints from existingRoute prop (controlled by parent)
   const waypoints = existingRoute?.waypoints || [];
+  const routeType = existingRoute?.routeType || "linear";
   const [distanceKm, setDistanceKm] = useState(0);
   const [displayUnits, setDisplayUnits] = useState<"km" | "miles">("km");
   const [saving, setSaving] = useState(false);
@@ -112,9 +107,8 @@ export function RouteCreator({
       );
     }
 
-    // Use routeType from existingRoute if available
-    const currentRouteType = existingRoute?.routeType || routeType;
-    if (currentRouteType === "circular" && waypoints.length > 2) {
+    // Add closing segment for circular routes
+    if (routeType === "circular" && waypoints.length > 2) {
       total += haversineDistance(
         waypoints[waypoints.length - 1].lat,
         waypoints[waypoints.length - 1].lng,
@@ -124,7 +118,7 @@ export function RouteCreator({
     }
 
     setDistanceKm(total);
-  }, [waypoints, routeType, existingRoute?.routeType]);
+  }, [waypoints, routeType]);
 
   const haversineDistance = (
     lat1: number,
@@ -170,15 +164,12 @@ export function RouteCreator({
 
     setSaving(true);
     try {
-      // Use current routeType from existingRoute prop (in case it was changed)
-      const currentRouteType = existingRoute?.routeType || routeType;
-      
       const routeData: RouteData = {
         title,
         description,
         visibility,
         difficulty,
-        routeType: currentRouteType,
+        routeType,
         waypoints,
         geometry: {
           type: "LineString",
@@ -210,40 +201,32 @@ export function RouteCreator({
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
-        {/* Route Type */}
+        {/* Route Type Badge - auto-detected, not selectable */}
         <div className="space-y-2">
-          <Label className="text-sm font-medium">Activity Type</Label>
-          <div className="flex gap-2">
-            <Button
-              variant={(existingRoute?.routeType || routeType) === "linear" ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                setRouteType("linear");
-                onRouteTypeChange?.("linear");
-              }}
-              className="flex-1"
+          <Label className="text-sm font-medium">Route Type</Label>
+          <div className="flex items-center gap-2">
+            <Badge 
+              variant={routeType === "circular" ? "default" : "secondary"}
+              className={routeType === "circular" ? "bg-green-600" : ""}
             >
-              <Route className="h-4 w-4 mr-2" />
-              Linear
-            </Button>
-            <Button
-              variant={(existingRoute?.routeType || routeType) === "circular" ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                setRouteType("circular");
-                onRouteTypeChange?.("circular");
-              }}
-              className="flex-1"
-            >
-              <Circle className="h-4 w-4 mr-2" />
-              Circular
-            </Button>
+              {routeType === "circular" ? (
+                <>
+                  <Circle className="h-3 w-3 mr-1" />
+                  Circular
+                </>
+              ) : (
+                <>
+                  <Route className="h-3 w-3 mr-1" />
+                  Linear
+                </>
+              )}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {routeType === "circular" 
+                ? "Route connects back to start" 
+                : "Click near start point to make circular"}
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {(existingRoute?.routeType || routeType) === "circular"
-              ? "Route will connect back to the start"
-              : "Route has separate start and end points"}
-          </p>
         </div>
 
         <Separator />
@@ -287,6 +270,13 @@ export function RouteCreator({
             Miles
           </Button>
         </div>
+
+        {/* Waypoint count */}
+        {waypoints.length > 0 && (
+          <div className="text-center text-sm text-muted-foreground">
+            {waypoints.length} waypoint{waypoints.length !== 1 ? "s" : ""} plotted
+          </div>
+        )}
 
         <Separator />
 
@@ -432,39 +422,6 @@ export function RouteCreator({
             ))}
           </div>
         </div>
-
-        <Separator />
-
-        {/* Waypoints list */}
-        {waypoints.length > 0 && (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              Waypoints ({waypoints.length})
-            </Label>
-            <div className="space-y-1 max-h-48 overflow-y-auto">
-              {waypoints.map((wp, index) => (
-                <div
-                  key={wp.id}
-                  className="flex items-center gap-2 p-2 bg-muted/50 rounded text-sm"
-                >
-                  <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
-                  <span className="font-mono text-xs text-muted-foreground w-6">
-                    {index + 1}.
-                  </span>
-                  <MapPin className={`h-4 w-4 ${wp.snapped ? "text-green-600" : "text-muted-foreground"}`} />
-                  <span className="flex-1 truncate text-xs">
-                    {wp.lat.toFixed(5)}, {wp.lng.toFixed(5)}
-                  </span>
-                  {wp.snapped && (
-                    <Badge variant="secondary" className="text-xs">
-                      Snapped
-                    </Badge>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Bottom actions */}
@@ -481,7 +438,7 @@ export function RouteCreator({
           onClick={handleSave}
           disabled={saving || waypoints.length < 2 || !title.trim()}
         >
-          {saving ? "SAVING..." : "SAVE"}
+          {saving ? "SAVING..." : "SAVE ROUTE"}
         </Button>
       </div>
     </div>
@@ -505,19 +462,20 @@ const ROUTE_COLORS = [
 
 const THICKNESS_OPTIONS = [2, 3, 4, 6, 8];
 
+// Tool mode for the route creator
+export type ToolMode = "plot" | "erase" | "insert";
+
 // Toolbar component for the map - styled like OS Maps
 export function RouteCreatorToolbar({
   isPlotting,
   setIsPlotting,
   snapEnabled,
   setSnapEnabled,
+  toolMode,
+  setToolMode,
   onUndo,
   onClear,
-  onReverse,
-  onRetrace,
   canUndo,
-  canReverse,
-  canRetrace,
   routeStyle,
   onStyleChange,
 }: {
@@ -525,13 +483,11 @@ export function RouteCreatorToolbar({
   setIsPlotting: (v: boolean) => void;
   snapEnabled: boolean;
   setSnapEnabled: (v: boolean) => void;
+  toolMode: ToolMode;
+  setToolMode: (mode: ToolMode) => void;
   onUndo: () => void;
   onClear: () => void;
-  onReverse: () => void;
-  onRetrace?: () => void;
   canUndo: boolean;
-  canReverse: boolean;
-  canRetrace?: boolean;
   routeStyle?: RouteStyle;
   onStyleChange?: (style: RouteStyle) => void;
 }) {
@@ -550,6 +506,16 @@ export function RouteCreatorToolbar({
     onStyleChange?.(updated);
   };
 
+  const handleToolClick = (mode: ToolMode) => {
+    if (toolMode === mode && isPlotting) {
+      // Clicking active tool deselects it
+      setIsPlotting(false);
+    } else {
+      setToolMode(mode);
+      setIsPlotting(true);
+    }
+  };
+
   return (
     <div className="absolute top-4 right-4 z-10">
       <Card className="p-1.5 bg-white shadow-lg border-0">
@@ -558,9 +524,9 @@ export function RouteCreatorToolbar({
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                onClick={() => setIsPlotting(!isPlotting)}
+                onClick={() => handleToolClick("plot")}
                 className={`flex flex-col items-center justify-center px-3 py-2 rounded-md transition-all ${
-                  isPlotting 
+                  isPlotting && toolMode === "plot"
                     ? `${activeColor} ${activeTextColor} shadow-sm` 
                     : "hover:bg-gray-100 text-gray-600"
                 }`}
@@ -571,6 +537,46 @@ export function RouteCreatorToolbar({
             </TooltipTrigger>
             <TooltipContent side="bottom">
               <p>Click on map to add waypoints</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Erase */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => handleToolClick("erase")}
+                className={`flex flex-col items-center justify-center px-3 py-2 rounded-md transition-all ${
+                  isPlotting && toolMode === "erase"
+                    ? `${activeColor} ${activeTextColor} shadow-sm` 
+                    : "hover:bg-gray-100 text-gray-600"
+                }`}
+              >
+                <Eraser className="h-5 w-5" />
+                <span className="text-[11px] mt-1 font-semibold tracking-wide">Erase</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>Click waypoints to remove them</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Insert */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => handleToolClick("insert")}
+                className={`flex flex-col items-center justify-center px-3 py-2 rounded-md transition-all ${
+                  isPlotting && toolMode === "insert"
+                    ? `${activeColor} ${activeTextColor} shadow-sm` 
+                    : "hover:bg-gray-100 text-gray-600"
+                }`}
+              >
+                <PlusCircle className="h-5 w-5" />
+                <span className="text-[11px] mt-1 font-semibold tracking-wide">Insert</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>Click on route line to insert a waypoint</p>
             </TooltipContent>
           </Tooltip>
 
@@ -617,7 +623,7 @@ export function RouteCreatorToolbar({
             </TooltipContent>
           </Tooltip>
 
-          {/* Remove */}
+          {/* Clear All */}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -625,7 +631,7 @@ export function RouteCreatorToolbar({
                 className="flex flex-col items-center justify-center px-3 py-2 rounded-md transition-all hover:bg-gray-100 text-gray-600"
               >
                 <Trash2 className="h-5 w-5" />
-                <span className="text-[11px] mt-1 font-semibold tracking-wide">Remove</span>
+                <span className="text-[11px] mt-1 font-semibold tracking-wide">Clear</span>
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
@@ -744,48 +750,6 @@ export function RouteCreatorToolbar({
               </div>
             )}
           </div>
-
-          {/* Reverse */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={onReverse}
-                disabled={!canReverse}
-                className={`flex flex-col items-center justify-center px-3 py-2 rounded-md transition-all ${
-                  canReverse 
-                    ? "hover:bg-gray-100 text-gray-600" 
-                    : "text-gray-300 cursor-not-allowed"
-                }`}
-              >
-                <ArrowLeftRight className="h-5 w-5" />
-                <span className="text-[11px] mt-1 font-semibold tracking-wide">Reverse</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p>Reverse route direction</p>
-            </TooltipContent>
-          </Tooltip>
-
-          {/* Retrace */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={onRetrace}
-                disabled={!canRetrace}
-                className={`flex flex-col items-center justify-center px-3 py-2 rounded-md transition-all ${
-                  canRetrace 
-                    ? "hover:bg-gray-100 text-gray-600" 
-                    : "text-gray-300 cursor-not-allowed"
-                }`}
-              >
-                <RotateCcw className="h-5 w-5" />
-                <span className="text-[11px] mt-1 font-semibold tracking-wide">Retrace</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p>Retrace route back to start</p>
-            </TooltipContent>
-          </Tooltip>
         </div>
       </Card>
     </div>
