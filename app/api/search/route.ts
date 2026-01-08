@@ -1,8 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { checkRateLimit, RATE_LIMITS, getIdentifier, rateLimitError } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    // Rate limiting - 60 searches per minute (by IP since search doesn't require auth)
+    const rateLimitResult = checkRateLimit(
+      getIdentifier(request),
+      RATE_LIMITS.search
+    );
+    if (!rateLimitResult.success) {
+      return rateLimitError(rateLimitResult);
+    }
+
     const body = await request.json();
     const {
       location,

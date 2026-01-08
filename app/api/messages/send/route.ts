@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { NextResponse } from "next/server";
 import { moderateMessage, getBlockedMessageText } from "@/lib/moderation";
 import { sendNewMessageNotification } from "@/lib/email/send";
+import { checkRateLimit, RATE_LIMITS, getIdentifier, rateLimitError } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -14,6 +15,15 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Rate limiting - 30 messages per minute
+    const rateLimitResult = checkRateLimit(
+      getIdentifier(request, user.id),
+      RATE_LIMITS.messages
+    );
+    if (!rateLimitResult.success) {
+      return rateLimitError(rateLimitResult);
     }
 
     const { recipientId, propertyId, subject, message } = await request.json();

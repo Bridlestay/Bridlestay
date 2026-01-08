@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { NextResponse } from "next/server";
+import { checkRateLimit, RATE_LIMITS, getIdentifier, rateLimitError } from "@/lib/rate-limit";
 
 function generateCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -11,7 +12,7 @@ function generateCode(): string {
   return code;
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const serviceClient = createServiceClient();
@@ -22,6 +23,15 @@ export async function POST() {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Rate limiting - 5 requests per hour
+    const rateLimitResult = checkRateLimit(
+      getIdentifier(request, user.id),
+      RATE_LIMITS.referral
+    );
+    if (!rateLimitResult.success) {
+      return rateLimitError(rateLimitResult);
     }
 
     // Check if user already has a referral code (use service client to bypass RLS)
@@ -65,6 +75,23 @@ export async function POST() {
       );
     }
 
+    // Fetch current referral settings from site_settings
+    const { data: settingsData } = await serviceClient
+      .from("site_settings")
+      .select("value")
+      .eq("key", "user_referral_config")
+      .single();
+
+    // Use settings or fall back to defaults
+    const settings = settingsData?.value || {
+      benefit_type: "guest_fee_discount",
+      benefit_value: 10,
+      benefit_duration_months: 3,
+      benefit_uses_limit: 5,
+      referrer_benefit_type: "fixed_credit",
+      referrer_benefit_value: 500,
+    };
+
     // Create the referral code using service client (bypasses RLS)
     const { data: newCode, error } = await serviceClient
       .from("referral_codes")
@@ -72,12 +99,12 @@ export async function POST() {
         code,
         owner_user_id: user.id,
         code_type: "user_referral",
-        benefit_type: "guest_fee_discount",
-        benefit_value: 10, // 10% off guest fees
-        benefit_duration_months: 3, // For 3 months
-        benefit_uses_limit: 5, // Up to 5 bookings
-        referrer_benefit_type: "fixed_credit", // Referrer gets credit
-        referrer_benefit_value: 500, // £5 credit when friend books
+        benefit_type: settings.benefit_type,
+        benefit_value: settings.benefit_value,
+        benefit_duration_months: settings.benefit_duration_months,
+        benefit_uses_limit: settings.benefit_uses_limit,
+        referrer_benefit_type: settings.referrer_benefit_type,
+        referrer_benefit_value: settings.referrer_benefit_value,
         is_active: true,
       })
       .select()

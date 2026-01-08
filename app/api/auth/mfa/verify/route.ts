@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { checkRateLimit, RATE_LIMITS, getIdentifier, rateLimitError } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -19,6 +20,15 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Rate limiting - 10 attempts per 15 minutes (auth is strict)
+    const rateLimitResult = checkRateLimit(
+      getIdentifier(request, user.id),
+      RATE_LIMITS.auth
+    );
+    if (!rateLimitResult.success) {
+      return rateLimitError(rateLimitResult);
     }
 
     // Create a challenge for the factor

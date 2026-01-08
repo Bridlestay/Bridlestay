@@ -4,6 +4,7 @@ import { calculatePriceBreakdown } from "@/lib/fees";
 import { NextResponse } from "next/server";
 import { differenceInDays, format } from "date-fns";
 import { sendBookingRequestHost } from "@/lib/email/send";
+import { checkRateLimit, RATE_LIMITS, getIdentifier, rateLimitError } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +16,15 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Rate limiting - 20 requests per minute
+    const rateLimitResult = checkRateLimit(
+      getIdentifier(request, user.id),
+      RATE_LIMITS.booking
+    );
+    if (!rateLimitResult.success) {
+      return rateLimitError(rateLimitResult);
     }
 
     const body = await request.json();

@@ -48,8 +48,11 @@ import {
   EyeOff,
   Percent,
   Calendar,
-  Hash
+  Hash,
+  Settings,
+  Info
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { formatDistanceToNow, format } from "date-fns";
 import Link from "next/link";
 
@@ -144,9 +147,63 @@ export function ReferralsDashboard() {
     description: "",
   });
 
+  // User referral settings state
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [referralSettings, setReferralSettings] = useState({
+    benefit_type: "guest_fee_discount",
+    benefit_value: 10,
+    benefit_duration_months: 3,
+    benefit_uses_limit: 5,
+    referrer_benefit_type: "fixed_credit",
+    referrer_benefit_value: 500,
+    promotion_message: "",
+    promotion_active: false,
+  });
+  const [settingsUpdatedAt, setSettingsUpdatedAt] = useState<string | null>(null);
+
   useEffect(() => {
     fetchData();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    setSettingsLoading(true);
+    try {
+      const response = await fetch("/api/admin/referral-settings");
+      const data = await response.json();
+      if (data.settings) {
+        setReferralSettings(data.settings);
+        setSettingsUpdatedAt(data.updated_at || null);
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const saveSettings = async () => {
+    setSettingsSaving(true);
+    try {
+      const response = await fetch("/api/admin/referral-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(referralSettings),
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast({ title: "Settings saved successfully" });
+        setSettingsUpdatedAt(new Date().toISOString());
+      } else {
+        toast({ title: "Failed to save settings", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error saving settings", variant: "destructive" });
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -473,6 +530,10 @@ export function ReferralsDashboard() {
         <TabsList>
           <TabsTrigger value="all-codes">All Codes</TabsTrigger>
           <TabsTrigger value="redemptions">Redemptions</TabsTrigger>
+          <TabsTrigger value="settings">
+            <Settings className="h-4 w-4 mr-1" />
+            User Code Settings
+          </TabsTrigger>
         </TabsList>
 
         {/* All Codes Tab */}
@@ -713,6 +774,229 @@ export function ReferralsDashboard() {
                   ))}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Settings Tab */}
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                User Referral Code Settings
+              </CardTitle>
+              <CardDescription>
+                Configure what benefits new user-generated referral codes provide. 
+                Changes apply to all new codes created after saving.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {settingsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <>
+                  {/* Promotion Banner */}
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <Info className="h-5 w-5 text-amber-600 mt-0.5" />
+                      <div className="space-y-3 flex-1">
+                        <div className="flex items-center justify-between">
+                          <Label className="font-medium text-amber-800">Promotional Message</Label>
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor="promo-active" className="text-sm text-amber-700">Active</Label>
+                            <Switch
+                              id="promo-active"
+                              checked={referralSettings.promotion_active}
+                              onCheckedChange={(v) => setReferralSettings({ ...referralSettings, promotion_active: v })}
+                            />
+                          </div>
+                        </div>
+                        <Textarea
+                          placeholder="e.g., 🎉 Special March Promotion! Generate your code now and give friends 7.5% off!"
+                          value={referralSettings.promotion_message || ""}
+                          onChange={(e) => setReferralSettings({ ...referralSettings, promotion_message: e.target.value })}
+                          className="bg-white"
+                        />
+                        <p className="text-xs text-amber-700">
+                          This message will be shown to users when generating their referral code (if active)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Friend Benefits Section */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Gift className="h-5 w-5 text-primary" />
+                      Friend Benefits (Code User)
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Benefit Type</Label>
+                        <Select 
+                          value={referralSettings.benefit_type} 
+                          onValueChange={(v) => setReferralSettings({ ...referralSettings, benefit_type: v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="guest_fee_discount">Guest Fee Discount (%)</SelectItem>
+                            <SelectItem value="host_fee_waiver">Host Fee Waiver (%)</SelectItem>
+                            <SelectItem value="fixed_credit">Fixed Credit (£)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>
+                          {referralSettings.benefit_type === "fixed_credit" ? "Amount (£)" : "Percentage (%)"}
+                        </Label>
+                        <Input
+                          type="number"
+                          value={referralSettings.benefit_type === "fixed_credit" 
+                            ? referralSettings.benefit_value / 100 
+                            : referralSettings.benefit_value}
+                          onChange={(e) => setReferralSettings({ 
+                            ...referralSettings, 
+                            benefit_value: referralSettings.benefit_type === "fixed_credit"
+                              ? parseFloat(e.target.value) * 100
+                              : parseFloat(e.target.value)
+                          })}
+                          min={0}
+                          step={referralSettings.benefit_type === "fixed_credit" ? 0.5 : 0.5}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Duration (months)</Label>
+                        <Input
+                          type="number"
+                          value={referralSettings.benefit_duration_months || ""}
+                          onChange={(e) => setReferralSettings({ 
+                            ...referralSettings, 
+                            benefit_duration_months: parseInt(e.target.value) || 0
+                          })}
+                          min={0}
+                          placeholder="0 = unlimited"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Max Bookings with Benefit</Label>
+                      <Input
+                        type="number"
+                        value={referralSettings.benefit_uses_limit || ""}
+                        onChange={(e) => setReferralSettings({ 
+                          ...referralSettings, 
+                          benefit_uses_limit: parseInt(e.target.value) || 0
+                        })}
+                        min={0}
+                        placeholder="0 = unlimited"
+                        className="max-w-[200px]"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        How many bookings can use the discount (0 = unlimited)
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Referrer Benefits Section */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-green-600" />
+                      Referrer Benefits (Code Owner)
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Referrer Reward Type</Label>
+                        <Select 
+                          value={referralSettings.referrer_benefit_type} 
+                          onValueChange={(v) => setReferralSettings({ ...referralSettings, referrer_benefit_type: v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fixed_credit">Fixed Credit (£)</SelectItem>
+                            <SelectItem value="percentage_of_booking">% of Booking Value</SelectItem>
+                            <SelectItem value="none">No Reward</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {referralSettings.referrer_benefit_type !== "none" && (
+                        <div className="space-y-2">
+                          <Label>
+                            {referralSettings.referrer_benefit_type === "fixed_credit" ? "Credit Amount (£)" : "Percentage (%)"}
+                          </Label>
+                          <Input
+                            type="number"
+                            value={referralSettings.referrer_benefit_type === "fixed_credit" 
+                              ? referralSettings.referrer_benefit_value / 100 
+                              : referralSettings.referrer_benefit_value}
+                            onChange={(e) => setReferralSettings({ 
+                              ...referralSettings, 
+                              referrer_benefit_value: referralSettings.referrer_benefit_type === "fixed_credit"
+                                ? parseFloat(e.target.value) * 100
+                                : parseFloat(e.target.value)
+                            })}
+                            min={0}
+                            step={0.5}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      What the person who shared the code receives when their friend makes a booking
+                    </p>
+                  </div>
+
+                  {/* Preview */}
+                  <div className="rounded-lg bg-muted/50 p-4 space-y-2">
+                    <Label className="text-sm font-medium">Current Configuration Preview:</Label>
+                    <p className="text-sm">
+                      Users who generate a referral code can give friends{" "}
+                      <strong>
+                        {referralSettings.benefit_type === "fixed_credit" 
+                          ? `£${(referralSettings.benefit_value / 100).toFixed(2)} credit`
+                          : `${referralSettings.benefit_value}% off ${referralSettings.benefit_type === "guest_fee_discount" ? "guest fees" : "host fees"}`}
+                      </strong>
+                      {referralSettings.benefit_duration_months ? ` for ${referralSettings.benefit_duration_months} months` : ""}
+                      {referralSettings.benefit_uses_limit ? ` (up to ${referralSettings.benefit_uses_limit} bookings)` : ""}.
+                      {referralSettings.referrer_benefit_type !== "none" && (
+                        <> The referrer gets{" "}
+                          <strong>
+                            {referralSettings.referrer_benefit_type === "fixed_credit" 
+                              ? `£${(referralSettings.referrer_benefit_value / 100).toFixed(2)}`
+                              : `${referralSettings.referrer_benefit_value}%`}
+                          </strong>
+                          {" "}when their friend books.
+                        </>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      {settingsUpdatedAt && (
+                        <>Last updated: {format(new Date(settingsUpdatedAt), "PPp")}</>
+                      )}
+                    </div>
+                    <Button onClick={saveSettings} disabled={settingsSaving}>
+                      {settingsSaving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save Settings"
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

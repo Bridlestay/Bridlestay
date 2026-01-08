@@ -61,11 +61,30 @@ export function ReferralsSection({ userId, userName }: ReferralsSectionProps) {
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [copied, setCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [promotionMessage, setPromotionMessage] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchReferralData();
+    fetchPromotionMessage();
   }, [userId]);
+
+  const fetchPromotionMessage = async () => {
+    try {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "user_referral_config")
+        .single();
+      
+      if (data?.value?.promotion_active && data?.value?.promotion_message) {
+        setPromotionMessage(data.value.promotion_message);
+      }
+    } catch (error) {
+      // Ignore - promotion message is optional
+    }
+  };
 
   const fetchReferralData = async () => {
     setLoading(true);
@@ -279,9 +298,14 @@ export function ReferralsSection({ userId, userName }: ReferralsSectionProps) {
               </div>
             </div>
           ) : (
-            <div className="text-center py-6">
-              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground mb-4">
+            <div className="text-center py-6 space-y-4">
+              {promotionMessage && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-left">
+                  <p className="text-amber-800 font-medium">{promotionMessage}</p>
+                </div>
+              )}
+              <Users className="h-12 w-12 mx-auto text-muted-foreground" />
+              <p className="text-muted-foreground">
                 Generate your unique referral code to start inviting friends!
               </p>
               <Button onClick={generateReferralCode} disabled={generating}>
