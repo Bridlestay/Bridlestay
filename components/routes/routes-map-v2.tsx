@@ -249,26 +249,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
                     });
                   });
 
-                  // Info on CLICK (not hover)
-                  polyline.addListener("click", (e: google.maps.MapMouseEvent) => {
-                    if (infoWindowRef.current && e.latLng) {
-                      const name = feature.properties?.name || feature.properties?.pathNumber || "Unknown path";
-                      const parish = feature.properties?.parish || "";
-                      const content = `
-                        <div style="padding: 8px; min-width: 150px; font-family: system-ui, sans-serif;">
-                          <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">${name}</div>
-                          <div style="font-size: 12px; color: #666;">
-                            <span style="display: inline-block; width: 10px; height: 10px; background: ${color}; border-radius: 2px; margin-right: 6px;"></span>
-                            ${type.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase())}
-                          </div>
-                          ${parish ? `<div style="font-size: 11px; color: #888; margin-top: 4px;">${parish}</div>` : ""}
-                        </div>
-                      `;
-                      infoWindowRef.current.setContent(content);
-                      infoWindowRef.current.setPosition(e.latLng);
-                      infoWindowRef.current.open(mapRef.current);
-                    }
-                  });
+                  // No info cards for public paths - just visual highlighting
 
                   pathPolylinesRef.current.push(polyline);
                   totalPaths++;
@@ -811,9 +792,9 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       <div className="relative w-full h-full">
         <div ref={mapContainerRef} className="w-full h-full" />
         
-        {/* Loading indicator */}
+        {/* Loading indicator - positioned below terrain controls */}
         {pathsLoading && (
-          <div className="absolute top-4 left-4 z-10">
+          <div className="absolute top-16 left-2 z-10">
             <div className="bg-white/90 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-lg flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
               <span className="text-sm text-muted-foreground">Loading paths...</span>
@@ -821,9 +802,9 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
           </div>
         )}
 
-        {/* Paths loaded indicator */}
+        {/* Paths loaded indicator - positioned below terrain controls */}
         {!pathsLoading && pathsCount > 0 && (
-          <div className="absolute top-4 left-4 z-10">
+          <div className="absolute top-16 left-2 z-10">
             <div className="bg-white/90 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-lg flex items-center gap-2">
               <Info className="h-4 w-4 text-green-600" />
               <span className="text-sm text-muted-foreground">
