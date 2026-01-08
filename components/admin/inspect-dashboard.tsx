@@ -20,8 +20,6 @@ import {
   Mail,
   Calendar,
   Shield,
-  ShieldCheck,
-  ShieldX,
   Ban,
   BookOpen,
   Star,
@@ -259,11 +257,6 @@ export function InspectDashboard({
                       <p className="text-sm text-muted-foreground">{userData.user.email}</p>
                       <div className="flex gap-2 mt-1">
                         <Badge variant="outline">{userData.user.role}</Badge>
-                        {userData.user.admin_verified ? (
-                          <Badge className="bg-green-600"><ShieldCheck className="h-3 w-3 mr-1" /> Verified</Badge>
-                        ) : (
-                          <Badge variant="secondary"><ShieldX className="h-3 w-3 mr-1" /> Unverified</Badge>
-                        )}
                         {userData.user.banned && (
                           <Badge variant="destructive"><Ban className="h-3 w-3 mr-1" /> Banned</Badge>
                         )}
