@@ -89,6 +89,17 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
     const snapPolylineRef = useRef<google.maps.Polyline | null>(null);
     const pathPolylinesRef = useRef<google.maps.Polyline[]>([]);
     const pathDataRef = useRef<{ path: google.maps.LatLng[]; type: string }[]>([]); // Store path data for snapping
+    
+    // Refs for creation state (so path click handlers can access latest values)
+    const isCreatingRef = useRef(isCreating);
+    const isPlottingRef = useRef(isPlotting);
+    const onWaypointAddRef = useRef(onWaypointAdd);
+    
+    // Keep refs up to date
+    useEffect(() => { isCreatingRef.current = isCreating; }, [isCreating]);
+    useEffect(() => { isPlottingRef.current = isPlotting; }, [isPlotting]);
+    useEffect(() => { onWaypointAddRef.current = onWaypointAdd; }, [onWaypointAdd]);
+    
     const [pathsLoading, setPathsLoading] = useState(false);
     const [pathsError, setPathsError] = useState<string | null>(null);
     const [pathsCount, setPathsCount] = useState(0);
@@ -249,7 +260,13 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
                     });
                   });
 
-                  // No info cards for public paths - just visual highlighting
+                  // Click on path to place waypoint when in creation mode
+                  polyline.addListener("click", (e: google.maps.MapMouseEvent) => {
+                    if (isCreatingRef.current && isPlottingRef.current && e.latLng && onWaypointAddRef.current) {
+                      // Place waypoint at the exact click location on the path
+                      onWaypointAddRef.current(e.latLng.lat(), e.latLng.lng(), true, type);
+                    }
+                  });
 
                   pathPolylinesRef.current.push(polyline);
                   totalPaths++;
@@ -402,10 +419,19 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
           const lat = e.latLng.lat();
           const lng = e.latLng.lng();
 
-          if (snapEnabled && waypoints.length > 0) {
-            // Try to snap to path (only snaps THIS point, not existing route)
-            const snapped = await snapToRoad(lat, lng);
-            onWaypointAdd?.(snapped.lat, snapped.lng, snapped.snapped, snapped.pathType);
+          if (snapEnabled) {
+            // Always try to snap to nearest path (works for first point too!)
+            const pathSnap = snapToPath(lat, lng);
+            if (pathSnap.snapped) {
+              onWaypointAdd?.(pathSnap.lat, pathSnap.lng, true, pathSnap.pathType);
+            } else if (waypoints.length > 0) {
+              // Only try road snapping if we have previous waypoints
+              const snapped = await snapToRoad(lat, lng);
+              onWaypointAdd?.(snapped.lat, snapped.lng, snapped.snapped, snapped.pathType);
+            } else {
+              // First point, not near a path - place unsnapped
+              onWaypointAdd?.(lat, lng, false);
+            }
           } else {
             onWaypointAdd?.(lat, lng, false);
           }
@@ -415,7 +441,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       return () => {
         google.maps.event.removeListener(clickListener);
       };
-    }, [isLoaded, isCreating, isPlotting, snapEnabled, onWaypointAdd, waypoints, snapToRoad]);
+    }, [isLoaded, isCreating, isPlotting, snapEnabled, onWaypointAdd, waypoints, snapToRoad, snapToPath]);
 
     // Helper: Find path along any public right of way between two points
     const findBridlewayPath = useCallback((
