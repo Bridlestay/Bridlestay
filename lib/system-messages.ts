@@ -30,7 +30,7 @@ We're thrilled to have you join our community of horse lovers. Whether you're lo
 • Guests: Make your first booking and start exploring!
 
 **Safety & Community:**
-• All users must be verified before booking
+• All payments are securely processed through Stripe
 • Our platform monitors messages for safety
 • Read our Terms of Service and Community Guidelines
 
@@ -162,18 +162,17 @@ export function getVerificationApprovedMessage(
 ): SystemMessageData {
   return {
     recipientId: userId,
-    subject: 'Account Verified ✅',
+    subject: 'Payment Setup Complete ✅',
     message: `Congratulations ${userName}!
 
-Your Cantra account has been verified!
+Your payment details have been verified through Stripe!
 
-**What's Changed:**
-• You can now make bookings
-• You can list properties (if you're a host)
+**What's Available:**
+• You can now make bookings and payments
+• You can receive payouts (if you're a host)
 • You have full access to all platform features
-• Other users can see your verified status
 
-Thank you for completing the verification process. We're excited to have you as a verified member of our community!
+Thank you for setting up your payment details. We're excited to have you as an active member of our community!
 
 Happy riding! 🏇
 
