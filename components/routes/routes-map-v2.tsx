@@ -103,7 +103,9 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
     const isCreatingRef = useRef(isCreating);
     const isPlottingRef = useRef(isPlotting);
     const toolModeRef = useRef(toolMode);
+    const snapEnabledRef = useRef(snapEnabled);
     const onWaypointAddRef = useRef(onWaypointAdd);
+    const onWaypointInsertRef = useRef(onWaypointInsert);
     const waypointsRef = useRef(waypoints);
     const onCircularDetectedRef = useRef(onCircularDetected);
     
@@ -111,7 +113,9 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
     useEffect(() => { isCreatingRef.current = isCreating; }, [isCreating]);
     useEffect(() => { isPlottingRef.current = isPlotting; }, [isPlotting]);
     useEffect(() => { toolModeRef.current = toolMode; }, [toolMode]);
+    useEffect(() => { snapEnabledRef.current = snapEnabled; }, [snapEnabled]);
     useEffect(() => { onWaypointAddRef.current = onWaypointAdd; }, [onWaypointAdd]);
+    useEffect(() => { onWaypointInsertRef.current = onWaypointInsert; }, [onWaypointInsert]);
     useEffect(() => { waypointsRef.current = waypoints; }, [waypoints]);
     useEffect(() => { onCircularDetectedRef.current = onCircularDetected; }, [onCircularDetected]);
     
@@ -663,6 +667,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       const path = buildRoutePath();
       
       // Draw the route line (clickable for insert mode)
+      // Use a thicker invisible stroke for better click detection
       routeLineRef.current = new google.maps.Polyline({
         path,
         strokeColor: routeStyle.color,
@@ -673,28 +678,121 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
         clickable: true,
       });
 
-      // Make route line clickable for insert mode
-      routeLineRef.current.addListener("click", async (e: google.maps.MapMouseEvent) => {
-        if (!isPlotting || toolMode !== "insert" || !e.latLng) return;
+      // Create an invisible thicker polyline for better click detection in insert mode
+      const clickableOverlay = new google.maps.Polyline({
+        path,
+        strokeColor: "transparent",
+        strokeWeight: 20, // Much thicker for easy clicking
+        strokeOpacity: 0,
+        map: mapRef.current,
+        zIndex: 99,
+        clickable: true,
+      });
+
+      // Helper to find nearest segment from click position
+      const findSegmentAtClick = (lat: number, lng: number): number => {
+        const wps = waypointsRef.current;
+        if (wps.length < 2) return -1;
+        
+        let nearestIdx = -1;
+        let nearestDist = Infinity;
+        
+        for (let i = 0; i < wps.length - 1; i++) {
+          const a = wps[i];
+          const b = wps[i + 1];
+          
+          // Find nearest point on this segment
+          const dx = b.lng - a.lng;
+          const dy = b.lat - a.lat;
+          const t = Math.max(0, Math.min(1, ((lng - a.lng) * dx + (lat - a.lat) * dy) / (dx * dx + dy * dy || 1)));
+          const nearestX = a.lng + t * dx;
+          const nearestY = a.lat + t * dy;
+          
+          // Calculate distance
+          const R = 6371000;
+          const dLat = (lat - nearestY) * Math.PI / 180;
+          const dLng = (lng - nearestX) * Math.PI / 180;
+          const aCalc = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat * Math.PI / 180) * Math.cos(nearestY * Math.PI / 180) *
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
+          const c = 2 * Math.atan2(Math.sqrt(aCalc), Math.sqrt(1 - aCalc));
+          const dist = R * c;
+          
+          if (dist < nearestDist) {
+            nearestDist = dist;
+            nearestIdx = i + 1; // Insert after index i
+          }
+        }
+        
+        return nearestIdx;
+      };
+
+      // Click handler for insert mode (using refs for current state)
+      const handleLineClick = (e: google.maps.MapMouseEvent) => {
+        if (!isPlottingRef.current || toolModeRef.current !== "insert" || !e.latLng) return;
         
         const lat = e.latLng.lat();
         const lng = e.latLng.lng();
-        const insertIdx = findNearestSegment(lat, lng);
+        const insertIdx = findSegmentAtClick(lat, lng);
         
-        if (insertIdx > 0) {
-          if (snapEnabled) {
-            const pathSnap = snapToPath(lat, lng);
-            if (pathSnap.snapped) {
-              onWaypointInsert?.(insertIdx, pathSnap.lat, pathSnap.lng, true, pathSnap.pathType);
-            } else {
-              onWaypointInsert?.(insertIdx, lat, lng, false);
+        if (insertIdx > 0 && onWaypointInsertRef.current) {
+          if (snapEnabledRef.current) {
+            // Try to snap to path
+            const SNAP_THRESHOLD_METERS = 50;
+            let snapped = false;
+            let snappedLat = lat;
+            let snappedLng = lng;
+            let snappedPathType: string | undefined;
+
+            for (const { path: pathData, type } of pathDataRef.current) {
+              for (let i = 0; i < pathData.length - 1; i++) {
+                const pa = pathData[i];
+                const pb = pathData[i + 1];
+                
+                const pdx = pb.lng() - pa.lng();
+                const pdy = pb.lat() - pa.lat();
+                const pt = Math.max(0, Math.min(1, ((lng - pa.lng()) * pdx + (lat - pa.lat()) * pdy) / (pdx * pdx + pdy * pdy || 1)));
+                const nearestX = pa.lng() + pt * pdx;
+                const nearestY = pa.lat() + pt * pdy;
+                
+                const R = 6371000;
+                const dLat = (lat - nearestY) * Math.PI / 180;
+                const dLng = (lng - nearestX) * Math.PI / 180;
+                const aCalc = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lat * Math.PI / 180) * Math.cos(nearestY * Math.PI / 180) *
+                  Math.sin(dLng / 2) * Math.sin(dLng / 2);
+                const c = 2 * Math.atan2(Math.sqrt(aCalc), Math.sqrt(1 - aCalc));
+                const dist = R * c;
+                
+                if (dist < SNAP_THRESHOLD_METERS) {
+                  snapped = true;
+                  snappedLat = nearestY;
+                  snappedLng = nearestX;
+                  snappedPathType = type;
+                  break;
+                }
+              }
+              if (snapped) break;
             }
+            
+            onWaypointInsertRef.current(insertIdx, snappedLat, snappedLng, snapped, snappedPathType);
           } else {
-            onWaypointInsert?.(insertIdx, lat, lng, false);
+            onWaypointInsertRef.current(insertIdx, lat, lng, false);
           }
         }
-      });
-    }, [isLoaded, isCreating, isPlotting, toolMode, waypoints, snapEnabled, routeStyle, routeType, findBridlewayPath, findNearestSegment, snapToPath, onWaypointInsert]);
+      };
+
+      // Add click handler to both polylines
+      routeLineRef.current.addListener("click", handleLineClick);
+      clickableOverlay.addListener("click", handleLineClick);
+
+      // Store reference for cleanup
+      const overlayRef = clickableOverlay;
+
+      return () => {
+        overlayRef.setMap(null);
+      };
+    }, [isLoaded, isCreating, waypoints, routeStyle, routeType, findBridlewayPath]);
 
     // Render user routes
     useEffect(() => {

@@ -260,42 +260,47 @@ export default function RoutesPage() {
   }, []);
 
   const handleSaveRoute = async (routeData: RouteData) => {
-    try {
-      const res = await fetch("/api/routes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: routeData.title,
-          description: routeData.description,
-          visibility: routeData.visibility,
-          difficulty: routeData.difficulty,
-          route_type: routeType, // Use our state
-          geometry: {
-            type: "LineString",
-            coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
-          },
-          distance_km: routeData.distanceKm,
-          estimated_time_minutes: routeData.estimatedTimeMinutes,
-          is_public: routeData.visibility === "public",
-        }),
-      });
-
-      if (res.ok) {
-        toast.success("Route saved successfully!");
-        setIsCreating(false);
-        setWaypoints([]);
-        setHistory([]);
-        setRouteType("linear");
-        setActiveTab("my-routes");
-        fetchMyRoutes();
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Failed to save route");
-      }
-    } catch (error) {
-      console.error("Failed to save route:", error);
-      toast.error("Failed to save route");
+    // Validate again before sending
+    if (!routeData.title?.trim()) {
+      throw new Error("Route name is required");
     }
+    if (waypoints.length < 2) {
+      throw new Error("At least 2 waypoints are required");
+    }
+
+    const res = await fetch("/api/routes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: routeData.title.trim(),
+        description: routeData.description?.trim() || "",
+        visibility: routeData.visibility,
+        difficulty: routeData.difficulty,
+        route_type: routeType,
+        geometry: {
+          type: "LineString",
+          coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
+        },
+        distance_km: routeData.distanceKm,
+        estimated_time_minutes: routeData.estimatedTimeMinutes,
+        is_public: routeData.visibility === "public",
+      }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      console.error("Route save error:", errorData);
+      throw new Error(errorData.error || "Failed to save route");
+    }
+
+    // Success - clean up and navigate
+    setIsCreating(false);
+    setWaypoints([]);
+    setHistory([]);
+    setRouteType("linear");
+    setToolMode("plot");
+    setActiveTab("my-routes");
+    fetchMyRoutes();
   };
 
   const handleDeleteRoute = async () => {

@@ -152,21 +152,27 @@ export function RouteCreator({
   };
 
   const handleSave = async () => {
+    // Validation with detailed messages
+    const errors: string[] = [];
+    
     if (!title.trim()) {
-      toast.error("Please enter a route name");
-      return;
+      errors.push("Route name is required");
     }
-
+    
     if (waypoints.length < 2) {
-      toast.error("Please add at least 2 waypoints");
+      errors.push("Add at least 2 waypoints to create a route");
+    }
+    
+    if (errors.length > 0) {
+      errors.forEach(err => toast.error(err));
       return;
     }
 
     setSaving(true);
     try {
       const routeData: RouteData = {
-        title,
-        description,
+        title: title.trim(),
+        description: description.trim(),
         visibility,
         difficulty,
         routeType,
@@ -180,8 +186,10 @@ export function RouteCreator({
       };
 
       await onSave(routeData);
-    } catch (error) {
-      toast.error("Failed to save route");
+      toast.success("Route saved successfully!");
+    } catch (error: any) {
+      console.error("Save route error:", error);
+      toast.error(error?.message || "Failed to save route. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -426,6 +434,13 @@ export function RouteCreator({
 
       {/* Bottom actions */}
       <div className="px-4 py-4 border-t bg-background space-y-3">
+        {/* Save requirements hint */}
+        {(waypoints.length < 2 || !title.trim()) && (
+          <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+            {!title.trim() && <p>• Enter a route name</p>}
+            {waypoints.length < 2 && <p>• Add at least 2 waypoints on the map</p>}
+          </div>
+        )}
         <Button
           variant="outline"
           className="w-full text-destructive hover:text-destructive"
@@ -434,7 +449,7 @@ export function RouteCreator({
           CANCEL
         </Button>
         <Button
-          className="w-full"
+          className="w-full bg-[#2E8B57] hover:bg-[#256b45]"
           onClick={handleSave}
           disabled={saving || waypoints.length < 2 || !title.trim()}
         >
@@ -517,7 +532,7 @@ export function RouteCreatorToolbar({
   };
 
   return (
-    <div className="absolute top-4 right-4 z-10">
+    <div className="absolute top-4 right-14 z-[1000]">
       <Card className="p-1.5 bg-white shadow-lg border-0">
         <div className="flex items-center gap-0.5">
           {/* Plot */}
