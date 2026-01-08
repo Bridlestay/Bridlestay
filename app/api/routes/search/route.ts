@@ -33,13 +33,15 @@ export async function POST(request: NextRequest) {
         owner:users!owner_user_id (id, name, avatar_url)
       `,
         { count: "exact" }
-      )
-      .eq("is_public", true);
+      );
 
-    // Filter by ownership
+    // Filter by ownership - for "my routes", show ALL user's routes regardless of visibility
     if (myRoutes && user) {
-      // Only show routes created by this user (exclude system routes)
+      // Only show routes created by this user (including private ones)
       query = query.eq("owner_user_id", user.id);
+    } else {
+      // For explore/public routes, only show public ones
+      query = query.eq("is_public", true);
     }
 
     // Text search
