@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { PropertyCard } from "@/components/property-card";
 import { SearchBar } from "@/components/search-bar";
@@ -8,10 +8,10 @@ import { Header } from "@/components/header";
 import { SearchFilters, FilterState } from "@/components/search-filters";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Home, X } from "lucide-react";
+import { Home, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [properties, setProperties] = useState<any[]>([]);
@@ -197,5 +197,18 @@ export default function SearchPage() {
         </div>
       </main>
     </>
+  );
+}
+
+// Wrap in Suspense for useSearchParams
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <SearchPageContent />
+    </Suspense>
   );
 }
