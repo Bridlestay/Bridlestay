@@ -483,8 +483,8 @@ export default function RoutesPage() {
                       pathLayers={pathLayers}
                       propertyPins={showProperties ? nearbyProperties : []}
                     />
-                    {/* Property toggle */}
-                    <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 z-10">
+                    {/* Property toggle - positioned to not cover fullscreen button */}
+                    <div className="absolute top-4 right-14 bg-white rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 z-10">
                       <Home className="h-4 w-4 text-purple-600" />
                       <Label htmlFor="show-props-explore" className="text-sm font-medium cursor-pointer">
                         Properties
@@ -555,8 +555,8 @@ export default function RoutesPage() {
                       pathLayers={pathLayers}
                       propertyPins={showProperties ? nearbyProperties : []}
                     />
-                    {/* Property toggle */}
-                    <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 z-10">
+                    {/* Property toggle - positioned to not cover fullscreen button */}
+                    <div className="absolute top-4 right-14 bg-white rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 z-10">
                       <Home className="h-4 w-4 text-purple-600" />
                       <Label htmlFor="show-props-myroutes" className="text-sm font-medium cursor-pointer">
                         Properties
