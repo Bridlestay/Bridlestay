@@ -597,6 +597,7 @@ export default function RoutesPage() {
                           <RouteCard
                             route={route}
                             onClick={() => handleRouteClick(route.id)}
+                            showVisibility={true}
                           />
                           <Button
                             variant="destructive"

@@ -63,6 +63,10 @@ export async function POST(request: Request) {
       ? property.property_equine[0] 
       : property.property_equine;
     const maxHorses = equineData?.max_horses ?? property.max_horses ?? 0;
+    
+    // Debug logging
+    console.log("[BOOKING] Property equine data:", property.property_equine);
+    console.log("[BOOKING] Max horses calculation:", { equineData, maxHorses, propertyMaxHorses: property.max_horses });
 
     // Prevent hosts from booking their own properties
     if (property.host_id === user.id) {

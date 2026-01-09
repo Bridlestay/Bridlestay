@@ -3,15 +3,16 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Star, MapPin, Ruler, TrendingUp, Clock, AlertCircle } from "lucide-react";
+import { Star, MapPin, Ruler, TrendingUp, Clock, AlertCircle, Lock, Link2, Globe } from "lucide-react";
 import Image from "next/image";
 
 interface RouteCardProps {
   route: any;
   onClick?: () => void;
+  showVisibility?: boolean; // Show visibility status (for My Routes)
 }
 
-export function RouteCard({ route, onClick }: RouteCardProps) {
+export function RouteCard({ route, onClick, showVisibility = false }: RouteCardProps) {
   const firstPhoto = route.route_photos?.[0]?.url;
 
   const difficultyColors = {
@@ -53,6 +54,23 @@ export function RouteCard({ route, onClick }: RouteCardProps) {
         
         {/* Badges overlay */}
         <div className="absolute top-3 right-3 flex flex-col gap-2">
+          {/* Visibility badge for My Routes */}
+          {showVisibility && (
+            <Badge 
+              className={`shadow-lg ${
+                route.visibility === 'public' 
+                  ? 'bg-green-600 text-white' 
+                  : route.visibility === 'link' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-600 text-white'
+              }`}
+            >
+              {route.visibility === 'public' && <Globe className="h-3 w-3 mr-1" />}
+              {route.visibility === 'link' && <Link2 className="h-3 w-3 mr-1" />}
+              {route.visibility === 'private' && <Lock className="h-3 w-3 mr-1" />}
+              {route.visibility === 'public' ? 'Public' : route.visibility === 'link' ? 'Link Only' : 'Private'}
+            </Badge>
+          )}
           {route.featured && (
             <Badge className="bg-amber-500 text-white shadow-lg">
               ⭐ Featured

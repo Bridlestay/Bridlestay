@@ -29,8 +29,7 @@ export async function POST(request: NextRequest) {
       .select(
         `
         *,
-        route_photos (url, caption, order_index),
-        owner:users!owner_user_id (id, name, avatar_url)
+        route_photos (url, caption, order_index)
       `,
         { count: "exact" }
       );

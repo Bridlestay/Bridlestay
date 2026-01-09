@@ -54,15 +54,6 @@ export function PropertyCard({ property, variant = "default" }: PropertyCardProp
             <FavoriteButton propertyId={property.id} variant="card" />
           </div>
           
-          {/* Verified badge - top right */}
-          {property.admin_verified && !isHorizontal && (
-            <div className="absolute top-2 right-2">
-              <Badge className="bg-blue-600 text-white">
-                <CheckCircle2 className="mr-1 h-3 w-3" />
-                Verified
-              </Badge>
-            </div>
-          )}
         </div>
         
         <div className={cn("flex-1", isHorizontal && "flex flex-col")}>

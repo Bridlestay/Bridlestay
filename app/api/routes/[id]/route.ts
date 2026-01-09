@@ -17,8 +17,7 @@ export async function GET(
         `
         *,
         route_photos (id, url, caption, order_index, created_at),
-        route_waypoints (id, lat, lng, name, description, icon_type, photo_url, order_index),
-        owner:users!owner_user_id (id, name, avatar_url, admin_verified)
+        route_waypoints (id, lat, lng, name, description, icon_type, photo_url, order_index)
       `
       )
       .eq("id", id)
@@ -29,7 +28,18 @@ export async function GET(
       return NextResponse.json({ error: "Route not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ route });
+    // Fetch owner info separately if owner_user_id exists
+    let owner = null;
+    if (route.owner_user_id) {
+      const { data: ownerData } = await supabase
+        .from("users")
+        .select("id, name, avatar_url, admin_verified")
+        .eq("id", route.owner_user_id)
+        .single();
+      owner = ownerData;
+    }
+
+    return NextResponse.json({ route: { ...route, owner } });
   } catch (error: any) {
     console.error("[ROUTE_GET] Error:", error);
     return NextResponse.json(

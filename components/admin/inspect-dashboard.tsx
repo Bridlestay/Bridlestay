@@ -79,6 +79,8 @@ export function InspectDashboard({
   const [propertyData, setPropertyData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [userSearchResults, setUserSearchResults] = useState<any[]>([]);
+  const [propertySearchResults, setPropertySearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showPropertyDropdown, setShowPropertyDropdown] = useState(false);
@@ -92,23 +94,23 @@ export function InspectDashboard({
 
   // Predictive search for users
   useEffect(() => {
-    if (debouncedUserSearch.trim().length >= 2) {
+    if (activeTab === "users" && debouncedUserSearch.trim().length >= 2) {
       performPredictiveUserSearch(debouncedUserSearch);
     } else {
-      setSearchResults([]);
+      setUserSearchResults([]);
       setShowUserDropdown(false);
     }
-  }, [debouncedUserSearch]);
+  }, [debouncedUserSearch, activeTab]);
 
   // Predictive search for properties
   useEffect(() => {
-    if (debouncedPropertySearch.trim().length >= 2) {
+    if (activeTab === "properties" && debouncedPropertySearch.trim().length >= 2) {
       performPredictivePropertySearch(debouncedPropertySearch);
     } else {
-      setSearchResults([]);
+      setPropertySearchResults([]);
       setShowPropertyDropdown(false);
     }
-  }, [debouncedPropertySearch]);
+  }, [debouncedPropertySearch, activeTab]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -131,6 +133,7 @@ export function InspectDashboard({
       const response = await fetch(`/api/admin/search?type=users&query=${encodeURIComponent(query)}`);
       const data = await response.json();
       if (response.ok) {
+        setUserSearchResults(data.results || []);
         setSearchResults(data.results || []);
         setShowUserDropdown(true);
       }
@@ -147,6 +150,7 @@ export function InspectDashboard({
       const response = await fetch(`/api/admin/search?type=properties&query=${encodeURIComponent(query)}`);
       const data = await response.json();
       if (response.ok) {
+        setPropertySearchResults(data.results || []);
         setSearchResults(data.results || []);
         setShowPropertyDropdown(true);
       }
@@ -298,9 +302,9 @@ export function InspectDashboard({
                 </div>
 
                 {/* Predictive Dropdown */}
-                {showUserDropdown && searchResults.length > 0 && activeTab === "users" && (
+                {showUserDropdown && userSearchResults.length > 0 && (
                   <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                    {searchResults.map((user) => (
+                    {userSearchResults.map((user) => (
                       <div
                         key={user.id}
                         className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
@@ -710,9 +714,9 @@ export function InspectDashboard({
                 </div>
 
                 {/* Predictive Dropdown */}
-                {showPropertyDropdown && searchResults.length > 0 && activeTab === "properties" && (
+                {showPropertyDropdown && propertySearchResults.length > 0 && (
                   <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                    {searchResults.map((property) => (
+                    {propertySearchResults.map((property) => (
                       <div
                         key={property.id}
                         className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
