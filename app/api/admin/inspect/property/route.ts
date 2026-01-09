@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
       messagesResult,
       availabilityResult,
       pricingResult,
+      sharesResult,
     ] = await Promise.all([
       // All bookings for this property
       supabase
@@ -100,6 +101,12 @@ export async function GET(request: NextRequest) {
       supabase
         .from("custom_pricing")
         .select("*")
+        .eq("property_id", propertyId),
+
+      // Share tracking
+      supabase
+        .from("property_shares")
+        .select("platform")
         .eq("property_id", propertyId),
     ]);
 
@@ -183,6 +190,17 @@ export async function GET(request: NextRequest) {
     const availability = availabilityResult.data || [];
     const customPricing = pricingResult.data || [];
 
+    // Process shares
+    const shares = sharesResult.data || [];
+    const shareBreakdown: Record<string, number> = {};
+    shares.forEach((share: any) => {
+      shareBreakdown[share.platform] = (shareBreakdown[share.platform] || 0) + 1;
+    });
+    const shareStats = {
+      total: shares.length,
+      breakdown: shareBreakdown,
+    };
+
     // Photo stats
     const photos = propertyData.property_photos || [];
     const photoStats = {
@@ -218,6 +236,7 @@ export async function GET(request: NextRequest) {
       messages: {
         total: messages.length,
       },
+      shares: shareStats,
       photoStats,
       amenities,
       equine,

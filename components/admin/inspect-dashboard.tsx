@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,23 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+// Debounce hook for predictive search
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 interface InspectDashboardProps {
   initialUserId?: string;
   initialPropertyId?: string;
@@ -63,7 +80,82 @@ export function InspectDashboard({
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showPropertyDropdown, setShowPropertyDropdown] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+  const propertyDropdownRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Debounced search values for predictive search
+  const debouncedUserSearch = useDebounce(userSearch, 300);
+  const debouncedPropertySearch = useDebounce(propertySearch, 300);
+
+  // Predictive search for users
+  useEffect(() => {
+    if (debouncedUserSearch.trim().length >= 2) {
+      performPredictiveUserSearch(debouncedUserSearch);
+    } else {
+      setSearchResults([]);
+      setShowUserDropdown(false);
+    }
+  }, [debouncedUserSearch]);
+
+  // Predictive search for properties
+  useEffect(() => {
+    if (debouncedPropertySearch.trim().length >= 2) {
+      performPredictivePropertySearch(debouncedPropertySearch);
+    } else {
+      setSearchResults([]);
+      setShowPropertyDropdown(false);
+    }
+  }, [debouncedPropertySearch]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
+      }
+      if (propertyDropdownRef.current && !propertyDropdownRef.current.contains(event.target as Node)) {
+        setShowPropertyDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const performPredictiveUserSearch = async (query: string) => {
+    setSearching(true);
+    try {
+      const response = await fetch(`/api/admin/search?type=users&query=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      if (response.ok) {
+        setSearchResults(data.results || []);
+        setShowUserDropdown(true);
+      }
+    } catch (error) {
+      console.error("Error searching users:", error);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const performPredictivePropertySearch = async (query: string) => {
+    setSearching(true);
+    try {
+      const response = await fetch(`/api/admin/search?type=properties&query=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      if (response.ok) {
+        setSearchResults(data.results || []);
+        setShowPropertyDropdown(true);
+      }
+    } catch (error) {
+      console.error("Error searching properties:", error);
+    } finally {
+      setSearching(false);
+    }
+  };
 
   // Load initial data if IDs provided
   useEffect(() => {
@@ -181,23 +273,60 @@ export function InspectDashboard({
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Search Users</CardTitle>
-              <CardDescription>Search by name, email, or user ID</CardDescription>
+              <CardDescription>Search by name, email, or user ID - results appear as you type</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter name, email, or ID..."
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && searchUsers()}
-                />
-                <Button onClick={searchUsers} disabled={searching}>
-                  {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                </Button>
+              <div className="relative" ref={userDropdownRef}>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      placeholder="Start typing a name, email, or ID..."
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                      onFocus={() => searchResults.length > 0 && activeTab === "users" && setShowUserDropdown(true)}
+                      onKeyDown={(e) => e.key === "Enter" && searchUsers()}
+                    />
+                    {searching && activeTab === "users" && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <Button onClick={searchUsers} disabled={searching}>
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Predictive Dropdown */}
+                {showUserDropdown && searchResults.length > 0 && activeTab === "users" && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                    {searchResults.map((user) => (
+                      <div
+                        key={user.id}
+                        className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                        onClick={() => {
+                          selectUser(user.id);
+                          setShowUserDropdown(false);
+                          setUserSearch(user.name || user.email || "");
+                        }}
+                      >
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={user.avatar_url} />
+                          <AvatarFallback>{user.name?.[0] || "?"}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{user.name || "No name"}</p>
+                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                        </div>
+                        <Badge variant="outline" className="text-xs">{user.role}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Search Results */}
-              {searchResults.length > 0 && activeTab === "users" && (
+              {/* Legacy Search Results (for Enter key search) */}
+              {searchResults.length > 0 && activeTab === "users" && !showUserDropdown && (
                 <div className="mt-4 space-y-2">
                   <p className="text-sm text-muted-foreground">{searchResults.length} results found</p>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -556,23 +685,71 @@ export function InspectDashboard({
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Search Properties</CardTitle>
-              <CardDescription>Search by name, location, or property ID</CardDescription>
+              <CardDescription>Search by name, location, or property ID - results appear as you type</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter property name, location, or ID..."
-                  value={propertySearch}
-                  onChange={(e) => setPropertySearch(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && searchProperties()}
-                />
-                <Button onClick={searchProperties} disabled={searching}>
-                  {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                </Button>
+              <div className="relative" ref={propertyDropdownRef}>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      placeholder="Start typing a property name, location, or ID..."
+                      value={propertySearch}
+                      onChange={(e) => setPropertySearch(e.target.value)}
+                      onFocus={() => searchResults.length > 0 && activeTab === "properties" && setShowPropertyDropdown(true)}
+                      onKeyDown={(e) => e.key === "Enter" && searchProperties()}
+                    />
+                    {searching && activeTab === "properties" && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <Button onClick={searchProperties} disabled={searching}>
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Predictive Dropdown */}
+                {showPropertyDropdown && searchResults.length > 0 && activeTab === "properties" && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                    {searchResults.map((property) => (
+                      <div
+                        key={property.id}
+                        className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                        onClick={() => {
+                          selectProperty(property.id);
+                          setShowPropertyDropdown(false);
+                          setPropertySearch(property.name || "");
+                        }}
+                      >
+                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                          {property.coverPhoto ? (
+                            <img src={property.coverPhoto} alt="" className="h-10 w-10 rounded object-cover" />
+                          ) : (
+                            <Home className="h-5 w-5 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{property.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {property.city}, {property.county}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          {property.published ? (
+                            <Badge className="bg-green-600 text-xs">Published</Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">Draft</Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Search Results */}
-              {searchResults.length > 0 && activeTab === "properties" && (
+              {/* Legacy Search Results (for Enter key search) */}
+              {searchResults.length > 0 && activeTab === "properties" && !showPropertyDropdown && (
                 <div className="mt-4 space-y-2">
                   <p className="text-sm text-muted-foreground">{searchResults.length} results found</p>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -888,7 +1065,55 @@ export function InspectDashboard({
                       <span className="text-muted-foreground">Messages</span>
                       <span>{propertyData.messages.total}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total Shares</span>
+                      <span>{propertyData.shares?.total || 0}</span>
+                    </div>
                   </div>
+                  {propertyData.shares?.breakdown && Object.keys(propertyData.shares.breakdown).length > 0 && (
+                    <>
+                      <Separator />
+                      <div className="space-y-2 text-sm">
+                        <p className="font-medium text-xs text-muted-foreground">Shares by Platform</p>
+                        {propertyData.shares.breakdown.copy_link > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">📋 Copy Link</span>
+                            <span>{propertyData.shares.breakdown.copy_link}</span>
+                          </div>
+                        )}
+                        {propertyData.shares.breakdown.facebook > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">📘 Facebook</span>
+                            <span>{propertyData.shares.breakdown.facebook}</span>
+                          </div>
+                        )}
+                        {propertyData.shares.breakdown.twitter > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">🐦 Twitter/X</span>
+                            <span>{propertyData.shares.breakdown.twitter}</span>
+                          </div>
+                        )}
+                        {propertyData.shares.breakdown.whatsapp > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">💬 WhatsApp</span>
+                            <span>{propertyData.shares.breakdown.whatsapp}</span>
+                          </div>
+                        )}
+                        {propertyData.shares.breakdown.email > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">✉️ Email</span>
+                            <span>{propertyData.shares.breakdown.email}</span>
+                          </div>
+                        )}
+                        {propertyData.shares.breakdown.native > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">📱 Native Share</span>
+                            <span>{propertyData.shares.breakdown.native}</span>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 

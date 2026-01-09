@@ -41,10 +41,13 @@ export async function POST(request: Request) {
     const horseCount = horses || 0;
     const selectedHorseIds = horseIds || [];
 
-    // Get property details
+    // Get property details with equine info for accurate horse capacity
     const { data: property, error: propertyError } = await supabase
       .from("properties")
-      .select("*")
+      .select(`
+        *,
+        property_equine (max_horses)
+      `)
       .eq("id", propertyId)
       .single();
 
@@ -54,6 +57,12 @@ export async function POST(request: Request) {
         { status: 404 }
       );
     }
+
+    // Get max_horses from property_equine (the authoritative source)
+    const equineData = Array.isArray(property.property_equine) 
+      ? property.property_equine[0] 
+      : property.property_equine;
+    const maxHorses = equineData?.max_horses ?? property.max_horses ?? 0;
 
     // Prevent hosts from booking their own properties
     if (property.host_id === user.id) {
@@ -132,9 +141,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (horseCount > (property.max_horses || 0)) {
+    if (horseCount > maxHorses) {
       return NextResponse.json(
-        { error: `Property can only accommodate ${property.max_horses || 0} horses` },
+        { error: `Property can only accommodate ${maxHorses} horses` },
         { status: 400 }
       );
     }

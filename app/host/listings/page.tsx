@@ -279,6 +279,10 @@ export default function MyListingsPage() {
                               <span className="text-muted-foreground">❤️ Favorites:</span>
                               <p className="font-semibold">{(property as any).favorite_count || 0}</p>
                             </div>
+                            <div>
+                              <span className="text-muted-foreground">📤 Shares:</span>
+                              <p className="font-semibold">{property.share_count || 0}</p>
+                            </div>
                           </div>
 
                           {/* Verification Status Message */}

@@ -16,6 +16,20 @@ interface ShareButtonProps {
   propertyName: string;
 }
 
+// Track share event
+async function trackShare(propertyId: string, platform: string) {
+  try {
+    await fetch(`/api/properties/${propertyId}/share`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ platform }),
+    });
+  } catch (error) {
+    // Don't block UX if tracking fails
+    console.error("Failed to track share:", error);
+  }
+}
+
 export function ShareButton({ propertyId, propertyName }: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
@@ -32,6 +46,7 @@ export function ShareButton({ propertyId, propertyName }: ShareButtonProps) {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
+      trackShare(propertyId, "copy_link");
       toast({
         title: "Link copied!",
         description: "Property link has been copied to your clipboard.",
@@ -49,6 +64,9 @@ export function ShareButton({ propertyId, propertyName }: ShareButtonProps) {
   const handleShare = async (platform: string) => {
     const url = getShareUrl();
     const text = `Check out ${propertyName} on Cantra!`;
+
+    // Track the share
+    trackShare(propertyId, platform);
 
     switch (platform) {
       case "native":
