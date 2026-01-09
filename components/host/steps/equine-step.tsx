@@ -500,9 +500,13 @@ export function PropertyEquineStep({ data, onNext }: EquineStepProps) {
                 <Checkbox
                   id="direct_bridleway_access"
                   checked={watch("direct_bridleway_access")}
-                  onCheckedChange={(checked) =>
-                    setValue("direct_bridleway_access", checked as boolean)
-                  }
+                  onCheckedChange={(checked) => {
+                    setValue("direct_bridleway_access", checked as boolean);
+                    // Set distance to 0 when direct access is enabled to avoid NaN validation
+                    if (checked) {
+                      setValue("distance_to_bridleway_m", 0);
+                    }
+                  }}
                 />
                 <Label htmlFor="direct_bridleway_access">Direct Bridleway Access</Label>
               </div>
@@ -513,6 +517,7 @@ export function PropertyEquineStep({ data, onNext }: EquineStepProps) {
                     id="distance_to_bridleway_m"
                     type="number"
                     {...register("distance_to_bridleway_m", { valueAsNumber: true })}
+                    defaultValue={0}
                   />
                 </div>
               )}

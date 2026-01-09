@@ -672,12 +672,23 @@ export function InspectDashboard({
                       <span className="text-muted-foreground">Property Type</span>
                       <span className="capitalize">{propertyData.property.property_type || "N/A"}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Verified</span>
+                      <span>
+                        {propertyData.property.admin_verified 
+                          ? (propertyData.property.verified_at 
+                              ? format(new Date(propertyData.property.verified_at), "dd MMM yyyy")
+                              : "Yes")
+                          : <span className="text-amber-600">Awaiting Verification</span>
+                        }
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex gap-2 pt-2">
-                    <Link href={`/property/${propertyData.property.id}`} target="_blank" className="flex-1">
+                    <Link href={`/property/${propertyData.property.id}?admin_preview=true`} target="_blank" className="flex-1">
                       <Button variant="outline" size="sm" className="w-full">
-                        <Eye className="h-4 w-4 mr-1" /> View Listing
+                        <Eye className="h-4 w-4 mr-1" /> {propertyData.property.published ? "View Listing" : "Preview Listing"}
                       </Button>
                     </Link>
                   </div>

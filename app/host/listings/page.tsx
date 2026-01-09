@@ -58,8 +58,9 @@ export default function MyListingsPage() {
         .from("properties")
         .select(`
           *,
-          property_photos (url, is_cover, order),
-          property_equine (max_horses)
+          property_photos (url, is_cover, order, category),
+          property_equine (max_horses),
+          property_amenities (*)
         `)
         .eq("host_id", user.id)
         .or("removed.is.null,removed.eq.false")
@@ -292,31 +293,64 @@ export default function MyListingsPage() {
                           )}
 
                           {/* Publish Checklist */}
-                          {!property.published && !property.pending_verification && (
-                            <div className="mb-4">
-                              <p className="text-sm font-medium text-yellow-600 mb-2">
-                                Complete these to submit for verification:
-                              </p>
-                              <ul className="text-sm space-y-1">
-                                {photoCount < 8 && (
-                                  <li className="text-muted-foreground">
-                                    • Add at least 8 property photos ({photoCount}/8)
-                                  </li>
-                                )}
-                                {!property.description ||
-                                  (property.description.length < 200 && (
-                                    <li className="text-muted-foreground">
-                                      • Write a detailed description (min 200 characters)
+                          {!property.published && !property.pending_verification && (() => {
+                            const amenities = Array.isArray(property.property_amenities) 
+                              ? property.property_amenities[0] 
+                              : property.property_amenities;
+                            const photos = property.property_photos || [];
+                            const facilityPhotos = photos.filter((p: any) => p.category);
+                            
+                            // Check which facility photos are needed
+                            const hasPaddock = amenities?.paddock_available;
+                            const hasArena = amenities?.arena_available;
+                            const hasTackRoom = amenities?.tack_room;
+                            const hasWashBay = amenities?.wash_bay;
+                            
+                            const paddockPhotos = facilityPhotos.filter((p: any) => p.category === 'paddock').length;
+                            const arenaPhotos = facilityPhotos.filter((p: any) => p.category === 'arena').length;
+                            const tackRoomPhotos = facilityPhotos.filter((p: any) => p.category === 'tack_room').length;
+                            const washBayPhotos = facilityPhotos.filter((p: any) => p.category === 'wash_bay').length;
+                            
+                            const requirements = [];
+                            if (photoCount < 8) {
+                              requirements.push(`Add at least 8 property photos (${photoCount}/8)`);
+                            }
+                            if (!property.description || property.description.length < 200) {
+                              requirements.push("Write a detailed description (min 200 characters)");
+                            }
+                            if (maxHorses === 0) {
+                              requirements.push("Add horse capacity");
+                            }
+                            if (hasPaddock && paddockPhotos === 0) {
+                              requirements.push("Add photos of your paddock/turnout area");
+                            }
+                            if (hasArena && arenaPhotos === 0) {
+                              requirements.push("Add photos of your arena/riding area");
+                            }
+                            if (hasTackRoom && tackRoomPhotos === 0) {
+                              requirements.push("Add photos of your tack room");
+                            }
+                            if (hasWashBay && washBayPhotos === 0) {
+                              requirements.push("Add photos of your wash bay/grooming area");
+                            }
+                            
+                            if (requirements.length === 0) return null;
+                            
+                            return (
+                              <div className="mb-4">
+                                <p className="text-sm font-medium text-yellow-600 mb-2">
+                                  Complete these to submit for verification:
+                                </p>
+                                <ul className="text-sm space-y-1">
+                                  {requirements.map((req, idx) => (
+                                    <li key={idx} className="text-muted-foreground">
+                                      • {req}
                                     </li>
                                   ))}
-                                {maxHorses === 0 && (
-                                  <li className="text-muted-foreground">
-                                    • Add horse capacity
-                                  </li>
-                                )}
-                              </ul>
-                            </div>
-                          )}
+                                </ul>
+                              </div>
+                            );
+                          })()}
 
                           {/* Actions */}
                           <div className="flex gap-2">
@@ -336,16 +370,41 @@ export default function MyListingsPage() {
                             )}
                             {!property.published &&
                               !property.pending_verification &&
-                              photoCount >= 8 &&
-                              property.description?.length >= 200 &&
-                              maxHorses > 0 && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => handlePublish(property.id)}
-                                >
-                                  Submit for Verification
-                                </Button>
-                              )}
+                              (() => {
+                                const amenities = Array.isArray(property.property_amenities) 
+                                  ? property.property_amenities[0] 
+                                  : property.property_amenities;
+                                const photos = property.property_photos || [];
+                                const facilityPhotos = photos.filter((p: any) => p.category);
+                                
+                                const hasPaddock = amenities?.paddock_available;
+                                const hasArena = amenities?.arena_available;
+                                const hasTackRoom = amenities?.tack_room;
+                                const hasWashBay = amenities?.wash_bay;
+                                
+                                const paddockPhotos = facilityPhotos.filter((p: any) => p.category === 'paddock').length;
+                                const arenaPhotos = facilityPhotos.filter((p: any) => p.category === 'arena').length;
+                                const tackRoomPhotos = facilityPhotos.filter((p: any) => p.category === 'tack_room').length;
+                                const washBayPhotos = facilityPhotos.filter((p: any) => p.category === 'wash_bay').length;
+                                
+                                const canSubmit = 
+                                  photoCount >= 8 &&
+                                  property.description?.length >= 200 &&
+                                  maxHorses > 0 &&
+                                  (!hasPaddock || paddockPhotos > 0) &&
+                                  (!hasArena || arenaPhotos > 0) &&
+                                  (!hasTackRoom || tackRoomPhotos > 0) &&
+                                  (!hasWashBay || washBayPhotos > 0);
+                                
+                                return canSubmit ? (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handlePublish(property.id)}
+                                  >
+                                    Submit for Verification
+                                  </Button>
+                                ) : null;
+                              })()}
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="outline" size="sm">

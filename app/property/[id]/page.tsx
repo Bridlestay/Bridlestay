@@ -4,11 +4,12 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Header } from "@/components/header";
-import { CheckCircle2, Users, MapPin, Clock, Calendar, Shield, Zap } from "lucide-react";
+import { CheckCircle2, Users, MapPin, Clock, Calendar, Shield, Zap, Share2 } from "lucide-react";
 import { BookingForm } from "@/components/booking-form";
 import { formatGBP } from "@/lib/fees";
 import { ImageGallery } from "@/components/image-gallery";
 import { FavoriteButton } from "@/components/favorite-button";
+import { ShareButton } from "@/components/share-button";
 import { PropertyBadges } from "@/components/property-badges";
 import { PropertyQA } from "@/components/property-qa";
 import { MessageButton } from "@/components/messaging/message-button";
@@ -19,16 +20,30 @@ import { FacilityPhotosGallery } from "@/components/property/facility-photos-gal
 
 export default async function PropertyPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ admin_preview?: string }>;
 }) {
   const { id } = await params;
+  const { admin_preview } = await searchParams;
   const supabase = await createClient();
 
-  // Get current user to check if they're the owner
+  // Get current user to check if they're the owner or admin
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Check if user is admin
+  let isAdmin = false;
+  if (user) {
+    const { data: userData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    isAdmin = userData?.role === "admin";
+  }
 
   const { data: property, error } = await supabase
     .from("properties")
@@ -44,13 +59,14 @@ export default async function PropertyPage({
     .eq("id", id)
     .single();
 
-  // If not published, only the owner can view
-  if (!property?.published && property?.host_id !== user?.id) {
+  // If not published, only the owner or admin (with preview param) can view
+  const canViewUnpublished = property?.host_id === user?.id || (isAdmin && admin_preview === "true");
+  if (!property?.published && !canViewUnpublished) {
     notFound();
   }
 
-  // If property was removed by admin, show not found (unless owner viewing)
-  if (property?.removed && property?.host_id !== user?.id) {
+  // If property was removed by admin, show not found (unless owner or admin viewing)
+  if (property?.removed && property?.host_id !== user?.id && !isAdmin) {
     notFound();
   }
 
@@ -127,11 +143,14 @@ export default async function PropertyPage({
                         )}
                       </div>
                     </div>
-                    <FavoriteButton
-                      propertyId={property.id}
-                      variant="detail"
-                      showCount={true}
-                    />
+                    <div className="flex items-center gap-2">
+                      <ShareButton propertyId={property.id} propertyName={property.name} />
+                      <FavoriteButton
+                        propertyId={property.id}
+                        variant="detail"
+                        showCount={true}
+                      />
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground mb-4">
                     <MapPin className="h-4 w-4" />
