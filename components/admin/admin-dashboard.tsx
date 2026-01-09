@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, Eye, Building } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { format } from "date-fns";
 import Link from "next/link";
 
 export function AdminDashboard({ user }: { user: any }) {
@@ -33,11 +35,11 @@ export function AdminDashboard({ user }: { user: any }) {
       .from("properties")
       .select(`
         *,
-        users:host_id (name, email)
+        users:host_id (id, name, email, avatar_url)
       `)
-      .eq("admin_verified", false)
-      .eq("published", true)
-      .order("created_at", { ascending: false });
+      .eq("pending_verification", true)
+      .eq("removed", false)
+      .order("submitted_for_verification_at", { ascending: true });
 
     setProperties(propsData || []);
     setLoading(false);
@@ -105,6 +107,7 @@ export function AdminDashboard({ user }: { user: any }) {
                   <TableHead>Property Name</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Host</TableHead>
+                  <TableHead>Submitted</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -116,16 +119,31 @@ export function AdminDashboard({ user }: { user: any }) {
                     <TableCell>
                       {p.city}, {p.county}
                     </TableCell>
-                    <TableCell>{(p as any).users?.name}</TableCell>
+                    <TableCell>
+                      <Link href={`/profile/${(p as any).users?.id}`} className="flex items-center gap-2 hover:underline">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={(p as any).users?.avatar_url} />
+                          <AvatarFallback className="text-xs">
+                            {(p as any).users?.name?.[0] || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{(p as any).users?.name}</span>
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {p.submitted_for_verification_at 
+                        ? format(new Date(p.submitted_for_verification_at), "dd MMM yyyy")
+                        : format(new Date(p.created_at), "dd MMM yyyy")}
+                    </TableCell>
                     <TableCell>
                       £{(p.nightly_price_pennies / 100).toFixed(0)}/night
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Link href={`/property/${p.id}`} target="_blank">
+                        <Link href={`/property/${p.id}?admin_preview=true`} target="_blank">
                           <Button size="sm" variant="outline">
                             <Eye className="mr-2 h-4 w-4" />
-                            View
+                            Preview
                           </Button>
                         </Link>
                         <Button

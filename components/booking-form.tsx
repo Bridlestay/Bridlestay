@@ -183,11 +183,12 @@ export function BookingForm({ propertyId, property }: BookingFormProps) {
       return;
     }
 
-    if (nights < 1) {
+    const minimumNights = property.minimum_nights || 1;
+    if (nights < minimumNights) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Minimum stay is 1 night",
+        description: `Minimum stay is ${minimumNights} night${minimumNights > 1 ? 's' : ''}`,
       });
       return;
     }

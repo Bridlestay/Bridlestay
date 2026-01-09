@@ -17,6 +17,71 @@ import { AmenitiesList } from "@/components/property/amenities-list";
 import { PropertyReviewsDisplay } from "@/components/reviews/property-reviews-display";
 import { NearbyRoutesWidget } from "@/components/routes/nearby-routes-widget";
 import { FacilityPhotosGallery } from "@/components/property/facility-photos-gallery";
+import { Metadata } from "next";
+
+// Generate dynamic metadata for social sharing (Facebook, Twitter, etc.)
+export async function generateMetadata({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
+}): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+
+  const { data: property } = await supabase
+    .from("properties")
+    .select(`
+      name,
+      description,
+      city,
+      county,
+      nightly_price_pennies,
+      property_photos (url, is_cover, "order")
+    `)
+    .eq("id", id)
+    .single();
+
+  if (!property) {
+    return {
+      title: "Property Not Found | Cantra",
+    };
+  }
+
+  // Get the cover photo or first photo
+  const photos = property.property_photos || [];
+  const coverPhoto = photos.find((p: any) => p.is_cover) || photos.sort((a: any, b: any) => a.order - b.order)[0];
+  const imageUrl = coverPhoto?.url || "/og-image.png";
+  
+  const pricePerNight = (property.nightly_price_pennies / 100).toFixed(0);
+  const description = property.description 
+    ? property.description.substring(0, 160) + "..."
+    : `Equestrian accommodation in ${property.city}, ${property.county}. From £${pricePerNight}/night on Cantra.`;
+
+  return {
+    title: `${property.name} | Cantra`,
+    description: description,
+    openGraph: {
+      title: property.name,
+      description: description,
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: property.name,
+        },
+      ],
+      type: "website",
+      siteName: "Cantra",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: property.name,
+      description: description,
+      images: [imageUrl],
+    },
+  };
+}
 
 export default async function PropertyPage({
   params,
@@ -129,12 +194,6 @@ export default async function PropertyPage({
                         <h1 className="font-serif text-4xl font-bold">
                           {property.name}
                         </h1>
-                        {property.admin_verified && (
-                          <Badge className="bg-blue-600 text-white">
-                            <CheckCircle2 className="mr-1 h-4 w-4" />
-                            Verified Property
-                          </Badge>
-                        )}
                         {property.instant_book && (
                           <Badge className="bg-green-600 text-white">
                             <Zap className="mr-1 h-4 w-4" />
@@ -415,7 +474,9 @@ export default async function PropertyPage({
                     propertyId={id} 
                     property={{
                       ...property,
-                      max_horses: equine?.max_horses || 0,
+                      // Use property_equine.max_horses as the authoritative value
+                      max_horses: equine?.max_horses ?? property.max_horses ?? 0,
+                      minimum_nights: property.minimum_nights || 1,
                     }} 
                   />
                   

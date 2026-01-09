@@ -74,8 +74,8 @@ export async function GET() {
         supabase
           .from("properties")
           .select("*", { count: "exact", head: true })
-          .eq("admin_verified", false)
-          .eq("published", true),
+          .eq("pending_verification", true)
+          .eq("removed", false),
       ]),
 
       // Properties by county

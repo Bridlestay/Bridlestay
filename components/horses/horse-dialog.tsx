@@ -101,6 +101,23 @@ export function HorseDialog({ open, onOpenChange, horse, onSuccess }: HorseDialo
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Auto-calculate age when date of birth changes
+  useEffect(() => {
+    if (dateOfBirth) {
+      const birthDate = new Date(dateOfBirth);
+      const today = new Date();
+      let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      // Adjust age if birthday hasn't occurred yet this year
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        calculatedAge--;
+      }
+      if (calculatedAge >= 0) {
+        setAge(calculatedAge.toString());
+      }
+    }
+  }, [dateOfBirth]);
+
   useEffect(() => {
     if (horse) {
       // Populate form with existing horse data
