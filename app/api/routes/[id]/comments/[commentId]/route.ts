@@ -4,11 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 // DELETE - Delete/soft delete comment
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; commentId: string } }
+  { params }: { params: Promise<{ id: string; commentId: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id: routeId, commentId } = params;
+    const { id: routeId, commentId } = await params;
 
     const {
       data: { user },

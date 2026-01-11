@@ -5,11 +5,11 @@ import { convertToGPX } from "@/lib/routes/gpx-converter";
 // GET - Download route as GPX file
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id } = params;
+    const { id } = await params;
 
     // Fetch route with waypoints
     const { data: route, error } = await supabase

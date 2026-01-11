@@ -3,11 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const routeId = params.id;
+    const { id } = await params;
+    const routeId = id;
 
     const { data: waypoints, error } = await supabase
       .from("route_waypoints")
@@ -29,7 +30,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -41,7 +42,8 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const routeId = params.id;
+    const { id } = await params;
+    const routeId = id;
     const body = await request.json();
     const { lat, lng, name, description, icon_type, photo_url, order_index } = body;
 

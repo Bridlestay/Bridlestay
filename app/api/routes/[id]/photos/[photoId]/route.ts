@@ -4,11 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 // DELETE - Delete photo
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; photoId: string } }
+  { params }: { params: Promise<{ id: string; photoId: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id: routeId, photoId } = params;
+    const { id: routeId, photoId } = await params;
 
     const {
       data: { user },

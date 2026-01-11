@@ -4,11 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 // PATCH - Update waypoint
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; waypointId: string } }
+  { params }: { params: Promise<{ id: string; waypointId: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id: routeId, waypointId } = params;
+    const { id: routeId, waypointId } = await params;
 
     const {
       data: { user },
@@ -63,11 +63,11 @@ export async function PATCH(
 // DELETE - Delete waypoint
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; waypointId: string } }
+  { params }: { params: Promise<{ id: string; waypointId: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id: routeId, waypointId } = params;
+    const { id: routeId, waypointId } = await params;
 
     const {
       data: { user },

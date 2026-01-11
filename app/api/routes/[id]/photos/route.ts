@@ -4,10 +4,11 @@ import { validateRoutePhotoUpload } from '@/lib/file-validation';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
+    const { id } = await params;
 
     // Fetch all photos for this route (including user-uploaded and stock photos)
     const { data: userPhotos, error: userError } = await supabase
@@ -19,7 +20,7 @@ export async function GET(
           avatar_url
         )
       `)
-      .eq('route_id', params.id)
+      .eq('route_id', id)
       .order('uploaded_at', { ascending: false });
 
     if (userError) throw userError;
@@ -27,7 +28,7 @@ export async function GET(
     const { data: stockPhotos, error: stockError } = await supabase
       .from('route_photos')
       .select('*')
-      .eq('route_id', params.id)
+      .eq('route_id', id)
       .order('order_index');
 
     if (stockError) throw stockError;
@@ -47,10 +48,11 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
+    const { id } = await params;
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -61,7 +63,7 @@ export async function POST(
     const { data: completion } = await supabase
       .from('route_completions')
       .select('id')
-      .eq('route_id', params.id)
+      .eq('route_id', id)
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -109,7 +111,7 @@ export async function POST(
     const { data: photo, error: insertError } = await supabase
       .from('route_user_photos')
       .insert({
-        route_id: params.id,
+        route_id: id,
         user_id: user.id,
         url: publicUrl,
         caption: caption || null
@@ -137,7 +139,7 @@ export async function POST(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();

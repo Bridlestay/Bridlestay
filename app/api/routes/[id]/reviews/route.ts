@@ -10,11 +10,11 @@ const ReviewSchema = z.object({
 // GET - Get reviews for a route
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id: routeId } = params;
+    const { id: routeId } = await params;
 
     const { data: reviews, error } = await supabase
       .from("route_reviews")
@@ -45,11 +45,11 @@ export async function GET(
 // POST - Add review to route
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id: routeId } = params;
+    const { id: routeId } = await params;
 
     const {
       data: { user },

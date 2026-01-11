@@ -6,11 +6,11 @@ import { moderateComment } from "@/lib/routes/moderation";
 // GET - Get comments for a route
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id: routeId } = params;
+    const { id: routeId } = await params;
 
     // Fetch comments with nested replies
     const { data: comments, error } = await supabase
@@ -48,12 +48,12 @@ export async function GET(
 // POST - Add comment to route
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
     const serviceSupabase = createServiceClient();
-    const { id: routeId } = params;
+    const { id: routeId } = await params;
 
     const {
       data: { user },

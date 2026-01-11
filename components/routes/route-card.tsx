@@ -52,10 +52,9 @@ export function RouteCard({ route, onClick, showVisibility = false }: RouteCardP
         {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         
-        {/* Badges overlay */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2">
-          {/* Visibility badge for My Routes */}
-          {showVisibility && (
+        {/* Visibility badge for My Routes - positioned on left to not overlap delete button */}
+        {showVisibility && (
+          <div className="absolute top-3 left-3">
             <Badge 
               className={`shadow-lg ${
                 route.visibility === 'public' 
@@ -70,7 +69,11 @@ export function RouteCard({ route, onClick, showVisibility = false }: RouteCardP
               {route.visibility === 'private' && <Lock className="h-3 w-3 mr-1" />}
               {route.visibility === 'public' ? 'Public' : route.visibility === 'link' ? 'Link Only' : 'Private'}
             </Badge>
-          )}
+          </div>
+        )}
+        
+        {/* Other badges overlay - right side */}
+        <div className="absolute top-3 right-3 flex flex-col gap-2">
           {route.featured && (
             <Badge className="bg-amber-500 text-white shadow-lg">
               ⭐ Featured

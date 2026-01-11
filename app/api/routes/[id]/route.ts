@@ -5,11 +5,11 @@ import { calculateDistanceFromGeometry, validateGeometry } from "@/lib/routes/gp
 // GET - Get single route
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id } = params;
+    const { id } = await params;
 
     const { data: route, error } = await supabase
       .from("routes")
@@ -52,11 +52,11 @@ export async function GET(
 // PATCH - Update route
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id } = params;
+    const { id } = await params;
 
     const {
       data: { user },
@@ -129,11 +129,11 @@ export async function PATCH(
 // DELETE - Delete route
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id } = params;
+    const { id } = await params;
 
     const {
       data: { user },

@@ -3,10 +3,11 @@ import { NextResponse } from 'next/server';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
+    const { id } = await params;
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -19,7 +20,7 @@ export async function POST(
     const { data, error } = await supabase
       .from('route_completions')
       .insert({
-        route_id: params.id,
+        route_id: id,
         user_id: user.id,
         notes,
         rating
@@ -50,10 +51,11 @@ export async function POST(
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
+    const { id } = await params;
     
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -65,7 +67,7 @@ export async function GET(
     const { data, error } = await supabase
       .from('route_completions')
       .select('*')
-      .eq('route_id', params.id)
+      .eq('route_id', id)
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -86,10 +88,11 @@ export async function GET(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
+    const { id } = await params;
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -100,7 +103,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('route_completions')
       .delete()
-      .eq('route_id', params.id)
+      .eq('route_id', id)
       .eq('user_id', user.id);
 
     if (error) throw error;
