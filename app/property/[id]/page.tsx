@@ -11,6 +11,7 @@ import { ImageGallery } from "@/components/image-gallery";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ShareButton } from "@/components/share-button";
 import { ReportButton } from "@/components/moderation/report-button";
+import { CancellationPolicyDisplay } from "@/components/booking/cancellation-policy-display";
 import { PropertyBadges } from "@/components/property-badges";
 import { PropertyQA } from "@/components/property-qa";
 import { MessageButton } from "@/components/messaging/message-button";
@@ -462,6 +463,21 @@ export default async function PropertyPage({
                 </p>
               </div>
             )}
+
+            {/* Cancellation Policy */}
+            <div className="border-t pt-6">
+              <h2 className="font-serif text-2xl font-semibold mb-4">
+                Cancellation Policy
+              </h2>
+              <CancellationPolicyDisplay 
+                policyName={
+                  property.cancellation_policy === 'moderate' 
+                    ? 'standard' 
+                    : (property.cancellation_policy as "flexible" | "standard" | "strict") || 'standard'
+                }
+                variant="full"
+              />
+            </div>
 
           </div>
 

@@ -17,9 +17,17 @@ import { formatGBP } from "@/lib/fees";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Plus, CheckCircle2, XCircle, Eye, Edit, Trash2, Calendar, DollarSign } from "lucide-react";
+import { Plus, CheckCircle2, XCircle, Eye, Edit, Trash2, Calendar, DollarSign, AlertTriangle } from "lucide-react";
 import { PendingReviews } from "./pending-reviews";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DamageClaimForm } from "@/components/damage-claims/damage-claim-form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { addHours, isAfter, isBefore } from "date-fns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,7 +45,29 @@ export function HostDashboard({ user }: { user: any }) {
   const [bookings, setBookings] = useState<any[]>([]);
   const [hostProfile, setHostProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedBookingForClaim, setSelectedBookingForClaim] = useState<any>(null);
+  const [showClaimDialog, setShowClaimDialog] = useState(false);
   const { toast } = useToast();
+
+  // Check if a booking is within the 48-hour claim window after checkout
+  const canFileDamageClaim = (booking: any) => {
+    if (booking.status !== "accepted") return false;
+    
+    const now = new Date();
+    const checkOut = new Date(booking.end_date);
+    const claimDeadline = addHours(checkOut, 48);
+    
+    // Can only file claim after checkout and within 48 hours
+    return isAfter(now, checkOut) && isBefore(now, claimDeadline);
+  };
+
+  const getClaimWindowRemaining = (booking: any) => {
+    const now = new Date();
+    const checkOut = new Date(booking.end_date);
+    const claimDeadline = addHours(checkOut, 48);
+    const hoursRemaining = Math.max(0, (claimDeadline.getTime() - now.getTime()) / (1000 * 60 * 60));
+    return Math.round(hoursRemaining);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -437,25 +467,41 @@ export function HostDashboard({ user }: { user: any }) {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {booking.status === "requested" && (
-                        <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
+                        {booking.status === "requested" && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => handleBookingAction(booking.id, "accept")}
+                            >
+                              <CheckCircle2 className="mr-1 h-4 w-4" />
+                              Accept
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleBookingAction(booking.id, "decline")}
+                            >
+                              <XCircle className="mr-1 h-4 w-4" />
+                              Decline
+                            </Button>
+                          </>
+                        )}
+                        {canFileDamageClaim(booking) && (
                           <Button
                             size="sm"
-                            onClick={() => handleBookingAction(booking.id, "accept")}
+                            variant="outline"
+                            className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                            onClick={() => {
+                              setSelectedBookingForClaim(booking);
+                              setShowClaimDialog(true);
+                            }}
                           >
-                            <CheckCircle2 className="mr-1 h-4 w-4" />
-                            Accept
+                            <AlertTriangle className="mr-1 h-4 w-4" />
+                            File Claim ({getClaimWindowRemaining(booking)}h left)
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleBookingAction(booking.id, "decline")}
-                          >
-                            <XCircle className="mr-1 h-4 w-4" />
-                            Decline
-                          </Button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -464,6 +510,35 @@ export function HostDashboard({ user }: { user: any }) {
           )}
         </CardContent>
       </Card>
+
+      {/* Damage Claim Dialog */}
+      <Dialog open={showClaimDialog} onOpenChange={setShowClaimDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>File a Damage or Cleaning Claim</DialogTitle>
+          </DialogHeader>
+          {selectedBookingForClaim && (
+            <DamageClaimForm
+              bookingId={selectedBookingForClaim.id}
+              propertyName={selectedBookingForClaim.properties?.name || "Property"}
+              guestName={selectedBookingForClaim.users?.name || "Guest"}
+              checkoutDate={new Date(selectedBookingForClaim.end_date)}
+              onSuccess={() => {
+                setShowClaimDialog(false);
+                setSelectedBookingForClaim(null);
+                toast({
+                  title: "Claim submitted",
+                  description: "The guest will be notified and can respond within 48 hours.",
+                });
+              }}
+              onCancel={() => {
+                setShowClaimDialog(false);
+                setSelectedBookingForClaim(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Settings, LayoutDashboard, Heart, MessageCircle, MessageSquarePlus, Star, Menu, HelpCircle } from "lucide-react";
+import { User, LogOut, Settings, LayoutDashboard, Heart, MessageCircle, MessageSquarePlus, Star, Menu, HelpCircle, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -194,6 +194,12 @@ export function Header() {
                     <Link href="/favorites" className="cursor-pointer">
                       <Heart className="mr-2 h-4 w-4" />
                       My Favorites
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/claims" className="cursor-pointer">
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      Claims
                     </Link>
                   </DropdownMenuItem>
                   {(user.role === "host" || user.role === "admin") && (
