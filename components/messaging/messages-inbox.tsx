@@ -468,9 +468,9 @@ export function MessagesInbox() {
                               <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                             </button>
                           )}
-                          {/* Report button - only show for received messages that aren't deleted */}
+                          {/* Report button - only show for received messages that aren't deleted, on the left side */}
                           {!isCurrentUser && !msg.deleted && (
-                            <div className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <ReportButton
                                 contentType="message"
                                 contentId={msg.id}
