@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         trust_level,
         has_social_login,
         social_login_provider,
-        account_age_days,
+        created_at,
         total_bookings_made,
         total_bookings_hosted,
         reviews_given,
@@ -53,11 +53,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch trust data" }, { status: 500 });
     }
 
+    // Calculate account age in days
+    const accountAgeDays = userData?.created_at 
+      ? Math.floor((Date.now() - new Date(userData.created_at).getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+
     return NextResponse.json({ 
-      trust: userData,
+      trust: { ...userData, account_age_days: accountAgeDays },
       breakdown: {
         baseScore: 30,
-        ageBonus: Math.min(15, (userData?.account_age_days || 0) / 30),
+        ageBonus: Math.min(15, Math.floor(accountAgeDays / 30)),
         socialBonus: userData?.has_social_login ? 10 : 0,
         activityBonus: Math.min(15, ((userData?.total_bookings_made || 0) + (userData?.total_bookings_hosted || 0)) * 3),
         reviewBonus: Math.min(10, (userData?.reviews_given || 0) * 2),

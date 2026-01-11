@@ -11,7 +11,6 @@ ADD COLUMN IF NOT EXISTS trust_score INTEGER DEFAULT 50 CHECK (trust_score >= 0 
 ADD COLUMN IF NOT EXISTS trust_level TEXT DEFAULT 'standard' CHECK (trust_level IN ('new', 'standard', 'trusted', 'verified', 'moderator')),
 ADD COLUMN IF NOT EXISTS social_login_provider TEXT,
 ADD COLUMN IF NOT EXISTS has_social_login BOOLEAN DEFAULT FALSE,
-ADD COLUMN IF NOT EXISTS account_age_days INTEGER GENERATED ALWAYS AS (EXTRACT(DAY FROM (now() - created_at))) STORED,
 ADD COLUMN IF NOT EXISTS total_bookings_made INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS total_bookings_hosted INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS reviews_given INTEGER DEFAULT 0,
@@ -23,6 +22,20 @@ ADD COLUMN IF NOT EXISTS restriction_reason TEXT,
 ADD COLUMN IF NOT EXISTS restriction_ends_at TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS messaging_banner_dismissed BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS messaging_banner_dismissed_at TIMESTAMPTZ;
+
+-- Helper function to get account age in days (can't use generated column with now())
+CREATE OR REPLACE FUNCTION get_account_age_days(p_user_id UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  v_created_at TIMESTAMPTZ;
+BEGIN
+  SELECT created_at INTO v_created_at FROM users WHERE id = p_user_id;
+  IF v_created_at IS NULL THEN
+    RETURN 0;
+  END IF;
+  RETURN EXTRACT(DAY FROM (now() - v_created_at))::INTEGER;
+END;
+$$ LANGUAGE plpgsql STABLE;
 
 -- ============================================
 -- 2. CONTENT REPORTS TABLE
@@ -330,6 +343,7 @@ DECLARE
   v_user RECORD;
   v_new_score INTEGER;
   v_base_score INTEGER := 30;
+  v_account_age_days INTEGER;
 BEGIN
   SELECT * INTO v_user FROM users WHERE id = p_user_id;
   
@@ -337,11 +351,14 @@ BEGIN
     RETURN 0;
   END IF;
   
+  -- Get account age
+  v_account_age_days := get_account_age_days(p_user_id);
+  
   -- Calculate score components
   v_new_score := v_base_score;
   
   -- Account age bonus (up to +15)
-  v_new_score := v_new_score + LEAST(15, COALESCE(v_user.account_age_days, 0) / 30);
+  v_new_score := v_new_score + LEAST(15, v_account_age_days / 30);
   
   -- Social login bonus (+10)
   IF v_user.has_social_login THEN
