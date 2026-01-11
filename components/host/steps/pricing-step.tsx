@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, Info, ChevronDown, ChevronUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface PricingStepProps {
   data: any;
@@ -33,6 +34,8 @@ export function PropertyPricingStep({ data, onNext, userId, propertyId }: Pricin
   const router = useRouter();
   const { toast } = useToast();
 
+  const [showCleaningBreakdown, setShowCleaningBreakdown] = useState(false);
+  
   const {
     register,
     handleSubmit,
@@ -45,6 +48,8 @@ export function PropertyPricingStep({ data, onNext, userId, propertyId }: Pricin
       nightly_price_pennies: 5000,
       per_horse_fee_pennies: 0,
       cleaning_fee_pennies: 0,
+      house_cleaning_fee_pennies: 0,
+      stable_cleaning_fee_pennies: 0,
       min_nights: 1,
       max_nights: 28,
       cancellation_policy: "moderate",
@@ -99,10 +104,26 @@ export function PropertyPricingStep({ data, onNext, userId, propertyId }: Pricin
 
   const nightlyPriceGBP = (watch("nightly_price_pennies") || 0) / 100;
   const perHorseFeeGBP = (watch("per_horse_fee_pennies") || 0) / 100;
+  const houseCleaningFeeGBP = (watch("house_cleaning_fee_pennies") || 0) / 100;
+  const stableCleaningFeeGBP = (watch("stable_cleaning_fee_pennies") || 0) / 100;
+  const totalCleaningFeeGBP = houseCleaningFeeGBP + stableCleaningFeeGBP;
+  
+  // For backwards compatibility, also track the legacy field
   const cleaningFeeGBP = (watch("cleaning_fee_pennies") || 0) / 100;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Fine-tune later message */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+        <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm text-blue-900">
+            <strong>Get started quickly!</strong> Just set your base price and cleaning fee now. 
+            You can adjust pricing, add discounts, and fine-tune settings in more detail after publishing.
+          </p>
+        </div>
+      </div>
+      
       <div>
         <h3 className="font-semibold text-lg mb-4">Pricing</h3>
         
@@ -163,27 +184,67 @@ export function PropertyPricingStep({ data, onNext, userId, propertyId }: Pricin
             </p>
           </div>
 
-          <div>
+          {/* Cleaning Fees - Split into House + Stable */}
+          <div className="space-y-3">
             <LabelWithInfo 
-              htmlFor="cleaning_fee" 
-              info="A one-time fee added to each booking to cover cleaning after guests depart. This is optional and only charged once per booking, not per night."
+              htmlFor="cleaning_fees" 
+              info="Cleaning fees cover post-stay cleaning. For equine properties, guests understand that stables and yards require additional cleaning. Guests see one total, with an optional breakdown."
             >
-              Cleaning Fee (£)
+              Cleaning Fees (£)
             </LabelWithInfo>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">£</span>
-              <Input
-                id="cleaning_fee"
-                type="number"
-                step="0.01"
-                value={cleaningFeeGBP}
-                onChange={(e) =>
-                  setValue("cleaning_fee_pennies", Math.round(parseFloat(e.target.value) * 100))
-                }
-              />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="house_cleaning_fee" className="text-sm font-normal text-muted-foreground">
+                  House / Property
+                </Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">£</span>
+                  <Input
+                    id="house_cleaning_fee"
+                    type="number"
+                    step="0.01"
+                    value={houseCleaningFeeGBP}
+                    onChange={(e) => {
+                      const value = Math.round(parseFloat(e.target.value || "0") * 100);
+                      setValue("house_cleaning_fee_pennies", value);
+                      // Also update legacy field for compatibility
+                      setValue("cleaning_fee_pennies", value + (watch("stable_cleaning_fee_pennies") || 0));
+                    }}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="stable_cleaning_fee" className="text-sm font-normal text-muted-foreground">
+                  Stable / Yard
+                </Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">£</span>
+                  <Input
+                    id="stable_cleaning_fee"
+                    type="number"
+                    step="0.01"
+                    value={stableCleaningFeeGBP}
+                    onChange={(e) => {
+                      const value = Math.round(parseFloat(e.target.value || "0") * 100);
+                      setValue("stable_cleaning_fee_pennies", value);
+                      // Also update legacy field for compatibility
+                      setValue("cleaning_fee_pennies", (watch("house_cleaning_fee_pennies") || 0) + value);
+                    }}
+                  />
+                </div>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              One-time cleaning fee (optional)
+            
+            {totalCleaningFeeGBP > 0 && (
+              <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                Total cleaning fee shown to guests: <strong>£{totalCleaningFeeGBP.toFixed(2)}</strong>
+              </div>
+            )}
+            
+            <p className="text-sm text-muted-foreground">
+              Guests see one combined fee with an expandable breakdown. Horse owners understand equine cleaning costs.
             </p>
           </div>
         </div>
@@ -257,13 +318,35 @@ export function PropertyPricingStep({ data, onNext, userId, propertyId }: Pricin
               <span>£{perHorseFeeGBP.toFixed(2)}</span>
             </div>
           )}
-          {cleaningFeeGBP > 0 && (
-            <div className="flex justify-between">
-              <span>Cleaning fee:</span>
-              <span>£{cleaningFeeGBP.toFixed(2)}</span>
-            </div>
+          {totalCleaningFeeGBP > 0 && (
+            <Collapsible open={showCleaningBreakdown} onOpenChange={setShowCleaningBreakdown}>
+              <CollapsibleTrigger className="flex justify-between w-full hover:bg-muted-foreground/10 rounded px-1 -mx-1">
+                <span className="flex items-center gap-1">
+                  Cleaning fee:
+                  {showCleaningBreakdown ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </span>
+                <span>£{totalCleaningFeeGBP.toFixed(2)}</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-4 pt-1 space-y-1 text-muted-foreground">
+                {houseCleaningFeeGBP > 0 && (
+                  <div className="flex justify-between">
+                    <span>House / Property:</span>
+                    <span>£{houseCleaningFeeGBP.toFixed(2)}</span>
+                  </div>
+                )}
+                {stableCleaningFeeGBP > 0 && (
+                  <div className="flex justify-between">
+                    <span>Stable / Yard:</span>
+                    <span>£{stableCleaningFeeGBP.toFixed(2)}</span>
+                  </div>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
           )}
         </div>
+        <p className="text-xs text-muted-foreground mt-3">
+          Platform service fee (15%) will be added for guests. You'll receive your payout minus host fee (3%).
+        </p>
       </div>
 
       {/* Insurance Acknowledgment */}

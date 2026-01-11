@@ -146,7 +146,15 @@ export const PropertyEquineSchema = z.object({
 export const PropertyPricingSchema = z.object({
   nightly_price_pennies: z.number().int().min(1000, "Minimum price is £10/night"),
   per_horse_fee_pennies: z.number().int().min(0).default(0),
+  // Legacy combined cleaning fee (for backwards compatibility)
   cleaning_fee_pennies: z.number().int().min(0).default(0),
+  // Split cleaning fees (new)
+  house_cleaning_fee_pennies: z.number().int().min(0).default(0),
+  stable_cleaning_fee_pennies: z.number().int().min(0).default(0),
+  // Extra guest fee (optional)
+  extra_guest_fee_pennies: z.number().int().min(0).default(0),
+  base_guests_included: z.number().int().min(1).default(2),
+  // Stay requirements
   min_nights: z.number().int().min(1).default(1),
   max_nights: z.number().int().min(1).max(365).default(28),
   cancellation_policy: z.enum(["flexible", "moderate", "strict"]).default("moderate"),

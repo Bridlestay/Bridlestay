@@ -4,7 +4,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { HelpCircle, Users, Home, CreditCard, Shield, MessageCircle } from "lucide-react";
+import { HelpCircle, Users, Home, CreditCard, Shield, MessageCircle, AlertCircle } from "lucide-react";
 
 export default function HelpPage() {
   return (
@@ -159,16 +159,47 @@ export default function HelpPage() {
                   <AccordionItem value="item-1">
                     <AccordionTrigger>How does pricing work?</AccordionTrigger>
                     <AccordionContent>
-                      <div className="space-y-2 text-muted-foreground">
-                        <p>The total price typically includes:</p>
-                        <ul className="list-disc pl-6 space-y-1 mt-2">
-                          <li><strong>Nightly rate:</strong> Base price per night</li>
-                          <li><strong>Per-horse fee:</strong> Additional charge per horse per night (if applicable)</li>
-                          <li><strong>Cleaning fee:</strong> One-time fee (if applicable)</li>
-                          <li><strong>Service fee (12.5%):</strong> Cantra platform fee (capped at £150)</li>
-                          <li><strong>VAT (20%):</strong> Applied to service fee only</li>
+                      <div className="space-y-3 text-muted-foreground">
+                        <p className="font-medium text-foreground">Price Calculation Order:</p>
+                        <ol className="list-decimal pl-6 space-y-1">
+                          <li><strong>Base nightly rate:</strong> The property's standard price per night</li>
+                          <li><strong>Extra guest/horse fees:</strong> Added per night if applicable</li>
+                          <li><strong>Discounts applied:</strong> Any automated discounts (length-of-stay, last-minute, etc.)</li>
+                          <li><strong>Cleaning fees:</strong> One-time fee (may show house + stable breakdown)</li>
+                          <li><strong>Service fee:</strong> Cantra platform fee (15% capped at £150, plus VAT)</li>
+                        </ol>
+                        <p className="mt-3">
+                          <strong>Hosts set all prices</strong> — Cantra remains neutral. You'll always see a complete, 
+                          transparent breakdown before booking. No hidden fees, no surprises.
+                        </p>
+                        <p className="text-sm bg-muted p-2 rounded mt-2">
+                          💡 <strong>Tip:</strong> Click on the cleaning fee to see a breakdown (house vs stable cleaning) 
+                          if the host has specified separate amounts.
+                        </p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-1b">
+                    <AccordionTrigger>How do discounts work?</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3 text-muted-foreground">
+                        <p>Hosts can offer several types of discounts:</p>
+                        <ul className="list-disc pl-6 space-y-2 mt-2">
+                          <li><strong>Last-minute discounts:</strong> Savings when booking close to check-in date</li>
+                          <li><strong>Length-of-stay discounts:</strong> Savings for longer bookings (e.g., 7+ nights)</li>
+                          <li><strong>Seasonal discounts:</strong> Special rates during off-peak periods</li>
+                          <li><strong>First-time rider discount:</strong> Welcome offer for your first booking on Cantra</li>
                         </ul>
-                        <p className="mt-3">You'll see a complete, transparent breakdown before confirming your booking.</p>
+                        <p className="mt-3 font-medium text-foreground">How discounts are applied:</p>
+                        <ul className="list-disc pl-6 space-y-1">
+                          <li>Discounts apply to <strong>nightly rates only</strong> (not cleaning or service fees)</li>
+                          <li>By default, only the <strong>single best discount</strong> applies to your booking</li>
+                          <li>The applied discount is clearly shown in your price breakdown</li>
+                        </ul>
+                        <p className="text-sm bg-green-50 text-green-800 p-2 rounded mt-3">
+                          ✓ You'll never be surprised — all discounts are transparent and shown before you book.
+                        </p>
                       </div>
                     </AccordionContent>
                   </AccordionItem>
@@ -292,6 +323,137 @@ export default function HelpPage() {
                         However, maintaining a high acceptance rate helps your listing rank higher in search results. 
                         Consider using Instant Book with guest requirements to reduce unwanted requests.
                       </p>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-5">
+                    <AccordionTrigger>How do I set up discounts?</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3 text-muted-foreground">
+                        <p>
+                          After publishing your listing, you can access <strong>Advanced Pricing</strong> settings 
+                          to configure automated discounts:
+                        </p>
+                        <ul className="list-disc pl-6 space-y-2 mt-2">
+                          <li><strong>Last-minute discounts:</strong> Up to 3 tiered rules (e.g., 5% at 14 days, 10% at 7 days, 15% at 3 days)</li>
+                          <li><strong>Length-of-stay discounts:</strong> Reward longer bookings (e.g., 10% for 7+ nights)</li>
+                          <li><strong>Seasonal discounts:</strong> Set special rates for specific date ranges</li>
+                          <li><strong>First-time rider discount:</strong> Welcome new users to the platform</li>
+                        </ul>
+                        <p className="font-medium text-foreground mt-3">Key safety features:</p>
+                        <ul className="list-disc pl-6 space-y-1">
+                          <li>All discounts are <strong>off by default</strong> — you must explicitly enable them</li>
+                          <li>By default, only the <strong>single best discount</strong> applies (no accidental stacking)</li>
+                          <li>A <strong>floor price warning</strong> alerts you if prices drop significantly</li>
+                        </ul>
+                        <p className="text-sm bg-green-50 text-green-800 p-2 rounded mt-3">
+                          ✓ You're always in control. Preview exactly what guests will pay before saving changes.
+                        </p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-6">
+                    <AccordionTrigger>How do damage claims work for hosts?</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3 text-muted-foreground">
+                        <p>
+                          If a guest causes damage or leaves the property requiring excessive cleaning, 
+                          you have <strong>48 hours after checkout</strong> to submit a claim.
+                        </p>
+                        <p className="font-medium text-foreground mt-2">What you need:</p>
+                        <ul className="list-disc pl-6 space-y-1">
+                          <li>Clear photos of the damage</li>
+                          <li>Description of what happened</li>
+                          <li>Amount you're claiming (reasonable and justified)</li>
+                        </ul>
+                        <p className="mt-2">
+                          The guest will be notified and can accept or dispute. If disputed, Cantra reviews 
+                          evidence from both sides and makes a fair decision.
+                        </p>
+                        <p className="text-sm bg-amber-50 text-amber-800 p-2 rounded mt-3">
+                          ⚠️ Document your property's condition with photos before each guest arrives — 
+                          this helps support any future claims.
+                        </p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </CardContent>
+            </Card>
+
+            {/* Damage & Claims */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-6 w-6 text-primary" />
+                  <CardTitle className="text-2xl">Damage & Claims</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="damage-1">
+                    <AccordionTrigger>What happens if there's damage to the property?</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3 text-muted-foreground">
+                        <p>
+                          Hosts have <strong>48 hours after checkout</strong> to report damage or excessive cleaning needs. 
+                          This shorter window (compared to other platforms) keeps things simple and fair for everyone.
+                        </p>
+                        <p className="font-medium text-foreground">The process:</p>
+                        <ol className="list-decimal pl-6 space-y-1">
+                          <li>Host submits claim with photos and description within 48 hours</li>
+                          <li>Guest is notified and can accept or dispute the claim</li>
+                          <li>If disputed, Cantra reviews evidence from both sides</li>
+                          <li>A fair decision is made based on the evidence</li>
+                          <li>Approved amounts are charged to the guest's saved payment method</li>
+                        </ol>
+                        <p className="text-sm bg-blue-50 text-blue-800 p-2 rounded mt-3">
+                          ℹ️ By booking, you consent to potential post-stay charges for approved damage claims, 
+                          as stated in our Terms of Service.
+                        </p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="damage-2">
+                    <AccordionTrigger>How are damage disputes handled?</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-2 text-muted-foreground">
+                        <p>
+                          If you dispute a damage claim, Cantra reviews evidence from both sides and makes a final decision. 
+                          We remain neutral — our goal is fairness, not siding with hosts or guests.
+                        </p>
+                        <p className="mt-2">
+                          <strong>What we consider:</strong>
+                        </p>
+                        <ul className="list-disc pl-6 space-y-1">
+                          <li>Photos and documentation from both parties</li>
+                          <li>Check-in condition reports (if available)</li>
+                          <li>Messages between host and guest</li>
+                          <li>The nature and extent of the claimed damage</li>
+                        </ul>
+                        <p className="mt-3 text-sm">
+                          We won't attempt repeated silent charges if a payment fails. You'll be notified and asked 
+                          to update your payment method if needed.
+                        </p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="damage-3">
+                    <AccordionTrigger>How are refunds calculated?</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-2 text-muted-foreground">
+                        <p>
+                          Refunds are always calculated based on the <strong>discounted price you actually paid</strong>, 
+                          not the original base rate. This ensures fairness regardless of what discounts were applied.
+                        </p>
+                        <p className="mt-2">
+                          <strong>Example:</strong> If you paid £170 after a 15% discount on a £200 booking, 
+                          any refund is calculated from the £170 you actually paid.
+                        </p>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>

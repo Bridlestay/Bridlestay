@@ -15,8 +15,9 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { createClient } from "@/lib/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { HorseSelector } from "@/components/booking/horse-selector";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
@@ -80,6 +81,61 @@ function PaymentForm({ clientSecret, onSuccess }: { clientSecret: string; onSucc
         {loading ? "Processing..." : "Confirm & Request Booking"}
       </Button>
     </form>
+  );
+}
+
+// Cleaning fee display with expandable breakdown for horse-specific costs
+function CleaningFeeDisplay({ property }: { property: any }) {
+  const [expanded, setExpanded] = useState(false);
+  
+  // Calculate total cleaning fee (support both new split and legacy single fee)
+  const houseCleaningFee = property.house_cleaning_fee_pennies || 0;
+  const stableCleaningFee = property.stable_cleaning_fee_pennies || 0;
+  const legacyCleaningFee = property.cleaning_fee_pennies || 0;
+  
+  // Use split fees if available, otherwise fall back to legacy
+  const hasBreakdown = houseCleaningFee > 0 || stableCleaningFee > 0;
+  const totalCleaningFee = hasBreakdown 
+    ? houseCleaningFee + stableCleaningFee 
+    : legacyCleaningFee;
+  
+  if (totalCleaningFee <= 0) return null;
+  
+  // If no breakdown available, show simple line
+  if (!hasBreakdown) {
+    return (
+      <div className="flex justify-between">
+        <span>Cleaning fee</span>
+        <span>£{(totalCleaningFee / 100).toFixed(2)}</span>
+      </div>
+    );
+  }
+  
+  // Show expandable breakdown
+  return (
+    <Collapsible open={expanded} onOpenChange={setExpanded}>
+      <CollapsibleTrigger className="flex justify-between w-full text-left hover:bg-muted/50 rounded px-1 -mx-1">
+        <span className="flex items-center gap-1">
+          Cleaning fee
+          {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        </span>
+        <span>£{(totalCleaningFee / 100).toFixed(2)}</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pl-4 pt-1 space-y-1 text-sm text-muted-foreground">
+        {houseCleaningFee > 0 && (
+          <div className="flex justify-between">
+            <span>House / Property</span>
+            <span>£{(houseCleaningFee / 100).toFixed(2)}</span>
+          </div>
+        )}
+        {stableCleaningFee > 0 && (
+          <div className="flex justify-between">
+            <span>Stable / Yard</span>
+            <span>£{(stableCleaningFee / 100).toFixed(2)}</span>
+          </div>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -420,12 +476,8 @@ export function BookingForm({ propertyId, property }: BookingFormProps) {
                 </div>
               )}
               
-              {property.cleaning_fee_pennies && (
-                <div className="flex justify-between">
-                  <span>Cleaning fee</span>
-                  <span>£{(property.cleaning_fee_pennies / 100).toFixed(2)}</span>
-                </div>
-              )}
+              {/* Cleaning fee with expandable breakdown */}
+              <CleaningFeeDisplay property={property} />
               
               <div className="border-t pt-2" />
               
