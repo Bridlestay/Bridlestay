@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Star, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { ReportButton } from "@/components/moderation/report-button";
 
 interface PropertyReviewsDisplayProps {
   propertyId: string;
@@ -149,7 +150,16 @@ export function PropertyReviewsDisplay({
                         {format(new Date(review.created_at), "MMMM yyyy")}
                       </p>
                     </div>
-                    {renderStars(review.overall_rating)}
+                    <div className="flex items-center gap-2">
+                      {renderStars(review.overall_rating)}
+                      <ReportButton
+                        contentType="review"
+                        contentId={review.id}
+                        contentOwnerId={review.user_id}
+                        contentPreview={review.review_text?.substring(0, 100)}
+                        variant="minimal"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

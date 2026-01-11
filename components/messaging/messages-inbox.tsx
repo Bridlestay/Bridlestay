@@ -9,8 +9,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import { Send, MessageCircle, Trash2, ShieldAlert, Search, Filter, Check, CheckCheck } from "lucide-react";
+import { Send, MessageCircle, Trash2, ShieldAlert, Search, Filter, Check, CheckCheck, Flag } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { ReportButton } from "@/components/moderation/report-button";
+import { MessagingSafetyBanner } from "@/components/moderation/messaging-safety-banner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReservationCard } from "@/components/messaging/reservation-card";
 import { useSearchParams } from "next/navigation";
@@ -403,6 +405,10 @@ export function MessagesInbox() {
             {/* Messages */}
             <div className="flex-1 overflow-hidden">
               <ScrollArea className="h-full p-4">
+                {/* Safety banner for payment protection */}
+                {currentUserId && (
+                  <MessagingSafetyBanner userId={currentUserId} variant="compact" />
+                )}
                 <div className="space-y-4">
                 {messages.map((msg) => {
                   // Check if current user sent this message
@@ -461,6 +467,18 @@ export function MessagesInbox() {
                             >
                               <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                             </button>
+                          )}
+                          {/* Report button - only show for received messages that aren't deleted */}
+                          {!isCurrentUser && !msg.deleted && (
+                            <div className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <ReportButton
+                                contentType="message"
+                                contentId={msg.id}
+                                contentOwnerId={msg.sender_id}
+                                contentPreview={msg.message.substring(0, 100)}
+                                variant="minimal"
+                              />
+                            </div>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">

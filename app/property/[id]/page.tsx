@@ -10,6 +10,7 @@ import { formatGBP } from "@/lib/fees";
 import { ImageGallery } from "@/components/image-gallery";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ShareButton } from "@/components/share-button";
+import { ReportButton } from "@/components/moderation/report-button";
 import { PropertyBadges } from "@/components/property-badges";
 import { PropertyQA } from "@/components/property-qa";
 import { MessageButton } from "@/components/messaging/message-button";
@@ -208,6 +209,13 @@ export default async function PropertyPage({
                         propertyId={property.id}
                         variant="detail"
                         showCount={true}
+                      />
+                      <ReportButton
+                        contentType="property"
+                        contentId={property.id}
+                        contentOwnerId={property.host_id}
+                        contentPreview={property.name}
+                        variant="icon"
                       />
                     </div>
                   </div>

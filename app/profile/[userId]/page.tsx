@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, MapPin, Briefcase, GraduationCap, Music, Lightbulb, Plane, Clock, Heart, Cake, Star, BookOpen, Globe, Languages as LanguagesIcon } from "lucide-react";
 import { UserReviewsDisplay } from "@/components/reviews/user-reviews-display";
 import { PublicHorsesDisplay } from "@/components/profile/public-horses-display";
+import { ReportButton } from "@/components/moderation/report-button";
 
 export default async function PublicProfilePage({
   params,
@@ -84,13 +85,24 @@ export default async function PublicProfilePage({
                 </Avatar>
                 
                 <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h1 className="font-serif text-3xl font-bold">{profile.name}</h1>
-                        {profile.admin_verified && (
-                          <Badge className="bg-blue-600">
-                            <CheckCircle2 className="mr-1 h-3 w-3" />
-                            Verified
-                          </Badge>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <h1 className="font-serif text-3xl font-bold">{profile.name}</h1>
+                          {profile.admin_verified && (
+                            <Badge className="bg-blue-600">
+                              <CheckCircle2 className="mr-1 h-3 w-3" />
+                              Verified
+                            </Badge>
+                          )}
+                        </div>
+                        {currentUser?.id !== userId && (
+                          <ReportButton
+                            contentType="profile"
+                            contentId={userId}
+                            contentOwnerId={userId}
+                            contentPreview={profile.name}
+                            variant="icon"
+                          />
                         )}
                       </div>
                       
