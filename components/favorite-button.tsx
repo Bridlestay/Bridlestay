@@ -138,15 +138,15 @@ export function FavoriteButton({
       onClick={handleToggle}
       disabled={loading}
       className={cn(
-        "rounded-full bg-white/90 hover:bg-white shadow-md",
+        "h-9 w-9 rounded-full bg-white/70 hover:bg-white shadow-md",
         "transition-all duration-200",
-        isFavorited && "hover:scale-110"
+        isFavorited && "bg-white hover:scale-110"
       )}
     >
       <Heart
         className={cn(
           "h-5 w-5 transition-colors",
-          isFavorited ? "fill-red-500 text-red-500" : "text-gray-700"
+          isFavorited ? "fill-red-500 text-red-500" : "text-gray-600"
         )}
       />
     </Button>

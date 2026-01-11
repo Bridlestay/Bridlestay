@@ -125,11 +125,11 @@ export function ShareButton({ propertyId, propertyName, variant = "default" }: S
           size="icon"
           className={
             variant === "card"
-              ? "h-8 w-8 rounded-full bg-white/90 hover:bg-white shadow-sm"
+              ? "h-9 w-9 rounded-full bg-white/70 hover:bg-white shadow-md transition-all duration-200"
               : "h-10 w-10 rounded-full border-2"
           }
         >
-          <Share2 className={variant === "card" ? "h-4 w-4" : "h-5 w-5"} />
+          <Share2 className={variant === "card" ? "h-5 w-5 text-gray-600" : "h-5 w-5"} />
           <span className="sr-only">Share property</span>
         </Button>
       </DropdownMenuTrigger>
