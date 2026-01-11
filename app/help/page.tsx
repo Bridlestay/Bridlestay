@@ -111,14 +111,68 @@ export default function HelpPage() {
                   <AccordionItem value="item-3">
                     <AccordionTrigger>Can I modify or cancel my booking?</AccordionTrigger>
                     <AccordionContent>
+                      <div className="space-y-4 text-muted-foreground">
+                        <p>Yes, but cancellation refunds depend on the property's policy. There are three policies:</p>
+                        
+                        <div className="space-y-3">
+                          <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                            <p className="font-semibold text-green-800">🟢 Flexible</p>
+                            <ul className="list-disc pl-5 text-sm mt-1 text-green-700">
+                              <li>Full refund up to <strong>7 days</strong> before check-in</li>
+                              <li>After that: first night non-refundable, rest refundable if rebooked</li>
+                            </ul>
+                          </div>
+                          
+                          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <p className="font-semibold text-blue-800">🔵 Standard (Most Common)</p>
+                            <ul className="list-disc pl-5 text-sm mt-1 text-blue-700">
+                              <li>Full refund up to <strong>14 days</strong> before check-in</li>
+                              <li>50% refund between 14-7 days</li>
+                              <li>No refund inside 7 days</li>
+                            </ul>
+                          </div>
+                          
+                          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                            <p className="font-semibold text-amber-800">🟠 Strict</p>
+                            <ul className="list-disc pl-5 text-sm mt-1 text-amber-700">
+                              <li>Full refund up to <strong>30 days</strong> before check-in</li>
+                              <li>50% refund between 30-14 days</li>
+                              <li>No refund inside 14 days</li>
+                            </ul>
+                          </div>
+                        </div>
+                        
+                        <p className="text-sm bg-muted p-2 rounded">
+                          <strong>Important:</strong> Service fees are non-refundable. Refunds apply to accommodation costs only. 
+                          The specific policy is shown on each property page before you book.
+                        </p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-3b">
+                    <AccordionTrigger>What if something goes wrong during my stay?</AccordionTrigger>
+                    <AccordionContent>
                       <div className="space-y-3 text-muted-foreground">
-                        <p>Yes, cancellation policies vary by property. There are three types:</p>
-                        <ul className="list-disc pl-6 space-y-2">
-                          <li><strong>Flexible:</strong> Full refund if cancelled 24+ hours before check-in</li>
-                          <li><strong>Moderate:</strong> Full refund if cancelled 5+ days before check-in</li>
-                          <li><strong>Strict:</strong> 50% refund if cancelled 7+ days before check-in</li>
+                        <p>
+                          If you encounter a <strong>serious issue</strong> with the property after checking in, 
+                          you have <strong>48 hours</strong> from check-in to report it through your booking page.
+                        </p>
+                        <p className="font-medium text-foreground">Valid issues include:</p>
+                        <ul className="list-disc pl-6 space-y-1">
+                          <li>Property significantly different from the listing</li>
+                          <li>Serious cleanliness or safety issues (for you or your horses)</li>
+                          <li>Unable to access the property</li>
+                          <li>Core advertised amenities missing</li>
                         </ul>
-                        <p className="mt-3">The specific policy is shown on each property page before booking. To cancel, go to your Bookings page and select "Cancel Booking".</p>
+                        <p className="mt-2">
+                          Our team will review your report and may offer a partial refund for unused nights. 
+                          <strong> Issues reported after 48 hours cannot be considered for refunds.</strong>
+                        </p>
+                        <p className="text-sm bg-amber-50 text-amber-800 p-2 rounded mt-2">
+                          ⚠️ Minor inconveniences (weather, personal preferences, "not what I imagined") 
+                          do not qualify for refunds. Please address these with the host directly or in your review.
+                        </p>
                       </div>
                     </AccordionContent>
                   </AccordionItem>
@@ -207,11 +261,29 @@ export default function HelpPage() {
                   <AccordionItem value="item-2">
                     <AccordionTrigger>When will I be charged?</AccordionTrigger>
                     <AccordionContent>
-                      <p className="text-muted-foreground">
-                        For Instant Book properties, you're charged immediately upon booking. For properties requiring approval, 
-                        you're charged only after the host accepts your request. If a host doesn't respond within 24 hours or declines, 
-                        you won't be charged.
-                      </p>
+                      <div className="space-y-3 text-muted-foreground">
+                        <p className="font-medium text-foreground">Payment timing depends on when you're checking in:</p>
+                        
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="p-3 bg-muted rounded-lg">
+                            <p className="font-semibold text-foreground">Check-in within 60 days</p>
+                            <p className="text-sm mt-1">Full payment charged immediately when you book.</p>
+                          </div>
+                          
+                          <div className="p-3 bg-muted rounded-lg">
+                            <p className="font-semibold text-foreground">Check-in more than 60 days away</p>
+                            <p className="text-sm mt-1">
+                              50% deposit now, remaining 50% charged automatically 14 days before check-in. 
+                              No action required from you.
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <p className="text-sm">
+                          For properties requiring approval, you're charged only after the host accepts. 
+                          If declined or no response within 24 hours, you won't be charged.
+                        </p>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
 
@@ -228,10 +300,36 @@ export default function HelpPage() {
                   <AccordionItem value="item-4">
                     <AccordionTrigger>When do hosts receive payment?</AccordionTrigger>
                     <AccordionContent>
-                      <p className="text-muted-foreground">
-                        Hosts receive payment 24 hours after the guest checks in. This policy protects both guests and hosts, 
-                        ensuring the property matches the listing and the guest shows up as expected.
-                      </p>
+                      <div className="space-y-3 text-muted-foreground">
+                        <p>
+                          Hosts receive their payout <strong>48 hours after check-in</strong>, once the resolution window closes.
+                        </p>
+                        <p className="font-medium text-foreground">Why 48 hours?</p>
+                        <ul className="list-disc pl-6 space-y-1">
+                          <li>Gives guests time to report any serious issues with the property</li>
+                          <li>Protects hosts by confirming the guest has arrived</li>
+                          <li>Allows for fair resolution before funds are released</li>
+                        </ul>
+                        <p className="text-sm bg-muted p-2 rounded mt-2">
+                          Once the 48-hour window closes with no issues reported, the payout is automatically released to the host's bank account.
+                        </p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-5">
+                    <AccordionTrigger>Are refunds possible after the host has been paid?</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-2 text-muted-foreground">
+                        <p>
+                          <strong>No.</strong> Once the 48-hour resolution window closes and the host has been paid, 
+                          refunds are no longer possible. This provides certainty for hosts and encourages guests 
+                          to report any genuine issues promptly.
+                        </p>
+                        <p>
+                          If you have concerns about a property, please report them within the first 48 hours of your stay.
+                        </p>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
