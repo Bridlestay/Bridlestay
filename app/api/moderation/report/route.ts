@@ -84,7 +84,15 @@ export async function POST(request: NextRequest) {
     // Record the report for rate limiting
     await supabase.rpc("record_user_report", { p_user_id: user.id });
 
-    // Check if this content now has multiple reports
+    // Check if this content already exists in flagged content
+    const { data: existingFlag } = await supabase
+      .from("flagged_content")
+      .select("id, report_count, flag_reasons")
+      .eq("content_type", validated.contentType)
+      .eq("content_id", validated.contentId)
+      .single();
+
+    // Get current report count for this content
     const { count } = await supabase
       .from("content_reports")
       .select("*", { count: "exact", head: true })
@@ -92,41 +100,43 @@ export async function POST(request: NextRequest) {
       .eq("content_id", validated.contentId)
       .eq("status", "pending");
 
-    // If multiple reports, add to flagged content or update existing
-    if (count && count >= 2) {
-      // Check if already in flagged content
-      const { data: existingFlag } = await supabase
-        .from("flagged_content")
-        .select("id, report_count")
-        .eq("content_type", validated.contentType)
-        .eq("content_id", validated.contentId)
-        .single();
+    // Calculate risk score based on reports and reporter trust
+    const baseRiskScore = 25; // Start with base score
+    const reportsBonus = Math.min(50, (count || 1) * 15); // Up to 50 for multiple reports
+    const trustBonus = (userData?.trust_score || 50) > 60 ? 10 : 0; // Trusted reporters add weight
+    const riskScore = Math.min(100, baseRiskScore + reportsBonus + trustBonus);
 
-      if (existingFlag) {
-        // Update report count
-        await supabase
-          .from("flagged_content")
-          .update({ 
-            report_count: (existingFlag.report_count || 0) + 1,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existingFlag.id);
-      } else {
-        // Create new flagged content entry
-        await supabase
-          .from("flagged_content")
-          .insert({
-            content_type: validated.contentType,
-            content_id: validated.contentId,
-            content_owner_id: validated.contentOwnerId,
-            content_text: validated.contentPreview,
-            flag_source: "user_report",
-            flag_reasons: [validated.reportReason],
-            risk_score: 40, // Base score for multiple user reports
-            report_count: count,
-            status: "pending",
-          });
-      }
+    if (existingFlag) {
+      // Update existing flagged content
+      const existingReasons = existingFlag.flag_reasons || [];
+      const updatedReasons = existingReasons.includes(validated.reportReason) 
+        ? existingReasons 
+        : [...existingReasons, validated.reportReason];
+      
+      await supabase
+        .from("flagged_content")
+        .update({ 
+          report_count: (existingFlag.report_count || 0) + 1,
+          flag_reasons: updatedReasons,
+          risk_score: riskScore,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingFlag.id);
+    } else {
+      // Create new flagged content entry immediately (so it shows in queue)
+      await supabase
+        .from("flagged_content")
+        .insert({
+          content_type: validated.contentType,
+          content_id: validated.contentId,
+          content_owner_id: validated.contentOwnerId,
+          content_text: validated.contentPreview,
+          flag_source: "user_report",
+          flag_reasons: [validated.reportReason],
+          risk_score: riskScore,
+          report_count: count || 1,
+          status: "pending",
+        });
     }
 
     return NextResponse.json({ 

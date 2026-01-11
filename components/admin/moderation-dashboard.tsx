@@ -91,11 +91,26 @@ export function ModerationDashboard() {
   const [adminNotes, setAdminNotes] = useState("");
   const [filterReviewed, setFilterReviewed] = useState<"all" | "pending" | "reviewed">("pending");
   const [deletingReview, setDeletingReview] = useState(false);
+  const [pendingReportsCount, setPendingReportsCount] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchFlaggedMessages();
+    fetchPendingReportsCount();
   }, []);
+
+  const fetchPendingReportsCount = async () => {
+    try {
+      const supabase = (await import("@/lib/supabase/client")).createClient();
+      const { count } = await supabase
+        .from("content_reports")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+      setPendingReportsCount(count || 0);
+    } catch (error) {
+      console.error("Error fetching reports count:", error);
+    }
+  };
 
   const fetchFlaggedMessages = async () => {
     setLoading(true);
@@ -229,6 +244,9 @@ export function ModerationDashboard() {
           <TabsTrigger value="reports" className="gap-2">
             <Flag className="h-4 w-4" />
             User Reports
+            {pendingReportsCount > 0 && (
+              <Badge variant="destructive" className="ml-1 h-5 px-1.5">{pendingReportsCount}</Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
