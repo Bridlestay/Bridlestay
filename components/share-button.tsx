@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 interface ShareButtonProps {
   propertyId: string;
   propertyName: string;
+  variant?: "default" | "card";
 }
 
 // Track share event
@@ -30,7 +31,7 @@ async function trackShare(propertyId: string, platform: string) {
   }
 }
 
-export function ShareButton({ propertyId, propertyName }: ShareButtonProps) {
+export function ShareButton({ propertyId, propertyName, variant = "default" }: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
@@ -111,15 +112,24 @@ export function ShareButton({ propertyId, propertyName }: ShareButtonProps) {
   // Use native share API if available on mobile
   const hasNativeShare = typeof navigator !== "undefined" && !!navigator.share;
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild onClick={handleClick}>
         <Button
-          variant="outline"
+          variant={variant === "card" ? "ghost" : "outline"}
           size="icon"
-          className="h-10 w-10 rounded-full border-2"
+          className={
+            variant === "card"
+              ? "h-8 w-8 rounded-full bg-white/90 hover:bg-white shadow-sm"
+              : "h-10 w-10 rounded-full border-2"
+          }
         >
-          <Share2 className="h-5 w-5" />
+          <Share2 className={variant === "card" ? "h-4 w-4" : "h-5 w-5"} />
           <span className="sr-only">Share property</span>
         </Button>
       </DropdownMenuTrigger>

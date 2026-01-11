@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatGBP } from "@/lib/fees";
 import { CheckCircle2, Star } from "lucide-react";
 import { FavoriteButton } from "@/components/favorite-button";
+import { ShareButton } from "@/components/share-button";
 import { PropertyBadges } from "@/components/property-badges";
 import { cn } from "@/lib/utils";
 
@@ -49,9 +50,10 @@ export function PropertyCard({ property, variant = "default" }: PropertyCardProp
               No image
             </div>
           )}
-          {/* Favorite button - top left */}
-          <div className="absolute top-2 left-2 z-10">
+          {/* Favorite and Share buttons - top left */}
+          <div className="absolute top-2 left-2 z-10 flex gap-1">
             <FavoriteButton propertyId={property.id} variant="card" />
+            <ShareButton propertyId={property.id} propertyName={property.name} variant="card" />
           </div>
           
         </div>
