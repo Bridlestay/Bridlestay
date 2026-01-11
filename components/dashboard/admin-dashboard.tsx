@@ -22,6 +22,7 @@ import { NewsManager } from "@/components/admin/news-manager";
 import { InspectDashboard } from "@/components/admin/inspect-dashboard";
 import { BadgesDashboard } from "@/components/admin/badges-dashboard";
 import { ReferralsDashboard } from "@/components/admin/referrals-dashboard";
+import { AdminDamageClaims } from "@/components/admin/admin-damage-claims";
 import { 
   BarChart3, 
   Shield, 
@@ -498,6 +499,10 @@ export function AdminDashboard({ user }: { user: any }) {
         <TabsTrigger value="referrals" className="gap-2">
           <Gift className="h-4 w-4" />
           Referrals
+        </TabsTrigger>
+        <TabsTrigger value="claims" className="gap-2">
+          <AlertTriangle className="h-4 w-4" />
+          Claims
         </TabsTrigger>
         <TabsTrigger value="feedback" className="gap-2">
           <MessageSquarePlus className="h-4 w-4" />
@@ -983,6 +988,10 @@ export function AdminDashboard({ user }: { user: any }) {
 
       <TabsContent value="referrals" className="space-y-6">
         <ReferralsDashboard />
+      </TabsContent>
+
+      <TabsContent value="claims" className="space-y-6">
+        <AdminDamageClaims />
       </TabsContent>
     </Tabs>
 
