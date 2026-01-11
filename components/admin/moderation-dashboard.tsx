@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -30,7 +31,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, Eye, CheckCircle, Trash2, MessageSquare } from "lucide-react";
+import { AlertCircle, Eye, CheckCircle, Trash2, MessageSquare, Shield, Flag, Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { getSeverityEmoji, getReasonLabel } from "@/lib/moderation";
 import {
@@ -45,6 +46,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import Link from "next/link";
+import { AdminModerationQueue } from "@/components/admin/admin-moderation-queue";
 
 interface FlaggedMessage {
   id: string;
@@ -211,56 +213,82 @@ export function ModerationDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-            <AlertCircle className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pendingCount}</div>
-            <p className="text-xs text-muted-foreground">Awaiting admin action</p>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="queue" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="queue" className="gap-2">
+            <Shield className="h-4 w-4" />
+            Content Queue
+          </TabsTrigger>
+          <TabsTrigger value="messages" className="gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Flagged Messages
+            {pendingCount > 0 && (
+              <Badge variant="destructive" className="ml-1 h-5 px-1.5">{pendingCount}</Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="gap-2">
+            <Flag className="h-4 w-4" />
+            User Reports
+          </TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Reviewed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reviewedCount}</div>
-            <p className="text-xs text-muted-foreground">Completed reviews</p>
-          </CardContent>
-        </Card>
+        {/* Content Queue Tab */}
+        <TabsContent value="queue">
+          <AdminModerationQueue />
+        </TabsContent>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Flagged</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{flaggedMessages.length}</div>
-            <p className="text-xs text-muted-foreground">All time</p>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Flagged Messages Tab */}
+        <TabsContent value="messages">
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+                <AlertCircle className="h-4 w-4 text-yellow-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{pendingCount}</div>
+                <p className="text-xs text-muted-foreground">Awaiting admin action</p>
+              </CardContent>
+            </Card>
 
-      {/* Filter */}
-      <div className="flex items-center gap-4">
-        <Label>Filter:</Label>
-        <Select value={filterReviewed} onValueChange={(value: any) => setFilterReviewed(value)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="pending">Pending Only</SelectItem>
-            <SelectItem value="reviewed">Reviewed Only</SelectItem>
-            <SelectItem value="all">All Messages</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Reviewed</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{reviewedCount}</div>
+                <p className="text-xs text-muted-foreground">Completed reviews</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Flagged</CardTitle>
+                <Eye className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{flaggedMessages.length}</div>
+                <p className="text-xs text-muted-foreground">All time</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Filter */}
+          <div className="flex items-center gap-4 mb-4">
+            <Label>Filter:</Label>
+            <Select value={filterReviewed} onValueChange={(value: any) => setFilterReviewed(value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">Pending Only</SelectItem>
+                <SelectItem value="reviewed">Reviewed Only</SelectItem>
+                <SelectItem value="all">All Messages</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
       {/* Flagged Messages Table */}
       <Card>
@@ -559,6 +587,210 @@ export function ModerationDashboard() {
                           </div>
                         </DialogContent>
                       </Dialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+        </TabsContent>
+
+        {/* User Reports Tab */}
+        <TabsContent value="reports">
+          <UserReportsSection />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// Separate component for User Reports section
+function UserReportsSection() {
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const fetchReports = async () => {
+    setLoading(true);
+    try {
+      const supabase = (await import("@/lib/supabase/client")).createClient();
+      
+      const { data, error } = await supabase
+        .from("content_reports")
+        .select(`
+          *,
+          reporter:users!content_reports_reporter_id_fkey (id, name, avatar_url, trust_score)
+        `)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+      setReports(data || []);
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReportAction = async (reportId: string, action: 'dismiss' | 'action_taken' | 'false_report') => {
+    try {
+      const supabase = (await import("@/lib/supabase/client")).createClient();
+      
+      const { error } = await supabase
+        .from("content_reports")
+        .update({
+          status: action === 'dismiss' ? 'dismissed' : action === 'false_report' ? 'false_report' : 'action_taken',
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", reportId);
+
+      if (error) throw error;
+
+      // If false report, update reporter's trust score
+      if (action === 'false_report') {
+        const report = reports.find(r => r.id === reportId);
+        if (report?.reporter_id) {
+          await supabase.rpc("update_user_trust_score", { p_user_id: report.reporter_id });
+        }
+      }
+
+      toast({
+        title: "Report updated",
+        description: "Action completed successfully",
+      });
+
+      fetchReports();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  };
+
+  if (loading) {
+    return <p className="text-center text-muted-foreground py-8">Loading reports...</p>;
+  }
+
+  const pendingReports = reports.filter(r => r.status === 'pending');
+  const resolvedReports = reports.filter(r => r.status !== 'pending');
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Reports</CardTitle>
+            <Flag className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pendingReports.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Resolved</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{resolvedReports.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Reports</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{reports.length}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>User Reports</CardTitle>
+          <CardDescription>Content reported by community members</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {pendingReports.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">No pending reports</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Reporter</TableHead>
+                  <TableHead>Content Type</TableHead>
+                  <TableHead>Reason</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingReports.map((report) => (
+                  <TableRow key={report.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm">
+                          <p className="font-medium">{report.reporter?.name || 'Unknown'}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Trust: {report.reporter_trust_score || 50}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize">
+                        {report.content_type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="capitalize">
+                        {report.report_reason?.replace(/_/g, ' ')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <p className="text-sm text-muted-foreground truncate max-w-[200px]">
+                        {report.report_description || '-'}
+                      </p>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(report.created_at), { addSuffix: true })}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleReportAction(report.id, 'action_taken')}
+                        >
+                          Action Taken
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleReportAction(report.id, 'dismiss')}
+                        >
+                          Dismiss
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600"
+                          onClick={() => handleReportAction(report.id, 'false_report')}
+                        >
+                          False Report
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

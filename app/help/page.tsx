@@ -626,6 +626,145 @@ export default function HelpPage() {
             </Card>
           </div>
 
+          {/* Community Guidelines & Moderation */}
+          <Card className="mt-8">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Shield className="h-6 w-6 text-primary" />
+                <CardTitle className="text-2xl">Community Guidelines & Safety</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="comm-1">
+                  <AccordionTrigger>What are the community guidelines?</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-3 text-muted-foreground">
+                      <p>Cantra is built on trust and respect within the equestrian community. Our guidelines are simple:</p>
+                      <ul className="list-disc ml-6 space-y-1">
+                        <li><strong>Be honest</strong> - Accurate descriptions, real photos, genuine reviews</li>
+                        <li><strong>Be respectful</strong> - Treat everyone with courtesy and kindness</li>
+                        <li><strong>Be safe</strong> - Follow safety practices for people and horses</li>
+                        <li><strong>Keep payments on-platform</strong> - This protects everyone</li>
+                        <li><strong>Communicate clearly</strong> - Respond promptly and professionally</li>
+                      </ul>
+                      <p className="mt-3">
+                        We believe in fairness, clarity, and consistency. These guidelines apply equally to all users.
+                      </p>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="comm-2">
+                  <AccordionTrigger>Why should I keep payments on Cantra?</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-3 text-muted-foreground">
+                      <p>Payments made through Cantra are protected by our policies and support team. When you pay on-platform, you get:</p>
+                      <ul className="list-disc ml-6 space-y-1">
+                        <li><strong>Refund protection</strong> - Clear cancellation policies enforced automatically</li>
+                        <li><strong>Customer support</strong> - We can help resolve disputes and issues</li>
+                        <li><strong>Secure transactions</strong> - Powered by Stripe's industry-leading security</li>
+                        <li><strong>48-hour resolution window</strong> - Report issues and get help after check-in</li>
+                        <li><strong>Damage claim process</strong> - Fair handling of property damage</li>
+                      </ul>
+                      <p className="mt-3 font-medium">
+                        ⚠️ If you pay outside Cantra, we cannot help with refunds, disputes, or any issues that arise.
+                      </p>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="comm-3">
+                  <AccordionTrigger>How does content moderation work?</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-3 text-muted-foreground">
+                      <p>We use a layered approach to keep the community safe:</p>
+                      <ol className="list-decimal ml-6 space-y-2">
+                        <li>
+                          <strong>Prevention by design</strong> - Our platform is structured to encourage positive behaviour
+                        </li>
+                        <li>
+                          <strong>Automated screening</strong> - Messages and content are automatically checked for policy violations
+                        </li>
+                        <li>
+                          <strong>Community reporting</strong> - Users can flag inappropriate content
+                        </li>
+                        <li>
+                          <strong>Human review</strong> - Our team reviews flagged content and makes fair decisions
+                        </li>
+                      </ol>
+                      <p className="mt-3">
+                        This means most content is handled automatically, with humans stepping in only when needed.
+                      </p>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="comm-4">
+                  <AccordionTrigger>How do I report inappropriate content?</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-3 text-muted-foreground">
+                      <p>If you see content that violates our guidelines, you can report it:</p>
+                      <ol className="list-decimal ml-6 space-y-1">
+                        <li>Look for the small red flag icon near the content</li>
+                        <li>Click it and confirm you want to report</li>
+                        <li>Select the reason that best describes the issue</li>
+                        <li>Optionally add a brief explanation</li>
+                        <li>Submit your report</li>
+                      </ol>
+                      <p className="mt-3">
+                        Our team reviews all reports and takes appropriate action. False or malicious reports may affect your account standing.
+                      </p>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="comm-5">
+                  <AccordionTrigger>What happens if I violate the guidelines?</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-3 text-muted-foreground">
+                      <p>We believe in education over punishment. Our approach:</p>
+                      <ol className="list-decimal ml-6 space-y-2">
+                        <li>
+                          <strong>First response</strong> - Educational warning explaining the issue
+                        </li>
+                        <li>
+                          <strong>Repeat violations</strong> - Temporary restrictions on account features
+                        </li>
+                        <li>
+                          <strong>Serious or persistent issues</strong> - Account suspension
+                        </li>
+                      </ol>
+                      <p className="mt-3">
+                        The focus is always on protecting safety, fairness, and community tone. Most users never encounter any issues.
+                      </p>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="comm-6">
+                  <AccordionTrigger>What is a trust score?</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-3 text-muted-foreground">
+                      <p>Every user has a trust score that reflects their activity and behaviour on the platform. It's affected by:</p>
+                      <ul className="list-disc ml-6 space-y-1">
+                        <li><strong>Account age</strong> - Longer membership builds trust</li>
+                        <li><strong>Completed bookings</strong> - Active participation shows reliability</li>
+                        <li><strong>Reviews given</strong> - Contributing to the community</li>
+                        <li><strong>Report accuracy</strong> - Helpful, accurate reports improve trust</li>
+                        <li><strong>Warnings received</strong> - Violations reduce trust</li>
+                        <li><strong>Social login</strong> - Verified identity adds trust</li>
+                      </ul>
+                      <p className="mt-3">
+                        Your trust score is private and used internally to help maintain community quality. Users with higher trust have more influence when reporting content.
+                      </p>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
+
           {/* Still Have Questions */}
           <Card className="mt-12 bg-primary/5 border-primary/20">
             <CardContent className="pt-8 pb-8 text-center">
