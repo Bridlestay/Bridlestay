@@ -4,11 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 // GET - Get routes near a property
 export async function GET(
   request: NextRequest,
-  { params }: { params: { propertyId: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { propertyId } = params;
+    const { id: propertyId } = await params;
 
     // Get routes linked to this property
     const { data: routes, error } = await supabase

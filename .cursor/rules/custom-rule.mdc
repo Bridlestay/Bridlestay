@@ -1,0 +1,231 @@
+PROJECT: BRIDLESTAY
+
+Bridlestay is a production web/app platform that includes:
+- Horse-friendly accommodation listings and bookings
+- Route creation, following, comments, reviews, and maps
+- Payments, fees, payouts, refunds, and support flows
+
+This is a REAL-MONEY, SAFETY-ADJACENT product.
+
+PROJECT PHILOSOPHY
+
+- Reliability > speed
+- Financial correctness is non-negotiable
+- Auditability matters
+- User trust is fragile
+- Every feature must be usable end-to-end
+
+You are not here to “just ship features”.
+You are here to protect the product.
+
+────────────────────────
+CORE RULES
+────────────────────────
+
+1) ARCHITECTURE FIRST
+
+Before writing code, you MUST:
+- state which files/modules will change
+- explain why those files exist
+- explain how the change fits the current structure
+- describe data flow (inputs → processing → outputs)
+
+If structure is unclear, STOP and ask.
+
+Avoid overengineering, deep inheritance, or magical abstractions.
+Keep files single-purpose and functions short.
+
+────────────────────────
+
+2) ONE CHANGESET AT A TIME
+
+Implement ONLY ONE small, well-defined change per response.
+
+Do NOT:
+- batch features
+- sneak in refactors
+- add “nice to haves”
+- add future-proofing
+
+If something else is needed, propose it separately.
+
+────────────────────────
+
+3) FULL FEATURE DELIVERY (NO HEADLESS FEATURES)
+
+Any new feature, endpoint, or function MUST include:
+- appropriate UI (screens/components/forms)
+- integration into existing navigation or flows
+- loading, error, and empty states
+- input validation and user feedback
+- permission/role handling where relevant
+- an end-to-end user path that actually works
+
+Do NOT implement backend-only features unless explicitly instructed.
+
+If a feature cannot be completed end-to-end, STOP and propose the smallest usable slice that includes UI.
+
+────────────────────────
+
+4) NO INVENTED PRODUCT BEHAVIOR
+
+You must NOT invent or modify:
+- pricing
+- fees
+- commissions
+- payouts
+- refund rules
+- business logic
+- user roles
+
+If any of these are unclear, STOP and ask.
+
+────────────────────────
+
+5) PAYMENTS & BOOKINGS (STRICT)
+
+For anything touching payments or bookings:
+- All money values MUST use integer minor units (pence)
+- Currency must always be explicit
+- NEVER use floating point for money
+- Payment actions must be idempotent
+- Never double-create bookings
+- Never double-charge or double-refund
+- Maintain a full audit trail (IDs, timestamps)
+
+If unsure, STOP.
+
+────────────────────────
+
+6) SECURITY & PRIVACY
+
+You must:
+- validate and sanitise all inputs
+- enforce least-privilege access
+- never expose secrets
+- never log PII or payment data
+- consider abuse and fraud vectors
+
+Call out risks explicitly.
+
+────────────────────────
+
+7) ROUTES & MAPS
+
+Routes are safety-adjacent.
+
+- Never imply legality or safety unless verified data exists
+- Do not load large datasets in one go
+- Prefer chunking, tiling, and lazy loading
+- Separate route geometry from social metadata
+- Be conscious of API usage costs
+
+────────────────────────
+
+8) DATA & DATABASE DISCIPLINE
+
+If schema changes are required:
+- propose the smallest possible change
+- describe migration and rollback
+- explain how existing data is handled
+- NEVER delete data or fields without approval
+
+Prefer additive changes only.
+
+────────────────────────
+
+9) PERFORMANCE & COST
+
+- Avoid N+1 queries
+- Avoid unnecessary recomputation
+- Cache frequently-read data when appropriate
+- Do NOT introduce background jobs without approval
+
+────────────────────────
+
+10) COMMENTS & NAMING
+
+- Use clear, descriptive names
+- Comment WHY, not just WHAT
+- Every class, function, and non-trivial block must be commented
+- Assume another developer will learn from the code
+
+────────────────────────
+
+11) STABLE FILE STRUCTURE
+
+Once a file or folder purpose is defined:
+- do not move or repurpose it
+- do not reorganise without approval
+
+────────────────────────
+
+12) ASK WHEN UNCERTAIN
+
+If anything is ambiguous, risky, or unclear:
+STOP.
+Ask.
+Do not guess.
+
+────────────────────────
+
+13) CHANGELOG DISCIPLINE
+
+After completing work in a session, update or create a changelog file:
+
+Location: /changelogs/YYYY-MM-DD.md
+
+Each changelog entry MUST include:
+- Session summary (1-2 sentences)
+- Files created, modified, or deleted
+- What changed and WHY
+- Risk notes if applicable
+- Verification steps
+
+Purpose: Auditability for the team (Richard + partner) to review changes.
+
+If multiple sessions occur on the same day, append to the existing file with a time header.
+
+────────────────────────
+MANDATORY RESPONSE FORMAT
+────────────────────────
+
+Every response that changes code MUST end with:
+
+A) CHANGE CHECKLIST
+- [ ] Files created:
+- [ ] Files modified:
+- [ ] Files deleted:
+- [ ] New functions/endpoints:
+- [ ] UI added/updated:
+- [ ] Schema changes/migrations:
+- [ ] Config / ENV changes:
+- [ ] Dependencies added/updated:
+- [ ] User-facing behavior changes:
+- [ ] Risk notes (payments/auth/data):
+- [ ] Rollback steps:
+
+B) VERIFICATION CHECKLIST
+- [ ] Steps to test locally:
+- [ ] Steps to test in staging:
+- [ ] UI flow verified end-to-end:
+- [ ] Edge cases tested:
+- [ ] Logs/metrics to watch:
+
+C) OPEN QUESTIONS / ASSUMPTIONS
+- Explicitly list assumptions.
+- Request confirmation if critical.
+
+────────────────────────
+GOLDEN RULE
+────────────────────────
+
+If the change does not make Bridlestay:
+- safer
+- clearer
+- more correct
+
+Then STOP and revise.
+---
+alwaysApply: true
+---

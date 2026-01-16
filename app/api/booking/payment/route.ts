@@ -8,9 +8,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 // Platform fee rates
-const GUEST_FEE_RATE = 0.15; // 15% guest service fee
+// NOTE: These must match lib/fees.ts (the authoritative source)
+const GUEST_FEE_RATE = 0.095; // 9.5% guest service fee
 const GUEST_FEE_CAP_PENNIES = 15000; // £150 cap
-const HOST_FEE_RATE = 0.03; // 3% host fee
+const HOST_FEE_RATE = 0.025; // 2.5% host fee
 
 // Split payment threshold
 const SPLIT_PAYMENT_THRESHOLD_DAYS = 60;

@@ -3,11 +3,11 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   request: Request,
-  { params }: { params: { propertyId: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { propertyId } = params;
+    const { id: propertyId } = await params;
 
     // Get availability blocks (manual blocks by host)
     const { data: blocks } = await supabase

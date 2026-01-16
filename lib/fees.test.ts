@@ -7,11 +7,11 @@ describe("Fee Calculations", () => {
       // £200 base price
       const breakdown = calculatePriceBreakdown(20000);
 
-      // Guest fee: 12.5% = £25 = 2500 pennies
-      expect(breakdown.guestFeePennies).toBe(2500);
+      // Guest fee: 9.5% = £19 = 1900 pennies
+      expect(breakdown.guestFeePennies).toBe(1900);
 
-      // Guest fee VAT: 20% of £25 = £5 = 500 pennies
-      expect(breakdown.guestFeeVatPennies).toBe(500);
+      // Guest fee VAT: 20% of £19 = £3.80 = 380 pennies
+      expect(breakdown.guestFeeVatPennies).toBe(380);
 
       // Host fee: 2.5% = £5 = 500 pennies
       expect(breakdown.hostFeePennies).toBe(500);
@@ -19,15 +19,16 @@ describe("Fee Calculations", () => {
       // Host fee VAT: 20% of £5 = £1 = 100 pennies
       expect(breakdown.hostFeeVatPennies).toBe(100);
 
-      // Total charge: £200 + £25 + £5 = £230 = 23000 pennies
-      expect(breakdown.totalChargePennies).toBe(23000);
+      // Total charge: £200 + £19 + £3.80 = £222.80 = 22280 pennies
+      expect(breakdown.totalChargePennies).toBe(22280);
 
       // Host payout: £200 - £5 - £1 = £194 = 19400 pennies
       expect(breakdown.hostPayoutPennies).toBe(19400);
     });
 
     it("caps guest fee at £150", () => {
-      // £2000 base price - guest fee would be £250 without cap
+      // £2000 base price - guest fee would be £190 (9.5%) without cap
+      // But £190 > £150, so it gets capped
       const breakdown = calculatePriceBreakdown(200000);
 
       // Guest fee capped at £150 = 15000 pennies
@@ -44,11 +45,11 @@ describe("Fee Calculations", () => {
       // £10 base price
       const breakdown = calculatePriceBreakdown(1000);
 
-      // Guest fee: 12.5% = £1.25 = 125 pennies
-      expect(breakdown.guestFeePennies).toBe(125);
+      // Guest fee: 9.5% = £0.95 = 95 pennies
+      expect(breakdown.guestFeePennies).toBe(95);
 
-      // Guest fee VAT: 20% of 125 = 25 pennies
-      expect(breakdown.guestFeeVatPennies).toBe(25);
+      // Guest fee VAT: 20% of 95 = 19 pennies
+      expect(breakdown.guestFeeVatPennies).toBe(19);
 
       // Host fee: 2.5% = £0.25 = 25 pennies
       expect(breakdown.hostFeePennies).toBe(25);
@@ -56,8 +57,8 @@ describe("Fee Calculations", () => {
       // Host fee VAT: 20% of 25 = 5 pennies
       expect(breakdown.hostFeeVatPennies).toBe(5);
 
-      // Total: £10 + £1.25 + £0.25 = £11.50 = 1150 pennies
-      expect(breakdown.totalChargePennies).toBe(1150);
+      // Total: £10 + £0.95 + £0.19 = £11.14 = 1114 pennies
+      expect(breakdown.totalChargePennies).toBe(1114);
 
       // Host payout: £10 - £0.25 - £0.05 = £9.70 = 970 pennies
       expect(breakdown.hostPayoutPennies).toBe(970);
@@ -67,11 +68,11 @@ describe("Fee Calculations", () => {
       // £100.33 base price (10033 pennies)
       const breakdown = calculatePriceBreakdown(10033);
 
-      // Guest fee: 12.5% = 1254.125 → 1254 pennies
-      expect(breakdown.guestFeePennies).toBe(1254);
+      // Guest fee: 9.5% = 953.135 → 953 pennies
+      expect(breakdown.guestFeePennies).toBe(953);
 
-      // Guest fee VAT: 20% of 1254 = 250.8 → 251 pennies
-      expect(breakdown.guestFeeVatPennies).toBe(251);
+      // Guest fee VAT: 20% of 953 = 190.6 → 191 pennies
+      expect(breakdown.guestFeeVatPennies).toBe(191);
 
       // Host fee: 2.5% = 250.825 → 251 pennies
       expect(breakdown.hostFeePennies).toBe(251);

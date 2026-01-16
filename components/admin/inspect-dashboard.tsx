@@ -309,7 +309,7 @@ export function InspectDashboard({
                         key={user.id}
                         className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
                         onClick={() => {
-                          selectUser(user.id);
+                          fetchUserData(user.id);
                           setShowUserDropdown(false);
                           setUserSearch(user.name || user.email || "");
                         }}
@@ -721,7 +721,7 @@ export function InspectDashboard({
                         key={property.id}
                         className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
                         onClick={() => {
-                          selectProperty(property.id);
+                          fetchPropertyData(property.id);
                           setShowPropertyDropdown(false);
                           setPropertySearch(property.name || "");
                         }}

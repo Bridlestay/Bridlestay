@@ -2,10 +2,13 @@
  * Fee Calculations for Cantra
  *
  * Business Rules:
- * - Guest fee: 12.5% of base price, capped at £150 (15000 pennies)
+ * - Guest fee: 9.5% of base price, capped at £150 (15000 pennies)
  * - Host fee: 2.5% of base price
  * - VAT (20%) is applied ONLY to service fees (guest fee + host fee)
  * - All amounts stored in pennies to avoid float precision issues
+ *
+ * AUTHORITATIVE SOURCE: This file is the single source of truth for all fee calculations.
+ * Do not duplicate or override these rates elsewhere.
  */
 
 export interface PriceBreakdown {
@@ -26,8 +29,8 @@ export interface PriceBreakdown {
 export function calculatePriceBreakdown(
   basePricePennies: number
 ): PriceBreakdown {
-  // Guest fee: 12.5% capped at £150 (15000 pennies)
-  const guestFeeRaw = Math.round(0.125 * basePricePennies);
+  // Guest fee: 9.5% capped at £150 (15000 pennies)
+  const guestFeeRaw = Math.round(0.095 * basePricePennies);
   const guestFeePennies = Math.min(guestFeeRaw, 15000);
 
   // VAT on guest fee: 20%
