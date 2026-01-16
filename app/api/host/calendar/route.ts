@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
         users:guest_id (id, name, email, avatar_url)
       `)
       .eq("properties.host_id", user.id)
-      .gte("check_in", start)
-      .lte("check_out", end)
-      .order("check_in", { ascending: true });
+      .gte("start_date", start)
+      .lte("end_date", end)
+      .order("start_date", { ascending: true });
 
     if (error) throw error;
 
@@ -48,11 +48,12 @@ export async function GET(request: NextRequest) {
       .lte("end_date", end);
 
     // Calculate revenue and stats
-    const confirmedBookings = bookings?.filter(b => b.status === 'confirmed') || [];
-    const pendingBookings = bookings?.filter(b => b.status === 'pending') || [];
+    // Include both "accepted" (confirmed) and "requested" (pending) bookings
+    const confirmedBookings = bookings?.filter(b => b.status === 'accepted' || b.status === 'completed') || [];
+    const pendingBookings = bookings?.filter(b => b.status === 'requested') || [];
     
-    const totalRevenue = confirmedBookings.reduce((sum, b) => sum + (b.total_price_pennies || 0), 0);
-    const pendingRevenue = pendingBookings.reduce((sum, b) => sum + (b.total_price_pennies || 0), 0);
+    const totalRevenue = confirmedBookings.reduce((sum, b) => sum + (b.total_charge_pennies || 0), 0);
+    const pendingRevenue = pendingBookings.reduce((sum, b) => sum + (b.total_charge_pennies || 0), 0);
 
     return NextResponse.json({
       bookings: bookings || [],

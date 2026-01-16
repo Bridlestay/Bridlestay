@@ -152,6 +152,11 @@ export function BookingForm({ propertyId, property }: BookingFormProps) {
   const [checkingVerification, setCheckingVerification] = useState(true);
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [loadingDates, setLoadingDates] = useState(true);
+  const [discount, setDiscount] = useState<{
+    type: string;
+    name: string;
+    percent: number;
+  } | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -200,29 +205,83 @@ export function BookingForm({ propertyId, property }: BookingFormProps) {
     setHorses(selectedHorseIds.length);
   }, [selectedHorseIds]);
 
+  // Calculate nights - must be defined before useEffect that uses it
   const nights =
     checkIn && checkOut
       ? differenceInDays(new Date(checkOut), new Date(checkIn))
       : 0;
 
+  // Fetch applicable discount when dates change
+  useEffect(() => {
+    const fetchDiscount = async () => {
+      if (!checkIn || nights <= 0) {
+        setDiscount(null);
+        return;
+      }
+
+      try {
+        const supabase = createClient();
+        const { data: discountData } = await supabase
+          .rpc("get_best_discount", {
+            p_property_id: propertyId,
+            p_checkin_date: checkIn,
+            p_nights: nights,
+            p_is_first_time_booking: false, // We'll check this on the server
+          });
+
+        if (discountData && discountData.length > 0 && discountData[0].discount_percent > 0) {
+          setDiscount({
+            type: discountData[0].discount_type,
+            name: discountData[0].discount_name,
+            percent: discountData[0].discount_percent,
+          });
+        } else {
+          setDiscount(null);
+        }
+      } catch (error) {
+        console.error("Error fetching discount:", error);
+        setDiscount(null);
+      }
+    };
+
+    fetchDiscount();
+  }, [propertyId, checkIn, nights]);
+
   // Calculate total base amount including per-horse fees and cleaning
   const calculateTotalBasePennies = () => {
     if (nights <= 0) return 0;
     
-    let total = property.nightly_price_pennies * nights;
+    let nightlyTotal = property.nightly_price_pennies * nights;
     
     // Add per-horse fee if applicable
     if (property.per_horse_fee_pennies && horses > 0) {
-      total += property.per_horse_fee_pennies * horses * nights;
+      nightlyTotal += property.per_horse_fee_pennies * horses * nights;
     }
     
-    // Add cleaning fee (one-time)
+    // Apply discount to nightly total (not cleaning fee)
+    const discountAmount = discount 
+      ? Math.round(nightlyTotal * (discount.percent / 100))
+      : 0;
+    const discountedNightlyTotal = nightlyTotal - discountAmount;
+    
+    // Add cleaning fee (one-time, not discounted)
+    let total = discountedNightlyTotal;
     if (property.cleaning_fee_pennies) {
       total += property.cleaning_fee_pennies;
     }
     
     return total;
   };
+
+  // Calculate discount amount for display
+  const discountAmountPennies = (() => {
+    if (!discount || nights <= 0) return 0;
+    let nightlyTotal = property.nightly_price_pennies * nights;
+    if (property.per_horse_fee_pennies && horses > 0) {
+      nightlyTotal += property.per_horse_fee_pennies * horses * nights;
+    }
+    return Math.round(nightlyTotal * (discount.percent / 100));
+  })();
 
   const breakdown =
     nights > 0
@@ -239,12 +298,12 @@ export function BookingForm({ propertyId, property }: BookingFormProps) {
       return;
     }
 
-    const minimumNights = property.minimum_nights || 1;
-    if (nights < minimumNights) {
+    const minNights = property.min_nights || 1;
+    if (nights < minNights) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: `Minimum stay is ${minimumNights} night${minimumNights > 1 ? 's' : ''}`,
+        description: `Minimum stay is ${minNights} night${minNights > 1 ? 's' : ''}`,
       });
       return;
     }
@@ -473,6 +532,14 @@ export function BookingForm({ propertyId, property }: BookingFormProps) {
                     Horse fee: £{(property.per_horse_fee_pennies / 100).toFixed(2)} x {horses} horse{horses > 1 ? 's' : ''} x {nights} night{nights > 1 ? 's' : ''}
                   </span>
                   <span>£{((property.per_horse_fee_pennies * horses * nights) / 100).toFixed(2)}</span>
+                </div>
+              )}
+              
+              {/* Discount display */}
+              {discount && discountAmountPennies > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>{discount.name} ({discount.percent}% off)</span>
+                  <span>-£{(discountAmountPennies / 100).toFixed(2)}</span>
                 </div>
               )}
               

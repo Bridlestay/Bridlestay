@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { formatGBP } from "@/lib/fees";
 import { HorseIcon } from "@/components/icons/horseshoe";
+import { ActivityFeed } from "@/components/admin/activity-feed";
 
 interface AnalyticsData {
   summary: {
@@ -713,99 +714,7 @@ export function AnalyticsDashboard() {
 
       {/* ========== ACTIVITY TAB ========== */}
       <TabsContent value="activity" className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Recent Activity Feed
-            </CardTitle>
-            <CardDescription>Latest bookings, users, and properties</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Recent Bookings */}
-              <div>
-                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Recent Bookings
-                </h3>
-                <div className="space-y-2">
-                  {recentActivity.bookings.slice(0, 5).map((booking) => (
-                    <div key={booking.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{booking.guestName}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {booking.propertyName}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                        <Badge variant={booking.status === "accepted" ? "default" : "secondary"}>
-                          {booking.status}
-                        </Badge>
-                        <span className="text-sm font-medium">{formatGBP(booking.amount)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Recent Users */}
-              <div>
-                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Recent Users
-                </h3>
-                <div className="space-y-2">
-                  {recentActivity.users.slice(0, 5).map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{user.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                        <Badge variant="outline" className="capitalize">
-                          {user.role}
-                        </Badge>
-                        {user.verified ? (
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <AlertCircle className="h-4 w-4 text-yellow-600" />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Recent Properties */}
-              <div>
-                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                  <Home className="h-4 w-4" />
-                  Recent Properties
-                </h3>
-                <div className="space-y-2">
-                  {recentActivity.properties.slice(0, 5).map((property) => (
-                    <div key={property.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{property.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {property.location} • Host: {property.hostName}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                        {property.verified ? (
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <AlertCircle className="h-4 w-4 text-yellow-600" />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ActivityFeed />
       </TabsContent>
     </Tabs>
   );

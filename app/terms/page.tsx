@@ -169,7 +169,7 @@ export default function TermsPage() {
               
               <h3 className="font-semibold text-xl mt-4 mb-2">6.1 Pricing & Fees</h3>
               <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
-                <p><strong>Guest Service Fee:</strong> 12.5% of booking subtotal (capped at £150) + VAT</p>
+                <p><strong>Guest Service Fee:</strong> 9.5% of booking subtotal (no cap) + VAT</p>
                 <p><strong>Host Platform Fee:</strong> 2.5% of booking subtotal + VAT</p>
                 <p><strong>Instant Payout Fee:</strong> £1.99 per transfer (optional)</p>
               </div>

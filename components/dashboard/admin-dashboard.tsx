@@ -151,7 +151,7 @@ export function AdminDashboard({ user }: { user: any }) {
         { data: bookingsData },
       ] = await Promise.all([
         supabase.from("users").select("*").order("created_at", { ascending: false }).limit(10),
-        supabase.from("properties").select("*, users:host_id(name)").order("created_at", { ascending: false }).limit(10),
+        supabase.from("properties").select("*, users:host_id(id, name, avatar_url)").order("created_at", { ascending: false }).limit(10),
         supabase.from("bookings").select("*").order("created_at", { ascending: false }).limit(10),
       ]);
 
@@ -306,7 +306,7 @@ export function AdminDashboard({ user }: { user: any }) {
       } else {
         const { data: propertiesData } = await supabase
           .from("properties")
-          .select("*, users:host_id(name)")
+          .select("*, users:host_id(id, name, avatar_url)")
           .order("created_at", { ascending: false })
           .limit(10);
         setProperties(propertiesData || []);
@@ -855,6 +855,7 @@ export function AdminDashboard({ user }: { user: any }) {
                     <TableHead>Name</TableHead>
                     <TableHead>Host</TableHead>
                     <TableHead>County</TableHead>
+                    <TableHead>Country</TableHead>
                     <TableHead>Verified</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
@@ -863,7 +864,7 @@ export function AdminDashboard({ user }: { user: any }) {
                 <TableBody>
                   {filteredProperties.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         No properties found matching your filters
                       </TableCell>
                     </TableRow>
@@ -880,8 +881,30 @@ export function AdminDashboard({ user }: { user: any }) {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>{property.users?.name}</TableCell>
+                      <TableCell>
+                        {property.users?.id ? (
+                          <Link 
+                            href={`/profile/${property.users.id}`} 
+                            className="flex items-center gap-2 hover:underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={property.users.avatar_url || undefined} />
+                              <AvatarFallback className="text-xs bg-primary/10">
+                                {property.users.name?.[0]?.toUpperCase() || "?"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{property.users.name}</span>
+                          </Link>
+                        ) : (
+                          <span className="text-muted-foreground">Unknown</span>
+                        )}
+                      </TableCell>
                       <TableCell>{property.county}</TableCell>
+                      <TableCell>
+                        <span className="text-muted-foreground">England</span>
+                      </TableCell>
                       <TableCell>
                         {property.admin_verified ? "✅" : "❌"}
                       </TableCell>

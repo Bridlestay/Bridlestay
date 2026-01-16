@@ -500,7 +500,7 @@ export default async function PropertyPage({
                       ...property,
                       // Use property_equine.max_horses as the authoritative value
                       max_horses: equine?.max_horses ?? property.max_horses ?? 0,
-                      minimum_nights: property.minimum_nights || 1,
+                      min_nights: property.min_nights || 1,
                     }} 
                   />
                   

@@ -345,7 +345,7 @@ export function PropertyPricingStep({ data, onNext, userId, propertyId }: Pricin
           )}
         </div>
         <p className="text-xs text-muted-foreground mt-3">
-          Platform service fee (15%) will be added for guests. You'll receive your payout minus host fee (3%).
+          Platform service fee (9.5% + VAT) will be added for guests. You'll receive your payout minus host fee (2.5%).
         </p>
       </div>
 

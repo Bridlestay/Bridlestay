@@ -343,18 +343,23 @@ export function AdminModerationQueue() {
             <TabsList className="mb-4">
               <TabsTrigger value="high" className="relative">
                 High Priority
-                {highPriority.length > 0 && (
+                {highPriority.length > 0 ? (
                   <Badge className="ml-2 h-5 px-1.5 bg-red-500">{highPriority.length}</Badge>
+                ) : (
+                  <span className="ml-1 text-muted-foreground">(0)</span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="medium">
                 Medium
-                {mediumPriority.length > 0 && (
-                  <span className="ml-1 text-muted-foreground">({mediumPriority.length})</span>
+                {mediumPriority.length > 0 ? (
+                  <Badge className="ml-2 h-5 px-1.5 bg-amber-500">{mediumPriority.length}</Badge>
+                ) : (
+                  <span className="ml-1 text-muted-foreground">(0)</span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="low">
-                Low ({lowPriority.length})
+                Low
+                <span className="ml-1 text-muted-foreground">({lowPriority.length})</span>
               </TabsTrigger>
             </TabsList>
 

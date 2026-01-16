@@ -26,19 +26,18 @@ describe("Fee Calculations", () => {
       expect(breakdown.hostPayoutPennies).toBe(19400);
     });
 
-    it("caps guest fee at £150", () => {
-      // £2000 base price - guest fee would be £190 (9.5%) without cap
-      // But £190 > £150, so it gets capped
+    it("does NOT cap guest fee (no cap)", () => {
+      // £2000 base price - guest fee is 9.5% = £190 (no cap)
       const breakdown = calculatePriceBreakdown(200000);
 
-      // Guest fee capped at £150 = 15000 pennies
-      expect(breakdown.guestFeePennies).toBe(15000);
+      // Guest fee: 9.5% of £2000 = £190 = 19000 pennies (no cap)
+      expect(breakdown.guestFeePennies).toBe(19000);
 
-      // Guest fee VAT: 20% of £150 = £30 = 3000 pennies
-      expect(breakdown.guestFeeVatPennies).toBe(3000);
+      // Guest fee VAT: 20% of £190 = £38 = 3800 pennies
+      expect(breakdown.guestFeeVatPennies).toBe(3800);
 
-      // Total: £2000 + £150 + £30 = £2180 = 218000 pennies
-      expect(breakdown.totalChargePennies).toBe(218000);
+      // Total: £2000 + £190 + £38 = £2228 = 222800 pennies
+      expect(breakdown.totalChargePennies).toBe(222800);
     });
 
     it("handles small amounts correctly", () => {

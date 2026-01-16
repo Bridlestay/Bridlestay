@@ -191,6 +191,21 @@ export function AdvancedPricingSettings({
       }
     }
 
+    // Check seasonal discounts - check if simulated check-in date falls within range
+    const simulatedCheckIn = new Date();
+    simulatedCheckIn.setDate(simulatedCheckIn.getDate() + previewDaysBeforeCheckin);
+    const checkInStr = simulatedCheckIn.toISOString().split('T')[0];
+    
+    for (const discount of seasonalDiscounts.filter(d => d.enabled)) {
+      if (checkInStr >= discount.start_date && checkInStr <= discount.end_date) {
+        applicableDiscounts.push({
+          type: "seasonal",
+          name: discount.name || "Seasonal discount",
+          percent: discount.discount_percent,
+        });
+      }
+    }
+
     // Check first-time rider discount
     if (settings.first_time_rider_discount_enabled && previewIsFirstTime) {
       applicableDiscounts.push({
@@ -233,6 +248,7 @@ export function AdvancedPricingSettings({
   }, [
     lastMinuteDiscounts, 
     lengthOfStayDiscounts, 
+    seasonalDiscounts,
     settings, 
     previewNights, 
     previewDaysBeforeCheckin, 
@@ -247,8 +263,14 @@ export function AdvancedPricingSettings({
       ? subtotal * (previewDiscount.totalPercent / 100) 
       : 0;
     const discountedSubtotal = subtotal - discountAmount;
-    const serviceFee = Math.min(discountedSubtotal * 0.15, 150); // 15% capped at £150
-    const total = discountedSubtotal + serviceFee;
+    const serviceFee = discountedSubtotal * 0.095; // 9.5% guest service fee (no cap)
+    const serviceFeeVat = serviceFee * 0.2; // 20% VAT on service fee
+    const total = discountedSubtotal + serviceFee + serviceFeeVat;
+    
+    // Host fee: 2.5% + 20% VAT on that = 2.5% + 0.5% = 3% effective
+    const hostFee = discountedSubtotal * 0.025; // 2.5% host fee
+    const hostFeeVat = hostFee * 0.2; // 20% VAT on host fee
+    const hostPayout = discountedSubtotal - hostFee - hostFeeVat;
 
     return {
       nightlyRate: nightlyRateGBP,
@@ -256,8 +278,11 @@ export function AdvancedPricingSettings({
       discountAmount,
       discountedSubtotal,
       serviceFee,
+      serviceFeeVat,
       total,
-      hostPayout: discountedSubtotal * 0.97, // 3% host fee
+      hostFee,
+      hostFeeVat,
+      hostPayout,
     };
   }, [baseNightlyPrice, previewNights, previewDiscount]);
 
@@ -953,8 +978,12 @@ export function AdvancedPricingSettings({
                   )}
                   
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Service fee (15%)</span>
+                    <span className="text-muted-foreground">Service fee (9.5%)</span>
                     <span>£{previewPrices.serviceFee.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Service fee VAT (20%)</span>
+                    <span>£{previewPrices.serviceFeeVat.toFixed(2)}</span>
                   </div>
                   
                   <Separator />

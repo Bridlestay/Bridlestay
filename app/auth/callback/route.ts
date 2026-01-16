@@ -5,48 +5,73 @@ import { getWelcomeMessage } from "@/lib/system-messages";
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
+  const tokenHash = requestUrl.searchParams.get("token_hash");
+  const type = requestUrl.searchParams.get("type");
   const origin = requestUrl.origin;
 
+  const supabase = await createClient();
+  let sessionData: any = null;
+
+  // Handle OAuth code exchange (regular sign-in)
   if (code) {
-    const supabase = await createClient();
-    const { data: sessionData } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      console.error("Code exchange error:", error);
+    } else {
+      sessionData = data;
+    }
+  }
 
-    // Check if this is a new user (first login)
-    if (sessionData?.user) {
-      const { data: userData } = await supabase
-        .from("users")
-        .select("created_at, name")
-        .eq("id", sessionData.user.id)
-        .single();
+  // Handle magic link / OTP token verification
+  if (tokenHash && type) {
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: type as any,
+    });
+    if (error) {
+      console.error("Token verification error:", error);
+    } else {
+      sessionData = data;
+    }
+  }
 
-      // If user was created recently (within last minute), send welcome message
-      if (userData) {
-        const createdAt = new Date(userData.created_at);
-        const now = new Date();
-        const minutesSinceCreation = (now.getTime() - createdAt.getTime()) / 1000 / 60;
+  // Check if this is a new user (first login) and send welcome message
+  if (sessionData?.user) {
+    const { data: userData } = await supabase
+      .from("users")
+      .select("created_at, name")
+      .eq("id", sessionData.user.id)
+      .single();
 
-        if (minutesSinceCreation < 1) {
-          // Send welcome message
-          const welcomeMsg = getWelcomeMessage(
-            sessionData.user.id,
-            userData.name || "there"
-          );
+    // If user was created recently (within last minute), send welcome message
+    if (userData) {
+      const createdAt = new Date(userData.created_at);
+      const now = new Date();
+      const minutesSinceCreation = (now.getTime() - createdAt.getTime()) / 1000 / 60;
 
-          try {
-            await fetch(`${origin}/api/system/send-message`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(welcomeMsg),
-            });
-            console.log("✅ Welcome message sent to new user");
-          } catch (error) {
-            console.error("Failed to send welcome message:", error);
-          }
+      if (minutesSinceCreation < 1) {
+        // Send welcome message
+        const welcomeMsg = getWelcomeMessage(
+          sessionData.user.id,
+          userData.name || "there"
+        );
+
+        try {
+          await fetch(`${origin}/api/system/send-message`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(welcomeMsg),
+          });
+          console.log("✅ Welcome message sent to new user");
+        } catch (error) {
+          console.error("Failed to send welcome message:", error);
         }
       }
     }
   }
 
-  return NextResponse.redirect(new URL("/dashboard", requestUrl.origin));
+  // Get redirect destination from query params or default to dashboard
+  const next = requestUrl.searchParams.get("next") || "/dashboard";
+  return NextResponse.redirect(new URL(next, origin));
 }
 

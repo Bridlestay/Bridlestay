@@ -196,12 +196,6 @@ export function Header() {
                       My Favorites
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/claims" className="cursor-pointer">
-                      <AlertTriangle className="mr-2 h-4 w-4" />
-                      Claims
-                    </Link>
-                  </DropdownMenuItem>
                   {(user.role === "host" || user.role === "admin") && (
                     <DropdownMenuItem asChild>
                       <Link href="/host/listings" className="cursor-pointer">
@@ -240,6 +234,12 @@ export function Header() {
                     <Link href="/feedback" className="cursor-pointer">
                       <MessageSquarePlus className="mr-2 h-4 w-4" />
                       Send Feedback
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/claims" className="cursor-pointer">
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      Claims
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

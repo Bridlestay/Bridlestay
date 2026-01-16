@@ -220,7 +220,7 @@ export default function HelpPage() {
                           <li><strong>Extra guest/horse fees:</strong> Added per night if applicable</li>
                           <li><strong>Discounts applied:</strong> Any automated discounts (length-of-stay, last-minute, etc.)</li>
                           <li><strong>Cleaning fees:</strong> One-time fee (may show house + stable breakdown)</li>
-                          <li><strong>Service fee:</strong> Cantra platform fee (15% capped at £150, plus VAT)</li>
+                          <li><strong>Service fee:</strong> Cantra platform fee (9.5% + VAT, no cap)</li>
                         </ol>
                         <p className="mt-3">
                           <strong>Hosts set all prices</strong> — Cantra remains neutral. You'll always see a complete, 
@@ -384,7 +384,7 @@ export default function HelpPage() {
                       <div className="space-y-3 text-muted-foreground">
                         <p className="font-semibold text-foreground">Guest Service Fee:</p>
                         <ul className="list-disc list-inside ml-4 space-y-1">
-                          <li><strong>12.5%</strong> service fee (capped at £150)</li>
+                          <li><strong>9.5%</strong> service fee (no cap)</li>
                           <li>Plus VAT (20%) on the service fee</li>
                           <li>Covers payment processing, customer support, and platform maintenance</li>
                         </ul>
@@ -393,7 +393,7 @@ export default function HelpPage() {
                         <ul className="list-disc list-inside ml-4 space-y-1">
                           <li><strong>2.5%</strong> platform fee</li>
                           <li>Plus VAT (20%) on the platform fee</li>
-                          <li>You keep <strong>97.5%</strong> of your listing price</li>
+                          <li>You keep <strong>97%</strong> of your listing price (after fee + VAT)</li>
                         </ul>
                         
                         <p className="font-semibold text-foreground mt-4">Instant Payout Fee:</p>
@@ -403,7 +403,7 @@ export default function HelpPage() {
                         </ul>
                         
                         <p className="mt-4 text-sm">
-                          <strong>Example:</strong> £200 booking → Guest pays £227.50 (£200 + £25 service fee + £2.50 VAT) → Host receives £194 (£200 - £5 platform fee - £1 VAT)
+                          <strong>Example:</strong> £200 booking → Guest pays £222.80 (£200 + £19 service fee + £3.80 VAT) → Host receives £194 (£200 - £5 platform fee - £1 VAT)
                         </p>
                         
                         <p className="mt-4 italic">

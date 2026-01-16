@@ -34,7 +34,7 @@ export function PriceBreakdownDisplay({
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs">
-                  Guest service fee: 12.5% (capped at £150)
+                  Guest service fee: 9.5% (no cap)
                   <br />
                   Includes 20% VAT on service fee
                 </p>

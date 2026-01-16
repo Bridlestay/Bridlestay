@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { createClient } from "@/lib/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -46,7 +45,7 @@ interface Claim {
   admin_notes?: string;
   admin_decision_at?: string;
   property: { id: string; name: string };
-  booking: { id: string; start_date: string; end_date: string; total_pennies?: number };
+  booking: { id: string; start_date: string; end_date: string; total_charge_pennies?: number };
   host: { id: string; name: string; avatar_url?: string; email?: string };
   guest: { id: string; name: string; avatar_url?: string; email?: string };
 }
@@ -69,27 +68,22 @@ export function AdminDamageClaims() {
   const loadClaims = async () => {
     setLoading(true);
     try {
-      const supabase = createClient();
+      // Use admin API endpoint that uses service role
+      const response = await fetch("/api/admin/damage-claims");
       
-      const { data, error } = await supabase
-        .from("property_damage_claims")
-        .select(`
-          *,
-          property:properties (id, name),
-          booking:bookings (id, start_date, end_date, total_pennies),
-          host:users!property_damage_claims_host_id_fkey (id, name, avatar_url, email),
-          guest:users!property_damage_claims_guest_id_fkey (id, name, avatar_url, email)
-        `)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setClaims(data || []);
-    } catch (error) {
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch claims");
+      }
+      
+      const data = await response.json();
+      setClaims(data.claims || []);
+    } catch (error: any) {
       console.error("Error loading claims:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load damage claims",
+        description: error.message || "Failed to load damage claims",
       });
     } finally {
       setLoading(false);
@@ -209,18 +203,23 @@ export function AdminDamageClaims() {
             <TabsList className="mb-4">
               <TabsTrigger value="needs_review" className="relative">
                 Needs Review
-                {needsReview.length > 0 && (
+                {needsReview.length > 0 ? (
                   <Badge className="ml-2 h-5 px-1.5 bg-red-500">{needsReview.length}</Badge>
+                ) : (
+                  <span className="ml-1 text-muted-foreground">(0)</span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="pending">
                 Awaiting Guest
-                {pendingGuest.length > 0 && (
-                  <span className="ml-1 text-muted-foreground">({pendingGuest.length})</span>
+                {pendingGuest.length > 0 ? (
+                  <Badge className="ml-2 h-5 px-1.5 bg-amber-500">{pendingGuest.length}</Badge>
+                ) : (
+                  <span className="ml-1 text-muted-foreground">(0)</span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="resolved">
-                Resolved ({resolved.length})
+                Resolved
+                <span className="ml-1 text-muted-foreground">({resolved.length})</span>
               </TabsTrigger>
             </TabsList>
 

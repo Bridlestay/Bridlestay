@@ -153,14 +153,48 @@ export async function POST(request: Request) {
     }
 
     // Calculate total base price including all fees
-    let totalBasePennies = property.nightly_price_pennies * nights;
+    let nightlyTotal = property.nightly_price_pennies * nights;
 
     // Add per-horse fee if applicable
     if (property.per_horse_fee_pennies && horseCount > 0) {
-      totalBasePennies += property.per_horse_fee_pennies * horseCount * nights;
+      nightlyTotal += property.per_horse_fee_pennies * horseCount * nights;
     }
 
-    // Add cleaning fee (one-time)
+    // Check if this is the user's first booking
+    const { count: previousBookings } = await supabase
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("guest_id", user.id)
+      .in("status", ["accepted", "completed"]);
+    
+    const isFirstTimeBooking = (previousBookings || 0) === 0;
+
+    // Get best discount using the database function
+    let discountPercent = 0;
+    let discountType: string | null = null;
+    let discountName: string | null = null;
+
+    const { data: discountData } = await supabase
+      .rpc("get_best_discount", {
+        p_property_id: propertyId,
+        p_checkin_date: startDate,
+        p_nights: nights,
+        p_is_first_time_booking: isFirstTimeBooking,
+      });
+
+    if (discountData && discountData.length > 0) {
+      discountPercent = discountData[0].discount_percent || 0;
+      discountType = discountData[0].discount_type;
+      discountName = discountData[0].discount_name;
+      console.log(`[BOOKING] Discount applied: ${discountName} (${discountPercent}%)`);
+    }
+
+    // Apply discount to nightly total (discounts apply to nightly rates, not cleaning fees)
+    const discountAmount = Math.round(nightlyTotal * (discountPercent / 100));
+    const discountedNightlyTotal = nightlyTotal - discountAmount;
+
+    // Add cleaning fee (one-time, not discounted)
+    let totalBasePennies = discountedNightlyTotal;
     if (property.cleaning_fee_pennies) {
       totalBasePennies += property.cleaning_fee_pennies;
     }
@@ -184,25 +218,39 @@ export async function POST(request: Request) {
     });
 
     // Create booking record
+    const bookingData: Record<string, any> = {
+      property_id: propertyId,
+      guest_id: user.id,
+      start_date: startDate,
+      end_date: endDate,
+      nights,
+      guests: guestCount,
+      horses: horseCount,
+      base_price_pennies: breakdown.basePricePennies,
+      guest_fee_pennies: breakdown.guestFeePennies,
+      guest_fee_vat_pennies: breakdown.guestFeeVatPennies,
+      host_fee_pennies: breakdown.hostFeePennies,
+      host_fee_vat_pennies: breakdown.hostFeeVatPennies,
+      total_charge_pennies: breakdown.totalChargePennies,
+      status: "requested",
+      stripe_payment_intent_id: paymentIntent.id,
+      original_subtotal_pennies: nightlyTotal + (property.cleaning_fee_pennies || 0), // Before discount
+      total_discount_pennies: discountAmount,
+    };
+
+    // Add discount info if applicable
+    if (discountPercent > 0) {
+      bookingData.discounts_applied = [{
+        type: discountType,
+        name: discountName,
+        percent: discountPercent,
+        amount_pennies: discountAmount,
+      }];
+    }
+
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
-      .insert({
-        property_id: propertyId,
-        guest_id: user.id,
-        start_date: startDate,
-        end_date: endDate,
-        nights,
-        guests: guestCount,
-        horses: horseCount,
-        base_price_pennies: breakdown.basePricePennies,
-        guest_fee_pennies: breakdown.guestFeePennies,
-        guest_fee_vat_pennies: breakdown.guestFeeVatPennies,
-        host_fee_pennies: breakdown.hostFeePennies,
-        host_fee_vat_pennies: breakdown.hostFeeVatPennies,
-        total_charge_pennies: breakdown.totalChargePennies,
-        status: "requested",
-        stripe_payment_intent_id: paymentIntent.id,
-      })
+      .insert(bookingData)
       .select()
       .single();
 

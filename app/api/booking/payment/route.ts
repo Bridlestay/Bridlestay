@@ -9,9 +9,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 // Platform fee rates
 // NOTE: These must match lib/fees.ts (the authoritative source)
-const GUEST_FEE_RATE = 0.095; // 9.5% guest service fee
-const GUEST_FEE_CAP_PENNIES = 15000; // £150 cap
-const HOST_FEE_RATE = 0.025; // 2.5% host fee
+const GUEST_FEE_RATE = 0.095; // 9.5% guest service fee (no cap)
+const HOST_FEE_RATE = 0.025; // 2.5% host fee (no cap)
 
 // Split payment threshold
 const SPLIT_PAYMENT_THRESHOLD_DAYS = 60;
@@ -84,8 +83,8 @@ export async function POST(request: NextRequest) {
     
     const subtotal = accommodationTotal + cleaningFee;
     
-    // Calculate guest fee (15%, capped at £150)
-    const guestFee = Math.min(Math.round(subtotal * GUEST_FEE_RATE), GUEST_FEE_CAP_PENNIES);
+    // Calculate guest fee (9.5%, no cap)
+    const guestFee = Math.round(subtotal * GUEST_FEE_RATE);
     
     // Calculate host fee (3%)
     const hostFee = Math.round(subtotal * HOST_FEE_RATE);

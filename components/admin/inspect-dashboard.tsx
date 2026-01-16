@@ -39,7 +39,21 @@ import {
   MapPin,
   Image as ImageIcon,
   Camera,
+  Key,
+  Link2,
+  UserCog,
+  ExternalLink,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Link from "next/link";
 
 // Debounce hook for predictive search
@@ -84,9 +98,53 @@ export function InspectDashboard({
   const [searching, setSearching] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showPropertyDropdown, setShowPropertyDropdown] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showImpersonateDialog, setShowImpersonateDialog] = useState(false);
+  const [impersonateUrl, setImpersonateUrl] = useState<string | null>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const propertyDropdownRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Admin user action handler
+  const performUserAction = async (action: string) => {
+    if (!userData?.user?.id) return;
+    
+    setActionLoading(action);
+    try {
+      const response = await fetch("/api/admin/user-actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          targetUserId: userData.user.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Action failed");
+      }
+
+      if (action === "impersonate" && data.impersonationUrl) {
+        setImpersonateUrl(data.impersonationUrl);
+        setShowImpersonateDialog(true);
+      } else {
+        toast({
+          title: "Success",
+          description: data.message,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to perform action",
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   // Debounced search values for predictive search
   const debouncedUserSearch = useDebounce(userSearch, 300);
@@ -433,6 +491,58 @@ export function InspectDashboard({
                         <MessageSquare className="h-4 w-4 mr-1" /> Message
                       </Button>
                     </Link>
+                  </div>
+
+                  {/* Admin Actions */}
+                  <Separator className="my-3" />
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Admin Actions
+                    </p>
+                    <div className="grid grid-cols-1 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => performUserAction("send_password_reset")}
+                        disabled={actionLoading !== null}
+                      >
+                        {actionLoading === "send_password_reset" ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Key className="h-4 w-4 mr-2" />
+                        )}
+                        Send Password Reset
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => performUserAction("send_magic_link")}
+                        disabled={actionLoading !== null}
+                      >
+                        {actionLoading === "send_magic_link" ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Link2 className="h-4 w-4 mr-2" />
+                        )}
+                        Send Magic Link
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                        onClick={() => performUserAction("impersonate")}
+                        disabled={actionLoading !== null}
+                      >
+                        {actionLoading === "impersonate" ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <UserCog className="h-4 w-4 mr-2" />
+                        )}
+                        Login as User
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1194,6 +1304,48 @@ export function InspectDashboard({
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Impersonation Confirmation Dialog */}
+      <AlertDialog open={showImpersonateDialog} onOpenChange={setShowImpersonateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <UserCog className="h-5 w-5 text-amber-600" />
+              Login as User
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <span className="block">
+                  You are about to log in as <strong className="text-foreground">{userData?.user?.name || "this user"}</strong>.
+                </span>
+                <span className="block text-amber-600 font-medium">
+                  ⚠️ This action has been logged for audit purposes.
+                </span>
+                <span className="block">
+                  Clicking the link below will log you in as this user in a new tab. 
+                  Your current admin session will remain active in this tab.
+                </span>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            {impersonateUrl && (
+              <a
+                href={impersonateUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShowImpersonateDialog(false)}
+              >
+                <AlertDialogAction className="w-full bg-amber-600 hover:bg-amber-700">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open as User
+                </AlertDialogAction>
+              </a>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

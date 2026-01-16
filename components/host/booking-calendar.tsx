@@ -41,12 +41,12 @@ const localizer = dateFnsLocalizer({
 
 interface Booking {
   id: string;
-  check_in: string;
-  check_out: string;
+  start_date: string;
+  end_date: string;
   status: string;
   num_guests: number;
   num_horses: number;
-  total_price_pennies: number;
+  total_charge_pennies: number;
   properties: {
     id: string;
     name: string;
@@ -115,8 +115,8 @@ export function BookingCalendar() {
     return bookings.map((booking) => ({
       id: booking.id,
       title: `${booking.properties.name} - ${booking.users.name}`,
-      start: new Date(booking.check_in),
-      end: new Date(booking.check_out),
+      start: new Date(booking.start_date),
+      end: new Date(booking.end_date),
       resource: booking,
     }));
   }, [bookings]);
@@ -125,10 +125,12 @@ export function BookingCalendar() {
     const status = event.resource.status;
     let backgroundColor = '#3174ad';
     
-    if (status === 'confirmed') backgroundColor = '#10b981'; // green
-    if (status === 'pending') backgroundColor = '#f59e0b'; // orange
+    // Map status to colors
+    if (status === 'accepted' || status === 'confirmed') backgroundColor = '#10b981'; // green
+    if (status === 'requested' || status === 'pending') backgroundColor = '#f59e0b'; // orange
     if (status === 'declined') backgroundColor = '#ef4444'; // red
     if (status === 'cancelled') backgroundColor = '#6b7280'; // gray
+    if (status === 'completed') backgroundColor = '#3b82f6'; // blue
 
     return {
       style: {
@@ -269,18 +271,26 @@ export function BookingCalendar() {
               </Button>
             </div>
           </div>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
               <span className="w-2 h-2 rounded-full bg-green-600 mr-1"></span>
-              Confirmed
+              Accepted
             </Badge>
             <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300">
               <span className="w-2 h-2 rounded-full bg-orange-600 mr-1"></span>
-              Pending
+              Requested
+            </Badge>
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+              <span className="w-2 h-2 rounded-full bg-blue-600 mr-1"></span>
+              Completed
             </Badge>
             <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">
               <span className="w-2 h-2 rounded-full bg-red-600 mr-1"></span>
               Declined
+            </Badge>
+            <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-300">
+              <span className="w-2 h-2 rounded-full bg-gray-500 mr-1"></span>
+              Cancelled
             </Badge>
           </div>
         </CardHeader>
@@ -330,13 +340,13 @@ export function BookingCalendar() {
                 <div>
                   <p className="text-sm font-medium">Check-in</p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(selectedBooking.check_in), 'PPP')}
+                    {format(new Date(selectedBooking.start_date), 'PPP')}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium">Check-out</p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(selectedBooking.check_out), 'PPP')}
+                    {format(new Date(selectedBooking.end_date), 'PPP')}
                   </p>
                 </div>
               </div>
@@ -361,7 +371,7 @@ export function BookingCalendar() {
               </div>
               <div>
                 <p className="text-sm font-medium">Total</p>
-                <p className="text-lg font-bold">{formatGBP(selectedBooking.total_price_pennies)}</p>
+                <p className="text-lg font-bold">{formatGBP(selectedBooking.total_charge_pennies)}</p>
               </div>
             </div>
           )}
