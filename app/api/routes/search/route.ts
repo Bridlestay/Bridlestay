@@ -23,16 +23,11 @@ export async function POST(request: NextRequest) {
     // Get current user for myRoutes filter
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Start building query
+    // Start building query - simplified to avoid timeout
+    // Don't join route_photos as it causes timeout issues
     let query = supabase
       .from("routes")
-      .select(
-        `
-        *,
-        route_photos (url, caption, order_index)
-      `,
-        { count: "exact" }
-      );
+      .select("*", { count: "exact" });
 
     // Filter by ownership - for "my routes", show ALL user's routes regardless of visibility
     if (myRoutes && user) {

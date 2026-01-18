@@ -45,11 +45,11 @@ export async function POST(
     const { id } = await params;
     const routeId = id;
     const body = await request.json();
-    const { lat, lng, name, description, icon_type, photo_url, order_index } = body;
+    const { lat, lng, name, description, icon_type, photo_url, order_index, snapped, snapped_to_path_type } = body;
 
-    if (!lat || !lng || !name) {
+    if (lat === undefined || lng === undefined) {
       return NextResponse.json(
-        { error: "Latitude, longitude, and name are required" },
+        { error: "Latitude and longitude are required" },
         { status: 400 }
       );
     }
@@ -65,18 +65,25 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Build insert object with only provided fields
+    const insertData: any = {
+      route_id: routeId,
+      lat,
+      lng,
+      order_index: order_index || 0,
+    };
+    
+    // Only add optional fields if provided (these columns may or may not exist)
+    if (name !== undefined) insertData.name = name;
+    if (description !== undefined) insertData.description = description;
+    if (icon_type !== undefined) insertData.icon_type = icon_type;
+    if (photo_url !== undefined) insertData.photo_url = photo_url;
+    if (snapped !== undefined) insertData.snapped = snapped;
+    if (snapped_to_path_type !== undefined) insertData.snapped_to_path_type = snapped_to_path_type;
+
     const { data: waypoint, error } = await supabase
       .from("route_waypoints")
-      .insert({
-        route_id: routeId,
-        lat,
-        lng,
-        name,
-        description: description || null,
-        icon_type: icon_type || "other",
-        photo_url: photo_url || null,
-        order_index: order_index || 0,
-      })
+      .insert(insertData)
       .select()
       .single();
 

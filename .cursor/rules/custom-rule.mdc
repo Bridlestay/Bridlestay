@@ -169,9 +169,11 @@ Do not guess.
 
 ────────────────────────
 
-13) CHANGELOG DISCIPLINE
+13) CHANGELOG DISCIPLINE (MANDATORY - ALWAYS UPDATE!)
 
-After completing work in a session, update or create a changelog file:
+**CRITICAL: The changelog MUST be updated for EVERY SINGLE CHANGE made to the codebase.**
+
+After ANY code modification, update or create a changelog file:
 
 Location: /changelogs/YYYY-MM-DD.md
 
@@ -181,12 +183,15 @@ Each changelog entry MUST include:
 - What changed and WHY
 - Risk notes if applicable
 - Verification steps
+- SQL migrations that need to be run (if any)
 
 Purpose: Auditability for the team (Richard + partner) to review changes.
 
 If multiple sessions occur on the same day, append to the existing file with a time header.
 
 As soon as a new day/session begins, create a newly dated changelog file.
+
+**NEVER complete a task without updating the changelog. This is NON-NEGOTIABLE.**
 
 ────────────────────────
 MANDATORY RESPONSE FORMAT

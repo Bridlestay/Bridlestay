@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
-// DELETE - Delete/soft delete comment
+// DELETE - Delete a comment (soft delete)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; commentId: string }> }
@@ -18,39 +18,46 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get comment and route info
-    const { data: comment } = await supabase
+    // Check if user owns the comment or is admin
+    const { data: comment, error: fetchError } = await supabase
       .from("route_comments")
-      .select("user_id, route_id")
+      .select("user_id")
       .eq("id", commentId)
+      .eq("route_id", routeId)
       .single();
 
-    if (!comment) {
+    if (fetchError || !comment) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
 
-    // Check if user owns comment or owns the route
-    const { data: route } = await supabase
-      .from("routes")
-      .select("owner_user_id")
-      .eq("id", routeId)
+    // Check if admin
+    const { data: userData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
       .single();
 
-    const canDelete = comment.user_id === user.id || route?.owner_user_id === user.id;
+    const isAdmin = userData?.role === "admin";
 
-    if (!canDelete) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (comment.user_id !== user.id && !isAdmin) {
+      return NextResponse.json(
+        { error: "Not authorized to delete this comment" },
+        { status: 403 }
+      );
     }
 
-    // Soft delete (mark as deleted)
-    const { error } = await supabase
+    // Soft delete by setting deleted_at
+    const { error: deleteError } = await supabase
       .from("route_comments")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", commentId);
 
-    if (error) {
-      console.error("[ROUTE_COMMENT_DELETE] Error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (deleteError) {
+      console.error("[ROUTE_COMMENT_DELETE] Error:", deleteError);
+      return NextResponse.json(
+        { error: deleteError.message },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true });
@@ -62,6 +69,3 @@ export async function DELETE(
     );
   }
 }
-
-
-

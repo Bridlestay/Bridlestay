@@ -1,199 +1,355 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
-import { validateRoutePhotoUpload } from '@/lib/file-validation';
+import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
 
+// GET - Get photos for a route
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id } = await params;
+    const { id: routeId } = await params;
 
-    // Fetch all photos for this route (including user-uploaded and stock photos)
-    const { data: userPhotos, error: userError } = await supabase
-      .from('route_user_photos')
+    // Get route photos - basic query without new columns that may not exist yet
+    const { data: routePhotos, error: routeError } = await supabase
+      .from("route_photos")
       .select(`
         *,
-        user:user_id (
-          username,
-          avatar_url
-        )
+        uploader:users!route_photos_uploaded_by_user_id_fkey(id, name, avatar_url)
       `)
-      .eq('route_id', id)
-      .order('uploaded_at', { ascending: false });
+      .eq("route_id", routeId)
+      .order("order_index", { ascending: true })
+      .order("created_at", { ascending: false });
 
-    if (userError) throw userError;
+    if (routeError) throw routeError;
 
-    const { data: stockPhotos, error: stockError } = await supabase
-      .from('route_photos')
-      .select('*')
-      .eq('route_id', id)
-      .order('order_index');
+    // Separate photos by type (handle gracefully if columns don't exist)
+    const photos = routePhotos || [];
+    const coverPhoto = photos.find(p => p.is_cover === true);
+    const displayPhotos = photos.filter(p => p.is_display === true && p.is_cover !== true);
+    const authorPhotos = photos.filter(p => p.photo_type === 'author');
+    const userPhotos = photos.filter(p => p.photo_type === 'user' || p.photo_type === 'completion' || !p.photo_type);
 
-    if (stockError) throw stockError;
+    // Get user-contributed photos from completions table (if it exists)
+    let completionPhotos: any[] = [];
+    try {
+      const { data } = await supabase
+        .from("route_user_photos")
+        .select(`
+          *,
+          user:users!route_user_photos_user_id_fkey(id, name, avatar_url)
+        `)
+        .eq("route_id", routeId)
+        .order("created_at", { ascending: false });
+      completionPhotos = data || [];
+    } catch {
+      // Table may not exist, ignore
+    }
 
-    return NextResponse.json({
-      userPhotos: userPhotos || [],
-      stockPhotos: stockPhotos || []
+    return NextResponse.json({ 
+      photos: photos,
+      coverPhoto: coverPhoto || null,
+      displayPhotos,
+      authorPhotos,
+      userPhotos: [...userPhotos, ...completionPhotos],
     });
-  } catch (error) {
-    console.error('Error fetching route photos:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch photos' },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error("[ROUTE_PHOTOS_GET] Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
+// POST - Upload a photo to a route
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id } = await params;
+    const { id: routeId } = await params;
 
     const { data: { user } } = await supabase.auth.getUser();
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user has completed this route
-    const { data: completion } = await supabase
-      .from('route_completions')
-      .select('id')
-      .eq('route_id', id)
-      .eq('user_id', user.id)
-      .maybeSingle();
+    // Check content type to determine if it's a file upload or JSON
+    const contentType = request.headers.get("content-type") || "";
+    
+    if (contentType.includes("multipart/form-data")) {
+      // Handle file upload
+      const formData = await request.formData();
+      const file = formData.get("file") as File;
+      
+      if (!file) {
+        return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      }
 
-    if (!completion) {
-      return NextResponse.json(
-        { error: 'You must complete this route before uploading photos' },
-        { status: 403 }
-      );
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        return NextResponse.json({ error: "File must be an image" }, { status: 400 });
+      }
+
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        return NextResponse.json({ error: "File too large (max 10MB)" }, { status: 400 });
+      }
+
+      // Check if user is route owner or admin
+      const { data: route } = await supabase
+        .from("routes")
+        .select("owner_user_id")
+        .eq("id", routeId)
+        .single();
+
+      const { data: userData } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      const isOwnerOrAdmin = route?.owner_user_id === user.id || userData?.role === "admin";
+
+      // Upload to Supabase Storage
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${routeId}/${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("route-photos")
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error("[ROUTE_PHOTOS_UPLOAD] Error:", uploadError);
+        return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("route-photos")
+        .getPublicUrl(fileName);
+
+      if (isOwnerOrAdmin) {
+        // Store in route_photos table (official route photos)
+        const { data: photo, error } = await supabase
+          .from("route_photos")
+          .insert({
+            route_id: routeId,
+            url: publicUrl,
+            caption: formData.get("caption") as string || null,
+            uploaded_by_user_id: user.id,
+            order_index: 0,
+            photo_type: 'author',
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        return NextResponse.json({ photo }, { status: 201 });
+      } else {
+        // Store in user photos table (for community photos)
+        const { data: photo, error } = await supabase
+          .from("route_user_photos")
+          .insert({
+            route_id: routeId,
+            user_id: user.id,
+            url: publicUrl,
+            caption: formData.get("caption") as string || null,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        return NextResponse.json({ photo }, { status: 201 });
+      }
+    } else {
+      // Handle JSON body (for route owner adding photos by URL)
+      const body = await request.json();
+      const { url, caption, order_index } = body;
+
+      // Check if user owns the route for URL-based uploads
+      const { data: route } = await supabase
+        .from("routes")
+        .select("owner_user_id")
+        .eq("id", routeId)
+        .single();
+
+      if (!route || route.owner_user_id !== user.id) {
+        return NextResponse.json({ error: "Only route owner can add photos by URL" }, { status: 403 });
+      }
+
+      if (!url) {
+        return NextResponse.json({ error: "Photo URL is required" }, { status: 400 });
+      }
+
+      const { data: photo, error } = await supabase
+        .from("route_photos")
+        .insert({
+          route_id: routeId,
+          url,
+          caption,
+          uploaded_by_user_id: user.id,
+          order_index: order_index || 0,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return NextResponse.json({ photo }, { status: 201 });
     }
-
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const caption = formData.get('caption') as string;
-
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    }
-
-    // Validate file
-    const validation = await validateRoutePhotoUpload(file);
-    if (!validation.valid) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
-    }
-
-    // Upload to storage
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('route-photos')
-      .upload(fileName, file, {
-        contentType: file.type,
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (uploadError) throw uploadError;
-
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('route-photos')
-      .getPublicUrl(fileName);
-
-    // Insert photo record
-    const { data: photo, error: insertError } = await supabase
-      .from('route_user_photos')
-      .insert({
-        route_id: id,
-        user_id: user.id,
-        url: publicUrl,
-        caption: caption || null
-      })
-      .select(`
-        *,
-        user:user_id (
-          username,
-          avatar_url
-        )
-      `)
-      .single();
-
-    if (insertError) throw insertError;
-
-    return NextResponse.json({ success: true, photo });
-  } catch (error) {
-    console.error('Error uploading route photo:', error);
-    return NextResponse.json(
-      { error: 'Failed to upload photo' },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error("[ROUTE_PHOTOS_POST] Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
+// DELETE - Delete a user photo
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    const { id: routeId } = await params;
     const { searchParams } = new URL(request.url);
-    const photoId = searchParams.get('photoId');
+    const photoId = searchParams.get("photoId");
 
     if (!photoId) {
-      return NextResponse.json({ error: 'Photo ID required' }, { status: 400 });
+      return NextResponse.json({ error: "Photo ID required" }, { status: 400 });
     }
 
-    // Get photo to find storage path
-    const { data: photo, error: fetchError } = await supabase
-      .from('route_user_photos')
-      .select('url, user_id')
-      .eq('id', photoId)
-      .eq('user_id', user.id)
-      .single();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (fetchError || !photo) {
-      return NextResponse.json({ error: 'Photo not found' }, { status: 404 });
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Extract file path from URL
-    const urlParts = photo.url.split('/route-photos/');
-    if (urlParts.length > 1) {
-      const filePath = urlParts[1];
-
-      // Delete from storage
-      await supabase.storage
-        .from('route-photos')
-        .remove([filePath]);
-    }
-
-    // Delete from database
-    const { error: deleteError } = await supabase
-      .from('route_user_photos')
+    // Delete from user photos (users can only delete their own)
+    const { error } = await supabase
+      .from("route_user_photos")
       .delete()
-      .eq('id', photoId)
-      .eq('user_id', user.id);
+      .eq("id", photoId)
+      .eq("user_id", user.id);
 
-    if (deleteError) throw deleteError;
+    if (error) throw error;
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting route photo:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete photo' },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error("[ROUTE_PHOTOS_DELETE] Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// PATCH - Update photo settings (cover, display, etc.)
+// NOTE: Requires migration 057_route_photos_categorization.sql to be run
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const supabase = await createClient();
+    const { id: routeId } = await params;
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user is route owner or admin
+    const { data: route } = await supabase
+      .from("routes")
+      .select("owner_user_id")
+      .eq("id", routeId)
+      .single();
+
+    const { data: userData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const isOwnerOrAdmin = route?.owner_user_id === user.id || userData?.role === "admin";
+
+    if (!isOwnerOrAdmin) {
+      return NextResponse.json({ error: "Only route owner can update photo settings" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { photoId, is_cover, is_display } = body;
+
+    if (!photoId) {
+      return NextResponse.json({ error: "Photo ID required" }, { status: 400 });
+    }
+
+    // Check if the new columns exist by trying a simple query
+    const { error: schemaError } = await supabase
+      .from("route_photos")
+      .select("is_cover")
+      .eq("id", photoId)
+      .limit(1);
+
+    if (schemaError) {
+      // Columns don't exist yet - migration not run
+      return NextResponse.json({ 
+        error: "Photo categorization not available. Please run migration 057_route_photos_categorization.sql",
+        requiresMigration: true 
+      }, { status: 400 });
+    }
+
+    // If setting as cover, first unset any existing cover
+    if (is_cover === true) {
+      await supabase
+        .from("route_photos")
+        .update({ is_cover: false })
+        .eq("route_id", routeId)
+        .eq("is_cover", true);
+
+      // Also update routes.cover_photo_id if column exists
+      try {
+        await supabase
+          .from("routes")
+          .update({ cover_photo_id: photoId })
+          .eq("id", routeId);
+      } catch {
+        // Column might not exist, ignore
+      }
+    }
+
+    // Update the photo
+    const updateData: any = {};
+    if (typeof is_cover === "boolean") updateData.is_cover = is_cover;
+    if (typeof is_display === "boolean") updateData.is_display = is_display;
+
+    // Don't use .single() in case the update affects 0 rows
+    const { data: photos, error } = await supabase
+      .from("route_photos")
+      .update(updateData)
+      .eq("id", photoId)
+      .eq("route_id", routeId)
+      .select();
+
+    if (error) throw error;
+
+    const photo = photos?.[0] || null;
+
+    // If removing cover, also clear routes.cover_photo_id
+    if (is_cover === false && photo) {
+      try {
+        await supabase
+          .from("routes")
+          .update({ cover_photo_id: null })
+          .eq("id", routeId)
+          .eq("cover_photo_id", photoId);
+      } catch {
+        // Column might not exist, ignore
+      }
+    }
+
+    return NextResponse.json({ photo, success: true });
+  } catch (error: any) {
+    console.error("[ROUTE_PHOTOS_PATCH] Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
