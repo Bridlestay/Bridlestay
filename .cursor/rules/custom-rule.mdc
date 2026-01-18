@@ -186,6 +186,8 @@ Purpose: Auditability for the team (Richard + partner) to review changes.
 
 If multiple sessions occur on the same day, append to the existing file with a time header.
 
+As soon as a new day/session begins, create a newly dated changelog file.
+
 ────────────────────────
 MANDATORY RESPONSE FORMAT
 ────────────────────────

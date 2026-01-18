@@ -60,10 +60,50 @@ export async function POST(request: Request) {
       );
     }
 
-    // TODO: For v2, schedule capture on check-in date via cron/queue
-    // For MVP, capture immediately
+    // Check PaymentIntent status before capturing
     if (booking.stripe_payment_intent_id) {
+      const paymentIntent = await stripe.paymentIntents.retrieve(
+        booking.stripe_payment_intent_id
+      );
+
+      // PaymentIntent must be in requires_capture status (guest has confirmed payment)
+      if (paymentIntent.status === "requires_payment_method") {
+        return NextResponse.json(
+          { 
+            error: "Guest has not completed payment yet. The booking cannot be accepted until they provide payment details.",
+            paymentStatus: paymentIntent.status 
+          },
+          { status: 400 }
+        );
+      }
+
+      if (paymentIntent.status === "canceled") {
+        return NextResponse.json(
+          { 
+            error: "Payment was canceled. This booking cannot be accepted.",
+            paymentStatus: paymentIntent.status 
+          },
+          { status: 400 }
+        );
+      }
+
+      if (paymentIntent.status !== "requires_capture") {
+        return NextResponse.json(
+          { 
+            error: `Payment is not ready to be captured. Current status: ${paymentIntent.status}`,
+            paymentStatus: paymentIntent.status 
+          },
+          { status: 400 }
+        );
+      }
+
+      // Payment is ready - capture it
       await stripe.paymentIntents.capture(booking.stripe_payment_intent_id);
+    } else {
+      return NextResponse.json(
+        { error: "No payment information found for this booking" },
+        { status: 400 }
+      );
     }
 
     // Update booking status
