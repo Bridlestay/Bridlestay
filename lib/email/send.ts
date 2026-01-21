@@ -236,7 +236,7 @@ export async function sendWelcomeEmail(params: SendWelcomeEmailParams) {
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: params.to,
-      subject: '🐴 Welcome to Cantra! Your Equestrian Journey Starts Here',
+      subject: '🐴 Welcome to padoq! Your Equestrian Journey Starts Here',
       html: emailHtml,
     });
 

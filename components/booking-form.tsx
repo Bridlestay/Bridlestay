@@ -313,7 +313,7 @@ export function BookingForm({ propertyId, property }: BookingFormProps) {
       toast({
         variant: "destructive",
         title: "Horse Required",
-        description: "Cantra is for equestrian accommodation - you must bring at least 1 horse to book.",
+        description: "padoq is for equestrian accommodation - you must bring at least 1 horse to book.",
       });
       return;
     }

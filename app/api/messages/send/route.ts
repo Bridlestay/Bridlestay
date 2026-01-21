@@ -137,7 +137,7 @@ export async function POST(request: Request) {
         await sendNewMessageNotification({
           to: recipientData.email,
           recipientName: recipientData.name || 'there',
-          senderName: senderData.name || 'A Cantra user',
+          senderName: senderData.name || 'A padoq user',
           propertyName,
           messagePreview: message,
           messageId: newMessage.id,

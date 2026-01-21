@@ -96,37 +96,37 @@ export const NewMessageEmail = ({
           </div>
 
           <div style={{ textAlign: 'center' }}>
-            <a href={`https://cantra.app/messages?conversation=${messageId}`} className="button">
+            <a href={`https://padoq.com/messages?conversation=${messageId}`} className="button">
               View & Reply
             </a>
           </div>
 
           <div className="info-box">
             <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
-              <strong>💡 Tip:</strong> Quick responses help build trust in the Cantra community. 
+              <strong>💡 Tip:</strong> Quick responses help build trust in the padoq community. 
               Try to reply within 24 hours when possible.
             </p>
           </div>
 
           <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '25px' }}>
             <strong>Note:</strong> All messages are monitored for safety and policy compliance. 
-            Please keep all booking arrangements within the Cantra platform.
+            Please keep all booking arrangements within the padoq platform.
           </p>
 
           <p style={{ marginTop: '30px' }}>
             Best regards,<br/>
-            <strong>The Cantra Team</strong>
+            <strong>The padoq Team</strong>
           </p>
         </div>
 
         <div className="footer">
-          <p>© {new Date().getFullYear()} Cantra. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} padoq. All rights reserved.</p>
           <p>
-            <a href="https://cantra.app/account" style={{ color: '#6b7280' }}>Notification Settings</a> | 
-            <a href="https://cantra.app/help" style={{ color: '#6b7280' }}>Help</a>
+            <a href="https://padoq.com/account" style={{ color: '#6b7280' }}>Notification Settings</a> | 
+            <a href="https://padoq.com/help" style={{ color: '#6b7280' }}>Help</a>
           </p>
           <p style={{ marginTop: '15px' }}>
-            You&apos;re receiving this because someone sent you a message on Cantra.<br/>
+            You&apos;re receiving this because someone sent you a message on padoq.<br/>
             You can manage your email preferences in your account settings.
           </p>
         </div>

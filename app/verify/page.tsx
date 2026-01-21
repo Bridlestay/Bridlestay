@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Shield, Lock, FileCheck, Clock } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Verify Your Identity | Cantra",
+  title: "Verify Your Identity | padoq",
   description: "Verify your identity to build trust and unlock full platform features",
 };
 
@@ -19,7 +19,7 @@ export default function VerifyPage() {
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-serif font-bold">Verify Your Identity</h1>
             <p className="text-muted-foreground">
-              Help us keep Cantra safe and trustworthy for everyone
+              Help us keep padoq safe and trustworthy for everyone
             </p>
           </div>
 

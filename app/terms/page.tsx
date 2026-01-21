@@ -28,7 +28,7 @@ export default function TermsPage() {
                 </p>
                 <ul className="list-disc list-inside space-y-2 ml-4 text-sm">
                   <li>
-                    <strong>Off-Platform Payments:</strong> All payments must be processed through Cantra to ensure protection for both guests and hosts
+                    <strong>Off-Platform Payments:</strong> All payments must be processed through padoq to ensure protection for both guests and hosts
                   </li>
                   <li>
                     <strong>Respectful Communication:</strong> Harassment, discrimination, or abusive language is not tolerated
@@ -49,7 +49,7 @@ export default function TermsPage() {
             <section>
               <h2 className="font-serif text-3xl font-bold mb-4">1. Agreement to Terms</h2>
               <p>
-                By accessing or using Cantra ("Platform," "Service," "we," "us"), you agree to be bound by these Terms of Service ("Terms"). 
+                By accessing or using padoq ("Platform," "Service," "we," "us"), you agree to be bound by these Terms of Service ("Terms"). 
                 If you disagree with any part of these Terms, you may not access the Service.
               </p>
               <p className="mt-3">
@@ -64,7 +64,7 @@ export default function TermsPage() {
                 <li>Be at least 18 years old</li>
                 <li>Provide accurate, current, and complete information</li>
                 <li>Maintain the security of your account</li>
-                <li>Not have been previously banned from Cantra</li>
+                <li>Not have been previously banned from padoq</li>
                 <li>Comply with all applicable laws in your jurisdiction</li>
               </ul>
             </section>
@@ -82,7 +82,7 @@ export default function TermsPage() {
 
               <h3 className="font-semibold text-xl mt-4 mb-2">3.2 Verification</h3>
               <p>
-                Cantra requires admin verification before you can make bookings or accept reservations. 
+                padoq requires admin verification before you can make bookings or accept reservations. 
                 We may require additional identification or documentation at any time.
               </p>
 
@@ -160,7 +160,7 @@ export default function TermsPage() {
               <h3 className="font-semibold text-xl mt-4 mb-2">5.3 Property Damage</h3>
               <p>
                 Guests are financially responsible for any damage caused to property, equipment, or facilities by 
-                themselves, their guests, or their horses. Cantra may charge the payment method on file to cover damages.
+                themselves, their guests, or their horses. padoq may charge the payment method on file to cover damages.
               </p>
             </section>
 
@@ -193,7 +193,7 @@ export default function TermsPage() {
               <h3 className="font-semibold text-xl mt-4 mb-2">6.4 Taxes</h3>
               <p>
                 Hosts are responsible for determining and paying all applicable taxes (income tax, VAT, occupancy tax, etc.). 
-                Cantra applies VAT to platform fees as required by UK law.
+                padoq applies VAT to platform fees as required by UK law.
               </p>
             </section>
 
@@ -217,7 +217,7 @@ export default function TermsPage() {
                 <li>Submitted within 14 days after checkout</li>
               </ul>
               <p className="mt-3">
-                Cantra reserves the right to remove reviews that violate these guidelines or our content policy.
+                padoq reserves the right to remove reviews that violate these guidelines or our content policy.
               </p>
             </section>
 
@@ -230,7 +230,7 @@ export default function TermsPage() {
                     ⚠️ IMPORTANT LIMITATION OF LIABILITY
                   </p>
                   <p className="text-sm text-yellow-900 dark:text-yellow-100">
-                    Cantra is a marketplace platform connecting Hosts and Guests. We do not own, operate, manage, 
+                    padoq is a marketplace platform connecting Hosts and Guests. We do not own, operate, manage, 
                     or control any properties. We are not responsible for the actions or omissions of Hosts or Guests.
                   </p>
                 </CardContent>
@@ -255,13 +255,13 @@ export default function TermsPage() {
                 <li>Third-party claims</li>
               </ul>
               <p className="mt-3">
-                Our total liability for any claim shall not exceed the fees you paid to Cantra in the 12 months 
+                Our total liability for any claim shall not exceed the fees you paid to padoq in the 12 months 
                 prior to the claim.
               </p>
 
               <h3 className="font-semibold text-xl mt-4 mb-2">9.3 Indemnification</h3>
               <p>
-                You agree to indemnify and hold harmless Cantra, its officers, directors, employees, and agents 
+                You agree to indemnify and hold harmless padoq, its officers, directors, employees, and agents 
                 from any claims, damages, losses, or expenses (including legal fees) arising from:
               </p>
               <ul className="list-disc list-inside space-y-1 ml-4">
@@ -277,7 +277,7 @@ export default function TermsPage() {
               <h2 className="font-serif text-3xl font-bold mb-4">10. Insurance</h2>
               <p>
                 <strong>Hosts:</strong> You are strongly encouraged to maintain appropriate insurance for your property, 
-                including liability coverage. Cantra does not provide property or liability insurance.
+                including liability coverage. padoq does not provide property or liability insurance.
               </p>
               <p className="mt-3">
                 <strong>Guests:</strong> You should have appropriate equine and personal liability insurance. You are 
@@ -303,11 +303,11 @@ export default function TermsPage() {
             <section>
               <h2 className="font-serif text-3xl font-bold mb-4">12. Intellectual Property</h2>
               <p>
-                All content on Cantra, including text, graphics, logos, and software, is owned by Cantra or 
+                All content on padoq, including text, graphics, logos, and software, is owned by padoq or 
                 its licensors and is protected by copyright and trademark laws.
               </p>
               <p className="mt-3">
-                By uploading content (photos, descriptions, reviews), you grant Cantra a worldwide, non-exclusive, 
+                By uploading content (photos, descriptions, reviews), you grant padoq a worldwide, non-exclusive, 
                 royalty-free license to use, display, and distribute your content in connection with the Service.
               </p>
             </section>
@@ -325,7 +325,7 @@ export default function TermsPage() {
               
               <h3 className="font-semibold text-xl mt-4 mb-2">14.1 Internal Resolution</h3>
               <p>
-                We encourage users to resolve disputes directly. If issues arise, contact Cantra support 
+                We encourage users to resolve disputes directly. If issues arise, contact padoq support 
                 for mediation assistance.
               </p>
 
@@ -381,8 +381,8 @@ export default function TermsPage() {
                 For questions about these Terms, please contact us at:
               </p>
               <div className="bg-muted p-4 rounded-lg mt-3 space-y-1 text-sm">
-                <p><strong>Email:</strong> legal@cantra.app</p>
-                <p><strong>Support:</strong> support@cantra.app</p>
+                <p><strong>Email:</strong> legal@padoq.com</p>
+                <p><strong>Support:</strong> support@padoq.com</p>
                 <p><strong>Address:</strong> [Your Business Address]</p>
               </div>
             </section>
@@ -390,7 +390,7 @@ export default function TermsPage() {
             <section className="border-t pt-6 mt-8">
               <p className="text-sm text-muted-foreground italic">
                 These Terms of Service were last updated on {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}. 
-                By using Cantra, you acknowledge that you have read, understood, and agree to be bound by these Terms.
+                By using padoq, you acknowledge that you have read, understood, and agree to be bound by these Terms.
               </p>
             </section>
           </div>

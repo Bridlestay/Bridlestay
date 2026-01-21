@@ -182,7 +182,7 @@ export function AboutMeSection({
                 <div className="text-center">
                   <p className="text-2xl font-bold">{yearsOnPlatform}</p>
                   <p className="text-sm text-muted-foreground">
-                    Years on Cantra
+                    Years on padoq
                   </p>
                 </div>
               </div>

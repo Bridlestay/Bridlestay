@@ -336,7 +336,7 @@ export async function POST(request: Request) {
           nightsCount: nights,
           hostEarningsPennies: breakdown.hostPayoutPennies,
           bookingId: booking.id,
-          guestProfileUrl: `https://cantra.app/profile/${user.id}`,
+          guestProfileUrl: `https://padoq.com/profile/${user.id}`,
         });
         console.log("✅ Booking request email sent to host");
       }

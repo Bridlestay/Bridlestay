@@ -1,5 +1,5 @@
 /**
- * Fee Calculations for Cantra
+ * Fee Calculations for padoq
  *
  * Business Rules:
  * - Guest fee: 9.5% of base price (NO CAP)

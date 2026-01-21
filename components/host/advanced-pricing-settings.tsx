@@ -753,7 +753,7 @@ export function AdvancedPricingSettings({
                   <div>
                     <Label>Enable first-time discount</Label>
                     <p className="text-sm text-muted-foreground">
-                      Offer a discount to guests making their first booking on Cantra
+                      Offer a discount to guests making their first booking on padoq
                     </p>
                   </div>
                   <Switch

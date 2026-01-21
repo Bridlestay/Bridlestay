@@ -64,7 +64,7 @@ export function ShareButton({ propertyId, propertyName, variant = "default" }: S
 
   const handleShare = async (platform: string) => {
     const url = getShareUrl();
-    const text = `Check out ${propertyName} on Cantra!`;
+    const text = `Check out ${propertyName} on padoq!`;
 
     // Track the share
     trackShare(propertyId, platform);

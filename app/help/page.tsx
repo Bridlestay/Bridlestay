@@ -16,7 +16,7 @@ export default function HelpPage() {
           <div className="text-center mb-12">
             <h1 className="font-serif text-5xl font-bold mb-4">Help Center</h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Find answers to common questions about booking, hosting, and using Cantra
+              Find answers to common questions about booking, hosting, and using padoq
             </p>
           </div>
 
@@ -220,10 +220,10 @@ export default function HelpPage() {
                           <li><strong>Extra guest/horse fees:</strong> Added per night if applicable</li>
                           <li><strong>Discounts applied:</strong> Any automated discounts (length-of-stay, last-minute, etc.)</li>
                           <li><strong>Cleaning fees:</strong> One-time fee (may show house + stable breakdown)</li>
-                          <li><strong>Service fee:</strong> Cantra platform fee (9.5% + VAT, no cap)</li>
+                          <li><strong>Service fee:</strong> padoq platform fee (9.5% + VAT, no cap)</li>
                         </ol>
                         <p className="mt-3">
-                          <strong>Hosts set all prices</strong> — Cantra remains neutral. You'll always see a complete, 
+                          <strong>Hosts set all prices</strong> — padoq remains neutral. You'll always see a complete, 
                           transparent breakdown before booking. No hidden fees, no surprises.
                         </p>
                         <p className="text-sm bg-muted p-2 rounded mt-2">
@@ -243,7 +243,7 @@ export default function HelpPage() {
                           <li><strong>Last-minute discounts:</strong> Savings when booking close to check-in date</li>
                           <li><strong>Length-of-stay discounts:</strong> Savings for longer bookings (e.g., 7+ nights)</li>
                           <li><strong>Seasonal discounts:</strong> Special rates during off-peak periods</li>
-                          <li><strong>First-time rider discount:</strong> Welcome offer for your first booking on Cantra</li>
+                          <li><strong>First-time rider discount:</strong> Welcome offer for your first booking on padoq</li>
                         </ul>
                         <p className="mt-3 font-medium text-foreground">How discounts are applied:</p>
                         <ul className="list-disc pl-6 space-y-1">
@@ -341,7 +341,7 @@ export default function HelpPage() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <Home className="h-6 w-6 text-primary" />
-                  <CardTitle className="text-2xl">Hosting on Cantra</CardTitle>
+                  <CardTitle className="text-2xl">Hosting on padoq</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -379,7 +379,7 @@ export default function HelpPage() {
                   </AccordionItem>
 
                   <AccordionItem value="item-3">
-                    <AccordionTrigger>How much does Cantra charge?</AccordionTrigger>
+                    <AccordionTrigger>How much does padoq charge?</AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-3 text-muted-foreground">
                         <p className="font-semibold text-foreground">Guest Service Fee:</p>
@@ -466,7 +466,7 @@ export default function HelpPage() {
                           <li>Amount you're claiming (reasonable and justified)</li>
                         </ul>
                         <p className="mt-2">
-                          The guest will be notified and can accept or dispute. If disputed, Cantra reviews 
+                          The guest will be notified and can accept or dispute. If disputed, padoq reviews 
                           evidence from both sides and makes a fair decision.
                         </p>
                         <p className="text-sm bg-amber-50 text-amber-800 p-2 rounded mt-3">
@@ -502,7 +502,7 @@ export default function HelpPage() {
                         <ol className="list-decimal pl-6 space-y-1">
                           <li>Host submits claim with photos and description within 48 hours</li>
                           <li>Guest is notified and can accept or dispute the claim</li>
-                          <li>If disputed, Cantra reviews evidence from both sides</li>
+                          <li>If disputed, padoq reviews evidence from both sides</li>
                           <li>A fair decision is made based on the evidence</li>
                           <li>Approved amounts are charged to the guest's saved payment method</li>
                         </ol>
@@ -519,7 +519,7 @@ export default function HelpPage() {
                     <AccordionContent>
                       <div className="space-y-2 text-muted-foreground">
                         <p>
-                          If you dispute a damage claim, Cantra reviews evidence from both sides and makes a final decision. 
+                          If you dispute a damage claim, padoq reviews evidence from both sides and makes a final decision. 
                           We remain neutral — our goal is fairness, not siding with hosts or guests.
                         </p>
                         <p className="mt-2">
@@ -585,7 +585,7 @@ export default function HelpPage() {
                     <AccordionContent>
                       <p className="text-muted-foreground">
                         Absolutely. We use Stripe, an industry-leading payment processor trusted by millions of businesses worldwide. 
-                        Your payment information is encrypted and never stored on Cantra servers. We are PCI-DSS compliant and take security seriously.
+                        Your payment information is encrypted and never stored on padoq servers. We are PCI-DSS compliant and take security seriously.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
@@ -640,7 +640,7 @@ export default function HelpPage() {
                   <AccordionTrigger>What are the community guidelines?</AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-3 text-muted-foreground">
-                      <p>Cantra is built on trust and respect within the equestrian community. Our guidelines are simple:</p>
+                      <p>padoq is built on trust and respect within the equestrian community. Our guidelines are simple:</p>
                       <ul className="list-disc ml-6 space-y-1">
                         <li><strong>Be honest</strong> - Accurate descriptions, real photos, genuine reviews</li>
                         <li><strong>Be respectful</strong> - Treat everyone with courtesy and kindness</li>
@@ -656,10 +656,10 @@ export default function HelpPage() {
                 </AccordionItem>
 
                 <AccordionItem value="comm-2">
-                  <AccordionTrigger>Why should I keep payments on Cantra?</AccordionTrigger>
+                  <AccordionTrigger>Why should I keep payments on padoq?</AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-3 text-muted-foreground">
-                      <p>Payments made through Cantra are protected by our policies and support team. When you pay on-platform, you get:</p>
+                      <p>Payments made through padoq are protected by our policies and support team. When you pay on-platform, you get:</p>
                       <ul className="list-disc ml-6 space-y-1">
                         <li><strong>Refund protection</strong> - Clear cancellation policies enforced automatically</li>
                         <li><strong>Customer support</strong> - We can help resolve disputes and issues</li>
@@ -668,7 +668,7 @@ export default function HelpPage() {
                         <li><strong>Damage claim process</strong> - Fair handling of property damage</li>
                       </ul>
                       <p className="mt-3 font-medium">
-                        ⚠️ If you pay outside Cantra, we cannot help with refunds, disputes, or any issues that arise.
+                        ⚠️ If you pay outside padoq, we cannot help with refunds, disputes, or any issues that arise.
                       </p>
                     </div>
                   </AccordionContent>

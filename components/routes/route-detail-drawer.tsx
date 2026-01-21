@@ -118,28 +118,54 @@ function PhotoCard({
 
   const handleSetCover = async () => {
     try {
-      await fetch(`/api/routes/${routeId}/photos`, {
+      const res = await fetch(`/api/routes/${routeId}/photos`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ photoId: photo.id, is_cover: true }),
       });
+      const data = await res.json();
+      
+      if (!res.ok || !data.success) {
+        // Check if migration is needed
+        if (data.requiresMigration) {
+          toast.error("Migration required: Run 057_route_photos_categorization.sql in Supabase SQL Editor");
+        } else {
+          toast.error(data.error || "Failed to set cover");
+        }
+        return;
+      }
+      
       onUpdate();
       toast.success("Set as cover photo");
-    } catch {
+    } catch (error) {
+      console.error("Set cover error:", error);
       toast.error("Failed to update");
     }
   };
 
   const handleToggleDisplay = async () => {
     try {
-      await fetch(`/api/routes/${routeId}/photos`, {
+      const res = await fetch(`/api/routes/${routeId}/photos`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ photoId: photo.id, is_display: !photo.is_display }),
       });
+      const data = await res.json();
+      
+      if (!res.ok || !data.success) {
+        // Check if migration is needed
+        if (data.requiresMigration) {
+          toast.error("Migration required: Run 057_route_photos_categorization.sql in Supabase SQL Editor");
+        } else {
+          toast.error(data.error || "Failed to update display");
+        }
+        return;
+      }
+      
       onUpdate();
       toast.success(photo.is_display ? "Removed from display" : "Added to display");
-    } catch {
+    } catch (error) {
+      console.error("Toggle display error:", error);
       toast.error("Failed to update");
     }
   };
@@ -236,6 +262,10 @@ export function RouteDetailDrawer({
   const [hazards, setHazards] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [photos, setPhotos] = useState<any[]>([]);
+  const [coverPhoto, setCoverPhoto] = useState<any>(null);
+  const [apiDisplayPhotos, setApiDisplayPhotos] = useState<any[]>([]);
+  const [authorPhotos, setAuthorPhotos] = useState<any[]>([]);
+  const [userPhotos, setUserPhotos] = useState<any[]>([]);
   
   const [loading, setLoading] = useState(false);
   const [loadingWaypoints, setLoadingWaypoints] = useState(false);
@@ -415,6 +445,10 @@ export function RouteDetailDrawer({
         if (res.ok) {
           const data = await res.json();
           setPhotos(data.photos || []);
+          setCoverPhoto(data.coverPhoto || null);
+          setApiDisplayPhotos(data.displayPhotos || []);
+          setAuthorPhotos(data.authorPhotos || []);
+          setUserPhotos(data.userPhotos || []);
         }
       } catch (error) {
         console.error("Failed to fetch photos:", error);
@@ -848,11 +882,34 @@ export function RouteDetailDrawer({
     return null;
   }
 
-  const difficultyColors = {
-    easy: "bg-green-100 text-green-800 border-green-300",
-    medium: "bg-amber-100 text-amber-800 border-amber-300",
-    hard: "bg-red-100 text-red-800 border-red-300",
+  // Map all difficulty values to colors and display names
+  const difficultyConfig: Record<string, { color: string; label: string }> = {
+    unrated: { color: "bg-gray-100 text-gray-800 border-gray-300", label: "Unrated" },
+    easy: { color: "bg-green-100 text-green-800 border-green-300", label: "Easy" },
+    moderate: { color: "bg-amber-100 text-amber-800 border-amber-300", label: "Moderate" },
+    medium: { color: "bg-amber-100 text-amber-800 border-amber-300", label: "Medium" },
+    difficult: { color: "bg-orange-100 text-orange-800 border-orange-300", label: "Difficult" },
+    hard: { color: "bg-red-100 text-red-800 border-red-300", label: "Hard" },
+    severe: { color: "bg-red-200 text-red-900 border-red-400", label: "Severe" },
   };
+  
+  const getDifficultyInfo = (difficulty: string | undefined) => {
+    if (!difficulty) return difficultyConfig.moderate;
+    return difficultyConfig[difficulty.toLowerCase()] || difficultyConfig.moderate;
+  };
+  
+  // Get display photos for carousel (cover first, then display photos)
+  const displayPhotosForCarousel = (() => {
+    // Use API response data if available, otherwise fall back to filtering
+    if (coverPhoto || apiDisplayPhotos.length > 0) {
+      return coverPhoto ? [coverPhoto, ...apiDisplayPhotos] : apiDisplayPhotos;
+    }
+    // Fallback: filter from all photos
+    const allPhotos = [...photos, ...(route?.route_photos || [])];
+    const cover = allPhotos.find((p: any) => p.is_cover);
+    const display = allPhotos.filter((p: any) => p.is_display && !p.is_cover);
+    return cover ? [cover, ...display] : display;
+  })();
 
   const activeHazards = hazards.filter((h) => h.status === "active");
 
@@ -897,17 +954,47 @@ export function RouteDetailDrawer({
               <SheetDescription>{route.description}</SheetDescription>
             </SheetHeader>
 
+            {/* Display Photos Carousel */}
+            {displayPhotosForCarousel.length > 0 && (
+              <div className="relative h-48 rounded-lg overflow-hidden">
+                <div className="flex overflow-x-auto snap-x snap-mandatory gap-2 h-full pb-2">
+                  {displayPhotosForCarousel.map((photo: any, idx: number) => (
+                    <div 
+                      key={photo.id || idx} 
+                      className="relative flex-shrink-0 w-full h-full snap-center"
+                    >
+                      <Image
+                        src={photo.url}
+                        alt={photo.caption || `Route photo ${idx + 1}`}
+                        fill
+                        className="object-cover rounded-lg"
+                      />
+                      {photo.is_cover && (
+                        <Badge className="absolute top-2 left-2 bg-amber-500">Cover</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {displayPhotosForCarousel.length > 1 && (
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
+                    {displayPhotosForCarousel.map((_: any, idx: number) => (
+                      <div 
+                        key={idx} 
+                        className="w-2 h-2 rounded-full bg-white/70"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Metadata */}
             <div className="flex flex-wrap gap-2">
               <Badge
                 variant="outline"
-                className={
-                  difficultyColors[
-                    route.difficulty as keyof typeof difficultyColors
-                  ] || difficultyColors.medium
-                }
+                className={getDifficultyInfo(route.difficulty).color}
               >
-                {route.difficulty}
+                {getDifficultyInfo(route.difficulty).label}
               </Badge>
               {route.distance_km && (
                 <Badge variant="outline" className="gap-1">
@@ -1322,171 +1409,158 @@ export function RouteDetailDrawer({
                 )}
 
                 {/* Photos by Category */}
-                {photos.length > 0 || (route.route_photos && route.route_photos.length > 0) ? (
-                  <div className="space-y-6">
-                    {/* Cover Photo Section */}
-                    {(() => {
-                      const allPhotos = [...photos, ...(route.route_photos || [])];
-                      const coverPhoto = allPhotos.find((p: any) => p.is_cover);
-                      const displayPhotos = allPhotos.filter((p: any) => p.is_display && !p.is_cover);
-                      const authorPhotos = allPhotos.filter((p: any) => p.photo_type === 'author' && !p.is_cover && !p.is_display);
-                      const userPhotos = allPhotos.filter((p: any) => (p.photo_type === 'user' || p.photo_type === 'completion') && !p.is_cover && !p.is_display);
-                      const uncategorized = allPhotos.filter((p: any) => !p.is_cover && !p.is_display && !p.photo_type);
-
-                      return (
-                        <>
-                          {/* Cover Image */}
+                <div className="space-y-6">
+                  {/* Display Photos Section - for Authors/Admins */}
+                  {(isOwner || isAdmin) && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-muted-foreground mb-2">Display Photos</h4>
+                      {(coverPhoto || apiDisplayPhotos.length > 0) ? (
+                        <div className="grid grid-cols-3 gap-2">
                           {coverPhoto && (
-                            <div>
-                              <h4 className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
-                                <Star className="h-4 w-4" /> Cover Photo
-                              </h4>
-                              <div className="relative h-56 rounded-lg overflow-hidden">
-                                <Image
-                                  src={coverPhoto.url}
-                                  alt="Cover photo"
-                                  fill
-                                  className="object-cover"
-                                />
-                                {(isOwner || isAdmin) && (
-                                  <div className="absolute top-2 right-2 flex gap-1">
-                                    <Button
-                                      size="sm"
-                                      variant="secondary"
-                                      className="h-8"
-                                      onClick={async () => {
-                                        try {
-                                          await fetch(`/api/routes/${routeId}/photos`, {
-                                            method: "PATCH",
-                                            headers: { "Content-Type": "application/json" },
-                                            body: JSON.stringify({ photoId: coverPhoto.id, is_cover: false }),
-                                          });
-                                          // Refresh photos
-                                          const res = await fetch(`/api/routes/${routeId}/photos`);
-                                          if (res.ok) {
-                                            const data = await res.json();
-                                            setPhotos(data.photos || []);
-                                          }
-                                          toast.success("Cover removed");
-                                        } catch {
-                                          toast.error("Failed to update");
-                                        }
-                                      }}
-                                    >
-                                      Remove as Cover
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                            <PhotoCard 
+                              key={coverPhoto.id} 
+                              photo={{...coverPhoto, is_cover: true}} 
+                              routeId={routeId!}
+                              isOwnerOrAdmin={true}
+                              onUpdate={async () => {
+                                const res = await fetch(`/api/routes/${routeId}/photos`);
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  setPhotos(data.photos || []);
+                                  setCoverPhoto(data.coverPhoto || null);
+                                  setApiDisplayPhotos(data.displayPhotos || []);
+                                  setAuthorPhotos(data.authorPhotos || []);
+                                  setUserPhotos(data.userPhotos || []);
+                                }
+                              }}
+                              onDelete={() => setCoverPhoto(null)}
+                              showActions
+                            />
                           )}
+                          {apiDisplayPhotos.map((photo: any) => (
+                            <PhotoCard 
+                              key={photo.id} 
+                              photo={photo} 
+                              routeId={routeId!}
+                              isOwnerOrAdmin={true}
+                              onUpdate={async () => {
+                                const res = await fetch(`/api/routes/${routeId}/photos`);
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  setPhotos(data.photos || []);
+                                  setCoverPhoto(data.coverPhoto || null);
+                                  setApiDisplayPhotos(data.displayPhotos || []);
+                                  setAuthorPhotos(data.authorPhotos || []);
+                                  setUserPhotos(data.userPhotos || []);
+                                }
+                              }}
+                              onDelete={() => setApiDisplayPhotos(prev => prev.filter(p => p.id !== photo.id))}
+                              showActions
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">
+                          No display photos yet. Upload photos below and use the menu to add them to display.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
-                          {/* Display/Gallery Photos */}
-                          {displayPhotos.length > 0 && (
-                            <div>
-                              <h4 className="text-sm font-semibold text-muted-foreground mb-2">Display Gallery</h4>
-                              <div className="grid grid-cols-3 gap-2">
-                                {displayPhotos.map((photo: any) => (
-                                  <PhotoCard 
-                                    key={photo.id} 
-                                    photo={photo} 
-                                    routeId={routeId!}
-                                    isOwnerOrAdmin={isOwner || isAdmin}
-                                    onUpdate={() => {
-                                      fetch(`/api/routes/${routeId}/photos`)
-                                        .then(res => res.json())
-                                        .then(data => setPhotos(data.photos || []));
-                                    }}
-                                    onDelete={() => setPhotos(prev => prev.filter(p => p.id !== photo.id))}
-                                  />
-                                ))}
-                              </div>
+                  {/* Route Photos Section - for NON-Authors only */}
+                  {!isOwner && !isAdmin && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-muted-foreground mb-2">Route Photos</h4>
+                      {(coverPhoto || apiDisplayPhotos.length > 0) ? (
+                        <div className="grid grid-cols-3 gap-2">
+                          {coverPhoto && (
+                            <div className="relative h-36 rounded-lg overflow-hidden">
+                              <Image src={coverPhoto.url} alt="Route photo" fill className="object-cover" />
+                              <Badge className="absolute top-1 left-1 text-[10px] h-5 bg-amber-500">Cover</Badge>
                             </div>
                           )}
+                          {apiDisplayPhotos.map((photo: any) => (
+                            <div key={photo.id} className="relative h-36 rounded-lg overflow-hidden">
+                              <Image src={photo.url} alt="Route photo" fill className="object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">
+                          No featured photos for this route yet.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
-                          {/* Author Photos */}
-                          {authorPhotos.length > 0 && (
-                            <div>
-                              <h4 className="text-sm font-semibold text-muted-foreground mb-2">Author Photos</h4>
-                              <div className="grid grid-cols-2 gap-3">
-                                {authorPhotos.map((photo: any) => (
-                                  <PhotoCard 
-                                    key={photo.id} 
-                                    photo={photo} 
-                                    routeId={routeId!}
-                                    isOwnerOrAdmin={isOwner || isAdmin}
-                                    onUpdate={() => {
-                                      fetch(`/api/routes/${routeId}/photos`)
-                                        .then(res => res.json())
-                                        .then(data => setPhotos(data.photos || []));
-                                    }}
-                                    onDelete={() => setPhotos(prev => prev.filter(p => p.id !== photo.id))}
-                                    showActions
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* User Photos */}
-                          {userPhotos.length > 0 && (
-                            <div>
-                              <h4 className="text-sm font-semibold text-muted-foreground mb-2">Community Photos</h4>
-                              <div className="grid grid-cols-2 gap-3">
-                                {userPhotos.map((photo: any) => (
-                                  <PhotoCard 
-                                    key={photo.id} 
-                                    photo={photo} 
-                                    routeId={routeId!}
-                                    isOwnerOrAdmin={isOwner || isAdmin}
-                                    onUpdate={() => {
-                                      fetch(`/api/routes/${routeId}/photos`)
-                                        .then(res => res.json())
-                                        .then(data => setPhotos(data.photos || []));
-                                    }}
-                                    onDelete={() => setPhotos(prev => prev.filter(p => p.id !== photo.id))}
-                                    showActions
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Uncategorized (legacy) Photos */}
-                          {uncategorized.length > 0 && (
-                            <div>
-                              <h4 className="text-sm font-semibold text-muted-foreground mb-2">Route Photos</h4>
-                              <div className="grid grid-cols-2 gap-3">
-                                {uncategorized.map((photo: any) => (
-                                  <PhotoCard 
-                                    key={photo.id} 
-                                    photo={photo} 
-                                    routeId={routeId!}
-                                    isOwnerOrAdmin={isOwner || isAdmin}
-                                    onUpdate={() => {
-                                      fetch(`/api/routes/${routeId}/photos`)
-                                        .then(res => res.json())
-                                        .then(data => setPhotos(data.photos || []));
-                                    }}
-                                    onDelete={() => setPhotos(prev => prev.filter(p => p.id !== photo.id))}
-                                    showActions
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
+                  {/* Author Photos */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-2">Author Photos</h4>
+                    {authorPhotos.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        {authorPhotos.map((photo: any) => (
+                          <PhotoCard 
+                            key={photo.id} 
+                            photo={photo} 
+                            routeId={routeId!}
+                            isOwnerOrAdmin={isOwner || isAdmin}
+                            onUpdate={async () => {
+                              const res = await fetch(`/api/routes/${routeId}/photos`);
+                              if (res.ok) {
+                                const data = await res.json();
+                                setPhotos(data.photos || []);
+                                setCoverPhoto(data.coverPhoto || null);
+                                setApiDisplayPhotos(data.displayPhotos || []);
+                                setAuthorPhotos(data.authorPhotos || []);
+                                setUserPhotos(data.userPhotos || []);
+                              }
+                            }}
+                            onDelete={() => setAuthorPhotos(prev => prev.filter(p => p.id !== photo.id))}
+                            showActions
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">
+                        No author photos have been added yet.
+                      </p>
+                    )}
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">
-                      {isOwner || isAdmin ? "No photos yet. Upload some!" : "No photos yet. Complete the route to add yours!"}
-                    </p>
+
+                  {/* User Photos - Always show with empty state */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-2">User Photos</h4>
+                    {userPhotos.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        {userPhotos.map((photo: any) => (
+                          <PhotoCard 
+                            key={photo.id} 
+                            photo={photo} 
+                            routeId={routeId!}
+                            isOwnerOrAdmin={isOwner || isAdmin}
+                            onUpdate={async () => {
+                              const res = await fetch(`/api/routes/${routeId}/photos`);
+                              if (res.ok) {
+                                const data = await res.json();
+                                setPhotos(data.photos || []);
+                                setCoverPhoto(data.coverPhoto || null);
+                                setApiDisplayPhotos(data.displayPhotos || []);
+                                setAuthorPhotos(data.authorPhotos || []);
+                                setUserPhotos(data.userPhotos || []);
+                              }
+                            }}
+                            onDelete={() => setUserPhotos(prev => prev.filter(p => p.id !== photo.id))}
+                            showActions
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">
+                        Currently no user photos have been added.
+                      </p>
+                    )}
                   </div>
-                )}
+                </div>
               </TabsContent>
 
               <TabsContent value="waypoints" className="space-y-4">

@@ -167,7 +167,7 @@ export function BookingCalendar() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'cantra-bookings.ics';
+        a.download = 'padoq-bookings.ics';
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);

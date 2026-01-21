@@ -15,7 +15,7 @@ export default function HostsGuidePage() {
           <div className="text-center mb-16">
             <Badge className="mb-4 text-base px-4 py-1 bg-green-600">For Hosts</Badge>
             <h1 className="font-serif text-5xl font-bold mb-4">
-              How Cantra Works for Hosts
+              How padoq Works for Hosts
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Turn your equestrian property into a successful hospitality business in 6 simple steps
@@ -243,7 +243,7 @@ export default function HostsGuidePage() {
                       <div>
                         <h3 className="font-semibold mb-2">How payments work:</h3>
                         <ol className="list-decimal pl-6 space-y-2 text-muted-foreground">
-                          <li>Guest books and pays through Cantra</li>
+                          <li>Guest books and pays through padoq</li>
                           <li>Payment is held securely by Stripe</li>
                           <li>24 hours after guest check-in, funds are released</li>
                           <li>You receive automatic payout to your bank account</li>
@@ -254,7 +254,7 @@ export default function HostsGuidePage() {
                         <h4 className="font-semibold mb-2">💰 Transparent Fees</h4>
                         <ul className="space-y-1 text-sm text-muted-foreground">
                           <li><strong>You keep 97.5%</strong> of your listing price</li>
-                          <li>Cantra charges just <strong>2.5%</strong> + VAT to maintain the platform</li>
+                          <li>padoq charges just <strong>2.5%</strong> + VAT to maintain the platform</li>
                           <li><strong>Standard payouts:</strong> Free (1-3 business days)</li>
                           <li><strong>Instant payouts:</strong> £1.99 per transfer (optional, same day)</li>
                           <li><strong>No hidden fees</strong> - no monthly costs, no listing fees</li>
@@ -271,7 +271,7 @@ export default function HostsGuidePage() {
                         </h4>
                         <p className="text-sm text-muted-foreground">
                           Stripe is used by millions of businesses worldwide. Your banking information is encrypted and secure. 
-                          Cantra never sees or stores your bank details.
+                          padoq never sees or stores your bank details.
                         </p>
                       </div>
 
@@ -444,7 +444,7 @@ export default function HostsGuidePage() {
                 Ready to start hosting?
               </h2>
               <p className="text-lg mb-8 opacity-90 max-w-2xl mx-auto">
-                Join Cantra and turn your equestrian property into a thriving hospitality business
+                Join padoq and turn your equestrian property into a thriving hospitality business
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button size="lg" variant="secondary" asChild>

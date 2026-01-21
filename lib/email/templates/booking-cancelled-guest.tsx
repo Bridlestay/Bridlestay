@@ -161,33 +161,33 @@ export const BookingCancelledGuestEmail = ({
               </ul>
 
               <div style={{ textAlign: 'center' }}>
-                <a href="https://cantra.app/search" className="button">
+                <a href="https://padoq.com/search" className="button">
                   Find Alternative Properties
                 </a>
               </div>
 
               <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '20px' }}>
-                <strong>Note:</strong> Host cancellations are taken very seriously at Cantra. 
+                <strong>Note:</strong> Host cancellations are taken very seriously at padoq. 
                 Repeated cancellations may result in penalties or removal from our platform.
               </p>
             </>
           )}
 
           <p>If you have any questions about your refund or need assistance, please contact us at 
-            <a href="mailto:support@cantra.app" style={{ color: '#2d5016' }}> support@cantra.app</a>
+            <a href="mailto:support@padoq.com" style={{ color: '#2d5016' }}> support@padoq.com</a>
           </p>
 
           <p style={{ marginTop: '30px' }}>
             {isHostCancelled ? 'We apologize again for the inconvenience.' : 'We hope to see you again soon!'}<br/>
-            <strong>The Cantra Team</strong>
+            <strong>The padoq Team</strong>
           </p>
         </div>
 
         <div className="footer">
-          <p>© {new Date().getFullYear()} Cantra. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} padoq. All rights reserved.</p>
           <p>
-            <a href="https://cantra.app/cancellation-policy" style={{ color: '#6b7280' }}>Cancellation Policy</a> | 
-            <a href="https://cantra.app/help" style={{ color: '#6b7280' }}>Help</a>
+            <a href="https://padoq.com/cancellation-policy" style={{ color: '#6b7280' }}>Cancellation Policy</a> | 
+            <a href="https://padoq.com/help" style={{ color: '#6b7280' }}>Help</a>
           </p>
         </div>
       </body>

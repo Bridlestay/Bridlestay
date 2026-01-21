@@ -1,4 +1,4 @@
--- Seed data for Cantra
+-- Seed data for padoq
 -- This provides initial data for the platform
 
 -- Note: In production, users and routes are created via the application UI

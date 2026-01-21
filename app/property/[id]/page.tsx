@@ -45,7 +45,7 @@ export async function generateMetadata({
 
   if (!property) {
     return {
-      title: "Property Not Found | Cantra",
+      title: "Property Not Found | padoq",
     };
   }
 
@@ -57,10 +57,10 @@ export async function generateMetadata({
   const pricePerNight = (property.nightly_price_pennies / 100).toFixed(0);
   const description = property.description 
     ? property.description.substring(0, 160) + "..."
-    : `Equestrian accommodation in ${property.city}, ${property.county}. From £${pricePerNight}/night on Cantra.`;
+    : `Equestrian accommodation in ${property.city}, ${property.county}. From £${pricePerNight}/night on padoq.`;
 
   return {
-    title: `${property.name} | Cantra`,
+    title: `${property.name} | padoq`,
     description: description,
     openGraph: {
       title: property.name,
@@ -74,7 +74,7 @@ export async function generateMetadata({
         },
       ],
       type: "website",
-      siteName: "Cantra",
+      siteName: "padoq",
     },
     twitter: {
       card: "summary_large_image",
@@ -167,7 +167,7 @@ export default async function PropertyPage({
               <div>
                 <h3 className="font-semibold text-red-800">Property Removed</h3>
                 <p className="text-red-700 text-sm mt-1">
-                  This property has been removed from Cantra by an administrator. 
+                  This property has been removed from padoq by an administrator. 
                   It is no longer visible to other users.
                   {property.removal_reason && (
                     <span className="block mt-2">
@@ -273,7 +273,7 @@ export default async function PropertyPage({
                   🐴 Horse Facility Photos
                 </h2>
                 <p className="text-muted-foreground mb-4">
-                  View our verified equine facilities - photos verified by the Cantra team
+                  View our verified equine facilities - photos verified by the padoq team
                 </p>
                 <FacilityPhotosGallery photos={facilityPhotos} />
               </div>

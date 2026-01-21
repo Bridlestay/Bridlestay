@@ -73,7 +73,7 @@ const WARNING_TEMPLATES = [
   {
     type: 'off_platform_payment',
     title: 'Payment Safety Reminder',
-    message: 'We noticed content suggesting off-platform payments. For your protection and the protection of other users, all payments must go through Cantra. This ensures refund protection and support coverage.',
+    message: 'We noticed content suggesting off-platform payments. For your protection and the protection of other users, all payments must go through padoq. This ensures refund protection and support coverage.',
   },
   {
     type: 'inappropriate_content',

@@ -71,7 +71,7 @@ export function MessagingSafetyBanner({
       <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
         <Shield className="h-4 w-4 text-blue-600 flex-shrink-0" />
         <p className="flex-1 text-blue-800">
-          Keep payments on Cantra to stay protected by our refund and support policies.
+          Keep payments on padoq to stay protected by our refund and support policies.
         </p>
         <Button
           variant="ghost"
@@ -93,7 +93,7 @@ export function MessagingSafetyBanner({
           <AlertDescription className="text-blue-800">
             <p className="font-medium mb-1">For your protection</p>
             <p className="text-sm">
-              Payments made through Cantra are protected by our refund policy and customer support. 
+              Payments made through padoq are protected by our refund policy and customer support. 
               We can't help with issues if payments happen outside the platform.
             </p>
           </AlertDescription>
@@ -155,7 +155,7 @@ export function FirstMessageTip() {
     <div className="flex items-center gap-2 p-2 bg-muted rounded-lg text-xs text-muted-foreground mb-3">
       <Info className="h-3 w-3 flex-shrink-0" />
       <span>
-        Always book through Cantra to ensure you're protected by our support and refund policies.
+        Always book through padoq to ensure you're protected by our support and refund policies.
       </span>
     </div>
   );

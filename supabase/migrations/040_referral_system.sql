@@ -1,4 +1,4 @@
--- Referral and Discount Code System for Cantra
+-- Referral and Discount Code System for padoq
 
 -- ===========================================
 -- 1. REFERRAL CODES TABLE

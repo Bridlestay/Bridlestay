@@ -16,10 +16,10 @@ export interface SystemMessageData {
 export function getWelcomeMessage(userId: string, userName: string): SystemMessageData {
   return {
     recipientId: userId,
-    subject: 'Welcome to Cantra! 🐴',
+    subject: 'Welcome to padoq! 🐴',
     message: `Hello ${userName}!
 
-Welcome to Cantra, the UK's complete horse app - stays, routes, and community!
+Welcome to padoq, the UK's complete horse app - stays, routes, and community!
 
 We're thrilled to have you join our community of horse lovers. Whether you're looking for the perfect countryside escape with your horses or hosting riders at your property, you're in the right place.
 
@@ -38,7 +38,7 @@ If you have any questions, feel free to reach out to our support team.
 
 Happy riding! 🏇
 
-The Cantra Team`,
+The padoq Team`,
     messageType: 'system',
     systemPriority: true,
   };
@@ -58,7 +58,7 @@ export function getBanMessage(
     subject: 'Account Suspended',
     message: `Dear ${userName},
 
-Your Cantra account has been suspended.
+Your padoq account has been suspended.
 
 **Action Taken:** Account Ban
 **Reason:** ${reason}
@@ -71,9 +71,9 @@ Your Cantra account has been suspended.
 • Any pending payouts have been frozen
 
 **Next Steps:**
-If you believe this action was taken in error, please contact our support team at support@cantra.app with your account details.
+If you believe this action was taken in error, please contact our support team at support@padoq.com with your account details.
 
-Cantra Admin Team`,
+padoq Admin Team`,
     messageType: 'admin_action',
     systemPriority: true,
   };
@@ -94,7 +94,7 @@ export function getSoftbanMessage(
     subject: 'Account Temporarily Restricted',
     message: `Dear ${userName},
 
-Your Cantra account has been temporarily restricted.
+Your padoq account has been temporarily restricted.
 
 **Action Taken:** Temporary Restriction (Soft Ban)
 **Reason:** ${reason}
@@ -109,9 +109,9 @@ Your Cantra account has been temporarily restricted.
 • You can still message hosts/guests
 
 **Next Steps:**
-Please review our Community Guidelines and Terms of Service. If you have questions about this restriction, contact support@cantra.app.
+Please review our Community Guidelines and Terms of Service. If you have questions about this restriction, contact support@padoq.com.
 
-Cantra Admin Team`,
+padoq Admin Team`,
     messageType: 'admin_action',
     systemPriority: true,
   };
@@ -132,7 +132,7 @@ export function getPropertyRemovalMessage(
     subject: `Property Removed: ${propertyName}`,
     message: `Dear ${userName},
 
-Your property listing "${propertyName}" has been removed from Cantra.
+Your property listing "${propertyName}" has been removed from padoq.
 
 **Action Taken:** Property Removal
 **Reason:** ${reason}
@@ -145,9 +145,9 @@ Your property listing "${propertyName}" has been removed from Cantra.
 • You will not receive new booking requests
 
 **Next Steps:**
-If you believe this action was taken in error or if you've addressed the issues, please contact support@cantra.app to discuss reinstatement.
+If you believe this action was taken in error or if you've addressed the issues, please contact support@padoq.com to discuss reinstatement.
 
-Cantra Admin Team`,
+padoq Admin Team`,
     messageType: 'admin_action',
     systemPriority: true,
   };
@@ -176,7 +176,7 @@ Thank you for setting up your payment details. We're excited to have you as an a
 
 Happy riding! 🏇
 
-Cantra Team`,
+padoq Team`,
     messageType: 'system',
     systemPriority: true,
   };
@@ -196,7 +196,7 @@ export function getWarningMessage(
     subject: 'Important: Community Guidelines Warning',
     message: `Dear ${userName},
 
-This is a warning regarding your activity on Cantra.
+This is a warning regarding your activity on padoq.
 
 **Warning Reason:** ${reason}
 **Date:** ${new Date().toLocaleDateString()}
@@ -208,9 +208,9 @@ This is a warning regarding your activity on Cantra.
 • Please review our Community Guidelines
 
 **Next Steps:**
-Please ensure your future interactions on Cantra comply with our Terms of Service and Community Guidelines. If you have questions, contact support@cantra.app.
+Please ensure your future interactions on padoq comply with our Terms of Service and Community Guidelines. If you have questions, contact support@padoq.com.
 
-Cantra Admin Team`,
+padoq Admin Team`,
     messageType: 'admin_action',
     systemPriority: true,
   };

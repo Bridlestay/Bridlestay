@@ -283,37 +283,44 @@ export async function PATCH(
       return NextResponse.json({ error: "Photo ID required" }, { status: 400 });
     }
 
-    // Check if the new columns exist by trying a simple query
-    const { error: schemaError } = await supabase
+    // First, verify the photo exists and get its current state
+    const { data: existingPhoto, error: fetchError } = await supabase
       .from("route_photos")
-      .select("is_cover")
+      .select("*")
       .eq("id", photoId)
-      .limit(1);
+      .eq("route_id", routeId)
+      .single();
 
-    if (schemaError) {
-      // Columns don't exist yet - migration not run
+    if (fetchError || !existingPhoto) {
+      console.error("[ROUTE_PHOTOS_PATCH] Photo not found:", fetchError);
+      return NextResponse.json({ error: "Photo not found" }, { status: 404 });
+    }
+
+    // Check if is_cover column exists by looking at the existing photo
+    const hasCoverColumn = existingPhoto.hasOwnProperty("is_cover");
+    const hasDisplayColumn = existingPhoto.hasOwnProperty("is_display");
+
+    console.log("[ROUTE_PHOTOS_PATCH] Columns check:", { hasCoverColumn, hasDisplayColumn });
+    console.log("[ROUTE_PHOTOS_PATCH] Updating:", { photoId, is_cover, is_display });
+
+    if ((is_cover !== undefined && !hasCoverColumn) || (is_display !== undefined && !hasDisplayColumn)) {
       return NextResponse.json({ 
-        error: "Photo categorization not available. Please run migration 057_route_photos_categorization.sql",
-        requiresMigration: true 
+        error: "Photo categorization columns not available. Please run migration 057_route_photos_categorization.sql in Supabase.",
+        requiresMigration: true,
+        message: "Run this SQL in Supabase: ALTER TABLE route_photos ADD COLUMN IF NOT EXISTS is_cover BOOLEAN DEFAULT FALSE; ALTER TABLE route_photos ADD COLUMN IF NOT EXISTS is_display BOOLEAN DEFAULT FALSE;"
       }, { status: 400 });
     }
 
     // If setting as cover, first unset any existing cover
     if (is_cover === true) {
-      await supabase
+      const { error: unsetError } = await supabase
         .from("route_photos")
         .update({ is_cover: false })
         .eq("route_id", routeId)
         .eq("is_cover", true);
-
-      // Also update routes.cover_photo_id if column exists
-      try {
-        await supabase
-          .from("routes")
-          .update({ cover_photo_id: photoId })
-          .eq("id", routeId);
-      } catch {
-        // Column might not exist, ignore
+      
+      if (unsetError) {
+        console.error("[ROUTE_PHOTOS_PATCH] Error unsetting cover:", unsetError);
       }
     }
 
@@ -322,7 +329,8 @@ export async function PATCH(
     if (typeof is_cover === "boolean") updateData.is_cover = is_cover;
     if (typeof is_display === "boolean") updateData.is_display = is_display;
 
-    // Don't use .single() in case the update affects 0 rows
+    console.log("[ROUTE_PHOTOS_PATCH] Update data:", updateData);
+
     const { data: photos, error } = await supabase
       .from("route_photos")
       .update(updateData)
@@ -330,21 +338,19 @@ export async function PATCH(
       .eq("route_id", routeId)
       .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error("[ROUTE_PHOTOS_PATCH] Update error:", error);
+      throw error;
+    }
 
     const photo = photos?.[0] || null;
+    console.log("[ROUTE_PHOTOS_PATCH] Updated photo:", photo);
 
-    // If removing cover, also clear routes.cover_photo_id
-    if (is_cover === false && photo) {
-      try {
-        await supabase
-          .from("routes")
-          .update({ cover_photo_id: null })
-          .eq("id", routeId)
-          .eq("cover_photo_id", photoId);
-      } catch {
-        // Column might not exist, ignore
-      }
+    if (!photo) {
+      return NextResponse.json({ 
+        error: "Failed to update photo - no rows affected",
+        success: false 
+      }, { status: 400 });
     }
 
     return NextResponse.json({ photo, success: true });

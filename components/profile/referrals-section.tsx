@@ -182,9 +182,9 @@ export function ReferralsSection({ userId, userName }: ReferralsSectionProps) {
     if (referralCode && navigator.share) {
       try {
         await navigator.share({
-          title: "Join Cantra!",
-          text: `Use my referral code ${referralCode.code} to get discounts on Cantra - the UK's complete horse app!`,
-          url: `https://cantra.app/auth/sign-up?ref=${referralCode.code}`,
+          title: "Join padoq!",
+          text: `Use my referral code ${referralCode.code} to get discounts on padoq - the UK's complete horse app!`,
+          url: `https://padoq.com/auth/sign-up?ref=${referralCode.code}`,
         });
       } catch (error) {
         // User cancelled or share failed
@@ -397,7 +397,7 @@ export function ReferralsSection({ userId, userName }: ReferralsSectionProps) {
               </div>
               <h4 className="font-medium mb-2">They Sign Up</h4>
               <p className="text-sm text-muted-foreground">
-                When they join Cantra using your code, they get discounts
+                When they join padoq using your code, they get discounts
               </p>
             </div>
 

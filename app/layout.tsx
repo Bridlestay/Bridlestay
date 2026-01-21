@@ -16,7 +16,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Cantra - Your Complete Horse Companion",
+  title: "padoq - Your Complete Horse Companion",
   description: "The UK's complete horse app - find equestrian stays, riding routes, and connect with the horse community",
 };
 
@@ -30,7 +30,7 @@ export default function RootLayout({
       <head>
         <script
           defer
-          data-domain={process.env.PLAUSIBLE_DOMAIN || "cantra.app"}
+          data-domain={process.env.PLAUSIBLE_DOMAIN || "padoq.com"}
           src="https://plausible.io/js/script.js"
         ></script>
       </head>

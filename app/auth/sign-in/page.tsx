@@ -218,7 +218,7 @@ export default function SignInPage() {
                 />
               </div>
               <p className="text-xs text-muted-foreground text-center">
-                Open your authenticator app (Google Authenticator, Authy, etc.) and enter the code for Cantra
+                Open your authenticator app (Google Authenticator, Authy, etc.) and enter the code for padoq
               </p>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
@@ -254,7 +254,7 @@ export default function SignInPage() {
         <CardHeader>
           <CardTitle className="font-serif text-3xl">Sign In</CardTitle>
           <CardDescription>
-            Sign in to access your Cantra account
+            Sign in to access your padoq account
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSignIn}>

@@ -93,7 +93,7 @@ export function FeedbackForm({ user }: FeedbackFormProps) {
           Your Feedback
         </CardTitle>
         <CardDescription>
-          We value your input and use it to make Cantra better for everyone.
+          We value your input and use it to make padoq better for everyone.
         </CardDescription>
       </CardHeader>
       <CardContent>

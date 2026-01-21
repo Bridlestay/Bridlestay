@@ -22,7 +22,7 @@ export default function PrivacyPage() {
                     Your Privacy Matters
                   </h3>
                   <p className="text-sm text-blue-900 dark:text-blue-100">
-                    Cantra is committed to protecting your personal information. This policy explains what data we 
+                    padoq is committed to protecting your personal information. This policy explains what data we 
                     collect, why we collect it, how we use it, and your rights under UK GDPR and Data Protection Act 2018.
                   </p>
                 </div>
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
               </ul>
 
               <h3 className="font-semibold text-xl mt-4 mb-2">1.2 Automatically Collected Information</h3>
-              <p>When you use Cantra, we automatically collect:</p>
+              <p>When you use padoq, we automatically collect:</p>
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li><strong>Device information:</strong> IP address, browser type, operating system</li>
                 <li><strong>Usage data:</strong> Pages visited, features used, search queries, click patterns</li>
@@ -159,13 +159,13 @@ export default function PrivacyPage() {
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li>Comply with court orders, subpoenas, or legal processes</li>
                 <li>Enforce our Terms of Service</li>
-                <li>Protect the rights, property, or safety of Cantra, our users, or the public</li>
+                <li>Protect the rights, property, or safety of padoq, our users, or the public</li>
                 <li>Respond to claims of illegal activity</li>
               </ul>
 
               <h3 className="font-semibold text-xl mt-4 mb-2">4.4 Business Transfers</h3>
               <p>
-                If Cantra is acquired or merged with another company, your information may be transferred as part of that transaction.
+                If padoq is acquired or merged with another company, your information may be transferred as part of that transaction.
               </p>
             </section>
 
@@ -215,7 +215,7 @@ export default function PrivacyPage() {
                     </li>
                   </ul>
                   <p className="mt-4 text-sm text-green-900 dark:text-green-100 font-semibold">
-                    To exercise any of these rights, email us at privacy@cantra.app
+                    To exercise any of these rights, email us at privacy@padoq.com
                   </p>
                 </CardContent>
               </Card>
@@ -297,7 +297,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="font-serif text-3xl font-bold mb-4">10. Children's Privacy</h2>
               <p>
-                Cantra is not intended for users under 18. We do not knowingly collect information from children. 
+                padoq is not intended for users under 18. We do not knowingly collect information from children. 
                 If we discover we have collected data from a child, we will delete it promptly.
               </p>
             </section>
@@ -324,8 +324,8 @@ export default function PrivacyPage() {
                 For privacy questions, data requests, or complaints, contact us at:
               </p>
               <div className="bg-muted p-4 rounded-lg mt-3 space-y-1 text-sm">
-                <p><strong>Email:</strong> privacy@cantra.app</p>
-                <p><strong>Data Protection Officer:</strong> dpo@cantra.app</p>
+                <p><strong>Email:</strong> privacy@padoq.com</p>
+                <p><strong>Data Protection Officer:</strong> dpo@padoq.com</p>
                 <p><strong>Address:</strong> [Your Business Address]</p>
               </div>
               <p className="mt-4 text-sm">
@@ -339,7 +339,7 @@ export default function PrivacyPage() {
             <section className="border-t pt-6 mt-8">
               <p className="text-sm text-muted-foreground italic">
                 This Privacy Policy was last updated on {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}. 
-                By using Cantra, you acknowledge that you have read and understood this policy.
+                By using padoq, you acknowledge that you have read and understood this policy.
               </p>
             </section>
           </div>

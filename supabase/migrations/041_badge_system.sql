@@ -1,4 +1,4 @@
--- Badge/Achievement System for Cantra
+-- Badge/Achievement System for padoq
 
 -- ===========================================
 -- 1. BADGE DEFINITIONS TABLE
@@ -150,7 +150,7 @@ INSERT INTO badges (slug, name, description, icon, category, tier, tier_order, c
   ('referrer_gold', 'Community Builder', 'Referred 10 friends', '🎉', 'community', 'gold', 2, 'count', 'referrals_made', 10, 75, 'rare'),
   
   -- SPECIAL
-  ('early_adopter', 'Early Adopter', 'Joined Cantra in the first year', '🚀', 'special', NULL, 0, 'special', NULL, NULL, 100, 'legendary'),
+  ('early_adopter', 'Early Adopter', 'Joined padoq in the first year', '🚀', 'special', NULL, 0, 'special', NULL, NULL, 100, 'legendary'),
   ('founding_member', 'Founding Member', 'One of the first 100 users', '🏛️', 'special', NULL, 0, 'special', NULL, NULL, 200, 'legendary')
   
 ON CONFLICT (slug) DO NOTHING;

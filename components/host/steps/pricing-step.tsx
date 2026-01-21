@@ -357,7 +357,7 @@ export function PropertyPricingStep({ data, onNext, userId, propertyId }: Pricin
             <div>
               <h4 className="font-semibold text-amber-900">Important: Insurance Required</h4>
               <p className="text-sm text-amber-800 mt-1">
-                Cantra does not provide insurance. As a host, you are responsible for ensuring you have:
+                padoq does not provide insurance. As a host, you are responsible for ensuring you have:
               </p>
               <ul className="text-sm text-amber-800 list-disc list-inside mt-2 space-y-1">
                 <li>Public liability insurance for guests visiting your property</li>
@@ -377,7 +377,7 @@ export function PropertyPricingStep({ data, onNext, userId, propertyId }: Pricin
                 className="text-sm text-amber-900 cursor-pointer leading-tight"
               >
                 I confirm that I understand I am responsible for arranging my own insurance coverage 
-                and that Cantra does not provide any insurance for hosts or guests.
+                and that padoq does not provide any insurance for hosts or guests.
               </label>
             </div>
           </div>

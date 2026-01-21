@@ -1,5 +1,5 @@
 -- Expand property_type to include more listing types for campsite, caravan park, etc.
--- This supports Cantra's broader positioning as a full horse app beyond just Airbnb-style stays
+-- This supports padoq's broader positioning as a full horse app beyond just Airbnb-style stays
 
 -- First drop the existing constraint
 ALTER TABLE properties DROP CONSTRAINT IF EXISTS properties_property_type_check;

@@ -27,12 +27,12 @@ export async function generateMetadata({ params }: NewsPostPageProps): Promise<M
 
   if (!post) {
     return {
-      title: "Post Not Found | Cantra News",
+      title: "Post Not Found | padoq News",
     };
   }
 
   return {
-    title: `${post.title} | Cantra News`,
+    title: `${post.title} | padoq News`,
     description: post.seo_description || post.excerpt,
     openGraph: {
       title: post.title,
@@ -171,7 +171,7 @@ export default async function NewsPostPage({ params }: NewsPostPageProps) {
                     </div>
                   )}
                   <div>
-                    <p className="font-medium">{post.author?.name || "Cantra Team"}</p>
+                    <p className="font-medium">{post.author?.name || "padoq Team"}</p>
                     <p className="text-sm text-muted-foreground">
                       Published {format(new Date(post.published_at!), "MMMM d, yyyy")}
                     </p>

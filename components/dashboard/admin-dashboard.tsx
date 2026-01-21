@@ -1104,7 +1104,7 @@ export function AdminDashboard({ user }: { user: any }) {
             <Label htmlFor="message-subject">Subject</Label>
             <Input
               id="message-subject"
-              placeholder="Message from Cantra Admin"
+              placeholder="Message from padoq Admin"
               value={messageSubject}
               onChange={(e) => setMessageSubject(e.target.value)}
               className="mt-1"

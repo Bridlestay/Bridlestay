@@ -1,4 +1,4 @@
--- News/Blog system for Cantra
+-- News/Blog system for padoq
 
 -- Create news_posts table
 CREATE TABLE IF NOT EXISTS news_posts (

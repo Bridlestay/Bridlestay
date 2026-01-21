@@ -1,6 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { calculateDistanceFromGeometry, validateGeometry } from "@/lib/routes/gpx-converter";
+
+// Service role client for admin operations (bypasses RLS)
+function getAdminSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  
+  if (!supabaseServiceKey) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
+  }
+  
+  return createAdminClient(supabaseUrl, supabaseServiceKey);
+}
 
 // GET - Get single route
 export async function GET(
@@ -170,30 +183,47 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Delete related records first to avoid timeout on cascades
-    // Delete in order of dependencies
-    await supabase.from("route_comments").delete().eq("route_id", id);
-    await supabase.from("route_photos").delete().eq("route_id", id);
-    await supabase.from("route_waypoints").delete().eq("route_id", id);
+    // Use the database function for reliable deletion with longer timeout
+    const adminSupabase = getAdminSupabase();
     
-    // Try to delete from tables that might not exist
-    try {
-      await supabase.from("route_likes").delete().eq("route_id", id);
-      await supabase.from("route_favorites").delete().eq("route_id", id);
-      await supabase.from("route_hazards").delete().eq("route_id", id);
-      await supabase.from("route_shares").delete().eq("route_id", id);
-      await supabase.from("route_completions").delete().eq("route_id", id);
-      await supabase.from("route_user_photos").delete().eq("route_id", id);
-    } catch {
-      // Tables might not exist, ignore
-    }
-
-    // Now delete the route itself
-    const { error } = await supabase.from("routes").delete().eq("id", id);
+    const { data, error } = await adminSupabase.rpc("delete_route_cascade", {
+      route_uuid: id,
+    });
 
     if (error) {
-      console.error("[ROUTE_DELETE] Delete error:", error);
+      console.error("[ROUTE_DELETE] RPC error:", error);
+      
+      // Fallback: try manual deletion if function doesn't exist
+      if (error.message.includes("function") || error.code === "42883") {
+        console.log("[ROUTE_DELETE] Trying fallback deletion...");
+        
+        // Delete related records in parallel
+        await Promise.all([
+          adminSupabase.from("route_comments").delete().eq("route_id", id),
+          adminSupabase.from("route_photos").delete().eq("route_id", id),
+          adminSupabase.from("route_waypoints").delete().eq("route_id", id),
+          adminSupabase.from("route_likes").delete().eq("route_id", id),
+          adminSupabase.from("route_favorites").delete().eq("route_id", id),
+          adminSupabase.from("route_hazards").delete().eq("route_id", id),
+          adminSupabase.from("route_shares").delete().eq("route_id", id),
+          adminSupabase.from("route_completions").delete().eq("route_id", id),
+        ]);
+
+        const { error: deleteError } = await adminSupabase.from("routes").delete().eq("id", id);
+        
+        if (deleteError) {
+          console.error("[ROUTE_DELETE] Fallback delete error:", deleteError);
+          return NextResponse.json({ error: deleteError.message }, { status: 500 });
+        }
+        
+        return NextResponse.json({ success: true });
+      }
+      
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (data === false) {
+      return NextResponse.json({ error: "Failed to delete route" }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });

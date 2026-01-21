@@ -13,7 +13,7 @@ export default function CompanyPage() {
             <dl className="space-y-4">
               <div>
                 <dt className="font-semibold">Company Name:</dt>
-                <dd>Cantra Limited</dd>
+                <dd>padoq Limited</dd>
               </div>
               <div>
                 <dt className="font-semibold">Registered Office:</dt>
@@ -41,11 +41,11 @@ export default function CompanyPage() {
             <dl className="space-y-4">
               <div>
                 <dt className="font-semibold">Email:</dt>
-                <dd>info@cantra.app</dd>
+                <dd>info@padoq.com</dd>
               </div>
               <div>
                 <dt className="font-semibold">Support:</dt>
-                <dd>support@cantra.app</dd>
+                <dd>support@padoq.com</dd>
               </div>
               <div>
                 <dt className="font-semibold">Phone:</dt>
@@ -55,9 +55,9 @@ export default function CompanyPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">About Cantra</h2>
+            <h2 className="text-2xl font-semibold mb-4">About padoq</h2>
             <p>
-              Cantra is the UK&apos;s complete horse app - stays, routes, and community. We connect horse owners
+              padoq is the UK&apos;s complete horse app - stays, routes, and community. We connect horse owners
               with verified hosts who offer specialized equestrian facilities. We are committed to providing
               safe, high-quality accommodations for both horses and riders throughout the UK.
             </p>

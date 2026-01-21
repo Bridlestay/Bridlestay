@@ -81,7 +81,7 @@ export default function SignUpPage() {
       }
 
       toast({
-        title: "Welcome to Cantra!",
+        title: "Welcome to padoq!",
         description: "Please check your email to verify your account.",
       });
 
@@ -103,7 +103,7 @@ export default function SignUpPage() {
         <CardHeader>
           <CardTitle className="font-serif text-3xl">Sign Up</CardTitle>
           <CardDescription>
-            Create your Cantra account to get started
+            Create your padoq account to get started
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSignUp}>
@@ -111,7 +111,7 @@ export default function SignUpPage() {
             <div className="space-y-2">
               <LabelWithInfo 
                 htmlFor="name" 
-                info="This is how other users will see you on Cantra. You can use your real name or a nickname."
+                info="This is how other users will see you on padoq. You can use your real name or a nickname."
                 required
               >
                 Full Name

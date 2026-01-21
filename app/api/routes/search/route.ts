@@ -1,9 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+
+// Admin client for faster queries (bypasses RLS)
+function getAdminSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  
+  if (!supabaseServiceKey) {
+    return null; // Fall back to regular client
+  }
+  
+  return createAdminClient(supabaseUrl, supabaseServiceKey);
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const userSupabase = await createClient();
     const body = await request.json();
 
     const {
@@ -15,26 +28,42 @@ export async function POST(request: NextRequest) {
       nearPropertyId,
       radiusKm = 10,
       terrainTags,
-      myRoutes, // NEW: filter for user's own routes
+      myRoutes, // filter for user's own routes
       page = 1,
       limit = 20,
     } = body;
 
     // Get current user for myRoutes filter
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await userSupabase.auth.getUser();
 
-    // Start building query - simplified to avoid timeout
-    // Don't join route_photos as it causes timeout issues
+    // Use admin client for faster queries
+    const adminSupabase = getAdminSupabase();
+    const supabase = adminSupabase || userSupabase;
+
+    // Build filters
     let query = supabase
       .from("routes")
-      .select("*", { count: "exact" });
+      .select(`
+        id,
+        title,
+        description,
+        difficulty,
+        distance_km,
+        county,
+        terrain_tags,
+        avg_rating,
+        review_count,
+        is_public,
+        visibility,
+        created_at,
+        owner_user_id,
+        cover_photo_id
+      `, { count: "exact" });
 
-    // Filter by ownership - for "my routes", show ALL user's routes regardless of visibility
+    // Filter by ownership or public
     if (myRoutes && user) {
-      // Only show routes created by this user (including private ones)
       query = query.eq("owner_user_id", user.id);
     } else {
-      // For explore/public routes, only show public ones
       query = query.eq("is_public", true);
     }
 
@@ -61,13 +90,12 @@ export async function POST(request: NextRequest) {
       query = query.lte("distance_km", maxDistanceKm);
     }
 
-    // Terrain tags (contains any)
+    // Terrain tags
     if (terrainTags && terrainTags.length > 0) {
       query = query.overlaps("terrain_tags", terrainTags);
     }
 
-    // Near property filter (basic - just check if route references the property)
-    // For true radius filtering, we'd need PostGIS, but this is MVP
+    // Near property filter
     if (nearPropertyId) {
       query = query.eq("near_property_id", nearPropertyId);
     }
@@ -77,7 +105,7 @@ export async function POST(request: NextRequest) {
     query = query.range(offset, offset + limit - 1);
 
     // Order by rating and recency
-    query = query.order("avg_rating", { ascending: false });
+    query = query.order("avg_rating", { ascending: false, nullsFirst: false });
     query = query.order("created_at", { ascending: false });
 
     const { data: routes, error, count } = await query;
@@ -87,8 +115,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // If we have routes, get cover photos in a separate query
+    let routesWithPhotos = routes || [];
+    if (routes && routes.length > 0) {
+      const routeIds = routes.map(r => r.id);
+      
+      // Get cover photos for these routes
+      const { data: coverPhotos } = await supabase
+        .from("route_photos")
+        .select("route_id, url")
+        .in("route_id", routeIds)
+        .eq("is_cover", true);
+
+      // Also get first photo for routes without cover
+      const { data: firstPhotos } = await supabase
+        .from("route_photos")
+        .select("route_id, url")
+        .in("route_id", routeIds)
+        .order("created_at", { ascending: true });
+
+      // Map photos to routes
+      const coverMap = new Map(coverPhotos?.map(p => [p.route_id, p.url]) || []);
+      const firstPhotoMap = new Map<string, string>();
+      firstPhotos?.forEach(p => {
+        if (!firstPhotoMap.has(p.route_id)) {
+          firstPhotoMap.set(p.route_id, p.url);
+        }
+      });
+
+      routesWithPhotos = routes.map(route => ({
+        ...route,
+        cover_photo_url: coverMap.get(route.id) || firstPhotoMap.get(route.id) || null,
+        route_photos: coverMap.has(route.id) || firstPhotoMap.has(route.id) 
+          ? [{ url: coverMap.get(route.id) || firstPhotoMap.get(route.id) }]
+          : [],
+      }));
+    }
+
     return NextResponse.json({
-      routes: routes || [],
+      routes: routesWithPhotos,
       total: count || 0,
       page,
       limit,

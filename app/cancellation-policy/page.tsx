@@ -34,7 +34,7 @@ export default function CancellationPolicyPage() {
             <section>
               <h2 className="font-serif text-3xl font-bold mb-4">1. Standard Cancellation Policy</h2>
               <p>
-                Unless otherwise specified by the host, all bookings follow Cantra's Standard Cancellation Policy.
+                Unless otherwise specified by the host, all bookings follow padoq's Standard Cancellation Policy.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
@@ -156,7 +156,7 @@ export default function CancellationPolicyPage() {
             <section>
               <h2 className="font-serif text-3xl font-bold mb-4">3. Extenuating Circumstances</h2>
               <p>
-                In rare cases, Cantra may provide refunds outside the standard policy for extenuating circumstances:
+                In rare cases, padoq may provide refunds outside the standard policy for extenuating circumstances:
               </p>
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li><strong>Serious illness or injury</strong> (medical documentation required)</li>
@@ -174,7 +174,7 @@ export default function CancellationPolicyPage() {
                       <p className="font-semibold mb-2">Evidence Required</p>
                       <p>
                         Claims for extenuating circumstances must be submitted within 14 days with supporting documentation. 
-                        Cantra reviews each case individually. Approval is not guaranteed.
+                        padoq reviews each case individually. Approval is not guaranteed.
                       </p>
                     </div>
                   </div>
@@ -202,7 +202,7 @@ export default function CancellationPolicyPage() {
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li><strong>Full refund</strong> of all fees (including service fees)</li>
                 <li><strong>£50-200 credit</strong> toward your next booking (depending on timing)</li>
-                <li><strong>Help rebooking:</strong> Cantra will assist in finding alternative accommodation</li>
+                <li><strong>Help rebooking:</strong> padoq will assist in finding alternative accommodation</li>
               </ul>
 
               <h3 className="font-semibold text-xl mt-4 mb-2">4.2 Host Penalties</h3>
@@ -217,7 +217,7 @@ export default function CancellationPolicyPage() {
 
               <p className="mt-4 text-sm italic bg-muted p-3 rounded-lg">
                 <strong>Exception:</strong> Emergency cancellations (family emergency, property damage, safety concerns) 
-                may be waived at Cantra's discretion with proper documentation.
+                may be waived at padoq's discretion with proper documentation.
               </p>
             </section>
 
@@ -262,14 +262,14 @@ export default function CancellationPolicyPage() {
               <ol className="list-decimal pl-6 space-y-2">
                 <li><strong>Contact the host immediately</strong> to resolve the issue</li>
                 <li><strong>Document the problems</strong> with photos and messages</li>
-                <li><strong>Contact Cantra support</strong> within 24 hours of check-in</li>
+                <li><strong>Contact padoq support</strong> within 24 hours of check-in</li>
                 <li><strong>Do not check out</strong> before contacting us (affects refund eligibility)</li>
               </ol>
 
               <h3 className="font-semibold text-xl mt-4 mb-2">6.2 Safety Concerns</h3>
               <p>
                 If you encounter serious safety issues (unsafe horse facilities, hazardous conditions, etc.), 
-                contact Cantra immediately. We may authorize alternative accommodation and a full refund.
+                contact padoq immediately. We may authorize alternative accommodation and a full refund.
               </p>
 
               <h3 className="font-semibold text-xl mt-4 mb-2">6.3 Early Checkout</h3>
@@ -278,7 +278,7 @@ export default function CancellationPolicyPage() {
               </p>
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li>The property has major undisclosed issues</li>
-                <li>Cantra approves the early checkout</li>
+                <li>padoq approves the early checkout</li>
                 <li>The host agrees to a partial refund</li>
               </ul>
             </section>
@@ -288,7 +288,7 @@ export default function CancellationPolicyPage() {
               
               <h3 className="font-semibold text-xl mt-4 mb-2">7.1 Cancel as a Guest</h3>
               <ol className="list-decimal pl-6 space-y-2">
-                <li>Log in to your Cantra account</li>
+                <li>Log in to your padoq account</li>
                 <li>Go to "Trips" or "Bookings"</li>
                 <li>Select the booking you want to cancel</li>
                 <li>Click "Cancel Booking"</li>
@@ -310,7 +310,7 @@ export default function CancellationPolicyPage() {
                 If you have questions about cancellations, refunds, or disputes:
               </p>
               <div className="bg-muted p-4 rounded-lg mt-3 space-y-1 text-sm">
-                <p><strong>Email:</strong> support@cantra.app</p>
+                <p><strong>Email:</strong> support@padoq.com</p>
                 <p><strong>Phone:</strong> [Support Number]</p>
                 <p><strong>Hours:</strong> Monday-Friday, 9am-6pm GMT</p>
               </div>
@@ -322,7 +322,7 @@ export default function CancellationPolicyPage() {
             <section className="border-t pt-6 mt-8">
               <p className="text-sm text-muted-foreground italic">
                 This Cancellation Policy was last updated on {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}. 
-                Cantra reserves the right to modify this policy at any time. Changes will be communicated to active users.
+                padoq reserves the right to modify this policy at any time. Changes will be communicated to active users.
               </p>
             </section>
           </div>

@@ -87,7 +87,7 @@ export function DamageClaimResponse({ claim, onResponse }: DamageClaimResponsePr
         title: action === "accept" ? "Claim accepted" : "Claim disputed",
         description: action === "accept" 
           ? "The amount will be charged to your saved payment method."
-          : "Cantra will review the claim and make a decision.",
+          : "padoq will review the claim and make a decision.",
       });
 
       onResponse?.();
@@ -232,7 +232,7 @@ export function DamageClaimResponse({ claim, onResponse }: DamageClaimResponsePr
                 <MessageSquare className="h-4 w-4" />
                 <AlertDescription>
                   Please review the claim and evidence carefully. If you accept, the amount will be 
-                  charged to your saved payment method. If you dispute, Cantra will review and make a decision.
+                  charged to your saved payment method. If you dispute, padoq will review and make a decision.
                 </AlertDescription>
               </Alert>
 

@@ -10,7 +10,7 @@ export function CookieConsent() {
 
   useEffect(() => {
     // Check if user has already consented
-    const consent = localStorage.getItem("cantra-cookie-consent");
+    const consent = localStorage.getItem("padoq-cookie-consent");
     if (!consent) {
       // Show banner after a short delay for better UX
       setTimeout(() => setShowBanner(true), 1000);
@@ -18,12 +18,12 @@ export function CookieConsent() {
   }, []);
 
   const acceptCookies = () => {
-    localStorage.setItem("cantra-cookie-consent", "accepted");
+    localStorage.setItem("padoq-cookie-consent", "accepted");
     setShowBanner(false);
   };
 
   const declineCookies = () => {
-    localStorage.setItem("cantra-cookie-consent", "declined");
+    localStorage.setItem("padoq-cookie-consent", "declined");
     setShowBanner(false);
   };
 

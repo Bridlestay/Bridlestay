@@ -183,7 +183,7 @@ export const BookingConfirmationEmail = ({
           </div>
 
           <div style={{ textAlign: 'center' }}>
-            <a href={`https://cantra.app/dashboard`} className="button">
+            <a href={`https://padoq.com/dashboard`} className="button">
               View Booking Details
             </a>
           </div>
@@ -197,23 +197,23 @@ export const BookingConfirmationEmail = ({
 
           <p style={{ color: '#6b7280', fontSize: '14px' }}>
             <strong>Important:</strong> Your payment has been secured by Stripe and will be released to the host 24 hours after check-in. 
-            Please review our <a href="https://cantra.app/cancellation-policy" style={{ color: '#2d5016' }}>Cancellation Policy</a> if your plans change.
+            Please review our <a href="https://padoq.com/cancellation-policy" style={{ color: '#2d5016' }}>Cancellation Policy</a> if your plans change.
           </p>
 
-          <p>Have questions? Reply to this email or contact us at <a href="mailto:support@cantra.app" style={{ color: '#2d5016' }}>support@cantra.app</a></p>
+          <p>Have questions? Reply to this email or contact us at <a href="mailto:support@padoq.com" style={{ color: '#2d5016' }}>support@padoq.com</a></p>
 
           <p style={{ marginTop: '30px' }}>
             Happy trails! 🐎<br/>
-            <strong>The Cantra Team</strong>
+            <strong>The padoq Team</strong>
           </p>
         </div>
 
         <div className="footer">
-          <p>© {new Date().getFullYear()} Cantra. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} padoq. All rights reserved.</p>
           <p>
-            <a href="https://cantra.app/terms" style={{ color: '#6b7280' }}>Terms</a> | 
-            <a href="https://cantra.app/privacy" style={{ color: '#6b7280' }}>Privacy</a> | 
-            <a href="https://cantra.app/help" style={{ color: '#6b7280' }}>Help</a>
+            <a href="https://padoq.com/terms" style={{ color: '#6b7280' }}>Terms</a> | 
+            <a href="https://padoq.com/privacy" style={{ color: '#6b7280' }}>Privacy</a> | 
+            <a href="https://padoq.com/help" style={{ color: '#6b7280' }}>Help</a>
           </p>
         </div>
       </body>

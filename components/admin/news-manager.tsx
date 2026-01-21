@@ -212,7 +212,7 @@ export function NewsManager() {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>News & Blog Posts</CardTitle>
-            <CardDescription>Manage Cantra news, updates, and announcements</CardDescription>
+            <CardDescription>Manage padoq news, updates, and announcements</CardDescription>
           </div>
           <Dialog open={dialogOpen} onOpenChange={(open) => {
             setDialogOpen(open);

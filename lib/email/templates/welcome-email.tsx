@@ -108,7 +108,7 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
       <body>
         <div className="header">
           <div className="horse-emoji">🐴</div>
-          <h1>Welcome to Cantra!</h1>
+          <h1>Welcome to padoq!</h1>
           <p style={{ margin: '5px 0 0 0', fontSize: '16px' }}>The home of equestrian travel</p>
         </div>
         
@@ -116,7 +116,7 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
           <p style={{ fontSize: '18px' }}>Hi {userName},</p>
           
           <p style={{ fontSize: '16px' }}>
-            We&apos;re thrilled to have you join the Cantra community! 🎉
+            We&apos;re thrilled to have you join the padoq community! 🎉
           </p>
 
           <p>
@@ -126,10 +126,10 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
 
           <div className="cta-box">
             <h3 style={{ margin: '0 0 15px 0', color: '#2d5016' }}>Ready to Get Started?</h3>
-            <a href="https://cantra.app/profile" className="button">
+            <a href="https://padoq.com/profile" className="button">
               Complete Your Profile
             </a>
-            <a href="https://cantra.app/search" className="button" style={{ background: '#4a7c2a' }}>
+            <a href="https://padoq.com/search" className="button" style={{ background: '#4a7c2a' }}>
               Search Properties
             </a>
           </div>
@@ -163,12 +163,12 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
               Turn your equestrian facilities into income! List your property, barns, or stable blocks 
               and connect with travelers who share your passion for horses.
             </p>
-            <a href="https://cantra.app/host/property/new" style={{ color: '#2d5016', fontWeight: '600' }}>
+            <a href="https://padoq.com/host/property/new" style={{ color: '#2d5016', fontWeight: '600' }}>
               List Your Property →
             </a>
           </div>
 
-          <h3>What Makes Cantra Special?</h3>
+          <h3>What Makes padoq Special?</h3>
           <ul style={{ paddingLeft: '20px', color: '#4b5563' }}>
             <li>
               <strong>Horse-First Design:</strong> Every property includes detailed equine facilities information
@@ -195,31 +195,31 @@ export const WelcomeEmail = ({ userName, userEmail }: WelcomeEmailProps) => {
           <h3 style={{ marginTop: '35px' }}>Need Help Getting Started?</h3>
           <p>Our team is here to help:</p>
           <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
-            <li>📧 Email: <a href="mailto:support@cantra.app" style={{ color: '#2d5016' }}>support@cantra.app</a></li>
-            <li>📖 <a href="https://cantra.app/help" style={{ color: '#2d5016' }}>Help Center & FAQs</a></li>
-            <li>🤝 <a href="https://cantra.app/how-it-works/guests" style={{ color: '#2d5016' }}>How It Works (Guests)</a></li>
-            <li>🏠 <a href="https://cantra.app/how-it-works/hosts" style={{ color: '#2d5016' }}>How It Works (Hosts)</a></li>
+            <li>📧 Email: <a href="mailto:support@padoq.com" style={{ color: '#2d5016' }}>support@padoq.com</a></li>
+            <li>📖 <a href="https://padoq.com/help" style={{ color: '#2d5016' }}>Help Center & FAQs</a></li>
+            <li>🤝 <a href="https://padoq.com/how-it-works/guests" style={{ color: '#2d5016' }}>How It Works (Guests)</a></li>
+            <li>🏠 <a href="https://padoq.com/how-it-works/hosts" style={{ color: '#2d5016' }}>How It Works (Hosts)</a></li>
           </ul>
 
           <p style={{ marginTop: '35px', fontSize: '16px' }}>
-            Thank you for choosing Cantra. We can&apos;t wait to see where your equestrian adventures take you!
+            Thank you for choosing padoq. We can&apos;t wait to see where your equestrian adventures take you!
           </p>
 
           <p style={{ fontSize: '16px' }}>
             Happy trails! 🐎<br/>
-            <strong>The Cantra Team</strong>
+            <strong>The padoq Team</strong>
           </p>
         </div>
 
         <div className="footer">
-          <p>© {new Date().getFullYear()} Cantra. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} padoq. All rights reserved.</p>
           <p>
-            <a href="https://cantra.app/terms" style={{ color: '#6b7280' }}>Terms</a> | 
-            <a href="https://cantra.app/privacy" style={{ color: '#6b7280' }}>Privacy</a> | 
-            <a href="https://cantra.app/help" style={{ color: '#6b7280' }}>Help</a>
+            <a href="https://padoq.com/terms" style={{ color: '#6b7280' }}>Terms</a> | 
+            <a href="https://padoq.com/privacy" style={{ color: '#6b7280' }}>Privacy</a> | 
+            <a href="https://padoq.com/help" style={{ color: '#6b7280' }}>Help</a>
           </p>
           <p style={{ marginTop: '15px' }}>
-            You&apos;re receiving this email because you created an account at Cantra.
+            You&apos;re receiving this email because you created an account at padoq.
           </p>
         </div>
       </body>

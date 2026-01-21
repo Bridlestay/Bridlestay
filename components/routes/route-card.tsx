@@ -13,12 +13,23 @@ interface RouteCardProps {
 }
 
 export function RouteCard({ route, onClick, showVisibility = false }: RouteCardProps) {
-  const firstPhoto = route.route_photos?.[0]?.url;
+  // Use cover_photo_url if available, otherwise fall back to first photo
+  const coverPhoto = route.cover_photo_url || route.route_photos?.[0]?.url;
 
-  const difficultyColors = {
-    easy: "bg-green-100 text-green-800 border-green-300",
-    medium: "bg-amber-100 text-amber-800 border-amber-300",
-    hard: "bg-red-100 text-red-800 border-red-300",
+  // Map all difficulty values to colors and labels
+  const difficultyConfig: Record<string, { color: string; label: string }> = {
+    unrated: { color: "bg-gray-100 text-gray-800 border-gray-300", label: "Unrated" },
+    easy: { color: "bg-green-100 text-green-800 border-green-300", label: "Easy" },
+    moderate: { color: "bg-amber-100 text-amber-800 border-amber-300", label: "Moderate" },
+    medium: { color: "bg-amber-100 text-amber-800 border-amber-300", label: "Medium" },
+    difficult: { color: "bg-orange-100 text-orange-800 border-orange-300", label: "Difficult" },
+    hard: { color: "bg-red-100 text-red-800 border-red-300", label: "Hard" },
+    severe: { color: "bg-red-200 text-red-900 border-red-400", label: "Severe" },
+  };
+  
+  const getDifficultyInfo = (difficulty: string | undefined) => {
+    if (!difficulty) return difficultyConfig.moderate;
+    return difficultyConfig[difficulty.toLowerCase()] || difficultyConfig.moderate;
   };
 
   const conditionColors = {
@@ -36,9 +47,9 @@ export function RouteCard({ route, onClick, showVisibility = false }: RouteCardP
     >
       {/* Image */}
       <div className="relative h-48 bg-muted">
-        {firstPhoto ? (
+        {coverPhoto ? (
           <Image
-            src={firstPhoto}
+            src={coverPhoto}
             alt={route.title}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -122,12 +133,9 @@ export function RouteCard({ route, onClick, showVisibility = false }: RouteCardP
         <div className="flex flex-wrap gap-2 mb-3">
           <Badge
             variant="outline"
-            className={
-              difficultyColors[route.difficulty as keyof typeof difficultyColors] ||
-              difficultyColors.medium
-            }
+            className={getDifficultyInfo(route.difficulty).color}
           >
-            {route.difficulty || "medium"}
+            {getDifficultyInfo(route.difficulty).label}
           </Badge>
 
           {route.distance_km && (

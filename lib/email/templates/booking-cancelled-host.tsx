@@ -135,7 +135,7 @@ export const BookingCancelledHostEmail = ({
           </ul>
 
           <div style={{ textAlign: 'center' }}>
-            <a href="https://cantra.app/host/availability" className="button">
+            <a href="https://padoq.com/host/availability" className="button">
               Manage Availability
             </a>
           </div>
@@ -146,20 +146,20 @@ export const BookingCancelledHostEmail = ({
           </p>
 
           <p>Questions? Contact us at 
-            <a href="mailto:support@cantra.app" style={{ color: '#2d5016' }}> support@cantra.app</a>
+            <a href="mailto:support@padoq.com" style={{ color: '#2d5016' }}> support@padoq.com</a>
           </p>
 
           <p style={{ marginTop: '30px' }}>
             Best regards,<br/>
-            <strong>The Cantra Team</strong>
+            <strong>The padoq Team</strong>
           </p>
         </div>
 
         <div className="footer">
-          <p>© {new Date().getFullYear()} Cantra. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} padoq. All rights reserved.</p>
           <p>
-            <a href="https://cantra.app/cancellation-policy" style={{ color: '#6b7280' }}>Cancellation Policy</a> | 
-            <a href="https://cantra.app/help" style={{ color: '#6b7280' }}>Help</a>
+            <a href="https://padoq.com/cancellation-policy" style={{ color: '#6b7280' }}>Cancellation Policy</a> | 
+            <a href="https://padoq.com/help" style={{ color: '#6b7280' }}>Help</a>
           </p>
         </div>
       </body>

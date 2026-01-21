@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Header } from "@/components/header";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Cookie } from "lucide-react";
 import Link from "next/link";
 import { validateUsername } from "@/lib/moderation";
+import { Switch } from "@/components/ui/switch";
 
 export default function EditAccountPage() {
   const [user, setUser] = useState<any>(null);
@@ -22,9 +23,16 @@ export default function EditAccountPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [cookiesAccepted, setCookiesAccepted] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
+
+  // Load cookie preference
+  useEffect(() => {
+    const consent = localStorage.getItem("padoq-cookie-consent");
+    setCookiesAccepted(consent === "accepted");
+  }, []);
 
   useEffect(() => {
     const getUser = async () => {
@@ -254,6 +262,51 @@ export default function EditAccountPage() {
                   {loading ? "Updating..." : "Change Password"}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+
+          {/* Cookie Preferences */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Cookie className="h-5 w-5" />
+                Cookie Preferences
+              </CardTitle>
+              <CardDescription>
+                Manage your cookie and tracking preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Analytics & Performance Cookies</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Help us improve by allowing anonymous usage data collection
+                  </p>
+                </div>
+                <Switch
+                  checked={cookiesAccepted}
+                  onCheckedChange={(checked) => {
+                    setCookiesAccepted(checked);
+                    localStorage.setItem(
+                      "padoq-cookie-consent",
+                      checked ? "accepted" : "declined"
+                    );
+                    toast({
+                      title: "Cookie preferences saved",
+                      description: checked 
+                        ? "Analytics cookies are now enabled." 
+                        : "Analytics cookies have been disabled.",
+                    });
+                  }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Essential cookies required for the site to function are always enabled.{" "}
+                <Link href="/privacy" className="text-primary hover:underline">
+                  Read our Privacy Policy
+                </Link>
+              </p>
             </CardContent>
           </Card>
         </div>

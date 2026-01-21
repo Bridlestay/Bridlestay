@@ -225,7 +225,7 @@ export function DamageClaimForm({
             <Info className="h-4 w-4" />
             <AlertDescription>
               Claims must be submitted within 48 hours of checkout. The guest will be notified 
-              and can accept or dispute the claim. Disputed claims are reviewed by Cantra.
+              and can accept or dispute the claim. Disputed claims are reviewed by padoq.
             </AlertDescription>
           </Alert>
 

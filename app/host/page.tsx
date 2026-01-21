@@ -125,7 +125,7 @@ export default function HostPage() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <h2 className="font-serif text-4xl font-bold text-center mb-12">
-            Why Host with Cantra?
+            Why Host with padoq?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card>
@@ -228,7 +228,7 @@ export default function HostPage() {
                   Important: Insurance Responsibility
                 </h3>
                 <p className="text-amber-800 mb-3">
-                  Cantra is a booking platform and does not provide insurance coverage for hosts or guests. 
+                  padoq is a booking platform and does not provide insurance coverage for hosts or guests. 
                   As a host, <strong>you are responsible for ensuring you have appropriate insurance</strong> for:
                 </p>
                 <ul className="list-disc list-inside text-amber-800 space-y-1 mb-3">
@@ -310,7 +310,7 @@ export default function HostPage() {
             Ready to Start Hosting?
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Join Cantra today and start earning from your property
+            Join padoq today and start earning from your property
           </p>
           <Button 
             size="lg" 
