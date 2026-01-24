@@ -7,10 +7,10 @@ export const revalidate = 0;
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ propertyId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { propertyId } = await params;
+    const { id } = await params;
     const supabase = await createClient();
 
     const {
@@ -21,7 +21,7 @@ export async function GET(
     const { data: property } = await supabase
       .from("properties")
       .select("host_id")
-      .eq("id", propertyId)
+      .eq("id", id)
       .single();
 
     // Get all questions for the property
@@ -31,7 +31,7 @@ export async function GET(
         *,
         asker:asker_id(id, name, avatar_url)
       `)
-      .eq("property_id", propertyId)
+      .eq("property_id", id)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -72,3 +72,4 @@ export async function GET(
     );
   }
 }
+

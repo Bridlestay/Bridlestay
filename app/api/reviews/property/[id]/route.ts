@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   request: Request,
-  { params }: { params: { propertyId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const supabase = await createClient();
@@ -14,7 +14,7 @@ export async function GET(
         *,
         users:reviewer_id (id, name, avatar_url)
       `)
-      .eq("property_id", params.propertyId)
+      .eq("property_id", params.id)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
