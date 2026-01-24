@@ -80,14 +80,28 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check ownership
+    // Check ownership or admin status
     const { data: existingRoute } = await supabase
       .from("routes")
       .select("owner_user_id")
       .eq("id", id)
       .single();
 
-    if (!existingRoute || existingRoute.owner_user_id !== user.id) {
+    if (!existingRoute) {
+      return NextResponse.json({ error: "Route not found" }, { status: 404 });
+    }
+
+    // Check if admin
+    const { data: userData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    
+    const isAdmin = userData?.role === "admin";
+    const isOwner = existingRoute.owner_user_id === user.id;
+
+    if (!isOwner && !isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -105,6 +119,9 @@ export async function PATCH(
     if (body.is_public !== undefined) updates.is_public = body.is_public;
     if (body.featured !== undefined) updates.featured = body.featured;
     if (body.near_property_id !== undefined) updates.near_property_id = body.near_property_id;
+    if (body.visibility !== undefined) updates.visibility = body.visibility;
+    if (body.route_type !== undefined) updates.route_type = body.route_type;
+    if (body.estimated_time_minutes !== undefined) updates.estimated_time_minutes = body.estimated_time_minutes;
 
     // If geometry is updated, recalculate distance
     if (body.geometry) {
@@ -115,7 +132,7 @@ export async function PATCH(
         );
       }
       updates.geometry = body.geometry;
-      updates.distance_km = calculateDistanceFromGeometry(body.geometry);
+      updates.distance_km = body.distance_km || calculateDistanceFromGeometry(body.geometry);
     }
 
     const { data: route, error } = await supabase

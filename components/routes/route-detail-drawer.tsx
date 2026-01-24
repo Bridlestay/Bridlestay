@@ -52,6 +52,7 @@ import {
   Image as ImageIcon,
   MoreHorizontal,
   Upload,
+  Pencil,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -343,6 +344,10 @@ export function RouteDetailDrawer({
         const res = await fetch(`/api/routes/${routeId}`);
         if (res.ok) {
           const data = await res.json();
+          console.log("[RouteDetailDrawer] Route data received:", data.route?.id, "geometry:", data.route?.geometry ? "present" : "missing");
+          if (data.route?.geometry) {
+            console.log("[RouteDetailDrawer] Geometry type:", typeof data.route.geometry, data.route.geometry?.type);
+          }
           setRoute(data.route);
           setIsOwner(data.route?.owner_user_id === userId);
         }
@@ -1036,9 +1041,6 @@ export function RouteDetailDrawer({
                     <p className="font-medium">{route.owner.name}</p>
                     <p className="text-sm text-muted-foreground">Route Creator</p>
                   </div>
-                  {route.owner.admin_verified && (
-                    <Badge variant="outline">Verified</Badge>
-                  )}
                 </div>
               </Link>
             )}
@@ -1067,6 +1069,16 @@ export function RouteDetailDrawer({
                 <Share2 className="h-4 w-4" />
               </Button>
             </div>
+
+            {/* Edit Route Button for Owners */}
+            {(isOwner || isAdmin) && (
+              <Link href={`/routes/edit/${routeId}`} className="block">
+                <Button variant="outline" className="w-full">
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit Route
+                </Button>
+              </Link>
+            )}
 
             <Separator />
 
@@ -1564,8 +1576,8 @@ export function RouteDetailDrawer({
               </TabsContent>
 
               <TabsContent value="waypoints" className="space-y-4">
-                {/* Add Waypoint Button for Owners */}
-                {(isOwner || isAdmin) && (
+                {/* Add Waypoint Button - Any authenticated user can add waypoints */}
+                {userId && (
                   <Dialog open={waypointDialogOpen} onOpenChange={(open) => {
                     setWaypointDialogOpen(open);
                     if (!open) {
@@ -1579,17 +1591,17 @@ export function RouteDetailDrawer({
                         Add Waypoint
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-lg">
+                    <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Add Waypoint</DialogTitle>
                         <DialogDescription>
-                          Click on the map to place a waypoint along your route.
+                          Click directly on the green route line to place a waypoint. Must be within 30m of the route.
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
-                        {/* Map Picker */}
+                        {/* Map Picker - Full width for better UX */}
                         <WaypointMapPicker
-                          routeGeometry={route?.geometry}
+                          routeGeometry={route?.geometry || route?.route_geometry}
                           existingWaypoints={waypoints.map((w) => ({ lat: w.lat, lng: w.lng }))}
                           selectedLocation={waypointLocation}
                           onLocationSelect={setWaypointLocation}

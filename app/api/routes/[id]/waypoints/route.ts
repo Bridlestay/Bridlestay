@@ -54,16 +54,18 @@ export async function POST(
       );
     }
 
-    // Verify route ownership
-    const { data: route } = await supabase
+    // Verify route exists and is accessible (any authenticated user can add waypoints)
+    const { data: route, error: routeError } = await supabase
       .from("routes")
-      .select("owner_user_id")
+      .select("id, owner_user_id")
       .eq("id", routeId)
       .single();
 
-    if (!route || route.owner_user_id !== user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (routeError || !route) {
+      return NextResponse.json({ error: "Route not found" }, { status: 404 });
     }
+    
+    // Any authenticated user can add waypoints to help others navigate
 
     // Build insert object with only provided fields
     const insertData: any = {
@@ -71,6 +73,7 @@ export async function POST(
       lat,
       lng,
       order_index: order_index || 0,
+      created_by_user_id: user.id, // Track who created this waypoint
     };
     
     // Only add optional fields if provided (these columns may or may not exist)

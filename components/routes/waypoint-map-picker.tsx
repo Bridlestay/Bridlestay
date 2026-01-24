@@ -119,24 +119,51 @@ export function WaypointMapPicker({
 
   // Extract coordinates from geometry
   const getCoordinates = useCallback(() => {
-    if (!routeGeometry) return [];
+    if (!routeGeometry) {
+      console.log("[WaypointMapPicker] No routeGeometry provided");
+      return [];
+    }
+    
+    console.log("[WaypointMapPicker] Parsing geometry:", typeof routeGeometry, routeGeometry);
     
     // Handle GeoJSON LineString
     if (routeGeometry.type === "LineString" && routeGeometry.coordinates) {
-      return routeGeometry.coordinates.map((coord: number[]) => ({
+      const coords = routeGeometry.coordinates.map((coord: number[]) => ({
         lat: coord[1],
         lng: coord[0],
       }));
+      console.log("[WaypointMapPicker] Parsed LineString coords:", coords.length);
+      return coords;
+    }
+    
+    // Handle GeoJSON geometry object that might be stringified
+    if (typeof routeGeometry === "string") {
+      try {
+        const parsed = JSON.parse(routeGeometry);
+        if (parsed.type === "LineString" && parsed.coordinates) {
+          const coords = parsed.coordinates.map((coord: number[]) => ({
+            lat: coord[1],
+            lng: coord[0],
+          }));
+          console.log("[WaypointMapPicker] Parsed string LineString coords:", coords.length);
+          return coords;
+        }
+      } catch (e) {
+        console.error("[WaypointMapPicker] Failed to parse geometry string:", e);
+      }
     }
     
     // Handle array of {lat, lng}
     if (Array.isArray(routeGeometry)) {
-      return routeGeometry.map((p: any) => ({
+      const coords = routeGeometry.map((p: any) => ({
         lat: p.lat || p[1],
         lng: p.lng || p[0],
       }));
+      console.log("[WaypointMapPicker] Parsed array coords:", coords.length);
+      return coords;
     }
     
+    console.log("[WaypointMapPicker] Could not parse geometry format");
     return [];
   }, [routeGeometry]);
 
@@ -344,7 +371,7 @@ export function WaypointMapPicker({
     <div className="space-y-3">
       <div
         ref={mapContainerRef}
-        className="h-64 sm:h-80 w-full rounded-lg border overflow-hidden"
+        className="h-[40vh] min-h-[300px] max-h-[500px] w-full rounded-lg border overflow-hidden"
       />
       <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
         <MapPin className="h-3 w-3 shrink-0" />

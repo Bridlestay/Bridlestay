@@ -40,72 +40,93 @@ export async function POST(request: NextRequest) {
     const adminSupabase = getAdminSupabase();
     const supabase = adminSupabase || userSupabase;
 
-    // Build filters
-    let query = supabase
-      .from("routes")
-      .select(`
-        id,
-        title,
-        description,
-        difficulty,
-        distance_km,
-        county,
-        terrain_tags,
-        avg_rating,
-        review_count,
-        is_public,
-        visibility,
-        created_at,
-        owner_user_id,
-        cover_photo_id
-      `, { count: "exact" });
-
-    // Filter by ownership or public
+    // For "my routes", use simple query (no RLS issues with own routes)
     if (myRoutes && user) {
-      query = query.eq("owner_user_id", user.id);
-    } else {
-      query = query.eq("is_public", true);
+      let query = supabase
+        .from("routes")
+        .select(`
+          id, title, description, difficulty, distance_km, county,
+          terrain_tags, avg_rating, review_count, is_public, visibility,
+          created_at, owner_user_id
+        `, { count: "exact" })
+        .eq("owner_user_id", user.id);
+
+      if (q) {
+        query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+      }
+
+      const offset = (page - 1) * limit;
+      query = query.range(offset, offset + limit - 1);
+      query = query.order("created_at", { ascending: false });
+
+      const { data: routes, error, count } = await query;
+
+      if (error) {
+        console.error("[ROUTES_SEARCH_MY] Error:", error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      // Get cover photos for user's routes
+      let routesWithPhotos = routes || [];
+      if (routes && routes.length > 0) {
+        const routeIds = routes.map(r => r.id);
+        const { data: photos } = await supabase
+          .from("route_photos")
+          .select("route_id, url, is_cover")
+          .in("route_id", routeIds);
+
+        const coverMap = new Map<string, string>();
+        photos?.forEach(p => {
+          if (p.is_cover && !coverMap.has(p.route_id)) {
+            coverMap.set(p.route_id, p.url);
+          }
+        });
+        photos?.forEach(p => {
+          if (!coverMap.has(p.route_id)) {
+            coverMap.set(p.route_id, p.url);
+          }
+        });
+
+        routesWithPhotos = routes.map(route => ({
+          ...route,
+          cover_photo_url: coverMap.get(route.id) || null,
+          route_photos: coverMap.has(route.id) ? [{ url: coverMap.get(route.id) }] : [],
+        }));
+      }
+
+      return NextResponse.json({
+        routes: routesWithPhotos,
+        total: count || 0,
+        page,
+        limit,
+        totalPages: Math.ceil((count || 0) / limit),
+      });
     }
 
-    // Text search
+    // For public routes, use a simple query that only returns USER-CREATED routes
+    // Bridleways/byways imported from external sources have owner_user_id = null
+
+    // Fallback: simple public routes query - ONLY user-created routes
+    let query = supabase
+      .from("routes")
+      .select(`id, title, description, difficulty, distance_km, county, visibility,
+        terrain_tags, avg_rating, review_count, is_public, created_at, owner_user_id`, 
+        { count: "exact" })
+      .eq("is_public", true)
+      .not("owner_user_id", "is", null); // Only show user-created routes, not imported bridleways
+
     if (q) {
       query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
     }
-
-    // County filter
     if (county) {
       query = query.eq("county", county);
     }
-
-    // Difficulty filter
     if (difficulty) {
       query = query.eq("difficulty", difficulty);
     }
 
-    // Distance range
-    if (minDistanceKm) {
-      query = query.gte("distance_km", minDistanceKm);
-    }
-    if (maxDistanceKm) {
-      query = query.lte("distance_km", maxDistanceKm);
-    }
-
-    // Terrain tags
-    if (terrainTags && terrainTags.length > 0) {
-      query = query.overlaps("terrain_tags", terrainTags);
-    }
-
-    // Near property filter
-    if (nearPropertyId) {
-      query = query.eq("near_property_id", nearPropertyId);
-    }
-
-    // Pagination
     const offset = (page - 1) * limit;
     query = query.range(offset, offset + limit - 1);
-
-    // Order by rating and recency
-    query = query.order("avg_rating", { ascending: false, nullsFirst: false });
     query = query.order("created_at", { ascending: false });
 
     const { data: routes, error, count } = await query;
@@ -115,45 +136,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // If we have routes, get cover photos in a separate query
-    let routesWithPhotos = routes || [];
-    if (routes && routes.length > 0) {
-      const routeIds = routes.map(r => r.id);
-      
-      // Get cover photos for these routes
-      const { data: coverPhotos } = await supabase
-        .from("route_photos")
-        .select("route_id, url")
-        .in("route_id", routeIds)
-        .eq("is_cover", true);
-
-      // Also get first photo for routes without cover
-      const { data: firstPhotos } = await supabase
-        .from("route_photos")
-        .select("route_id, url")
-        .in("route_id", routeIds)
-        .order("created_at", { ascending: true });
-
-      // Map photos to routes
-      const coverMap = new Map(coverPhotos?.map(p => [p.route_id, p.url]) || []);
-      const firstPhotoMap = new Map<string, string>();
-      firstPhotos?.forEach(p => {
-        if (!firstPhotoMap.has(p.route_id)) {
-          firstPhotoMap.set(p.route_id, p.url);
-        }
-      });
-
-      routesWithPhotos = routes.map(route => ({
-        ...route,
-        cover_photo_url: coverMap.get(route.id) || firstPhotoMap.get(route.id) || null,
-        route_photos: coverMap.has(route.id) || firstPhotoMap.has(route.id) 
-          ? [{ url: coverMap.get(route.id) || firstPhotoMap.get(route.id) }]
-          : [],
-      }));
-    }
-
     return NextResponse.json({
-      routes: routesWithPhotos,
+      routes: routes || [],
       total: count || 0,
       page,
       limit,
