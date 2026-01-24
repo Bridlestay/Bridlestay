@@ -136,8 +136,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Get cover photos for public routes
+    let routesWithPhotos = routes || [];
+    if (routes && routes.length > 0) {
+      const routeIds = routes.map(r => r.id);
+      const { data: photos } = await supabase
+        .from("route_photos")
+        .select("route_id, url, is_cover")
+        .in("route_id", routeIds);
+
+      const coverMap = new Map<string, string>();
+      photos?.forEach(p => {
+        if (p.is_cover && !coverMap.has(p.route_id)) {
+          coverMap.set(p.route_id, p.url);
+        }
+      });
+      // Fallback to first photo if no cover set
+      photos?.forEach(p => {
+        if (!coverMap.has(p.route_id)) {
+          coverMap.set(p.route_id, p.url);
+        }
+      });
+
+      routesWithPhotos = routes.map(route => ({
+        ...route,
+        cover_photo_url: coverMap.get(route.id) || null,
+        route_photos: coverMap.has(route.id) ? [{ url: coverMap.get(route.id) }] : [],
+      }));
+    }
+
     return NextResponse.json({
-      routes: routes || [],
+      routes: routesWithPhotos,
       total: count || 0,
       page,
       limit,
