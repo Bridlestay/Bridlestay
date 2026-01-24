@@ -1,6 +1,9 @@
 -- Migration 060: Fix route features for Jan 24 2026
 -- Fixes: route completion RLS, waypoint creation by any user, last_edited_at tracking
 
+-- 0. Add index for faster route search (USER-CREATED routes only)
+CREATE INDEX IF NOT EXISTS idx_routes_owner_user_id_public ON routes(owner_user_id, is_public) WHERE owner_user_id IS NOT NULL;
+
 -- 1. Add last_edited_at column to routes for edit tracking
 ALTER TABLE routes 
 ADD COLUMN IF NOT EXISTS last_edited_at TIMESTAMPTZ;
@@ -89,6 +92,9 @@ CREATE POLICY "route_completions_auth_delete" ON route_completions
 
 -- 5. Update search_public_routes function to only return USER-CREATED routes
 -- Routes imported from external sources (bridleways etc) have owner_user_id = null
+-- Must drop existing function first as return type is different
+DROP FUNCTION IF EXISTS search_public_routes(text,text,text,numeric,numeric,integer,integer);
+
 CREATE OR REPLACE FUNCTION search_public_routes(
   search_query TEXT DEFAULT NULL,
   filter_county TEXT DEFAULT NULL,
