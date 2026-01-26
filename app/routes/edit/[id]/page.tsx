@@ -263,14 +263,28 @@ export default function EditRoutePage() {
             {/* Layer toggles */}
             <div className="absolute top-4 right-4 z-10 space-y-2">
               <PathLayerToggles
-                showBridleways={showBridleways}
-                showByways={showByways}
-                showFootpaths={showFootpaths}
-                showRestrictedByways={showRestrictedByways}
-                onToggleBridleways={setShowBridleways}
-                onToggleByways={setShowByways}
-                onToggleFootpaths={setShowFootpaths}
-                onToggleRestrictedByways={setShowRestrictedByways}
+                layers={{
+                  bridleways: showBridleways,
+                  boats: showByways,
+                  footpaths: showFootpaths,
+                  permissive: showRestrictedByways,
+                }}
+                onToggle={(layer, enabled) => {
+                  switch (layer) {
+                    case "bridleways":
+                      setShowBridleways(enabled);
+                      break;
+                    case "boats":
+                      setShowByways(enabled);
+                      break;
+                    case "footpaths":
+                      setShowFootpaths(enabled);
+                      break;
+                    case "permissive":
+                      setShowRestrictedByways(enabled);
+                      break;
+                  }
+                }}
               />
             </div>
           </div>
