@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function EditRoutePage() {
   const params = useParams();
@@ -223,7 +224,7 @@ export default function EditRoutePage() {
   }
 
   return (
-    <>
+    <TooltipProvider>
       <Header />
       <main className="min-h-screen bg-muted/30">
         <div className="flex h-[calc(100vh-64px)]">
@@ -316,6 +317,6 @@ export default function EditRoutePage() {
         onOpenChange={setShowDiscardDialog}
         onConfirm={confirmDiscard}
       />
-    </>
+    </TooltipProvider>
   );
 }

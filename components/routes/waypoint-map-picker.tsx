@@ -222,19 +222,27 @@ export function WaypointMapPicker({
     };
   }, [isLoaded, center, getCoordinates, onLocationSelect, maxDistanceFromRoute]);
 
-  // Draw route line
+  // Draw route line - use routeGeometry directly as dependency
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !isLoaded) {
+      console.log("[WaypointMapPicker] Map not ready yet, skipping route draw");
+      return;
+    }
 
     // Clear existing route line
     if (routeLineRef.current) {
       routeLineRef.current.setMap(null);
+      routeLineRef.current = null;
     }
 
     const coords = getCoordinates();
+    console.log("[WaypointMapPicker] Drawing route with", coords.length, "coordinates");
     routeCoordsRef.current = coords; // Store for distance validation
     
-    if (coords.length === 0) return;
+    if (coords.length === 0) {
+      console.log("[WaypointMapPicker] No coordinates to draw");
+      return;
+    }
 
     // Draw a thicker, more visible route line
     routeLineRef.current = new google.maps.Polyline({
@@ -245,7 +253,10 @@ export function WaypointMapPicker({
       strokeWeight: 6, // Thicker for better visibility
       map: mapRef.current,
       clickable: true, // Make route clickable
+      zIndex: 1000, // Ensure route is on top
     });
+
+    console.log("[WaypointMapPicker] Route line created successfully");
 
     // Also add a click listener to the route itself for easier placement
     routeLineRef.current.addListener("click", (e: google.maps.PolyMouseEvent) => {
@@ -265,7 +276,7 @@ export function WaypointMapPicker({
       bounds.extend(new google.maps.LatLng(coord.lat, coord.lng));
     });
     mapRef.current.fitBounds(bounds, 60);
-  }, [getCoordinates, onLocationSelect]);
+  }, [routeGeometry, isLoaded, getCoordinates, onLocationSelect]);
 
   // Draw existing waypoints
   useEffect(() => {
