@@ -121,21 +121,36 @@ export default function EditRoutePage() {
     loadRoute();
   }, [routeId, router, supabase]);
 
-  // Center map on route when loaded
+  // Center map on route when loaded - zoom level based on route size
   useEffect(() => {
     if (waypoints.length > 0 && mapRef.current && !loading) {
       // Give map time to initialize
       setTimeout(() => {
         if (mapRef.current && waypoints.length > 0) {
+          const lats = waypoints.map(wp => wp.lat);
+          const lngs = waypoints.map(wp => wp.lng);
+          
           const bounds = {
-            north: Math.max(...waypoints.map(wp => wp.lat)),
-            south: Math.min(...waypoints.map(wp => wp.lat)),
-            east: Math.max(...waypoints.map(wp => wp.lng)),
-            west: Math.min(...waypoints.map(wp => wp.lng)),
+            north: Math.max(...lats),
+            south: Math.min(...lats),
+            east: Math.max(...lngs),
+            west: Math.min(...lngs),
           };
-          mapRef.current.fitBounds?.(bounds);
+          
+          // Add 20% padding to bounds for better visibility
+          const latPadding = (bounds.north - bounds.south) * 0.2 || 0.005;
+          const lngPadding = (bounds.east - bounds.west) * 0.2 || 0.005;
+          
+          const paddedBounds = {
+            north: bounds.north + latPadding,
+            south: bounds.south - latPadding,
+            east: bounds.east + lngPadding,
+            west: bounds.west - lngPadding,
+          };
+          
+          mapRef.current.fitBounds?.(paddedBounds);
         }
-      }, 500);
+      }, 800);
     }
   }, [waypoints.length, loading]);
 

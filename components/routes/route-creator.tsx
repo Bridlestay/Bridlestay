@@ -49,6 +49,7 @@ export interface RouteCreatorProps {
   mapRef: React.RefObject<any>;
   existingRoute?: RouteData | null;
   onRouteTypeChange?: (routeType: "circular" | "linear") => void;
+  isEditing?: boolean;
 }
 
 export interface RouteData {
@@ -72,6 +73,7 @@ export function RouteCreator({
   mapRef,
   existingRoute,
   onRouteTypeChange,
+  isEditing = false,
 }: RouteCreatorProps) {
   // Route metadata
   const [title, setTitle] = useState(existingRoute?.title || "");
@@ -200,7 +202,7 @@ export function RouteCreator({
       {/* Header */}
       <div className="px-4 py-3 border-b bg-background">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Create Route</h2>
+          <h2 className="text-lg font-semibold">{isEditing ? "Edit Route" : "Create Route"}</h2>
           <Button variant="ghost" size="icon" onClick={onCancel}>
             <X className="h-4 w-4" />
           </Button>
