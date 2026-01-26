@@ -288,7 +288,8 @@ export function RouteDetailDrawer({
   
   const [newComment, setNewComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  // For nested replies: { parentCommentId, replyToId, replyToName }
+  const [replyingTo, setReplyingTo] = useState<{ parentCommentId: string; replyToId?: string; replyToName?: string } | null>(null);
   const [replyText, setReplyText] = useState("");
   const [submittingReply, setSubmittingReply] = useState(false);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
@@ -623,15 +624,22 @@ export function RouteDetailDrawer({
     }
   };
 
-  const handleSubmitReply = async (parentId: string) => {
+  const handleSubmitReply = async () => {
     if (!userId) {
       toast.error("Please sign in to reply");
       return;
     }
 
-    if (!replyText.trim()) {
+    if (!replyText.trim() || !replyingTo) {
       toast.error("Please enter a reply");
       return;
+    }
+
+    const parentCommentId = replyingTo.parentCommentId;
+    // Build the reply text with @mention if replying to a nested reply
+    let finalBody = replyText;
+    if (replyingTo.replyToId && replyingTo.replyToName) {
+      finalBody = `@${replyingTo.replyToName} ${replyText}`;
     }
 
     setSubmittingReply(true);
@@ -639,21 +647,21 @@ export function RouteDetailDrawer({
       const res = await fetch(`/api/routes/${routeId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: replyText, parent_comment_id: parentId }),
+        body: JSON.stringify({ body: finalBody, parent_comment_id: parentCommentId }),
       });
 
       if (res.ok) {
         const data = await res.json();
         setComments((prev) =>
           prev.map((c) =>
-            c.id === parentId
+            c.id === parentCommentId
               ? { ...c, replies: [...(c.replies || []), data.comment] }
               : c
           )
         );
         setReplyText("");
         setReplyingTo(null);
-        setExpandedComments((prev) => new Set([...prev, parentId]));
+        setExpandedComments((prev) => new Set([...prev, parentCommentId]));
         toast.success("Reply posted!");
       } else {
         toast.error("Failed to post reply");
@@ -1797,7 +1805,11 @@ export function RouteDetailDrawer({
                                 </span>
                                 {userId && (
                                   <button
-                                    onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+                                    onClick={() => setReplyingTo(
+                                      replyingTo?.parentCommentId === comment.id && !replyingTo?.replyToId
+                                        ? null 
+                                        : { parentCommentId: comment.id }
+                                    )}
                                     className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
                                   >
                                     Reply
@@ -1837,8 +1849,8 @@ export function RouteDetailDrawer({
                             </div>
                           </div>
 
-                          {/* Reply Input */}
-                          {replyingTo === comment.id && (
+                          {/* Reply Input - shown when replying to top-level comment */}
+                          {replyingTo?.parentCommentId === comment.id && !replyingTo?.replyToId && (
                             <div className="ml-12 flex gap-2">
                               <Input
                                 placeholder={`Reply to ${comment.user?.name || "user"}...`}
@@ -1847,7 +1859,7 @@ export function RouteDetailDrawer({
                                 className="text-sm"
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter" && replyText.trim()) {
-                                    handleSubmitReply(comment.id);
+                                    handleSubmitReply();
                                   } else if (e.key === "Escape") {
                                     setReplyingTo(null);
                                     setReplyText("");
@@ -1857,7 +1869,7 @@ export function RouteDetailDrawer({
                               />
                               <Button
                                 size="sm"
-                                onClick={() => handleSubmitReply(comment.id)}
+                                onClick={() => handleSubmitReply()}
                                 disabled={submittingReply || !replyText.trim()}
                               >
                                 {submittingReply ? "..." : "Post"}
@@ -1890,61 +1902,117 @@ export function RouteDetailDrawer({
                               )}
 
                               {visibleReplies?.map((reply: any) => (
-                                <div key={reply.id} className="flex gap-2">
-                                  <Link href={`/profile/${reply.user?.id}`}>
-                                    <Avatar className="h-7 w-7 cursor-pointer hover:ring-2 hover:ring-primary transition-all">
-                                      <AvatarImage src={reply.user?.avatar_url || undefined} />
-                                      <AvatarFallback className="text-xs">
-                                        {reply.user?.name?.[0]?.toUpperCase() || "?"}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                  </Link>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="bg-muted/60 rounded-2xl px-3 py-2">
-                                      <Link 
-                                        href={`/profile/${reply.user?.id}`}
-                                        className="font-semibold text-xs hover:underline"
-                                      >
-                                        {reply.user?.name || "Unknown"}
-                                      </Link>
-                                      <p className="text-sm whitespace-pre-wrap break-words">{reply.body}</p>
-                                    </div>
-                                    <div className="flex items-center gap-4 mt-0.5 px-2">
-                                      <span className="text-xs text-muted-foreground">
-                                        {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
-                                      </span>
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <button className="text-xs text-muted-foreground hover:text-foreground">
-                                            <MoreHorizontal className="h-3 w-3" />
+                                <div key={reply.id} className="space-y-2">
+                                  <div className="flex gap-2">
+                                    <Link href={`/profile/${reply.user?.id}`}>
+                                      <Avatar className="h-7 w-7 cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+                                        <AvatarImage src={reply.user?.avatar_url || undefined} />
+                                        <AvatarFallback className="text-xs">
+                                          {reply.user?.name?.[0]?.toUpperCase() || "?"}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                    </Link>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="bg-muted/60 rounded-2xl px-3 py-2">
+                                        <Link 
+                                          href={`/profile/${reply.user?.id}`}
+                                          className="font-semibold text-xs hover:underline"
+                                        >
+                                          {reply.user?.name || "Unknown"}
+                                        </Link>
+                                        <p className="text-sm whitespace-pre-wrap break-words">{reply.body}</p>
+                                      </div>
+                                      <div className="flex items-center gap-4 mt-0.5 px-2">
+                                        <span className="text-xs text-muted-foreground">
+                                          {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
+                                        </span>
+                                        {/* Reply to reply button */}
+                                        {userId && (
+                                          <button
+                                            onClick={() => setReplyingTo(
+                                              replyingTo?.replyToId === reply.id
+                                                ? null
+                                                : { 
+                                                    parentCommentId: comment.id, 
+                                                    replyToId: reply.id, 
+                                                    replyToName: reply.user?.name 
+                                                  }
+                                            )}
+                                            className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                                          >
+                                            Reply
                                           </button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="start">
-                                          {reply.user?.id === userId && (
-                                            <DropdownMenuItem 
-                                              onClick={() => handleDeleteComment(reply.id, true, comment.id)}
-                                              className="text-red-600"
-                                            >
-                                              <Trash2 className="h-4 w-4 mr-2" />
-                                              Delete
-                                            </DropdownMenuItem>
-                                          )}
-                                          {reply.user?.id !== userId && userId && (
-                                            <DropdownMenuItem 
-                                              onClick={() => {
-                                                setReportingCommentId(reply.id);
-                                                setReportDialogOpen(true);
-                                              }}
-                                              className="text-red-600"
-                                            >
-                                              <Flag className="h-4 w-4 mr-2" />
-                                              Report
-                                            </DropdownMenuItem>
-                                          )}
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
+                                        )}
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <button className="text-xs text-muted-foreground hover:text-foreground">
+                                              <MoreHorizontal className="h-3 w-3" />
+                                            </button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="start">
+                                            {reply.user?.id === userId && (
+                                              <DropdownMenuItem 
+                                                onClick={() => handleDeleteComment(reply.id, true, comment.id)}
+                                                className="text-red-600"
+                                              >
+                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                Delete
+                                              </DropdownMenuItem>
+                                            )}
+                                            {reply.user?.id !== userId && userId && (
+                                              <DropdownMenuItem 
+                                                onClick={() => {
+                                                  setReportingCommentId(reply.id);
+                                                  setReportDialogOpen(true);
+                                                }}
+                                                className="text-red-600"
+                                              >
+                                                <Flag className="h-4 w-4 mr-2" />
+                                                Report
+                                              </DropdownMenuItem>
+                                            )}
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      </div>
                                     </div>
                                   </div>
+                                  {/* Reply input for replying to a reply */}
+                                  {replyingTo?.replyToId === reply.id && (
+                                    <div className="ml-9 flex gap-2">
+                                      <Input
+                                        placeholder={`Reply to ${reply.user?.name || "user"}...`}
+                                        value={replyText}
+                                        onChange={(e) => setReplyText(e.target.value)}
+                                        className="text-sm"
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter" && replyText.trim()) {
+                                            handleSubmitReply();
+                                          } else if (e.key === "Escape") {
+                                            setReplyingTo(null);
+                                            setReplyText("");
+                                          }
+                                        }}
+                                        autoFocus
+                                      />
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleSubmitReply()}
+                                        disabled={submittingReply || !replyText.trim()}
+                                      >
+                                        {submittingReply ? "..." : "Post"}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => {
+                                          setReplyingTo(null);
+                                          setReplyText("");
+                                        }}
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </div>
+                                  )}
                                 </div>
                               ))}
 

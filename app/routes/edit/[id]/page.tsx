@@ -2,15 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { RouteCreator, RouteCreatorToolbar, PathLayerToggles, Waypoint, RouteData, RouteStyle, ToolMode } from "@/components/routes/route-creator";
 import { RoutesMapV2, RoutesMapV2Handle } from "@/components/routes/routes-map-v2";
-import { KMLLayerToggles } from "@/components/routes/kml-layer-toggles";
 import { ClearRouteDialog, DiscardRouteDialog } from "@/components/routes/confirm-dialog";
 import { Header } from "@/components/header";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -27,28 +24,36 @@ export default function EditRoutePage() {
   const [originalRoute, setOriginalRoute] = useState<any>(null);
 
   // Route editing state (same as creation)
+  const [isPlotting, setIsPlotting] = useState(true); // Start in plotting mode
+  const [snapEnabled, setSnapEnabled] = useState(true);
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [routeType, setRouteType] = useState<"linear" | "circular">("linear");
   const [history, setHistory] = useState<Waypoint[][]>([]);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
-  
-  // Map layer toggles
-  const [showBridleways, setShowBridleways] = useState(true);
-  const [showByways, setShowByways] = useState(true);
-  const [showFootpaths, setShowFootpaths] = useState(false);
-  const [showRestrictedByways, setShowRestrictedByways] = useState(false);
-  
+  const [toolMode, setToolMode] = useState<ToolMode>("plot");
+
+  // Path layers (same structure as create)
+  const [pathLayers, setPathLayers] = useState({
+    bridleways: true,
+    boats: false,
+    footpaths: false,
+    permissive: false,
+  });
+
   // Route style
   const [routeStyle, setRouteStyle] = useState<RouteStyle>({
-    strokeColor: "#2D5A27",
-    strokeWeight: 4,
-    strokeOpacity: 0.9,
+    color: "#3B82F6",
+    thickness: 4,
+    opacity: 100,
   });
-  
-  // Tool mode
-  const [toolMode, setToolMode] = useState<ToolMode>("draw");
 
+  // Path layer toggle handler
+  const handlePathLayerToggle = (layer: string, enabled: boolean) => {
+    setPathLayers((prev) => ({ ...prev, [layer]: enabled }));
+  };
+
+  // Load route data
   useEffect(() => {
     const loadRoute = async () => {
       try {
@@ -92,10 +97,10 @@ export default function EditRoutePage() {
         if (routeData.geometry?.coordinates) {
           const coords = routeData.geometry.coordinates;
           const extractedWaypoints: Waypoint[] = coords.map((coord: number[], index: number) => ({
-            id: `wp-${index}`,
+            id: `wp-${Date.now()}-${index}`,
             lat: coord[1],
             lng: coord[0],
-            isSnapped: false,
+            snapped: false,
           }));
           setWaypoints(extractedWaypoints);
         }
@@ -115,6 +120,78 @@ export default function EditRoutePage() {
 
     loadRoute();
   }, [routeId, router, supabase]);
+
+  // Center map on route when loaded
+  useEffect(() => {
+    if (waypoints.length > 0 && mapRef.current && !loading) {
+      // Give map time to initialize
+      setTimeout(() => {
+        if (mapRef.current && waypoints.length > 0) {
+          const bounds = {
+            north: Math.max(...waypoints.map(wp => wp.lat)),
+            south: Math.min(...waypoints.map(wp => wp.lat)),
+            east: Math.max(...waypoints.map(wp => wp.lng)),
+            west: Math.min(...waypoints.map(wp => wp.lng)),
+          };
+          mapRef.current.fitBounds?.(bounds);
+        }
+      }, 500);
+    }
+  }, [waypoints.length, loading]);
+
+  // Waypoint management (same as create)
+  const addWaypoint = useCallback(
+    (lat: number, lng: number, snapped = false, pathType?: string) => {
+      setHistory((prev) => [...prev, waypoints]);
+      const newWaypoint: Waypoint = {
+        id: `wp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        lat,
+        lng,
+        snapped,
+        pathType: pathType as Waypoint["pathType"],
+      };
+      setWaypoints((prev) => [...prev, newWaypoint]);
+    },
+    [waypoints]
+  );
+
+  const insertWaypoint = useCallback(
+    (index: number, lat: number, lng: number, snapped = false, pathType?: string) => {
+      setHistory((prev) => [...prev, waypoints]);
+      const newWaypoint: Waypoint = {
+        id: `wp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        lat,
+        lng,
+        snapped,
+        pathType: pathType as Waypoint["pathType"],
+      };
+      setWaypoints((prev) => {
+        const newArr = [...prev];
+        newArr.splice(index, 0, newWaypoint);
+        return newArr;
+      });
+    },
+    [waypoints]
+  );
+
+  const updateWaypoint = useCallback(
+    (id: string, lat: number, lng: number, snapped = false) => {
+      setHistory((prev) => [...prev, waypoints]);
+      setWaypoints((prev) =>
+        prev.map((wp) => (wp.id === id ? { ...wp, lat, lng, snapped } : wp))
+      );
+    },
+    [waypoints]
+  );
+
+  const removeWaypoint = useCallback(
+    (id: string) => {
+      setHistory((prev) => [...prev, waypoints]);
+      setWaypoints((prev) => prev.filter((wp) => wp.id !== id));
+      toast.info("Waypoint removed");
+    },
+    [waypoints]
+  );
 
   // Handle circular route detection
   const handleCircularDetected = useCallback(() => {
@@ -157,6 +234,11 @@ export default function EditRoutePage() {
     toast.info("Route cleared");
   }, []);
 
+  // Handle style change
+  const handleStyleChange = useCallback((newStyle: Partial<RouteStyle>) => {
+    setRouteStyle((prev) => ({ ...prev, ...newStyle }));
+  }, []);
+
   // Handle save (update existing route)
   const handleSaveRoute = async (routeData: RouteData) => {
     if (!routeData.title?.trim()) {
@@ -197,12 +279,17 @@ export default function EditRoutePage() {
 
   // Handle cancel
   const handleCancel = useCallback(() => {
-    if (waypoints.length > 0) {
+    // Check if changes were made
+    const hasChanges = originalRoute && (
+      waypoints.length !== (originalRoute.geometry?.coordinates?.length || 0)
+    );
+    
+    if (hasChanges) {
       setShowDiscardDialog(true);
     } else {
       router.push("/routes");
     }
-  }, [waypoints, router]);
+  }, [waypoints, originalRoute, router]);
 
   const confirmDiscard = useCallback(() => {
     router.push("/routes");
@@ -223,102 +310,82 @@ export default function EditRoutePage() {
     return null;
   }
 
+  // Render Edit Route view - SAME LAYOUT AS CREATE
   return (
     <TooltipProvider>
       <Header />
-      <main className="min-h-screen bg-muted/30">
+      <div className="min-h-screen bg-background">
         <div className="flex h-[calc(100vh-64px)]">
-          {/* Map area */}
+          {/* Left sidebar - Route creator form + path toggles */}
+          <div className="w-80 border-r bg-background flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto">
+              <RouteCreator
+                onSave={handleSaveRoute}
+                onCancel={handleCancel}
+                mapRef={mapRef}
+                existingRoute={{
+                  title: originalRoute.title,
+                  description: originalRoute.description || "",
+                  visibility: originalRoute.visibility || "private",
+                  difficulty: originalRoute.difficulty || "unrated",
+                  routeType,
+                  waypoints,
+                  geometry: {
+                    type: "LineString",
+                    coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
+                  },
+                  distanceKm: originalRoute.distance_km || 0,
+                  estimatedTimeMinutes: originalRoute.estimated_time_minutes || 0,
+                }}
+                onRouteTypeChange={handleRouteTypeChange}
+                isEditing={true}
+              />
+            </div>
+            {/* Path layer toggles at bottom of sidebar */}
+            <div className="border-t p-4">
+              <PathLayerToggles
+                layers={pathLayers}
+                onToggle={handlePathLayerToggle}
+              />
+            </div>
+          </div>
+
+          {/* Map area - full width */}
           <div className="flex-1 relative">
             <RoutesMapV2
               ref={mapRef}
-              mode="edit"
+              isCreating={true}
+              isPlotting={isPlotting}
+              snapEnabled={snapEnabled}
               waypoints={waypoints}
-              onWaypointsChange={(newWaypoints) => {
-                setHistory((prev) => [...prev.slice(-19), waypoints]);
-                setWaypoints(newWaypoints);
-              }}
-              onCircularDetected={handleCircularDetected}
               routeType={routeType}
               routeStyle={routeStyle}
               toolMode={toolMode}
-              showBridleways={showBridleways}
-              showByways={showByways}
-              showFootpaths={showFootpaths}
-              showRestrictedByways={showRestrictedByways}
+              pathLayers={pathLayers}
+              onWaypointAdd={addWaypoint}
+              onWaypointUpdate={updateWaypoint}
+              onWaypointRemove={removeWaypoint}
+              onWaypointInsert={insertWaypoint}
+              onCircularDetected={handleCircularDetected}
             />
 
-            {/* Toolbar */}
-            <div className="absolute top-4 left-4 z-10">
-              <RouteCreatorToolbar
-                toolMode={toolMode}
-                onToolModeChange={setToolMode}
-                onUndo={handleUndo}
-                onClear={handleClear}
-                canUndo={history.length > 0}
-                canClear={waypoints.length > 0}
-              />
-            </div>
-
-            {/* Layer toggles */}
-            <div className="absolute top-4 right-4 z-10 space-y-2">
-              <PathLayerToggles
-                layers={{
-                  bridleways: showBridleways,
-                  boats: showByways,
-                  footpaths: showFootpaths,
-                  permissive: showRestrictedByways,
-                }}
-                onToggle={(layer, enabled) => {
-                  switch (layer) {
-                    case "bridleways":
-                      setShowBridleways(enabled);
-                      break;
-                    case "boats":
-                      setShowByways(enabled);
-                      break;
-                    case "footpaths":
-                      setShowFootpaths(enabled);
-                      break;
-                    case "permissive":
-                      setShowRestrictedByways(enabled);
-                      break;
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Sidebar with form */}
-          <div className="w-96 border-l bg-background overflow-y-auto">
-            <div className="p-4 border-b">
-              <h2 className="font-semibold text-lg">Edit Route</h2>
-              <p className="text-sm text-muted-foreground">
-                Modify your route path and details
-              </p>
-              {originalRoute.last_edited_at && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Last edited: {new Date(originalRoute.last_edited_at).toLocaleDateString()}
-                </p>
-              )}
-            </div>
-            <RouteCreator
-              mapRef={mapRef}
-              onSave={handleSaveRoute}
-              onCancel={handleCancel}
-              existingRoute={{
-                title: originalRoute.title,
-                description: originalRoute.description || "",
-                visibility: originalRoute.visibility || "private",
-                difficulty: originalRoute.difficulty || "unrated",
-                routeType: routeType,
-                waypoints: waypoints,
-              }}
-              onRouteTypeChange={handleRouteTypeChange}
+            {/* Route creation toolbar */}
+            <RouteCreatorToolbar
+              isPlotting={isPlotting}
+              setIsPlotting={setIsPlotting}
+              snapEnabled={snapEnabled}
+              setSnapEnabled={setSnapEnabled}
+              toolMode={toolMode}
+              setToolMode={setToolMode}
+              onUndo={handleUndo}
+              onClear={handleClear}
+              canUndo={history.length > 0}
+              routeStyle={routeStyle}
+              onStyleChange={handleStyleChange}
             />
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Dialogs */}
       <ClearRouteDialog
