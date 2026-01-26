@@ -112,6 +112,7 @@ export function WaypointMapPicker({
   const routeLineRef = useRef<google.maps.Polyline | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
   const existingMarkersRef = useRef<google.maps.Marker[]>([]);
+  const startFinishMarkersRef = useRef<google.maps.Marker[]>([]);
   const [distanceWarning, setDistanceWarning] = useState<string | null>(null);
   const routeCoordsRef = useRef<{ lat: number; lng: number }[]>([]);
   
@@ -269,6 +270,60 @@ export function WaypointMapPicker({
         onLocationSelect(location);
       }
     });
+
+    // Clear existing start/finish markers
+    startFinishMarkersRef.current.forEach((m) => m.setMap(null));
+    startFinishMarkersRef.current = [];
+
+    // Add Start marker
+    if (coords.length > 0) {
+      const startMarker = new google.maps.Marker({
+        position: coords[0],
+        map: mapRef.current,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 12,
+          fillColor: "#16a34a", // Green
+          fillOpacity: 1,
+          strokeColor: "#fff",
+          strokeWeight: 3,
+        },
+        label: {
+          text: "S",
+          color: "#fff",
+          fontSize: "10px",
+          fontWeight: "bold",
+        },
+        title: "Start",
+        zIndex: 1001,
+      });
+      startFinishMarkersRef.current.push(startMarker);
+    }
+
+    // Add Finish marker
+    if (coords.length > 1) {
+      const endMarker = new google.maps.Marker({
+        position: coords[coords.length - 1],
+        map: mapRef.current,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 12,
+          fillColor: "#dc2626", // Red
+          fillOpacity: 1,
+          strokeColor: "#fff",
+          strokeWeight: 3,
+        },
+        label: {
+          text: "F",
+          color: "#fff",
+          fontSize: "10px",
+          fontWeight: "bold",
+        },
+        title: "Finish",
+        zIndex: 1001,
+      });
+      startFinishMarkersRef.current.push(endMarker);
+    }
 
     // Fit bounds to route with padding
     const bounds = new google.maps.LatLngBounds();
