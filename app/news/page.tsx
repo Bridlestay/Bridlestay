@@ -88,12 +88,13 @@ export default async function NewsPage() {
               <Card className="mb-12 overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-primary">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
                   {featuredPost.cover_image_url && (
-                    <div className="relative h-64 lg:h-full">
+                    <div className="relative h-64 lg:h-full min-h-[256px]">
                       <Image
                         src={featuredPost.cover_image_url}
                         alt={featuredPost.title}
                         fill
                         className="object-cover"
+                        unoptimized={!featuredPost.cover_image_url.includes('supabase.co')}
                       />
                       <div className="absolute top-4 left-4">
                         <Badge className="bg-yellow-500 text-black font-semibold">
@@ -150,7 +151,8 @@ export default async function NewsPage() {
           <div>
             <h2 className="font-serif text-2xl font-bold mb-6">Latest News</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {posts?.filter(post => !post.featured || post.id !== featuredPost?.id).map((post) => (
+              {/* Show all posts except the one displayed as featured */}
+              {posts?.filter(post => post.id !== featuredPost?.id).map((post) => (
                 <Link key={post.id} href={`/news/${post.slug}`}>
                   <Card className="h-full overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                     {post.cover_image_url && (
@@ -160,6 +162,7 @@ export default async function NewsPage() {
                           alt={post.title}
                           fill
                           className="object-cover"
+                          unoptimized={!post.cover_image_url.includes('supabase.co')}
                         />
                       </div>
                     )}
@@ -191,8 +194,15 @@ export default async function NewsPage() {
               ))}
             </div>
 
+            {/* Show message when no posts other than featured */}
+            {posts && posts.filter(post => post.id !== featuredPost?.id).length === 0 && featuredPost && (
+              <Card className="p-8 text-center col-span-full">
+                <p className="text-muted-foreground">More news coming soon! Check back for the latest updates.</p>
+              </Card>
+            )}
+            
             {(!posts || posts.length === 0) && (
-              <Card className="p-12 text-center">
+              <Card className="p-12 text-center col-span-full">
                 <p className="text-muted-foreground">No news posts yet. Check back soon!</p>
               </Card>
             )}

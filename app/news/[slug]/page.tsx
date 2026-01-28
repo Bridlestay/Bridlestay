@@ -122,6 +122,7 @@ export default async function NewsPostPage({ params }: NewsPostPageProps) {
               fill
               className="object-cover"
               priority
+              unoptimized={!post.cover_image_url.includes('supabase.co')}
             />
           </div>
         )}
@@ -216,6 +217,7 @@ export default async function NewsPostPage({ params }: NewsPostPageProps) {
                               alt={relatedPost.title}
                               fill
                               className="object-cover"
+                              unoptimized={!relatedPost.cover_image_url.includes('supabase.co')}
                             />
                           </div>
                         )}

@@ -5,28 +5,43 @@
 -- 1. Remove fixed_credit from referral benefit types
 -- 2. Fix badge awarding trigger to properly award badges
 -- 3. Add function to manually sync user stats and award badges
+-- 4. Add storage policies for news-images bucket
 
 -- ============================================
 -- 1. REMOVE FIXED_CREDIT FROM REFERRALS
 -- ============================================
 
 -- Update the check constraint to remove fixed_credit option
--- First drop the existing constraint
-ALTER TABLE referral_codes 
-DROP CONSTRAINT IF EXISTS referral_codes_benefit_type_check;
+-- First drop the existing constraint (may not exist, so we use IF EXISTS pattern)
+DO $$ 
+BEGIN
+  ALTER TABLE referral_codes DROP CONSTRAINT IF EXISTS referral_codes_benefit_type_check;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 -- Add new constraint without fixed_credit
-ALTER TABLE referral_codes 
-ADD CONSTRAINT referral_codes_benefit_type_check 
-CHECK (benefit_type IN ('guest_fee_discount', 'host_fee_waiver'));
+DO $$ 
+BEGIN
+  ALTER TABLE referral_codes 
+  ADD CONSTRAINT referral_codes_benefit_type_check 
+  CHECK (benefit_type IN ('guest_fee_discount', 'host_fee_waiver'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Update referrer_benefit_type constraint too
-ALTER TABLE referral_codes 
-DROP CONSTRAINT IF EXISTS referral_codes_referrer_benefit_type_check;
+DO $$ 
+BEGIN
+  ALTER TABLE referral_codes DROP CONSTRAINT IF EXISTS referral_codes_referrer_benefit_type_check;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
-ALTER TABLE referral_codes 
-ADD CONSTRAINT referral_codes_referrer_benefit_type_check 
-CHECK (referrer_benefit_type IN ('host_fee_waiver', 'guest_fee_discount', 'none') OR referrer_benefit_type IS NULL);
+DO $$ 
+BEGIN
+  ALTER TABLE referral_codes 
+  ADD CONSTRAINT referral_codes_referrer_benefit_type_check 
+  CHECK (referrer_benefit_type IN ('host_fee_waiver', 'guest_fee_discount', 'none') OR referrer_benefit_type IS NULL);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Convert any existing fixed_credit to guest_fee_discount
 UPDATE referral_codes 
@@ -60,9 +75,9 @@ BEGIN
   SELECT COUNT(*) INTO v_routes_completed 
   FROM route_completions WHERE user_id = p_user_id;
   
-  -- Count reviews written
+  -- Count reviews written (using guest_id from reviews table)
   SELECT COUNT(*) INTO v_reviews_written 
-  FROM reviews WHERE user_id = p_user_id;
+  FROM reviews WHERE guest_id = p_user_id;
   
   -- Count bookings completed as guest
   SELECT COUNT(*) INTO v_bookings_completed 
@@ -170,4 +185,56 @@ BEGIN
   END LOOP;
 END $$;
 
+-- ============================================
+-- 5. STORAGE POLICIES FOR NEWS IMAGES
+-- ============================================
+
+-- Create the news-images bucket if it doesn't exist (done via dashboard, but setting policies here)
+
+-- Allow authenticated users (admins) to upload to news-images
+-- Note: You need to create the bucket in Supabase Dashboard first, then run these policies
+
+-- For storage.objects table
+DO $$
+BEGIN
+  -- Allow admins to upload
+  DROP POLICY IF EXISTS "Admins can upload news images" ON storage.objects;
+  CREATE POLICY "Admins can upload news images" ON storage.objects
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+      bucket_id = 'news-images' 
+      AND EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+    );
+EXCEPTION WHEN undefined_table THEN
+  -- storage.objects table might not exist in some setups
+  NULL;
+END $$;
+
+DO $$
+BEGIN
+  -- Allow public read access
+  DROP POLICY IF EXISTS "Public can view news images" ON storage.objects;
+  CREATE POLICY "Public can view news images" ON storage.objects
+    FOR SELECT
+    TO public
+    USING (bucket_id = 'news-images');
+EXCEPTION WHEN undefined_table THEN
+  NULL;
+END $$;
+
+DO $$
+BEGIN
+  -- Allow admins to delete
+  DROP POLICY IF EXISTS "Admins can delete news images" ON storage.objects;
+  CREATE POLICY "Admins can delete news images" ON storage.objects
+    FOR DELETE
+    TO authenticated
+    USING (
+      bucket_id = 'news-images' 
+      AND EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+    );
+EXCEPTION WHEN undefined_table THEN
+  NULL;
+END $$;
 

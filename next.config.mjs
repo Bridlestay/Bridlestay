@@ -14,6 +14,11 @@ const nextConfig = {
         protocol: "https",
         hostname: "*.supabase.co",
       },
+      {
+        // Allow any HTTPS image for news articles
+        protocol: "https",
+        hostname: "**",
+      },
     ],
   },
   // Security headers
