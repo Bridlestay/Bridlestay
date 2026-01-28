@@ -505,7 +505,6 @@ export function BadgesDashboard() {
                   <TableHead>Category</TableHead>
                   <TableHead>Tier</TableHead>
                   <TableHead>Criteria</TableHead>
-                  <TableHead>Points</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -548,9 +547,6 @@ export function BadgesDashboard() {
                           {badge.criteria_type}
                         </span>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{badge.points}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -737,7 +733,7 @@ export function BadgesDashboard() {
               {/* Rarity removed - keep tiers only for progression badges */}
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tier (optional)</Label>
                 <Select value={formData.tier || "none"} onValueChange={(v) => setFormData({ ...formData, tier: v === "none" ? "" : v })}>
@@ -755,14 +751,6 @@ export function BadgesDashboard() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Points</Label>
-                <Input
-                  type="number"
-                  value={formData.points}
-                  onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="space-y-2">
                 <Label>Tier Order</Label>
                 <Input
                   type="number"
@@ -770,6 +758,7 @@ export function BadgesDashboard() {
                   onChange={(e) => setFormData({ ...formData, tier_order: parseInt(e.target.value) || 0 })}
                 />
               </div>
+              {/* Points removed - not using points system */}
             </div>
 
             <div className="grid grid-cols-3 gap-4">

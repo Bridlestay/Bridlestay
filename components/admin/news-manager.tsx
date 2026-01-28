@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -32,10 +33,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Edit, Trash2, Eye, Calendar, Loader2, ExternalLink } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Calendar, Loader2, ExternalLink, Upload, Image as ImageIcon, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
 interface NewsPost {
   id: string;
@@ -61,6 +63,11 @@ export function NewsManager() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
   const [editingPost, setEditingPost] = useState<NewsPost | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewPost, setPreviewPost] = useState<NewsPost | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [contentTab, setContentTab] = useState<"write" | "preview">("write");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -78,6 +85,101 @@ export function NewsManager() {
   useEffect(() => {
     fetchPosts();
   }, []);
+
+  // Simple markdown to HTML converter
+  const renderMarkdown = (text: string) => {
+    if (!text) return "";
+    return text
+      // Headers
+      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-6 mb-4">$1</h1>')
+      // Bold and italic
+      .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      // Links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary underline hover:no-underline" target="_blank">$1</a>')
+      // Lists
+      .replace(/^\- (.*$)/gim, '<li class="ml-4">$1</li>')
+      .replace(/(<li.*<\/li>)/s, '<ul class="list-disc my-2">$1</ul>')
+      // Paragraphs (double newline)
+      .replace(/\n\n/g, '</p><p class="my-3">')
+      // Single newlines
+      .replace(/\n/g, '<br />')
+      // Wrap in paragraph
+      .replace(/^(.*)$/, '<p class="my-3">$1</p>');
+  };
+
+  // Image upload handler
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: "destructive",
+        title: "Invalid file type",
+        description: "Please upload an image file (JPG, PNG, GIF, WebP)",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        variant: "destructive",
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const supabase = createClient();
+      
+      // Create unique filename
+      const ext = file.name.split('.').pop();
+      const filename = `news-${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+      
+      // Upload to Supabase storage
+      const { data, error } = await supabase.storage
+        .from('news-images')
+        .upload(filename, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('news-images')
+        .getPublicUrl(filename);
+
+      setFormData({ ...formData, cover_image_url: urlData.publicUrl });
+      
+      toast({
+        title: "Image uploaded",
+        description: "Cover image has been uploaded successfully",
+      });
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast({
+        variant: "destructive",
+        title: "Upload failed",
+        description: error.message || "Failed to upload image. Make sure 'news-images' storage bucket exists.",
+      });
+    } finally {
+      setUploadingImage(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   const fetchPosts = async () => {
     try {
@@ -296,28 +398,108 @@ export function NewsManager() {
 
                 <div>
                   <Label htmlFor="content">Content *</Label>
-                  <Textarea
-                    id="content"
-                    value={formData.content}
-                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    placeholder="Full article content (HTML supported)..."
-                    rows={10}
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    HTML is supported for formatting
-                  </p>
+                  <Tabs value={contentTab} onValueChange={(v) => setContentTab(v as "write" | "preview")} className="mt-2">
+                    <TabsList className="mb-2">
+                      <TabsTrigger value="write" className="gap-2">
+                        <FileText className="h-4 w-4" />
+                        Write
+                      </TabsTrigger>
+                      <TabsTrigger value="preview" className="gap-2">
+                        <Eye className="h-4 w-4" />
+                        Preview
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="write" className="mt-0">
+                      <Textarea
+                        id="content"
+                        value={formData.content}
+                        onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                        placeholder="Full article content...
+
+Supports Markdown:
+# Heading 1
+## Heading 2
+**bold** and *italic*
+[link text](url)
+- list items"
+                        rows={12}
+                        required
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Supports Markdown and HTML formatting
+                      </p>
+                    </TabsContent>
+                    <TabsContent value="preview" className="mt-0">
+                      <div 
+                        className="min-h-[280px] max-h-[400px] overflow-y-auto p-4 border rounded-md bg-white prose prose-sm"
+                        dangerouslySetInnerHTML={{ 
+                          __html: formData.content 
+                            ? renderMarkdown(formData.content) 
+                            : '<p class="text-muted-foreground">Start writing to see preview...</p>' 
+                        }}
+                      />
+                    </TabsContent>
+                  </Tabs>
                 </div>
 
                 <div>
-                  <Label htmlFor="cover_image_url">Cover Image URL</Label>
-                  <Input
-                    id="cover_image_url"
-                    type="url"
-                    value={formData.cover_image_url}
-                    onChange={(e) => setFormData({ ...formData, cover_image_url: e.target.value })}
-                    placeholder="https://example.com/image.jpg"
-                  />
+                  <Label>Cover Image</Label>
+                  <div className="mt-2 space-y-3">
+                    {/* Current image preview */}
+                    {formData.cover_image_url && (
+                      <div className="relative w-full h-40 rounded-lg overflow-hidden border bg-muted">
+                        <img 
+                          src={formData.cover_image_url} 
+                          alt="Cover preview" 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Upload button */}
+                    <div className="flex gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        className="gap-2"
+                      >
+                        {uploadingImage ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Upload className="h-4 w-4" />
+                        )}
+                        {uploadingImage ? "Uploading..." : "Upload Image"}
+                      </Button>
+                      <span className="text-xs text-muted-foreground self-center">
+                        Recommended: 1200x630px, max 5MB
+                      </span>
+                    </div>
+                    
+                    {/* Manual URL input */}
+                    <div className="flex gap-2 items-center">
+                      <span className="text-xs text-muted-foreground">Or paste URL:</span>
+                      <Input
+                        type="url"
+                        value={formData.cover_image_url}
+                        onChange={(e) => setFormData({ ...formData, cover_image_url: e.target.value })}
+                        placeholder="https://example.com/image.jpg"
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -420,7 +602,18 @@ export function NewsManager() {
                       </Button>
                     </Link>
                   )}
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(post)}>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      setPreviewPost(post);
+                      setPreviewOpen(true);
+                    }}
+                    title="Preview"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleEdit(post)} title="Edit">
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button
@@ -430,6 +623,7 @@ export function NewsManager() {
                       setPostToDelete(post.id);
                       setDeleteDialogOpen(true);
                     }}
+                    title="Delete"
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
@@ -456,6 +650,75 @@ export function NewsManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Post Preview
+            </DialogTitle>
+            <DialogDescription>
+              This is how the post will appear when published
+            </DialogDescription>
+          </DialogHeader>
+          {previewPost && (
+            <div className="space-y-6">
+              {/* Cover Image */}
+              {previewPost.cover_image_url && (
+                <div className="relative w-full h-64 rounded-lg overflow-hidden bg-muted">
+                  <img 
+                    src={previewPost.cover_image_url} 
+                    alt={previewPost.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              
+              {/* Header */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge className={`${previewPost.status === "published" ? "bg-green-600" : previewPost.status === "draft" ? "bg-gray-600" : "bg-orange-600"}`}>
+                    {previewPost.status}
+                  </Badge>
+                  <Badge variant="outline" className="capitalize">
+                    {previewPost.category}
+                  </Badge>
+                  {previewPost.featured && (
+                    <Badge variant="secondary">Featured</Badge>
+                  )}
+                </div>
+                <h1 className="text-3xl font-bold">{previewPost.title}</h1>
+                <p className="text-lg text-muted-foreground">{previewPost.excerpt}</p>
+                {previewPost.tags && previewPost.tags.length > 0 && (
+                  <div className="flex gap-1 flex-wrap">
+                    {previewPost.tags.map((tag, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Content */}
+              <div 
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(previewPost.content) }}
+              />
+              
+              {/* Footer */}
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>
+                  Created: {format(new Date(previewPost.created_at), "PPP")}
+                  {previewPost.published_at && ` • Published: ${format(new Date(previewPost.published_at), "PPP")}`}
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

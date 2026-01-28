@@ -41,9 +41,10 @@ interface BadgeData {
   criteria_type: string;
   criteria_field: string | null;
   criteria_value: number | null;
-  points: number;
-  rarity: string;
   is_hidden: boolean;
+  // points and rarity kept in DB but not displayed
+  points?: number;
+  rarity?: string;
 }
 
 interface UserBadge {
@@ -104,13 +105,13 @@ const TIER_COLORS: Record<string, string> = {
   diamond: "from-violet-400 to-violet-600",
 };
 
-// Rarity colors
-const RARITY_COLORS: Record<string, string> = {
-  common: "border-slate-300 bg-slate-50",
-  uncommon: "border-green-400 bg-green-50",
-  rare: "border-blue-400 bg-blue-50",
-  epic: "border-purple-400 bg-purple-50",
-  legendary: "border-amber-400 bg-amber-50",
+// Tier-based card styling (replacing rarity)
+const TIER_CARD_STYLES: Record<string, string> = {
+  bronze: "border-amber-600 bg-amber-50",
+  silver: "border-slate-400 bg-slate-50",
+  gold: "border-yellow-500 bg-yellow-50",
+  platinum: "border-cyan-400 bg-cyan-50",
+  diamond: "border-violet-500 bg-violet-50",
 };
 
 // Category labels and icons
@@ -206,7 +207,7 @@ export function BadgesSection({ userId, isOwnProfile = true }: BadgesSectionProp
     ? unearnedBadges
     : unearnedBadges.filter(b => b.category === activeCategory);
 
-  const totalPoints = earnedBadges.reduce((sum, ub) => sum + (ub.badge.points || 0), 0);
+  // Points system removed - no longer tracking total points
 
   if (loading) {
     return (
@@ -231,7 +232,7 @@ export function BadgesSection({ userId, isOwnProfile = true }: BadgesSectionProp
               <div>
                 <h2 className="text-2xl font-bold">{earnedBadges.length} Badges Earned</h2>
                 <p className="text-muted-foreground">
-                  {totalPoints} total points • {allBadges.length - earnedBadges.length} badges to unlock
+                  {allBadges.length - earnedBadges.length} more badges to unlock
                 </p>
               </div>
             </div>
@@ -384,12 +385,13 @@ interface BadgeCardProps {
 
 function BadgeCard({ badge, isEarned, earnedAt, isFeatured, progress, currentValue, targetValue }: BadgeCardProps) {
   const tierColor = badge.tier ? TIER_COLORS[badge.tier] : "";
-  const rarityClass = RARITY_COLORS[badge.rarity] || RARITY_COLORS.common;
+  // Use tier-based styling instead of rarity
+  const tierCardStyle = badge.tier ? TIER_CARD_STYLES[badge.tier] : "border-slate-300 bg-slate-50";
 
   return (
     <Card className={cn(
       "relative overflow-hidden transition-all hover:shadow-lg",
-      isEarned ? rarityClass : "bg-muted/30 border-dashed opacity-75",
+      isEarned ? tierCardStyle : "bg-muted/30 border-dashed opacity-75",
       isFeatured && "ring-2 ring-primary"
     )}>
       {isFeatured && (
@@ -443,15 +445,24 @@ function BadgeCard({ badge, isEarned, earnedAt, isFeatured, progress, currentVal
           </div>
         </div>
 
-        {/* Points */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t">
-          <Badge variant="secondary" className="text-xs capitalize">
-            {badge.rarity}
-          </Badge>
-          <span className="text-sm font-medium text-primary">
-            +{badge.points} pts
-          </span>
-        </div>
+        {/* Tier indicator - only show if badge has a tier */}
+        {badge.tier && (
+          <div className="flex items-center justify-end mt-4 pt-4 border-t">
+            <Badge 
+              variant="outline" 
+              className={cn(
+                "text-xs capitalize font-medium",
+                badge.tier === "bronze" && "border-amber-600 text-amber-700",
+                badge.tier === "silver" && "border-slate-400 text-slate-600",
+                badge.tier === "gold" && "border-yellow-500 text-yellow-600",
+                badge.tier === "platinum" && "border-cyan-400 text-cyan-600",
+                badge.tier === "diamond" && "border-violet-500 text-violet-600",
+              )}
+            >
+              {badge.tier}
+            </Badge>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

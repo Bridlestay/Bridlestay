@@ -111,7 +111,7 @@ const CODE_TYPES = [
 const BENEFIT_TYPES = [
   { value: "guest_fee_discount", label: "Guest Fee Discount (%)" },
   { value: "host_fee_waiver", label: "Host Fee Waiver (%)" },
-  { value: "fixed_credit", label: "Fixed Credit (pennies)" },
+  // fixed_credit removed - no cash incentives
 ];
 
 export function ReferralsDashboard() {
@@ -155,8 +155,8 @@ export function ReferralsDashboard() {
     benefit_value: 10,
     benefit_duration_months: 3,
     benefit_uses_limit: 5,
-    referrer_benefit_type: "fixed_credit",
-    referrer_benefit_value: 500,
+    referrer_benefit_type: "guest_fee_discount",
+    referrer_benefit_value: 50,
     promotion_message: "",
     promotion_active: false,
   });
@@ -431,7 +431,6 @@ export function ReferralsDashboard() {
   const getBenefitLabel = (type: string, value: number) => {
     if (type === "guest_fee_discount") return `${value}% off guest fees`;
     if (type === "host_fee_waiver") return `${value}% off host fees`;
-    if (type === "fixed_credit") return `£${(value / 100).toFixed(2)} credit`;
     return type;
   };
 
@@ -846,27 +845,21 @@ export function ReferralsDashboard() {
                           <SelectContent>
                             <SelectItem value="guest_fee_discount">Guest Fee Discount (%)</SelectItem>
                             <SelectItem value="host_fee_waiver">Host Fee Waiver (%)</SelectItem>
-                            <SelectItem value="fixed_credit">Fixed Credit (£)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>
-                          {referralSettings.benefit_type === "fixed_credit" ? "Amount (£)" : "Percentage (%)"}
-                        </Label>
+                        <Label>Discount Percentage (%)</Label>
                         <Input
                           type="number"
-                          value={referralSettings.benefit_type === "fixed_credit" 
-                            ? referralSettings.benefit_value / 100 
-                            : referralSettings.benefit_value}
+                          value={referralSettings.benefit_value}
                           onChange={(e) => setReferralSettings({ 
                             ...referralSettings, 
-                            benefit_value: referralSettings.benefit_type === "fixed_credit"
-                              ? parseFloat(e.target.value) * 100
-                              : parseFloat(e.target.value)
+                            benefit_value: parseFloat(e.target.value) || 0
                           })}
                           min={0}
-                          step={referralSettings.benefit_type === "fixed_credit" ? 0.5 : 0.5}
+                          max={100}
+                          step={5}
                         />
                       </div>
                       <div className="space-y-2">
@@ -919,30 +912,25 @@ export function ReferralsDashboard() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="fixed_credit">Fixed Credit (£)</SelectItem>
-                            <SelectItem value="percentage_of_booking">% of Booking Value</SelectItem>
+                            <SelectItem value="guest_fee_discount">Guest Fee Discount (%)</SelectItem>
+                            <SelectItem value="host_fee_waiver">Host Fee Waiver (%)</SelectItem>
                             <SelectItem value="none">No Reward</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       {referralSettings.referrer_benefit_type !== "none" && (
                         <div className="space-y-2">
-                          <Label>
-                            {referralSettings.referrer_benefit_type === "fixed_credit" ? "Credit Amount (£)" : "Percentage (%)"}
-                          </Label>
+                          <Label>Fee Discount (%)</Label>
                           <Input
                             type="number"
-                            value={referralSettings.referrer_benefit_type === "fixed_credit" 
-                              ? referralSettings.referrer_benefit_value / 100 
-                              : referralSettings.referrer_benefit_value}
+                            value={referralSettings.referrer_benefit_value}
                             onChange={(e) => setReferralSettings({ 
                               ...referralSettings, 
-                              referrer_benefit_value: referralSettings.referrer_benefit_type === "fixed_credit"
-                                ? parseFloat(e.target.value) * 100
-                                : parseFloat(e.target.value)
+                              referrer_benefit_value: parseFloat(e.target.value) || 0
                             })}
                             min={0}
-                            step={0.5}
+                            max={100}
+                            step={5}
                           />
                         </div>
                       )}
@@ -958,20 +946,16 @@ export function ReferralsDashboard() {
                     <p className="text-sm">
                       Users who generate a referral code can give friends{" "}
                       <strong>
-                        {referralSettings.benefit_type === "fixed_credit" 
-                          ? `£${(referralSettings.benefit_value / 100).toFixed(2)} credit`
-                          : `${referralSettings.benefit_value}% off ${referralSettings.benefit_type === "guest_fee_discount" ? "guest fees" : "host fees"}`}
+                        {referralSettings.benefit_value}% off {referralSettings.benefit_type === "guest_fee_discount" ? "guest fees" : "host fees"}
                       </strong>
                       {referralSettings.benefit_duration_months ? ` for ${referralSettings.benefit_duration_months} months` : ""}
                       {referralSettings.benefit_uses_limit ? ` (up to ${referralSettings.benefit_uses_limit} bookings)` : ""}.
                       {referralSettings.referrer_benefit_type !== "none" && (
                         <> The referrer gets{" "}
                           <strong>
-                            {referralSettings.referrer_benefit_type === "fixed_credit" 
-                              ? `£${(referralSettings.referrer_benefit_value / 100).toFixed(2)}`
-                              : `${referralSettings.referrer_benefit_value}%`}
+                            {referralSettings.referrer_benefit_value}% off {referralSettings.referrer_benefit_type === "guest_fee_discount" ? "guest fees" : "host fees"}
                           </strong>
-                          {" "}when their friend books.
+                          {" "}on their next booking.
                         </>
                       )}
                     </p>
@@ -1075,13 +1059,13 @@ export function ReferralsDashboard() {
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>
-                  {formData.benefit_type === "fixed_credit" ? "Amount (pennies)" : "Discount (%)"}
-                </Label>
+                <Label>Discount (%)</Label>
                 <Input
                   type="number"
                   value={formData.benefit_value}
                   onChange={(e) => setFormData({ ...formData, benefit_value: parseInt(e.target.value) || 0 })}
+                  min={0}
+                  max={100}
                 />
               </div>
               <div className="space-y-2">
