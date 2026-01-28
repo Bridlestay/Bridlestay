@@ -52,6 +52,10 @@ export async function GET(request: NextRequest) {
       favoritesResult,
       horsesResult,
       flaggedMessagesResult,
+      warningsResult,
+      enforcementResult,
+      reportsFiledResult,
+      reportsAgainstResult,
       questionsAskedResult,
       questionsAnsweredResult,
       hostProfileResult,
@@ -109,6 +113,32 @@ export async function GET(request: NextRequest) {
         .from("flagged_messages")
         .select("*")
         .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`),
+
+      // User warnings issued to this user
+      supabase
+        .from("user_warnings")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false }),
+
+      // Enforcement actions (bans, restrictions) against this user
+      supabase
+        .from("enforcement_actions")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false }),
+
+      // Content reports filed BY this user
+      supabase
+        .from("content_reports")
+        .select("*")
+        .eq("reporter_id", userId),
+
+      // Content reports filed AGAINST this user
+      supabase
+        .from("content_reports")
+        .select("*")
+        .eq("content_owner_id", userId),
 
       // Questions asked
       supabase
@@ -221,6 +251,46 @@ export async function GET(request: NextRequest) {
       asRecipient: flaggedMessages.filter((f) => f.recipient_id === userId).length,
     };
 
+    // Process moderation data
+    const warnings = warningsResult.data || [];
+    const enforcementActions = enforcementResult.data || [];
+    const reportsFiled = reportsFiledResult.data || [];
+    const reportsAgainst = reportsAgainstResult.data || [];
+    
+    const moderationStats = {
+      trustScore: userData.trust_score || 50,
+      warnings: {
+        total: warnings.length,
+        unacknowledged: warnings.filter((w: any) => !w.acknowledged).length,
+        recent: warnings.slice(0, 5),
+      },
+      enforcement: {
+        total: enforcementActions.length,
+        active: enforcementActions.filter((e: any) => 
+          e.status === 'active' || 
+          (e.expires_at && new Date(e.expires_at) > new Date())
+        ).length,
+        bans: enforcementActions.filter((e: any) => e.action_type === 'ban').length,
+        suspensions: enforcementActions.filter((e: any) => e.action_type === 'suspension').length,
+        recent: enforcementActions.slice(0, 5),
+      },
+      reports: {
+        filed: reportsFiled.length,
+        against: reportsAgainst.length,
+        falseReports: reportsFiled.filter((r: any) => r.status === 'false_report').length,
+      },
+      isBanned: enforcementActions.some((e: any) => 
+        e.action_type === 'ban' && 
+        e.status === 'active' && 
+        (!e.expires_at || new Date(e.expires_at) > new Date())
+      ),
+      isSuspended: enforcementActions.some((e: any) => 
+        e.action_type === 'suspension' && 
+        e.status === 'active' && 
+        (!e.expires_at || new Date(e.expires_at) > new Date())
+      ),
+    };
+
     // Process other data
     const favorites = favoritesResult.data || [];
     const horses = horsesResult.data || [];
@@ -236,6 +306,7 @@ export async function GET(request: NextRequest) {
       reviewStats,
       messageStats,
       flaggedStats,
+      moderationStats,
       favorites: {
         total: favorites.length,
         items: favorites,

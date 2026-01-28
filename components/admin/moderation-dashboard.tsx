@@ -667,22 +667,22 @@ function UserReportsSection() {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const supabase = (await import("@/lib/supabase/client")).createClient();
-      
-      const { data, error } = await supabase
-        .from("content_reports")
-        .select(`
-          *,
-          reporter:users!content_reports_reporter_id_fkey (id, name, avatar_url, trust_score, email),
-          content_owner:users!content_reports_content_owner_id_fkey (id, name, avatar_url, email)
-        `)
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-      setReports(data || []);
-    } catch (error) {
+      // Use API endpoint instead of direct Supabase client to bypass RLS issues
+      const response = await fetch("/api/admin/reports");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch reports");
+      }
+      const data = await response.json();
+      setReports(data.reports || []);
+    } catch (error: any) {
       console.error("Error fetching reports:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to load user reports",
+      });
+      setReports([]);
     } finally {
       setLoading(false);
     }

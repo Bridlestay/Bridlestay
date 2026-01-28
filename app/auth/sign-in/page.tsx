@@ -19,6 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import { Shield } from "lucide-react";
+import { AuthHeader } from "@/components/auth-header";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -179,16 +180,18 @@ export default function SignInPage() {
   // MFA Verification Screen
   if (mfaRequired) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <Shield className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle className="font-serif text-2xl">Two-Factor Authentication</CardTitle>
-            <CardDescription>
-              Enter the 6-digit code from your authenticator app to continue
-            </CardDescription>
+      <>
+        <AuthHeader />
+        <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 pt-20">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                <Shield className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="font-serif text-2xl">Two-Factor Authentication</CardTitle>
+              <CardDescription>
+                Enter the 6-digit code from your authenticator app to continue
+              </CardDescription>
           </CardHeader>
           <form onSubmit={handleMfaVerify}>
             <CardContent className="space-y-4">
@@ -245,18 +248,21 @@ export default function SignInPage() {
           </form>
         </Card>
       </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="font-serif text-3xl">Sign In</CardTitle>
-          <CardDescription>
-            Sign in to access your padoq account
-          </CardDescription>
-        </CardHeader>
+    <>
+      <AuthHeader />
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 pt-20">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="font-serif text-3xl">Sign In</CardTitle>
+            <CardDescription>
+              Sign in to access your padoq account
+            </CardDescription>
+          </CardHeader>
         <form onSubmit={handleSignIn}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -317,5 +323,6 @@ export default function SignInPage() {
         </form>
       </Card>
     </div>
+    </>
   );
 }

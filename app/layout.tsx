@@ -18,6 +18,11 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "padoq - Your Complete Horse Companion",
   description: "The UK's complete horse app - find equestrian stays, riding routes, and connect with the horse community",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

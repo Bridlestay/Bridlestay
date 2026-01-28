@@ -661,12 +661,125 @@ export function InspectDashboard({
                 </CardContent>
               </Card>
 
-              {/* Messages & Moderation */}
+              {/* Trust & Safety */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Shield className="h-4 w-4" />
+                    Trust & Safety
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {/* Trust Score */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Trust Score</span>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className={`h-2 w-24 rounded-full bg-muted overflow-hidden`}
+                      >
+                        <div 
+                          className={`h-full transition-all ${
+                            (userData.moderationStats?.trustScore || 50) >= 70 
+                              ? 'bg-green-500' 
+                              : (userData.moderationStats?.trustScore || 50) >= 40 
+                                ? 'bg-yellow-500' 
+                                : 'bg-red-500'
+                          }`}
+                          style={{ width: `${userData.moderationStats?.trustScore || 50}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium">{userData.moderationStats?.trustScore || 50}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Status Badges */}
+                  {(userData.moderationStats?.isBanned || userData.moderationStats?.isSuspended) && (
+                    <div className="flex gap-2">
+                      {userData.moderationStats?.isBanned && (
+                        <Badge variant="destructive">
+                          <Ban className="h-3 w-3 mr-1" />
+                          Banned
+                        </Badge>
+                      )}
+                      {userData.moderationStats?.isSuspended && (
+                        <Badge variant="outline" className="border-orange-500 text-orange-600">
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          Suspended
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                  
+                  <Separator />
+                  
+                  {/* Warnings */}
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total Warnings</span>
+                      <span className={userData.moderationStats?.warnings?.total > 0 ? "text-orange-600 font-medium" : ""}>
+                        {userData.moderationStats?.warnings?.total || 0}
+                      </span>
+                    </div>
+                    {userData.moderationStats?.warnings?.unacknowledged > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Unacknowledged</span>
+                        <span className="text-orange-600">{userData.moderationStats?.warnings?.unacknowledged}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Enforcement Actions */}
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Enforcement Actions</span>
+                      <span className={userData.moderationStats?.enforcement?.total > 0 ? "text-red-600 font-medium" : ""}>
+                        {userData.moderationStats?.enforcement?.total || 0}
+                      </span>
+                    </div>
+                    {userData.moderationStats?.enforcement?.total > 0 && (
+                      <>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Bans</span>
+                          <span className="text-red-600">{userData.moderationStats?.enforcement?.bans || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Suspensions</span>
+                          <span className="text-orange-600">{userData.moderationStats?.enforcement?.suspensions || 0}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
+                  <Separator />
+                  
+                  {/* Reports */}
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Reports Filed</span>
+                      <span>{userData.moderationStats?.reports?.filed || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Reports Against</span>
+                      <span className={userData.moderationStats?.reports?.against > 0 ? "text-red-600 font-medium" : ""}>
+                        {userData.moderationStats?.reports?.against || 0}
+                      </span>
+                    </div>
+                    {userData.moderationStats?.reports?.falseReports > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">False Reports Filed</span>
+                        <span className="text-orange-600">{userData.moderationStats?.reports?.falseReports}</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Messages */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <MessageSquare className="h-4 w-4" />
-                    Messages & Moderation
+                    Messages
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">

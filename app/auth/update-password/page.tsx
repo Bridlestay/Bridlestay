@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { AuthHeader } from "@/components/auth-header";
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
@@ -86,12 +87,14 @@ export default function UpdatePasswordPage() {
   // Success state
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-              <CheckCircle className="h-6 w-6 text-green-600" />
-            </div>
+      <>
+        <AuthHeader />
+        <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 pt-20">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
             <CardTitle className="text-2xl">Password Updated!</CardTitle>
             <CardDescription>
               Your password has been successfully updated. Redirecting you to sign in...
@@ -104,20 +107,23 @@ export default function UpdatePasswordPage() {
           </CardContent>
         </Card>
       </div>
+      </>
     );
   }
 
   // Error state (invalid/expired link)
   if (error && !password) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Reset Link Expired</CardTitle>
-            <CardDescription className="text-red-600">
-              {error}
-            </CardDescription>
-          </CardHeader>
+      <>
+        <AuthHeader />
+        <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 pt-20">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl">Reset Link Expired</CardTitle>
+              <CardDescription className="text-red-600">
+                {error}
+              </CardDescription>
+            </CardHeader>
           <CardContent className="space-y-4">
             <Button asChild className="w-full">
               <Link href="/auth/reset-password">Request New Reset Link</Link>
@@ -131,20 +137,23 @@ export default function UpdatePasswordPage() {
           </CardContent>
         </Card>
       </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl">Set New Password</CardTitle>
-          <CardDescription>
-            Enter your new password below
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <>
+      <AuthHeader />
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 pt-20">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-2xl">Set New Password</CardTitle>
+            <CardDescription>
+              Enter your new password below
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm">
                 {error}
@@ -209,6 +218,7 @@ export default function UpdatePasswordPage() {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }
 

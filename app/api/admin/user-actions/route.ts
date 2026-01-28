@@ -25,9 +25,29 @@ function getAdminSupabase() {
   return createAdminClient(supabaseUrl, supabaseServiceKey);
 }
 
+// Get the app URL from environment or request headers
+function getAppUrl(request: NextRequest): string {
+  // First try environment variable
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+  
+  // Fall back to request headers (works in production)
+  const host = request.headers.get("host");
+  const protocol = request.headers.get("x-forwarded-proto") || "https";
+  
+  if (host) {
+    return `${protocol}://${host}`;
+  }
+  
+  // Last resort fallback
+  return "https://bridlestay.vercel.app";
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
+    const appUrl = getAppUrl(request);
 
     // Verify the requesting user is authenticated and is an admin
     const { data: { user } } = await supabase.auth.getUser();
@@ -85,11 +105,11 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case "send_password_reset": {
-        // Send password reset email
+        // Send password reset email - redirects to update-password page
         const { error } = await adminSupabase.auth.resetPasswordForEmail(
           targetUser.email,
           {
-            redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password`,
+            redirectTo: `${appUrl}/auth/update-password`,
           }
         );
 
@@ -113,7 +133,7 @@ export async function POST(request: NextRequest) {
         const { error } = await adminSupabase.auth.signInWithOtp({
           email: targetUser.email,
           options: {
-            emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+            emailRedirectTo: `${appUrl}/dashboard`,
           },
         });
 
@@ -136,8 +156,6 @@ export async function POST(request: NextRequest) {
         // Generate impersonation link
         // This creates a magic link that the admin can use to log in as the user
         // The impersonation is audit logged
-        
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
         
         const { data, error } = await adminSupabase.auth.admin.generateLink({
           type: "magiclink",

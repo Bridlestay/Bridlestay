@@ -19,6 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import { validateUsername } from "@/lib/moderation";
+import { AuthHeader } from "@/components/auth-header";
 
 export default function SignUpPage() {
   const [name, setName] = useState("");
@@ -98,12 +99,14 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="font-serif text-3xl">Sign Up</CardTitle>
-          <CardDescription>
-            Create your padoq account to get started
+    <>
+      <AuthHeader />
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4 pt-20">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="font-serif text-3xl">Sign Up</CardTitle>
+            <CardDescription>
+              Create your padoq account to get started
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSignUp}>
@@ -174,6 +177,7 @@ export default function SignUpPage() {
         </form>
       </Card>
     </div>
+    </>
   );
 }
 
