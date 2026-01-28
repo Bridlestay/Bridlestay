@@ -48,7 +48,10 @@ import {
   CheckCircle, 
   Clock,
   AlertCircle,
-  Trash2
+  Trash2,
+  Star,
+  StarOff,
+  Sparkles
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
@@ -64,6 +67,7 @@ interface Feedback {
   responded_by: string | null;
   responded_at: string | null;
   created_at: string;
+  is_important: boolean;
   users: {
     id: string;
     name: string;
@@ -82,6 +86,8 @@ export function FeedbackDashboard() {
   const [adminResponse, setAdminResponse] = useState("");
   const [newStatus, setNewStatus] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "reviewed" | "resolved">("pending");
+  const [filterImportant, setFilterImportant] = useState(false);
+  const [togglingImportant, setTogglingImportant] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -148,6 +154,40 @@ export function FeedbackDashboard() {
     }
   };
 
+  const toggleImportant = async (feedbackId: string, currentValue: boolean) => {
+    setTogglingImportant(feedbackId);
+    try {
+      const response = await fetch("/api/admin/feedback/toggle-important", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          feedbackId,
+          isImportant: !currentValue,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update");
+
+      // Update local state
+      setFeedback(prev => prev.map(f => 
+        f.id === feedbackId ? { ...f, is_important: !currentValue } : f
+      ));
+
+      toast({
+        title: currentValue ? "Unmarked as important" : "Marked as important",
+        description: currentValue ? "Feedback removed from important items" : "Feedback added to important items for review",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setTogglingImportant(null);
+    }
+  };
+
   const handleDelete = async (feedbackId: string) => {
     setDeleting(feedbackId);
 
@@ -178,6 +218,10 @@ export function FeedbackDashboard() {
   };
 
   const filteredFeedback = feedback.filter(fb => {
+    // Apply important filter first
+    if (filterImportant && !fb.is_important) return false;
+    
+    // Then status filter
     if (filterStatus === "pending") return fb.status === "pending";
     if (filterStatus === "reviewed") return fb.status === "reviewed";
     if (filterStatus === "resolved") return fb.status === "resolved";
@@ -187,6 +231,8 @@ export function FeedbackDashboard() {
   const pendingCount = feedback.filter(f => f.status === "pending").length;
   const reviewedCount = feedback.filter(f => f.status === "reviewed").length;
   const resolvedCount = feedback.filter(f => f.status === "resolved").length;
+  const importantCount = feedback.filter(f => f.is_important).length;
+  const importantFeedback = feedback.filter(f => f.is_important && f.status === "pending");
 
   const getCategoryEmoji = (category: string) => {
     switch (category) {
@@ -208,8 +254,63 @@ export function FeedbackDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Important Feedback Highlight */}
+      {importantFeedback.length > 0 && (
+        <Card className="border-amber-500 bg-amber-50/50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-amber-600" />
+              Important Feedback ({importantFeedback.length})
+            </CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setFilterImportant(true)}
+            >
+              View All Important
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {importantFeedback.slice(0, 3).map((fb) => (
+                <div 
+                  key={fb.id} 
+                  className="flex items-center justify-between p-2 bg-white rounded-lg border cursor-pointer hover:bg-muted/50"
+                  onClick={() => setSelectedFeedback(fb)}
+                >
+                  <div className="flex items-center gap-3">
+                    <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                    <div>
+                      <p className="font-medium text-sm">{fb.subject}</p>
+                      <p className="text-xs text-muted-foreground">from {fb.users?.name || "Unknown"}</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline">{fb.category}</Badge>
+                </div>
+              ))}
+              {importantFeedback.length > 3 && (
+                <p className="text-xs text-muted-foreground text-center pt-1">
+                  +{importantFeedback.length - 3} more important items
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className={importantCount > 0 ? "border-amber-300" : ""}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Important</CardTitle>
+            <Star className={`h-4 w-4 ${importantCount > 0 ? "text-amber-500 fill-amber-500" : "text-muted-foreground"}`} />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{importantCount}</div>
+            <p className="text-xs text-muted-foreground">Marked for review</p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending</CardTitle>
@@ -244,20 +345,42 @@ export function FeedbackDashboard() {
         </Card>
       </div>
 
-      {/* Filter */}
-      <div className="flex items-center gap-4">
-        <Label>Filter:</Label>
-        <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="pending">Pending Only</SelectItem>
-            <SelectItem value="reviewed">Reviewed Only</SelectItem>
-            <SelectItem value="resolved">Resolved Only</SelectItem>
-            <SelectItem value="all">All Feedback</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Filters */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Label>Status:</Label>
+          <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pending">Pending Only</SelectItem>
+              <SelectItem value="reviewed">Reviewed Only</SelectItem>
+              <SelectItem value="resolved">Resolved Only</SelectItem>
+              <SelectItem value="all">All Feedback</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <Button
+          variant={filterImportant ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilterImportant(!filterImportant)}
+          className="gap-2"
+        >
+          <Star className={`h-4 w-4 ${filterImportant ? "fill-current" : ""}`} />
+          {filterImportant ? "Showing Important Only" : "Show Important Only"}
+        </Button>
+        
+        {filterImportant && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFilterImportant(false)}
+          >
+            Clear Filter
+          </Button>
+        )}
       </div>
 
       {/* Feedback Table */}
@@ -352,6 +475,21 @@ export function FeedbackDashboard() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
+                        {/* Mark as Important Toggle */}
+                        <Button
+                          size="sm"
+                          variant={fb.is_important ? "default" : "ghost"}
+                          className={fb.is_important ? "bg-amber-500 hover:bg-amber-600" : ""}
+                          onClick={() => toggleImportant(fb.id, fb.is_important)}
+                          disabled={togglingImportant === fb.id}
+                        >
+                          {fb.is_important ? (
+                            <Star className="h-4 w-4 fill-current" />
+                          ) : (
+                            <StarOff className="h-4 w-4" />
+                          )}
+                        </Button>
+                        
                         <Dialog 
                           open={selectedFeedback?.id === fb.id}
                           onOpenChange={(open) => {

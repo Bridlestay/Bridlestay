@@ -84,7 +84,8 @@ interface UserBadge {
 
 const CATEGORIES = ["routes", "stays", "explorer", "hosting", "community", "special"];
 const TIERS = ["bronze", "silver", "gold", "platinum", "diamond"];
-const RARITIES = ["common", "uncommon", "rare", "epic", "legendary"];
+// Rarity is deprecated - keeping for backwards compatibility but not shown in UI
+// const RARITIES = ["common", "uncommon", "rare", "epic", "legendary"];
 const CRITERIA_TYPES = ["count", "milestone", "streak", "special"];
 const CRITERIA_FIELDS = [
   { value: "routes_created", label: "Routes Created" },
@@ -433,6 +434,34 @@ export function BadgesDashboard() {
         </Card>
       </div>
 
+      {/* Quick Award Section for Hidden/Mystery Badges */}
+      <Card className="border-purple-200 bg-purple-50/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Gift className="h-5 w-5 text-purple-600" />
+            Quick Award - Hidden/Mystery Badge
+          </CardTitle>
+          <CardDescription>
+            Create and award a special one-off badge directly to a user. These badges won&apos;t appear in attainable sections - perfect for surprise rewards!
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            To create a hidden mystery badge:
+          </p>
+          <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1 mb-4">
+            <li>Click &quot;Create Badge&quot; above</li>
+            <li>Set Category to &quot;special&quot;</li>
+            <li>Set Criteria Type to &quot;special&quot; (manually awarded)</li>
+            <li>Toggle &quot;Hidden&quot; ON - badge won&apos;t show until earned</li>
+            <li>Save the badge, then use &quot;Award to User&quot; button to give it to someone</li>
+          </ol>
+          <p className="text-sm text-muted-foreground">
+            Hidden badges create a sense of mystery and delight when users unexpectedly earn them!
+          </p>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="all-badges">
         <TabsList>
           <TabsTrigger value="all-badges">All Badges</TabsTrigger>
@@ -705,21 +734,7 @@ export function BadgesDashboard() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Rarity</Label>
-                <Select value={formData.rarity} onValueChange={(v) => setFormData({ ...formData, rarity: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {RARITIES.map((r) => (
-                      <SelectItem key={r} value={r} className="capitalize">
-                        {r}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Rarity removed - keep tiers only for progression badges */}
             </div>
 
             <div className="grid grid-cols-3 gap-4">
