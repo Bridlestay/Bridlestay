@@ -654,6 +654,10 @@ Supports Markdown:
       {/* Preview Dialog - Matches published page layout */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
+          {/* Version marker - remove after confirming deploy works */}
+          <div className="bg-red-500 text-white text-center py-1 text-xs font-bold">
+            PREVIEW v2 - Jan 29 2026 - If you see this, deploy is working
+          </div>
           {previewPost && (
             <div className="min-h-[600px]">
               {/* Cover Image - Full width like published page */}
