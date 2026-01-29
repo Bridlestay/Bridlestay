@@ -319,19 +319,21 @@ export function MessagesInbox() {
               <button
                 key={conv.userId}
                 onClick={() => setSelectedUserId(conv.userId)}
-                className={`w-full p-3 rounded-lg mb-2 text-left transition-colors ${
+                className={`w-full p-3 rounded-lg mb-2 text-left transition-colors overflow-hidden ${
                   selectedUserId === conv.userId
                     ? "bg-primary/10 border-2 border-primary"
-                    : "hover:bg-muted"
+                    : "hover:bg-muted border-2 border-transparent"
                 }`}
               >
-                <div className="flex gap-3">
-                  <Avatar>
-                    <AvatarImage src={conv.userAvatar || undefined} />
-                    <AvatarFallback>
-                      {conv.userName?.[0]?.toUpperCase() || "?"}
-                    </AvatarFallback>
-                  </Avatar>
+                <div className="flex gap-3 overflow-visible">
+                  <div className="flex-shrink-0">
+                    <Avatar className="hover:ring-2 hover:ring-primary transition-all">
+                      <AvatarImage src={conv.userAvatar || undefined} />
+                      <AvatarFallback>
+                        {conv.userName?.[0]?.toUpperCase() || "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <p className="font-semibold truncate">{conv.userName}</p>
@@ -355,7 +357,7 @@ export function MessagesInbox() {
                   </div>
                 </div>
               </button>
-              ))
+            ))
             )}
           </div>
         </ScrollArea>
@@ -404,7 +406,7 @@ export function MessagesInbox() {
 
             {/* Messages */}
             <div className="flex-1 overflow-hidden">
-              <ScrollArea className="h-full p-4">
+              <ScrollArea className="h-full p-4" style={{ overflow: 'visible' }}>
                 {/* Safety banner for payment protection */}
                 {currentUserId && (
                   <div className="mb-4">
@@ -428,12 +430,12 @@ export function MessagesInbox() {
                       href={`/profile/${displayUser.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-shrink-0"
+                      className="flex-shrink-0 relative z-10"
                       onClick={(e) => {
                         e.stopPropagation();
                       }}
                     >
-                      <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity hover:ring-2 hover:ring-primary">
+                      <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-all hover:ring-2 hover:ring-primary ring-offset-2">
                         <AvatarImage src={displayUser.avatar_url || undefined} />
                         <AvatarFallback>
                           {displayUser.name?.[0]?.toUpperCase() || "?"}

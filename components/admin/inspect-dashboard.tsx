@@ -8,6 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { formatGBP } from "@/lib/fees";
@@ -43,6 +52,7 @@ import {
   Link2,
   UserCog,
   ExternalLink,
+  Gavel,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -101,9 +111,25 @@ export function InspectDashboard({
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showImpersonateDialog, setShowImpersonateDialog] = useState(false);
   const [impersonateUrl, setImpersonateUrl] = useState<string | null>(null);
+  // Enforcement state
+  const [showEnforcementForm, setShowEnforcementForm] = useState(false);
+  const [enforcementType, setEnforcementType] = useState<string>("");
+  const [enforcementReason, setEnforcementReason] = useState<string>("");
+  const [enforcementDuration, setEnforcementDuration] = useState<string>("7");
+  const [enforcementLoading, setEnforcementLoading] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const propertyDropdownRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Enforcement action types
+  const ENFORCEMENT_TYPES = [
+    { value: 'warning', label: 'Issue Warning', severity: 'low', description: 'Formal warning that affects trust score', color: 'text-yellow-600' },
+    { value: 'message_restriction', label: 'Message Restriction', severity: 'medium', description: 'User cannot send messages', color: 'text-orange-600' },
+    { value: 'booking_restriction', label: 'Booking Restriction', severity: 'medium', description: 'User cannot make bookings as a guest', color: 'text-orange-600' },
+    { value: 'listing_restriction', label: 'Listing Restriction', severity: 'medium', description: 'User cannot publish or edit property listings', color: 'text-orange-600' },
+    { value: 'temporary_suspension', label: 'Temporary Suspension', severity: 'high', description: 'Full account suspension for a set period', color: 'text-red-500' },
+    { value: 'permanent_ban', label: 'Permanent Ban', severity: 'critical', description: 'Permanent account ban - user cannot access the platform', color: 'text-red-700' },
+  ];
 
   // Admin user action handler
   const performUserAction = async (action: string) => {
@@ -143,6 +169,60 @@ export function InspectDashboard({
       });
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  // Handle enforcement action
+  const handleEnforcementAction = async () => {
+    if (!userData?.user?.id || !enforcementType || !enforcementReason) {
+      toast({
+        variant: "destructive",
+        title: "Missing fields",
+        description: "Please select an action type and provide a reason",
+      });
+      return;
+    }
+
+    setEnforcementLoading(true);
+    try {
+      const response = await fetch("/api/admin/enforcement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetUserId: userData.user.id,
+          actionType: enforcementType,
+          reason: enforcementReason,
+          durationDays: enforcementType === 'temporary_suspension' ? parseInt(enforcementDuration) : null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to apply enforcement action");
+      }
+
+      toast({
+        title: "Enforcement Applied",
+        description: data.message,
+      });
+
+      // Reset form
+      setEnforcementType("");
+      setEnforcementReason("");
+      setEnforcementDuration("7");
+      setShowEnforcementForm(false);
+
+      // Refresh user data
+      fetchUserData(userData.user.id);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setEnforcementLoading(false);
     }
   };
 
@@ -543,6 +623,129 @@ export function InspectDashboard({
                         Login as User
                       </Button>
                     </div>
+                  </div>
+
+                  {/* Enforcement Actions */}
+                  <Separator className="my-3" />
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      <Gavel className="h-3 w-3" />
+                      Enforcement Actions
+                    </p>
+                    
+                    {!showEnforcementForm ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        onClick={() => setShowEnforcementForm(true)}
+                      >
+                        <Gavel className="h-4 w-4 mr-2" />
+                        Take Enforcement Action
+                      </Button>
+                    ) : (
+                      <div className="space-y-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Action Type *</Label>
+                          <Select value={enforcementType} onValueChange={setEnforcementType}>
+                            <SelectTrigger className="bg-white">
+                              <SelectValue placeholder="Select enforcement action..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ENFORCEMENT_TYPES.map((type) => (
+                                <SelectItem key={type.value} value={type.value}>
+                                  <div className="flex items-center gap-2">
+                                    <span className={type.color}>{type.label}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {enforcementType && (
+                            <p className="text-xs text-muted-foreground">
+                              {ENFORCEMENT_TYPES.find(t => t.value === enforcementType)?.description}
+                            </p>
+                          )}
+                        </div>
+
+                        {enforcementType === 'temporary_suspension' && (
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium">Duration (days)</Label>
+                            <Select value={enforcementDuration} onValueChange={setEnforcementDuration}>
+                              <SelectTrigger className="bg-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">1 day</SelectItem>
+                                <SelectItem value="3">3 days</SelectItem>
+                                <SelectItem value="7">7 days</SelectItem>
+                                <SelectItem value="14">14 days</SelectItem>
+                                <SelectItem value="30">30 days</SelectItem>
+                                <SelectItem value="90">90 days</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Reason *</Label>
+                          <Textarea
+                            placeholder="Explain the reason for this action (visible to user)..."
+                            value={enforcementReason}
+                            onChange={(e) => setEnforcementReason(e.target.value)}
+                            rows={3}
+                            className="bg-white text-sm"
+                          />
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setShowEnforcementForm(false);
+                              setEnforcementType("");
+                              setEnforcementReason("");
+                            }}
+                            className="flex-1"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleEnforcementAction}
+                            disabled={enforcementLoading || !enforcementType || !enforcementReason}
+                            className="flex-1"
+                          >
+                            {enforcementLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Gavel className="h-4 w-4 mr-1" />
+                                Apply
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Show current enforcement status */}
+                    {(userData.moderationStats?.isBanned || userData.moderationStats?.isSuspended || userData.moderationStats?.enforcement?.total > 0) && (
+                      <div className="p-2 bg-amber-50 rounded border border-amber-200 text-xs">
+                        <p className="font-medium text-amber-800 mb-1">Active Enforcement:</p>
+                        {userData.moderationStats?.isBanned && (
+                          <p className="text-red-700">⛔ Permanently Banned</p>
+                        )}
+                        {userData.moderationStats?.isSuspended && (
+                          <p className="text-orange-700">⏸️ Currently Suspended</p>
+                        )}
+                        {userData.moderationStats?.enforcement?.total > 0 && !userData.moderationStats?.isBanned && !userData.moderationStats?.isSuspended && (
+                          <p className="text-amber-700">⚠️ {userData.moderationStats.enforcement.total} active action(s)</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

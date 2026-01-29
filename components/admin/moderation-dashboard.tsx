@@ -831,7 +831,7 @@ function UserReportsSection() {
         .update({
           status: statusMap[actionTaken] || 'action_taken',
           action_taken: actionTaken,
-          admin_notes: adminNotes || null,
+          review_notes: adminNotes || null,
           reviewed_at: new Date().toISOString(),
         })
         .eq("id", selectedReport.id);

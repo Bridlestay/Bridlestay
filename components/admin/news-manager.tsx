@@ -651,23 +651,14 @@ Supports Markdown:
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Preview Dialog */}
+      {/* Preview Dialog - Matches published page layout */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              Post Preview
-            </DialogTitle>
-            <DialogDescription>
-              This is how the post will appear when published
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
           {previewPost && (
-            <div className="space-y-6">
-              {/* Cover Image */}
+            <div className="min-h-[600px]">
+              {/* Cover Image - Full width like published page */}
               {previewPost.cover_image_url && (
-                <div className="relative w-full h-64 rounded-lg overflow-hidden bg-muted">
+                <div className="relative w-full h-72 bg-muted">
                   <img 
                     src={previewPost.cover_image_url} 
                     alt={previewPost.title}
@@ -676,44 +667,83 @@ Supports Markdown:
                 </div>
               )}
               
-              {/* Header */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge className={`${previewPost.status === "published" ? "bg-green-600" : previewPost.status === "draft" ? "bg-gray-600" : "bg-orange-600"}`}>
-                    {previewPost.status}
-                  </Badge>
-                  <Badge variant="outline" className="capitalize">
-                    {previewPost.category}
-                  </Badge>
-                  {previewPost.featured && (
-                    <Badge variant="secondary">Featured</Badge>
-                  )}
+              {/* Article Content - Same layout as published page */}
+              <div className="px-8 py-8 max-w-4xl mx-auto">
+                {/* Article Header */}
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Badge className={`${
+                      previewPost.category === "announcement" ? "bg-blue-600" :
+                      previewPost.category === "feature" ? "bg-purple-600" :
+                      previewPost.category === "update" ? "bg-green-600" :
+                      previewPost.category === "community" ? "bg-orange-600" :
+                      previewPost.category === "tips" ? "bg-yellow-600" :
+                      previewPost.category === "event" ? "bg-pink-600" : "bg-gray-600"
+                    }`}>
+                      {previewPost.category === "announcement" ? "Announcement" :
+                       previewPost.category === "feature" ? "New Feature" :
+                       previewPost.category === "update" ? "Update" :
+                       previewPost.category === "community" ? "Community" :
+                       previewPost.category === "tips" ? "Tips & Tricks" :
+                       previewPost.category === "event" ? "Event" : previewPost.category}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      {previewPost.published_at 
+                        ? format(new Date(previewPost.published_at), "MMMM d, yyyy")
+                        : format(new Date(previewPost.created_at), "MMMM d, yyyy")}
+                    </span>
+                    <span className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Eye className="h-4 w-4" />
+                      {previewPost.views_count} views
+                    </span>
+                    {previewPost.featured && (
+                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Featured</Badge>
+                    )}
+                  </div>
+
+                  <h1 className="font-serif text-4xl lg:text-5xl font-bold mb-6">
+                    {previewPost.title}
+                  </h1>
+
+                  <p className="text-xl text-muted-foreground mb-6">
+                    {previewPost.excerpt}
+                  </p>
+
+                  {/* Author Info - Like published page */}
+                  <div className="flex items-center justify-between py-6 border-y">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
+                        <span className="text-lg font-bold text-primary">P</span>
+                      </div>
+                      <div>
+                        <p className="font-medium">padoq Team</p>
+                        <p className="text-sm text-muted-foreground">
+                          {previewPost.published_at 
+                            ? `Published ${format(new Date(previewPost.published_at), "MMMM d, yyyy")}`
+                            : `Draft - ${format(new Date(previewPost.created_at), "MMMM d, yyyy")}`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <h1 className="text-3xl font-bold">{previewPost.title}</h1>
-                <p className="text-lg text-muted-foreground">{previewPost.excerpt}</p>
+
+                {/* Article Body - Same prose styling as published */}
+                <div 
+                  className="prose prose-lg max-w-none mb-12"
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(previewPost.content) }}
+                />
+
+                {/* Tags */}
                 {previewPost.tags && previewPost.tags.length > 0 && (
-                  <div className="flex gap-1 flex-wrap">
+                  <div className="flex flex-wrap gap-2 pt-6 border-t">
                     {previewPost.tags.map((tag, i) => (
-                      <Badge key={i} variant="secondary" className="text-xs">
-                        {tag}
+                      <Badge key={i} variant="outline">
+                        #{tag}
                       </Badge>
                     ))}
                   </div>
                 )}
-              </div>
-              
-              {/* Content */}
-              <div 
-                className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(previewPost.content) }}
-              />
-              
-              {/* Footer */}
-              <div className="pt-4 border-t text-sm text-muted-foreground">
-                <p>
-                  Created: {format(new Date(previewPost.created_at), "PPP")}
-                  {previewPost.published_at && ` • Published: ${format(new Date(previewPost.published_at), "PPP")}`}
-                </p>
               </div>
             </div>
           )}
