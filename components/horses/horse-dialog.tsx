@@ -398,7 +398,7 @@ export function HorseDialog({ open, onOpenChange, horse, onSuccess }: HorseDialo
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Upload a photo of your horse (max 5MB)
+                      Recommended: 800×600px (4:3 ratio), max 5MB. Photos will be displayed at various sizes.
                     </p>
                   </div>
                 </div>

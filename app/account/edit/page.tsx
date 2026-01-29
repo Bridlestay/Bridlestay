@@ -68,31 +68,72 @@ export default function EditAccountPage() {
     setLoading(true);
 
     try {
-      // Validate name
-      const nameValidation = validateUsername(name);
-      if (!nameValidation.valid) {
-        toast({
-          variant: "destructive",
-          title: "Invalid Name",
-          description: nameValidation.reason || "Please choose a different name.",
-        });
-        setLoading(false);
-        return;
+      const nameChanged = name !== user.name;
+
+      // Validate name if changed
+      if (nameChanged) {
+        const nameValidation = validateUsername(name);
+        if (!nameValidation.valid) {
+          toast({
+            variant: "destructive",
+            title: "Invalid Name",
+            description: nameValidation.reason || "Please choose a different name.",
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Check name change limit (3 per month)
+        const lastChanged = user.name_last_changed_at ? new Date(user.name_last_changed_at) : null;
+        const monthAgo = new Date();
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        
+        const count = lastChanged && lastChanged > monthAgo ? (user.name_change_count || 0) : 0;
+        
+        if (count >= 3) {
+          toast({
+            variant: "destructive",
+            title: "Name Change Limit Reached",
+            description: "You can only change your name 3 times per month. Please try again later.",
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Build update object
+      const updateData: any = { phone };
+      
+      if (nameChanged) {
+        updateData.name = name;
+        // Update name change tracking
+        const lastChanged = user.name_last_changed_at ? new Date(user.name_last_changed_at) : null;
+        const monthAgo = new Date();
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        
+        if (!lastChanged || lastChanged < monthAgo) {
+          updateData.name_change_count = 1;
+        } else {
+          updateData.name_change_count = (user.name_change_count || 0) + 1;
+        }
+        updateData.name_last_changed_at = new Date().toISOString();
       }
 
       const { error } = await supabase
         .from("users")
-        .update({ 
-          name, 
-          phone,
-        })
+        .update(updateData)
         .eq("id", user.id);
 
       if (error) throw error;
 
+      // Update local user state
+      setUser({ ...user, ...updateData });
+
       toast({
         title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+        description: nameChanged 
+          ? `Your profile has been updated. You have ${3 - (updateData.name_change_count)} name changes remaining this month.`
+          : "Your profile has been updated successfully.",
       });
       
       // Refresh the page to show updated data
@@ -199,6 +240,11 @@ export default function EditAccountPage() {
                     onChange={(e) => setName(e.target.value)}
                     required
                   />
+                  {user?.name !== name && (
+                    <p className="text-xs text-muted-foreground">
+                      Name changes are limited to 3 per month
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -225,6 +271,10 @@ export default function EditAccountPage() {
                     placeholder="+44 7700 900000"
                   />
                 </div>
+
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Saving..." : "Save Changes"}
+                </Button>
               </form>
             </CardContent>
           </Card>

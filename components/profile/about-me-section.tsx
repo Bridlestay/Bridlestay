@@ -21,7 +21,10 @@ import {
   Plus,
   Edit,
   Trash2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -110,18 +113,35 @@ export function AboutMeSection({
     fetchHorses();
   };
 
+  const handleToggleHorseVisibility = async (horse: any) => {
+    try {
+      const res = await fetch(`/api/horses/${horse.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ public: !horse.public }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update visibility");
+
+      toast.success(`${horse.name} is now ${!horse.public ? "public" : "private"}`);
+      fetchHorses();
+    } catch (error) {
+      toast.error("Failed to update horse visibility");
+    }
+  };
+
   const profileFields = [
     {
       icon: Globe,
       label: "Where I've always wanted to go",
       value: user.dream_destination,
     },
-    { icon: Briefcase, label: "My work", value: user.occupation },
+    { icon: Briefcase, label: "My work", value: user.work || user.occupation },
     { icon: GraduationCap, label: "Where I went to school", value: user.school },
     {
       icon: Music,
-      label: "Favourite song in school",
-      value: user.favourite_song,
+      label: "Favourite song",
+      value: user.favorite_song || user.favourite_song,
     },
     { icon: Lightbulb, label: "Fun fact", value: user.fun_fact },
   ];
@@ -141,7 +161,7 @@ export function AboutMeSection({
       <Card className="mb-8">
         <CardContent className="p-8">
           <div className="flex flex-col md:flex-row gap-8 items-start">
-            {/* Avatar */}
+            {/* Avatar with Featured Badge */}
             <div className="relative">
               <Avatar
                 className="h-32 w-32 cursor-pointer"
@@ -155,6 +175,15 @@ export function AboutMeSection({
               {user.admin_verified && (
                 <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1">
                   <CheckCircle2 className="h-5 w-5 text-white" />
+                </div>
+              )}
+              {/* Featured Badge Display */}
+              {user.featured_badge && (
+                <div 
+                  className="absolute -bottom-2 -left-2 h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center border-2 border-white shadow-lg"
+                  title={user.featured_badge.name}
+                >
+                  <span className="text-lg">{user.featured_badge.icon}</span>
                 </div>
               )}
             </div>
@@ -281,15 +310,16 @@ export function AboutMeSection({
                 <Card 
                   key={horse.id} 
                   className={`overflow-hidden hover:shadow-lg transition-all ${
-                    !horse.public ? 'opacity-60 border-2 border-dashed border-muted-foreground/30' : ''
+                    !horse.public ? 'border-2 border-dashed border-muted-foreground/30' : ''
                   }`}
                 >
                   <CardContent className="p-0">
                     {/* Horse Photo */}
                     <div className="relative h-48 bg-muted">
                       {!horse.public && (
-                        <div className="absolute top-2 right-2 z-10">
+                        <div className="absolute top-2 left-2 z-10">
                           <Badge variant="secondary" className="bg-muted-foreground/80 text-white">
+                            <EyeOff className="h-3 w-3 mr-1" />
                             Private
                           </Badge>
                         </div>
@@ -298,10 +328,10 @@ export function AboutMeSection({
                         <img
                           src={horse.photo_url}
                           alt={horse.name}
-                          className={`w-full h-full object-cover ${!horse.public ? 'grayscale' : ''}`}
+                          className={`w-full h-full object-cover ${!horse.public ? 'opacity-60 grayscale' : ''}`}
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center">
+                        <div className={`w-full h-full flex items-center justify-center ${!horse.public ? 'opacity-60' : ''}`}>
                           <HorseshoeIcon className="h-16 w-16 text-muted-foreground" />
                         </div>
                       )}
@@ -309,7 +339,26 @@ export function AboutMeSection({
 
                     {/* Horse Details */}
                     <div className="p-4">
-                      <h3 className="text-lg font-bold mb-1">{horse.name}</h3>
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="text-lg font-bold">{horse.name}</h3>
+                        {/* Visibility Toggle */}
+                        <div 
+                          className="flex items-center gap-1.5 cursor-pointer"
+                          onClick={() => handleToggleHorseVisibility(horse)}
+                          title={horse.public ? "Make private" : "Make public"}
+                        >
+                          {horse.public ? (
+                            <Eye className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                          )}
+                          <Switch
+                            checked={horse.public}
+                            onCheckedChange={() => handleToggleHorseVisibility(horse)}
+                            className="scale-75"
+                          />
+                        </div>
+                      </div>
                       <p className="text-sm text-muted-foreground mb-3">
                         {horse.breed}
                         {horse.age && ` • ${horse.age} years`}
@@ -343,7 +392,7 @@ export function AboutMeSection({
                         </div>
                       )}
 
-                      {/* Actions */}
+                      {/* Actions - Always fully visible */}
                       <div className="flex gap-2">
                         <Button
                           variant="outline"

@@ -203,7 +203,7 @@ export function EditProfileDialog({
                   disabled={uploading}
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                  JPG, PNG or GIF. Max 5MB.
+                  JPG, PNG or GIF. Max 5MB. Recommended: 400×400px (will be cropped to square).
                 </p>
               </div>
             </div>

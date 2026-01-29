@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { 
   Trophy, 
@@ -132,6 +133,8 @@ export function BadgesSection({ userId, isOwnProfile = true }: BadgesSectionProp
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [activeCategory, setActiveCategory] = useState("all");
   const [activeTab, setActiveTab] = useState("earned");
+  const [featuredBadgeId, setFeaturedBadgeId] = useState<string | null>(null);
+  const [settingFeatured, setSettingFeatured] = useState(false);
 
   useEffect(() => {
     fetchBadges();
@@ -167,13 +170,43 @@ export function BadgesSection({ userId, isOwnProfile = true }: BadgesSectionProp
         .eq("user_id", userId)
         .single();
 
+      // Fetch user's featured badge
+      const { data: userData } = await supabase
+        .from("users")
+        .select("featured_badge_id")
+        .eq("id", userId)
+        .single();
+
       setEarnedBadges(userBadges || []);
       setAllBadges(badges || []);
       setUserStats(stats || null);
+      setFeaturedBadgeId(userData?.featured_badge_id || null);
     } catch (error) {
       console.error("Error fetching badges:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSetFeaturedBadge = async (badgeId: string | null) => {
+    if (!isOwnProfile) return;
+    
+    setSettingFeatured(true);
+    const supabase = createClient();
+
+    try {
+      const { error } = await supabase
+        .from("users")
+        .update({ featured_badge_id: badgeId })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      setFeaturedBadgeId(badgeId);
+    } catch (error) {
+      console.error("Error setting featured badge:", error);
+    } finally {
+      setSettingFeatured(false);
     }
   };
 
@@ -314,8 +347,11 @@ export function BadgesSection({ userId, isOwnProfile = true }: BadgesSectionProp
                   key={ub.id}
                   badge={ub.badge}
                   earnedAt={ub.earned_at}
-                  isFeatured={ub.is_featured}
+                  isFeatured={featuredBadgeId === ub.badge_id}
                   isEarned={true}
+                  isOwnProfile={isOwnProfile}
+                  onSetFeatured={handleSetFeaturedBadge}
+                  settingFeatured={settingFeatured}
                 />
               ))}
             </div>
@@ -381,9 +417,12 @@ interface BadgeCardProps {
   progress?: number;
   currentValue?: number;
   targetValue?: number;
+  isOwnProfile?: boolean;
+  onSetFeatured?: (badgeId: string | null) => void;
+  settingFeatured?: boolean;
 }
 
-function BadgeCard({ badge, isEarned, earnedAt, isFeatured, progress, currentValue, targetValue }: BadgeCardProps) {
+function BadgeCard({ badge, isEarned, earnedAt, isFeatured, progress, currentValue, targetValue, isOwnProfile, onSetFeatured, settingFeatured }: BadgeCardProps) {
   const tierColor = badge.tier ? TIER_COLORS[badge.tier] : "";
   // Use tier-based styling instead of rarity
   const tierCardStyle = badge.tier ? TIER_CARD_STYLES[badge.tier] : "border-slate-300 bg-slate-50";
@@ -445,9 +484,9 @@ function BadgeCard({ badge, isEarned, earnedAt, isFeatured, progress, currentVal
           </div>
         </div>
 
-        {/* Tier indicator - only show if badge has a tier */}
-        {badge.tier && (
-          <div className="flex items-center justify-end mt-4 pt-4 border-t">
+        {/* Footer with tier and featured button */}
+        <div className="flex items-center justify-between mt-4 pt-4 border-t">
+          {badge.tier ? (
             <Badge 
               variant="outline" 
               className={cn(
@@ -461,8 +500,31 @@ function BadgeCard({ badge, isEarned, earnedAt, isFeatured, progress, currentVal
             >
               {badge.tier}
             </Badge>
-          </div>
-        )}
+          ) : <div />}
+          
+          {/* Set as Featured button - only for earned badges on own profile */}
+          {isEarned && isOwnProfile && onSetFeatured && (
+            <Button
+              variant={isFeatured ? "default" : "outline"}
+              size="sm"
+              className="text-xs"
+              disabled={settingFeatured}
+              onClick={() => onSetFeatured(isFeatured ? null : badge.id)}
+            >
+              {isFeatured ? (
+                <>
+                  <Star className="h-3 w-3 mr-1 fill-current" />
+                  Featured
+                </>
+              ) : (
+                <>
+                  <Star className="h-3 w-3 mr-1" />
+                  Set as Featured
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
