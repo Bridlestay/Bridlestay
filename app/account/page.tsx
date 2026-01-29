@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { Header } from "@/components/header";
 import {
@@ -75,17 +74,9 @@ export default async function AccountPage() {
       <main className="min-h-screen bg-muted/30 py-12">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="font-serif text-4xl font-bold">
-                Account Settings
-              </h1>
-              {userData.admin_verified && (
-                <Badge className="bg-blue-600 text-white">
-                  <CheckCircle2 className="mr-1 h-4 w-4" />
-                  Verified
-                </Badge>
-              )}
-            </div>
+            <h1 className="font-serif text-4xl font-bold mb-2">
+              Account Settings
+            </h1>
             <p className="text-muted-foreground">
               Manage your profile and preferences
             </p>
