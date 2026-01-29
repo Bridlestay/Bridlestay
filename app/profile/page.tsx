@@ -27,7 +27,7 @@ export default async function ProfilePage({
 
   const { data: userData } = await supabase
     .from("users")
-    .select("*")
+    .select("*, featured_badge:badges!users_featured_badge_id_fkey(id, name, icon, tier, description)")
     .eq("id", user.id)
     .single();
 
