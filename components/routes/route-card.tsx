@@ -186,11 +186,6 @@ export function RouteCard({ route, onClick, showVisibility = false }: RouteCardP
         {route.owner && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Created by {route.owner.name}</span>
-            {route.owner.admin_verified && (
-              <Badge variant="outline" className="text-xs">
-                Verified
-              </Badge>
-            )}
           </div>
         )}
       </div>

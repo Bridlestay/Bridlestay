@@ -15,7 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Loader2, Globe, Briefcase, Clock, Heart, Cake, GraduationCap, Sparkles, Music, BookOpen, Star, Languages as LanguagesIcon } from "lucide-react";
+import { Upload, Loader2, Globe, Briefcase, Clock, Heart, Cake, GraduationCap, Sparkles, Music, BookOpen, Star, Languages as LanguagesIcon, Crop } from "lucide-react";
+import { ImageCropper } from "@/components/ui/image-cropper";
 
 interface EditProfileDialogProps {
   user: any;
@@ -45,6 +46,8 @@ export function EditProfileDialog({
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
@@ -68,14 +71,31 @@ export function EditProfileDialog({
       return;
     }
 
-    setAvatarFile(file);
-
-    // Show preview
+    // Show image in cropper instead of directly setting
     const reader = new FileReader();
     reader.onloadend = () => {
-      setAvatarPreview(reader.result as string);
+      setRawImageSrc(reader.result as string);
+      setCropperOpen(true);
     };
     reader.readAsDataURL(file);
+    
+    // Clear the input for re-selection
+    event.target.value = '';
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    // Create a File from the Blob for upload
+    const file = new File([croppedBlob], `avatar-${Date.now()}.jpg`, { type: "image/jpeg" });
+    setAvatarFile(file);
+    
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(croppedBlob);
+    setAvatarPreview(previewUrl);
+    
+    toast({
+      title: "Image cropped",
+      description: "Your profile picture has been cropped. Click Save to apply.",
+    });
   };
 
   const handleSave = async () => {
@@ -392,6 +412,20 @@ export function EditProfileDialog({
           </Button>
         </div>
       </DialogContent>
+
+      {/* Image Cropper Dialog */}
+      {rawImageSrc && (
+        <ImageCropper
+          open={cropperOpen}
+          onOpenChange={setCropperOpen}
+          imageSrc={rawImageSrc}
+          onCropComplete={handleCropComplete}
+          aspectRatio={1}
+          title="Crop Profile Picture"
+          minWidth={200}
+          minHeight={200}
+        />
+      )}
     </Dialog>
   );
 }

@@ -407,7 +407,9 @@ export function MessagesInbox() {
               <ScrollArea className="h-full p-4">
                 {/* Safety banner for payment protection */}
                 {currentUserId && (
-                  <MessagingSafetyBanner userId={currentUserId} variant="compact" />
+                  <div className="mb-4">
+                    <MessagingSafetyBanner userId={currentUserId} variant="compact" />
+                  </div>
                 )}
                 <div className="space-y-4">
                 {messages.map((msg) => {
@@ -420,7 +422,7 @@ export function MessagesInbox() {
                 return (
                   <div
                     key={msg.id}
-                    className={`flex gap-3 ${!isCurrentUser ? "flex-row-reverse" : ""}`}
+                    className={`flex gap-3 ${isCurrentUser ? "flex-row-reverse" : ""}`}
                   >
                     <a
                       href={`/profile/${displayUser.id}`}
@@ -438,11 +440,11 @@ export function MessagesInbox() {
                         </AvatarFallback>
                       </Avatar>
                     </a>
-                      <div className={`flex-1 ${!isCurrentUser ? "text-right" : ""}`}>
+                      <div className={`flex-1 ${isCurrentUser ? "text-right" : ""}`}>
                         <div className="group relative inline-block max-w-[70%]">
                           <div
                             className={`p-3 rounded-lg ${
-                              !isCurrentUser
+                              isCurrentUser
                                 ? "bg-primary text-primary-foreground"
                                 : "bg-muted"
                             }`}
@@ -462,15 +464,15 @@ export function MessagesInbox() {
                                 setMessageToDelete(msg.id);
                                 setDeleteDialogOpen(true);
                               }}
-                              className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded"
+                              className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded"
                               title="Delete message"
                             >
                               <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                             </button>
                           )}
-                          {/* Report button - only show for received messages that aren't deleted, on the left side */}
+                          {/* Report button - only show for received messages that aren't deleted */}
                           {!isCurrentUser && !msg.deleted && (
-                            <div className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <ReportButton
                                 contentType="message"
                                 contentId={msg.id}

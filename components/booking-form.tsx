@@ -148,8 +148,6 @@ export function BookingForm({ propertyId, property }: BookingFormProps) {
   const [loading, setLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
-  const [checkingVerification, setCheckingVerification] = useState(true);
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [loadingDates, setLoadingDates] = useState(true);
   const [discount, setDiscount] = useState<{
@@ -159,27 +157,6 @@ export function BookingForm({ propertyId, property }: BookingFormProps) {
   } | null>(null);
   const router = useRouter();
   const { toast } = useToast();
-
-  // Check user verification status
-  useEffect(() => {
-    const checkVerification = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        const { data: userData } = await supabase
-          .from("users")
-          .select("admin_verified")
-          .eq("id", user.id)
-          .single();
-        
-        setIsVerified(userData?.admin_verified || false);
-      }
-      setCheckingVerification(false);
-    };
-
-    checkVerification();
-  }, []);
 
   // Fetch blocked dates
   useEffect(() => {
@@ -395,31 +372,6 @@ export function BookingForm({ propertyId, property }: BookingFormProps) {
     setShowPayment(false);
     router.push("/dashboard");
   };
-
-  if (checkingVerification) {
-    return (
-      <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
-
-  if (!isVerified) {
-    return (
-      <div className="space-y-4">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Your account must be verified before you can make bookings. 
-            Please check your email or wait for admin approval.
-          </AlertDescription>
-        </Alert>
-        <Button className="w-full" size="lg" disabled>
-          Account Verification Required
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <>

@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2, X, Upload, Image as ImageIcon } from "lucide-react";
+import { ImageCropper } from "@/components/ui/image-cropper";
 import {
   HORSE_BREEDS,
   GENDERS,
@@ -49,6 +50,8 @@ export function HorseDialog({ open, onOpenChange, horse, onSuccess }: HorseDialo
   const [breedSearch, setBreedSearch] = useState("");
   const [showBreedDropdown, setShowBreedDropdown] = useState(false);
   const breedDropdownRef = useRef<HTMLDivElement>(null);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
   
   // Basic Info
   const [name, setName] = useState("");
@@ -194,7 +197,7 @@ export function HorseDialog({ open, onOpenChange, horse, onSuccess }: HorseDialo
     );
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -204,11 +207,23 @@ export function HorseDialog({ open, onOpenChange, horse, onSuccess }: HorseDialo
     
     if (!validation.valid) {
       toast.error(validation.error || 'Invalid file');
-      // Clear the input
       event.target.value = '';
       return;
     }
 
+    // Show image in cropper
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setRawImageSrc(reader.result as string);
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+    
+    // Clear the input for re-selection
+    event.target.value = '';
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
     setUploading(true);
 
     try {
@@ -219,15 +234,15 @@ export function HorseDialog({ open, onOpenChange, horse, onSuccess }: HorseDialo
       if (!user) throw new Error('Not authenticated');
 
       // Create unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/${Date.now()}.jpg`;
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('horse-photos')
-        .upload(fileName, file, {
+        .upload(fileName, croppedBlob, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: 'image/jpeg'
         });
 
       if (uploadError) throw uploadError;
@@ -393,7 +408,7 @@ export function HorseDialog({ open, onOpenChange, horse, onSuccess }: HorseDialo
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={handleImageUpload}
+                        onChange={handleImageSelect}
                         disabled={uploading}
                       />
                     </div>
@@ -773,6 +788,20 @@ export function HorseDialog({ open, onOpenChange, horse, onSuccess }: HorseDialo
           </div>
         </form>
       </DialogContent>
+
+      {/* Image Cropper Dialog */}
+      {rawImageSrc && (
+        <ImageCropper
+          open={cropperOpen}
+          onOpenChange={setCropperOpen}
+          imageSrc={rawImageSrc}
+          onCropComplete={handleCropComplete}
+          aspectRatio={4/3}
+          title="Crop Horse Photo"
+          minWidth={200}
+          minHeight={150}
+        />
+      )}
     </Dialog>
   );
 }

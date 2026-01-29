@@ -21,30 +21,15 @@ export default async function PublicProfilePage({
     data: { user: currentUser },
   } = await supabase.auth.getUser();
 
-  // Check if current user is verified (required to view profiles)
-  // Admins and hosts can always view profiles, guests need to be verified
-  if (currentUser) {
-    const { data: currentUserData } = await supabase
-      .from("users")
-      .select("admin_verified, email_verified, role")
-      .eq("id", currentUser.id)
-      .single();
-
-    // Allow admins and hosts to bypass verification check
-    // Hosts need to view profiles to communicate with guests
-    const isAdminOrHost = currentUserData?.role === 'admin' || currentUserData?.role === 'host';
-    
-    if (!isAdminOrHost && (!currentUserData?.admin_verified || !currentUserData?.email_verified)) {
-      redirect("/dashboard?error=not_verified");
-    }
-  } else {
+  // Require login to view profiles
+  if (!currentUser) {
     redirect("/auth/sign-in");
   }
 
-  // Get the target user's profile
+  // Get the target user's profile with featured badge
   const { data: profile, error } = await supabase
     .from("users")
-    .select("*")
+    .select("*, featured_badge:badges!users_featured_badge_id_fkey(id, name, icon, tier, description)")
     .eq("id", userId)
     .single();
 
@@ -77,23 +62,28 @@ export default async function PublicProfilePage({
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-start gap-6">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={profile.avatar_url || undefined} />
-                  <AvatarFallback className="text-2xl">
-                    {profile.name?.[0]?.toUpperCase() || "?"}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="h-24 w-24">
+                    <AvatarImage src={profile.avatar_url || undefined} />
+                    <AvatarFallback className="text-2xl">
+                      {profile.name?.[0]?.toUpperCase() || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  {/* Featured Badge Display */}
+                  {profile.featured_badge && (
+                    <div 
+                      className="absolute -bottom-2 -left-2 h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center border-2 border-white shadow-lg"
+                      title={profile.featured_badge.name}
+                    >
+                      <span className="text-lg">{profile.featured_badge.icon}</span>
+                    </div>
+                  )}
+                </div>
                 
                 <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <h1 className="font-serif text-3xl font-bold">{profile.name}</h1>
-                          {profile.admin_verified && (
-                            <Badge className="bg-blue-600">
-                              <CheckCircle2 className="mr-1 h-3 w-3" />
-                              Verified
-                            </Badge>
-                          )}
                         </div>
                         {currentUser?.id !== userId && (
                           <ReportButton

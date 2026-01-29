@@ -172,11 +172,6 @@ export function AboutMeSection({
                   {user.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              {user.admin_verified && (
-                <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1">
-                  <CheckCircle2 className="h-5 w-5 text-white" />
-                </div>
-              )}
               {/* Featured Badge Display */}
               {user.featured_badge && (
                 <div 
@@ -232,15 +227,6 @@ export function AboutMeSection({
               </div>
             </div>
           ) : null
-        )}
-
-        {user.verified && (
-          <div className="flex items-start gap-4">
-            <CheckCircle2 className="h-6 w-6 text-primary mt-0.5" />
-            <div>
-              <p className="font-medium">Identity verified</p>
-            </div>
-          </div>
         )}
 
         {profileFields.every((f) => !f.value) && !user.bio && (

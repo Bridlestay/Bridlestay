@@ -132,6 +132,55 @@ export async function PUT(
   }
 }
 
+// PATCH - Partial update a horse (e.g., toggle visibility)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+
+    // Only update fields that are provided
+    const updateData: any = {};
+    if (body.public !== undefined) updateData.public = body.public;
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.photo_url !== undefined) updateData.photo_url = body.photo_url;
+    // Add more fields as needed for partial updates
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    }
+
+    const { data: horse, error } = await supabase
+      .from("user_horses")
+      .update(updateData)
+      .eq("id", params.id)
+      .eq("user_id", user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({ horse });
+  } catch (error: any) {
+    console.error("Error updating horse:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to update horse" },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE - Delete a horse
 export async function DELETE(
   request: NextRequest,
