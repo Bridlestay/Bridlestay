@@ -25,7 +25,8 @@ export async function GET() {
         avg_rating,
         review_count,
         created_at,
-        cover_photo_url
+        cover_photo_url,
+        is_public
       `)
       .eq("owner_user_id", user.id)
       .order("created_at", { ascending: false });

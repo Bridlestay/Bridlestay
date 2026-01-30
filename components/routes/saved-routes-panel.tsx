@@ -69,14 +69,27 @@ export function SavedRoutesPanel({
       const myRes = await fetch("/api/routes/my-routes");
       if (myRes.ok) {
         const data = await myRes.json();
+        console.log("[SavedRoutes] My routes:", data.routes?.length || 0);
         setMyRoutes(data.routes || []);
+      } else {
+        console.warn("[SavedRoutes] Failed to fetch my routes:", myRes.status);
+        // If unauthorized, user needs to log in
+        if (myRes.status === 401) {
+          setMyRoutes([]);
+        }
       }
 
       // Fetch bookmarked/favorited routes
       const favRes = await fetch("/api/routes/favorites");
       if (favRes.ok) {
         const data = await favRes.json();
+        console.log("[SavedRoutes] Bookmarked routes:", data.routes?.length || 0);
         setBookmarkedRoutes(data.routes || []);
+      } else {
+        console.warn("[SavedRoutes] Failed to fetch favorites:", favRes.status);
+        if (favRes.status === 401) {
+          setBookmarkedRoutes([]);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch saved routes:", error);
