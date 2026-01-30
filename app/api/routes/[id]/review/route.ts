@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(
   request: Request,
-  { params }: { params: { routeId: string } }
+  { params }: { params: { id: string } }
 ) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -24,7 +24,7 @@ export async function POST(
     const { data: route, error: routeError } = await supabase
       .from("routes")
       .select("id, owner_user_id")
-      .eq("id", params.routeId)
+      .eq("id", params.id)
       .single();
 
     if (routeError || !route) {
@@ -35,7 +35,7 @@ export async function POST(
     const { data: existingReview } = await supabase
       .from("route_reviews")
       .select("id")
-      .eq("route_id", params.routeId)
+      .eq("route_id", params.id)
       .eq("user_id", user.id)
       .single();
 
@@ -60,7 +60,7 @@ export async function POST(
     const { error: insertError } = await supabase
       .from("route_reviews")
       .insert({
-        route_id: params.routeId,
+        route_id: params.id,
         user_id: user.id,
         rating,
         difficulty_rating: difficulty,
@@ -73,7 +73,7 @@ export async function POST(
     const { error: completionError } = await supabase
       .from("route_completions")
       .insert({
-        route_id: params.routeId,
+        route_id: params.id,
         user_id: user.id,
         completed_at: new Date().toISOString(),
       });
@@ -82,7 +82,7 @@ export async function POST(
     const { data: reviews } = await supabase
       .from("route_reviews")
       .select("rating, difficulty_rating")
-      .eq("route_id", params.routeId);
+      .eq("route_id", params.id);
 
     if (reviews && reviews.length > 0) {
       const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
@@ -117,7 +117,7 @@ export async function POST(
           review_count: reviews.length,
           community_difficulty: communityDifficulty,
         })
-        .eq("id", params.routeId);
+        .eq("id", params.id);
     }
 
     return NextResponse.json({ success: true });
@@ -129,7 +129,7 @@ export async function POST(
 
 export async function GET(
   request: Request,
-  { params }: { params: { routeId: string } }
+  { params }: { params: { id: string } }
 ) {
   const supabase = await createClient();
 
@@ -140,7 +140,7 @@ export async function GET(
         *,
         user:users(id, name, avatar_url)
       `)
-      .eq("route_id", params.routeId)
+      .eq("route_id", params.id)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
