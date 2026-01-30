@@ -144,17 +144,13 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
         center,
         zoom,
         mapTypeId: "terrain", // Shows trails and paths
-        mapTypeControl: true,
-        mapTypeControlOptions: {
-          position: google.maps.ControlPosition.TOP_LEFT,
-          mapTypeIds: ["roadmap", "terrain", "satellite", "hybrid"],
-        },
+        // Disable all default Google UI - we use custom controls
+        mapTypeControl: false,
         streetViewControl: false,
-        fullscreenControl: true,
-        zoomControl: true,
-        zoomControlOptions: {
-          position: google.maps.ControlPosition.RIGHT_CENTER,
-        },
+        fullscreenControl: false,
+        zoomControl: false,
+        rotateControl: false,
+        scaleControl: true,
         // Default cursor (not hand tool)
         draggableCursor: "default",
         // Custom styling to highlight paths and trails

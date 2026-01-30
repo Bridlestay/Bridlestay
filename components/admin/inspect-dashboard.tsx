@@ -628,10 +628,6 @@ export function InspectDashboard({
                   {/* Enforcement Actions */}
                   <Separator className="my-3" />
                   <div className="space-y-2">
-                    {/* Version marker - proves deploy is working */}
-                    <div className="bg-red-500 text-white text-center py-0.5 text-[10px] font-bold rounded">
-                      v2 Jan29
-                    </div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                       <Gavel className="h-3 w-3" />
                       Enforcement Actions

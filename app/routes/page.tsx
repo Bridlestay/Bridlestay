@@ -1,43 +1,47 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { RouteCard } from "@/components/routes/route-card";
-import { RouteFilters } from "@/components/routes/route-filters";
 import { RoutesMapV2, RoutesMapV2Handle } from "@/components/routes/routes-map-v2";
 import { RouteDetailDrawer } from "@/components/routes/route-detail-drawer";
 import { RouteCreator, RouteCreatorToolbar, PathLayerToggles, Waypoint, RouteData, RouteStyle, ToolMode } from "@/components/routes/route-creator";
-import { KMLLayerToggles } from "@/components/routes/kml-layer-toggles";
+import { MapLayerControls, LayerSettings } from "@/components/routes/map-layer-controls";
+import { MapSearchPanel } from "@/components/routes/map-search-panel";
+import { RouteBottomSheet } from "@/components/routes/route-bottom-sheet";
 import { ClearRouteDialog, DiscardRouteDialog, DeleteRouteDialog } from "@/components/routes/confirm-dialog";
-import { Header } from "@/components/header";
 import { toast } from "sonner";
-import { Plus, Trash2, Compass, Route, Home } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Plus, X, Menu } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function RoutesPage() {
   const mapRef = useRef<RoutesMapV2Handle>(null);
   
-  const [activeTab, setActiveTab] = useState("explore");
+  // Panel states
+  const [searchPanelOpen, setSearchPanelOpen] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [bottomSheetRoutes, setBottomSheetRoutes] = useState<any[]>([]);
+  const [isCluster, setIsCluster] = useState(false);
+  const [clusterCount, setClusterCount] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Explore tab state
+  // Route data
   const [exploreRoutes, setExploreRoutes] = useState<any[]>([]);
-  const [exploreFilters, setExploreFilters] = useState<any>({});
-  const [exploreLoading, setExploreLoading] = useState(false);
-  const [exploreTotalCount, setExploreTotalCount] = useState(0);
-
-  // My Routes tab state
-  const [myRoutes, setMyRoutes] = useState<any[]>([]);
-  const [myRoutesLoading, setMyRoutesLoading] = useState(false);
-
-  // Nearby properties for the map
   const [nearbyProperties, setNearbyProperties] = useState<any[]>([]);
-  const [showProperties, setShowProperties] = useState(true);
+
+  // Layer settings
+  const [layerSettings, setLayerSettings] = useState<LayerSettings>({
+    mapType: "topographic",
+    showBridleways: true,
+    showFootpaths: false, // Hidden by default as requested
+    showByways: true,
+    showRestrictedByways: true,
+    showWaymarkers: true,
+    showHazards: true,
+    showProperties: true,
+    routeLineWidth: 4,
+  });
 
   // Create Route state
   const [isCreating, setIsCreating] = useState(false);
@@ -51,103 +55,48 @@ export default function RoutesPage() {
   // Dialog states
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [routeToDelete, setRouteToDelete] = useState<{id: string, name?: string} | null>(null);
-
-  // Path layer state
-  const [pathLayers, setPathLayers] = useState({
-    bridleways: true,
-    boats: false,
-    footpaths: false,
-    permissive: false,
-  });
 
   // Route style state
   const [routeStyle, setRouteStyle] = useState<RouteStyle>({
     color: "#3B82F6",
-    thickness: 4,
+    thickness: layerSettings.routeLineWidth,
     opacity: 100,
   });
 
-  const handlePathLayerToggle = (layer: string, enabled: boolean) => {
-    setPathLayers((prev) => ({ ...prev, [layer]: enabled }));
+  // Convert layer settings to path layers format
+  const pathLayers = {
+    bridleways: layerSettings.showBridleways,
+    boats: layerSettings.showByways,
+    footpaths: layerSettings.showFootpaths,
+    permissive: layerSettings.showRestrictedByways,
   };
 
-  const handleStyleChange = (style: RouteStyle) => {
-    setRouteStyle(style);
-  };
-
-  // Fetch explore routes
+  // Fetch routes on mount
   useEffect(() => {
-    if (activeTab === "explore" && !isCreating) {
-      fetchExploreRoutes();
-    }
-  }, [activeTab, exploreFilters, isCreating]);
-
-  // Fetch my routes
-  useEffect(() => {
-    if (activeTab === "my-routes") {
-      fetchMyRoutes();
-    }
-  }, [activeTab]);
-
-  // Fetch nearby properties when not creating
-  useEffect(() => {
-    if (!isCreating && showProperties) {
-      fetchNearbyProperties();
-    }
-  }, [isCreating, showProperties]);
+    fetchExploreRoutes();
+    fetchNearbyProperties();
+  }, []);
 
   const fetchExploreRoutes = async () => {
-    setExploreLoading(true);
     try {
       const res = await fetch("/api/routes/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...exploreFilters, visibility: "public" }),
+        body: JSON.stringify({ visibility: "public" }),
       });
 
       if (res.ok) {
         const data = await res.json();
         setExploreRoutes(data.routes || []);
-        setExploreTotalCount(data.total || data.routes?.length || 0);
       }
     } catch (error) {
       console.error("Failed to fetch routes:", error);
-      toast.error("Failed to load routes");
-    } finally {
-      setExploreLoading(false);
-    }
-  };
-
-  const fetchMyRoutes = async () => {
-    setMyRoutesLoading(true);
-    try {
-      const res = await fetch("/api/routes/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ myRoutes: true }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setMyRoutes(data.routes || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch my routes:", error);
-      toast.error("Failed to load your routes");
-    } finally {
-      setMyRoutesLoading(false);
     }
   };
 
   const fetchNearbyProperties = async () => {
     try {
-      // Fetch all published properties with coordinates
-      const res = await fetch("/api/properties/nearby", {
-        method: "GET",
-      });
-
+      const res = await fetch("/api/properties/nearby", { method: "GET" });
       if (res.ok) {
         const data = await res.json();
         setNearbyProperties(data.properties || []);
@@ -157,9 +106,75 @@ export default function RoutesPage() {
     }
   };
 
+  // Handle route click on map
   const handleRouteClick = (routeId: string) => {
+    const route = exploreRoutes.find((r) => r.id === routeId);
+    if (route) {
+      setBottomSheetRoutes([route]);
+      setSelectedRouteId(routeId);
+      setShowBottomSheet(true);
+      setIsCluster(false);
+    }
+  };
+
+  // Handle cluster click
+  const handleClusterClick = (routeIds: string[], count: number) => {
+    const routes = exploreRoutes.filter((r) => routeIds.includes(r.id));
+    setBottomSheetRoutes(routes);
+    setSelectedRouteId(routes[0]?.id || null);
+    setShowBottomSheet(true);
+    setIsCluster(true);
+    setClusterCount(count);
+  };
+
+  // Open full route details
+  const handleRouteDetails = (routeId: string) => {
     setSelectedRouteId(routeId);
     setDrawerOpen(true);
+    setShowBottomSheet(false);
+  };
+
+  // Handle route selection in carousel
+  const handleRouteSelect = (routeId: string) => {
+    setSelectedRouteId(routeId);
+    // Highlight route on map
+    // mapRef.current?.highlightRoute(routeId);
+  };
+
+  // Map controls
+  const handleLocateMe = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          mapRef.current?.panTo(pos.coords.latitude, pos.coords.longitude);
+          mapRef.current?.setZoom(15);
+        },
+        (error) => {
+          toast.error("Could not get your location");
+        }
+      );
+    }
+  };
+
+  const handleFullscreen = () => {
+    const elem = document.documentElement;
+    if (!isFullscreen) {
+      elem.requestFullscreen?.();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen?.();
+      setIsFullscreen(false);
+    }
+  };
+
+  const handleZoomIn = () => {
+    const map = mapRef.current?.getMap();
+    if (map) map.setZoom((map.getZoom() || 10) + 1);
+  };
+
+  const handleZoomOut = () => {
+    const map = mapRef.current?.getMap();
+    if (map) map.setZoom((map.getZoom() || 10) - 1);
   };
 
   // Waypoint management
@@ -218,14 +233,12 @@ export default function RoutesPage() {
     [waypoints]
   );
 
-  // Handle circular route detection
   const handleCircularDetected = useCallback(() => {
     if (routeType === "linear") {
       setRouteType("circular");
-      setIsPlotting(false); // Stop plotting when route is closed
+      setIsPlotting(false);
       toast.success("Route closed! Now a circular route.");
     } else {
-      // Already circular - clicking start again removes the last point to continue linear
       if (waypoints.length > 0) {
         setHistory((prev) => [...prev, waypoints]);
         setWaypoints((prev) => prev.slice(0, -1));
@@ -240,7 +253,6 @@ export default function RoutesPage() {
     const previousState = history[history.length - 1];
     setHistory((prev) => prev.slice(0, -1));
     setWaypoints(previousState);
-    // Reset to linear if we undo to less than 3 points
     if (previousState.length < 3 && routeType === "circular") {
       setRouteType("linear");
     }
@@ -260,7 +272,6 @@ export default function RoutesPage() {
   }, []);
 
   const handleSaveRoute = async (routeData: RouteData) => {
-    // Validate again before sending
     if (!routeData.title?.trim()) {
       throw new Error("Route name is required");
     }
@@ -289,45 +300,24 @@ export default function RoutesPage() {
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      console.error("Route save error:", errorData);
       throw new Error(errorData.error || "Failed to save route");
     }
 
-    // Success - clean up and navigate
     setIsCreating(false);
     setWaypoints([]);
     setHistory([]);
     setRouteType("linear");
     setToolMode("plot");
-    setActiveTab("my-routes");
-    fetchMyRoutes();
-  };
-
-  const handleDeleteRoute = async () => {
-    if (!routeToDelete) return;
-
-    try {
-      const res = await fetch(`/api/routes/${routeToDelete.id}`, {
-        method: "DELETE",
-      });
-
-      if (res.ok) {
-        toast.success("Route deleted");
-        fetchMyRoutes();
-      } else {
-        toast.error("Failed to delete route");
-      }
-    } catch (error) {
-      toast.error("Failed to delete route");
-    } finally {
-      setRouteToDelete(null);
-    }
+    fetchExploreRoutes();
+    toast.success("Route saved!");
   };
 
   const startCreating = () => {
     setIsCreating(true);
     setIsPlotting(true);
     setToolMode("plot");
+    setSearchPanelOpen(false);
+    setShowBottomSheet(false);
   };
 
   const cancelCreating = () => {
@@ -345,86 +335,100 @@ export default function RoutesPage() {
     setHistory([]);
     setRouteType("linear");
     setToolMode("plot");
-    setActiveTab("explore");
   };
 
-  // Render Create Route view (sidebar layout)
+  // Route creation mode
   if (isCreating) {
     return (
       <TooltipProvider>
-        <Header />
-        <div className="min-h-screen bg-background">
-          <div className="flex h-[calc(100vh-64px)]">
-            {/* Left sidebar - Route creator form + path toggles */}
-            <div className="w-80 border-r bg-background flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto">
-                <RouteCreator
-                  onSave={handleSaveRoute}
-                  onCancel={cancelCreating}
-                  mapRef={mapRef}
-                  existingRoute={{
-                    title: "",
-                    description: "",
-                    visibility: "private",
-                    difficulty: "unrated",
-                    routeType,
-                    waypoints,
-                    geometry: {
-                      type: "LineString",
-                      coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
-                    },
-                    distanceKm: 0,
-                    estimatedTimeMinutes: 0,
-                  }}
-                />
-              </div>
-              {/* Path layer toggles at bottom of sidebar */}
-              <div className="border-t p-4">
-                <PathLayerToggles
-                  layers={pathLayers}
-                  onToggle={handlePathLayerToggle}
-                />
-              </div>
-            </div>
+        <div className="fixed inset-0 bg-background">
+          {/* Full-screen map for route creation */}
+          <div className="absolute inset-0">
+            <RoutesMapV2
+              ref={mapRef}
+              isCreating={isCreating}
+              isPlotting={isPlotting}
+              snapEnabled={snapEnabled}
+              waypoints={waypoints}
+              routeType={routeType}
+              routeStyle={routeStyle}
+              toolMode={toolMode}
+              pathLayers={pathLayers}
+              onWaypointAdd={addWaypoint}
+              onWaypointUpdate={updateWaypoint}
+              onWaypointRemove={removeWaypoint}
+              onWaypointInsert={insertWaypoint}
+              onCircularDetected={handleCircularDetected}
+            />
+          </div>
 
-            {/* Map area - full width */}
-            <div className="flex-1 relative">
-              <RoutesMapV2
-                ref={mapRef}
-                isCreating={isCreating}
-                isPlotting={isPlotting}
-                snapEnabled={snapEnabled}
-                waypoints={waypoints}
-                routeType={routeType}
-                routeStyle={routeStyle}
-                toolMode={toolMode}
-                pathLayers={pathLayers}
-                onWaypointAdd={addWaypoint}
-                onWaypointUpdate={updateWaypoint}
-                onWaypointRemove={removeWaypoint}
-                onWaypointInsert={insertWaypoint}
-                onCircularDetected={handleCircularDetected}
+          {/* Route creation sidebar (left panel) */}
+          <div className="absolute top-0 left-0 bottom-0 w-80 bg-white shadow-2xl z-20 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto">
+              <RouteCreator
+                onSave={handleSaveRoute}
+                onCancel={cancelCreating}
+                mapRef={mapRef}
+                existingRoute={{
+                  title: "",
+                  description: "",
+                  visibility: "private",
+                  difficulty: "unrated",
+                  routeType,
+                  waypoints,
+                  geometry: {
+                    type: "LineString",
+                    coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
+                  },
+                  distanceKm: 0,
+                  estimatedTimeMinutes: 0,
+                }}
               />
-
-              {/* Route creation toolbar */}
-              <RouteCreatorToolbar
-                isPlotting={isPlotting}
-                setIsPlotting={setIsPlotting}
-                snapEnabled={snapEnabled}
-                setSnapEnabled={setSnapEnabled}
-                toolMode={toolMode}
-                setToolMode={setToolMode}
-                onUndo={handleUndo}
-                onClear={handleClear}
-                canUndo={history.length > 0}
-                routeStyle={routeStyle}
-                onStyleChange={handleStyleChange}
+            </div>
+            <div className="border-t p-4">
+              <PathLayerToggles
+                layers={pathLayers}
+                onToggle={(layer, enabled) => {
+                  setLayerSettings((prev) => {
+                    const key = layer === "bridleways" ? "showBridleways" :
+                                layer === "boats" ? "showByways" :
+                                layer === "footpaths" ? "showFootpaths" :
+                                "showRestrictedByways";
+                    return { ...prev, [key]: enabled };
+                  });
+                }}
               />
             </div>
           </div>
+
+          {/* Route creation toolbar */}
+          <RouteCreatorToolbar
+            isPlotting={isPlotting}
+            setIsPlotting={setIsPlotting}
+            snapEnabled={snapEnabled}
+            setSnapEnabled={setSnapEnabled}
+            toolMode={toolMode}
+            setToolMode={setToolMode}
+            onUndo={handleUndo}
+            onClear={handleClear}
+            canUndo={history.length > 0}
+            routeStyle={routeStyle}
+            onStyleChange={setRouteStyle}
+          />
+
+          {/* Map controls */}
+          <MapLayerControls
+            settings={layerSettings}
+            onSettingsChange={setLayerSettings}
+            onLocateMe={handleLocateMe}
+            onFullscreen={handleFullscreen}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            isFullscreen={isFullscreen}
+            className="left-84"
+          />
         </div>
 
-        {/* Dialogs */}
         <ClearRouteDialog
           open={showClearDialog}
           onOpenChange={setShowClearDialog}
@@ -439,187 +443,68 @@ export default function RoutesPage() {
     );
   }
 
-  // Render Explore/My Routes view (original layout with map + cards)
+  // Main map-first explore view
   return (
     <TooltipProvider>
-      <Header />
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">Routes</h1>
-              <p className="text-muted-foreground">
-                Discover riding routes or create your own
-              </p>
-            </div>
-            <Button onClick={startCreating} size="lg">
-              <Plus className="mr-2 h-5 w-5" />
-              Create Route
-            </Button>
-          </div>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
-              <TabsTrigger value="explore">Explore Routes</TabsTrigger>
-              <TabsTrigger value="my-routes">My Routes</TabsTrigger>
-            </TabsList>
-
-            {/* EXPLORE TAB */}
-            <TabsContent value="explore" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left sidebar - Filters + Path Layers */}
-                <div className="space-y-4">
-                  <RouteFilters onFilterChange={setExploreFilters} />
-                  <KMLLayerToggles layers={pathLayers} onToggle={handlePathLayerToggle} />
-                </div>
-
-                {/* Main content - Map + Routes */}
-                <div className="lg:col-span-2 space-y-6">
-                  {/* Map */}
-                  <Card className="h-96 overflow-hidden relative">
-                    <RoutesMapV2
-                      routes={exploreRoutes}
-                      onRouteClick={handleRouteClick}
-                      pathLayers={pathLayers}
-                      propertyPins={showProperties ? nearbyProperties : []}
-                    />
-                    {/* Property toggle - positioned to not cover fullscreen button */}
-                    <div className="absolute top-4 right-14 bg-white rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 z-10">
-                      <Home className="h-4 w-4 text-purple-600" />
-                      <Label htmlFor="show-props-explore" className="text-sm font-medium cursor-pointer">
-                        Properties
-                      </Label>
-                      <Switch
-                        id="show-props-explore"
-                        checked={showProperties}
-                        onCheckedChange={setShowProperties}
-                      />
-                    </div>
-                    {showProperties && nearbyProperties.length > 0 && (
-                      <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg px-3 py-2 z-10">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="w-3 h-3 rounded-full bg-purple-500"></span>
-                          <span>{nearbyProperties.length} properties nearby</span>
-                        </div>
-                      </div>
-                    )}
-                  </Card>
-
-                  {/* Routes list */}
-                  <div>
-                    <h2 className="text-xl font-semibold mb-4">
-                      {exploreLoading
-                        ? "Loading..."
-                        : exploreTotalCount > 0
-                        ? `${exploreTotalCount} public routes`
-                        : "No public routes yet"}
-                    </h2>
-
-                    {exploreRoutes.length === 0 && !exploreLoading ? (
-                      <Card className="p-8 text-center">
-                        <Compass className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No routes found</h3>
-                        <p className="text-muted-foreground mb-6">
-                          Be the first to share a riding route in this area!
-                        </p>
-                        <Button onClick={startCreating}>
-                          <Plus className="mr-2 h-4 w-4" />
-                          Create First Route
-                        </Button>
-                      </Card>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {exploreRoutes.map((route) => (
-                          <RouteCard
-                            key={route.id}
-                            route={route}
-                            onClick={() => handleRouteClick(route.id)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-
-            {/* MY ROUTES TAB */}
-            <TabsContent value="my-routes" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Map + Path Layers */}
-                <div className="lg:col-span-2 space-y-4">
-                  <Card className="h-96 overflow-hidden relative">
-                    <RoutesMapV2
-                      routes={myRoutes}
-                      onRouteClick={handleRouteClick}
-                      pathLayers={pathLayers}
-                      propertyPins={showProperties ? nearbyProperties : []}
-                    />
-                    {/* Property toggle - positioned to not cover fullscreen button */}
-                    <div className="absolute top-4 right-14 bg-white rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 z-10">
-                      <Home className="h-4 w-4 text-purple-600" />
-                      <Label htmlFor="show-props-myroutes" className="text-sm font-medium cursor-pointer">
-                        Properties
-                      </Label>
-                      <Switch
-                        id="show-props-myroutes"
-                        checked={showProperties}
-                        onCheckedChange={setShowProperties}
-                      />
-                    </div>
-                  </Card>
-                  <KMLLayerToggles layers={pathLayers} onToggle={handlePathLayerToggle} />
-                </div>
-
-                {/* Routes list */}
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">
-                    {myRoutesLoading
-                      ? "Loading..."
-                      : `Your Routes (${myRoutes.length})`}
-                  </h2>
-
-                  {myRoutes.length === 0 && !myRoutesLoading ? (
-                    <Card className="p-6 text-center">
-                      <Route className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                      <p className="text-sm text-muted-foreground mb-4">
-                        You haven&apos;t created any routes yet
-                      </p>
-                      <Button onClick={startCreating} variant="outline">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Create Your First Route
-                      </Button>
-                    </Card>
-                  ) : (
-                    <div className="space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
-                      {myRoutes.map((route) => (
-                        <div key={route.id} className="relative">
-                          <RouteCard
-                            route={route}
-                            onClick={() => handleRouteClick(route.id)}
-                            showVisibility={true}
-                          />
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2 h-8 w-8"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRouteToDelete({ id: route.id, name: route.title });
-                              setShowDeleteDialog(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
+      <div className="fixed inset-0 bg-background">
+        {/* Full-screen map */}
+        <div className="absolute inset-0">
+          <RoutesMapV2
+            ref={mapRef}
+            routes={exploreRoutes}
+            onRouteClick={handleRouteClick}
+            pathLayers={pathLayers}
+            propertyPins={layerSettings.showProperties ? nearbyProperties : []}
+          />
         </div>
+
+        {/* Search panel (left side on desktop, fullscreen on mobile) */}
+        <MapSearchPanel
+          isOpen={searchPanelOpen}
+          onToggle={() => setSearchPanelOpen(!searchPanelOpen)}
+          onRouteClick={handleRouteDetails}
+          onPlaceClick={(lat, lng) => {
+            mapRef.current?.panTo(lat, lng);
+            mapRef.current?.setZoom(14);
+          }}
+          onCreateRoute={startCreating}
+        />
+
+        {/* Layer controls (bottom right) */}
+        <MapLayerControls
+          settings={layerSettings}
+          onSettingsChange={setLayerSettings}
+          onLocateMe={handleLocateMe}
+          onFullscreen={handleFullscreen}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          isFullscreen={isFullscreen}
+        />
+
+        {/* Route info bottom sheet */}
+        {showBottomSheet && bottomSheetRoutes.length > 0 && (
+          <RouteBottomSheet
+            routes={bottomSheetRoutes}
+            selectedRouteId={selectedRouteId}
+            onRouteSelect={handleRouteSelect}
+            onRouteClick={handleRouteDetails}
+            onClose={() => setShowBottomSheet(false)}
+            isCluster={isCluster}
+            clusterCount={clusterCount}
+          />
+        )}
+
+        {/* Floating create button (when search panel closed) */}
+        {!searchPanelOpen && (
+          <Button
+            onClick={startCreating}
+            className="absolute top-4 right-4 z-20 shadow-lg gap-2"
+            size="lg"
+          >
+            <Plus className="h-5 w-5" />
+            Create Route
+          </Button>
+        )}
 
         {/* Route Detail Drawer */}
         <RouteDetailDrawer
@@ -629,14 +514,6 @@ export default function RoutesPage() {
             setDrawerOpen(false);
             setSelectedRouteId(null);
           }}
-        />
-
-        {/* Delete Route Dialog */}
-        <DeleteRouteDialog
-          open={showDeleteDialog}
-          onOpenChange={setShowDeleteDialog}
-          onConfirm={handleDeleteRoute}
-          routeName={routeToDelete?.name}
         />
       </div>
     </TooltipProvider>
