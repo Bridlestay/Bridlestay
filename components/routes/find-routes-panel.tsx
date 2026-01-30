@@ -106,11 +106,8 @@ export function FindRoutesPanel({
 
       if (res.ok) {
         const data = await res.json();
-        console.log("[FindRoutes] Found routes:", data.routes?.length || 0, "with geometry:", data.routes?.filter((r: any) => r.geometry)?.length || 0);
         setRoutes(data.routes || []);
         onRoutesFound?.(data.routes || []);
-      } else {
-        console.warn("[FindRoutes] Failed to fetch routes:", res.status);
       }
     } catch (error) {
       console.error("Failed to fetch routes:", error);

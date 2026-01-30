@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         .select(`
           id, title, description, difficulty, distance_km, county,
           terrain_tags, avg_rating, review_count, is_public, visibility,
-          created_at, owner_user_id, geometry, route_type
+          created_at, owner_user_id
         `, { count: "exact" })
         .eq("owner_user_id", user.id);
 
@@ -110,8 +110,7 @@ export async function POST(request: NextRequest) {
     let query = supabase
       .from("routes")
       .select(`id, title, description, difficulty, distance_km, county, visibility,
-        terrain_tags, avg_rating, review_count, is_public, created_at, owner_user_id,
-        geometry, route_type`, 
+        terrain_tags, avg_rating, review_count, is_public, created_at, owner_user_id`, 
         { count: "exact" })
       .eq("is_public", true)
       .not("owner_user_id", "is", null); // Only show user-created routes, not imported bridleways

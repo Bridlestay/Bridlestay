@@ -154,9 +154,7 @@ export default function RoutesPage() {
 
       if (res.ok) {
         const data = await res.json();
-        const routes = data.routes || [];
-        console.log("[RoutesPage] Loaded explore routes:", routes.length, "with geometry:", routes.filter((r: any) => r.geometry)?.length);
-        setExploreRoutes(routes);
+        setExploreRoutes(data.routes || []);
       }
     } catch (error) {
       console.error("Failed to fetch routes:", error);
@@ -520,11 +518,11 @@ export default function RoutesPage() {
             />
           </div>
 
-          {/* Navigation tabs - hidden in create mode, but logo still shows */}
-          <RoutesNavTabs activeTab={activeTab} onTabChange={setActiveTab} hideInCreateMode />
+          {/* Navigation tabs */}
+          <RoutesNavTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
           {/* Route creation sidebar (left panel) */}
-          <div className="absolute top-0 left-0 bottom-0 w-80 lg:w-96 bg-white shadow-2xl z-20 flex flex-col overflow-hidden">
+          <div className="absolute top-0 left-0 bottom-0 w-96 bg-white shadow-2xl z-20 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
               <RouteCreator
                 onSave={handleSaveRoute}
@@ -568,22 +566,20 @@ export default function RoutesPage() {
             </div>
           </div>
 
-          {/* Route creation toolbar - positioned to not overlap with sidebar */}
-          <div className="absolute top-4 left-[21rem] lg:left-[25rem] z-30">
-            <RouteCreatorToolbar
-              isPlotting={isPlotting}
-              setIsPlotting={setIsPlotting}
-              snapEnabled={snapEnabled}
-              setSnapEnabled={setSnapEnabled}
-              toolMode={toolMode}
-              setToolMode={setToolMode}
-              onUndo={handleUndo}
-              onClear={handleClear}
-              canUndo={history.length > 0}
-              routeStyle={routeStyle}
-              onStyleChange={setRouteStyle}
-            />
-          </div>
+          {/* Route creation toolbar */}
+          <RouteCreatorToolbar
+            isPlotting={isPlotting}
+            setIsPlotting={setIsPlotting}
+            snapEnabled={snapEnabled}
+            setSnapEnabled={setSnapEnabled}
+            toolMode={toolMode}
+            setToolMode={setToolMode}
+            onUndo={handleUndo}
+            onClear={handleClear}
+            canUndo={history.length > 0}
+            routeStyle={routeStyle}
+            onStyleChange={setRouteStyle}
+          />
 
           {/* Map controls */}
           <MapLayerControls
@@ -594,6 +590,27 @@ export default function RoutesPage() {
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             isFullscreen={isFullscreen}
+            className="left-[26rem]"
+          />
+
+          {/* Route Recorder option */}
+          <RouteRecorder
+            isRecording={isRecording}
+            onStart={() => {
+              setIsRecording(true);
+              setRecordedPath([]);
+            }}
+            onPause={() => {}}
+            onResume={() => {}}
+            onStop={() => setIsRecording(false)}
+            onSave={handleSaveRecordedRoute}
+            onDiscard={() => {
+              setIsRecording(false);
+              setRecordedPath([]);
+            }}
+            onPointRecorded={(point) => {
+              setRecordedPath((prev) => [...prev, { lat: point.lat, lng: point.lng }]);
+            }}
           />
         </div>
 
@@ -696,28 +713,26 @@ export default function RoutesPage() {
           />
         )}
 
-        {/* Route Recorder (mobile only, when not creating) */}
+        {/* Route Recorder (when not creating) */}
         {!isCreating && activeTab === "map" && (
-          <div className="md:hidden">
-            <RouteRecorder
-              isRecording={isRecording}
-              onStart={() => {
-                setIsRecording(true);
-                setRecordedPath([]);
-              }}
-              onPause={() => {}}
-              onResume={() => {}}
-              onStop={() => setIsRecording(false)}
-              onSave={handleSaveRecordedRoute}
-              onDiscard={() => {
-                setIsRecording(false);
-                setRecordedPath([]);
-              }}
-              onPointRecorded={(point) => {
-                setRecordedPath((prev) => [...prev, { lat: point.lat, lng: point.lng }]);
-              }}
-            />
-          </div>
+          <RouteRecorder
+            isRecording={isRecording}
+            onStart={() => {
+              setIsRecording(true);
+              setRecordedPath([]);
+            }}
+            onPause={() => {}}
+            onResume={() => {}}
+            onStop={() => setIsRecording(false)}
+            onSave={handleSaveRecordedRoute}
+            onDiscard={() => {
+              setIsRecording(false);
+              setRecordedPath([]);
+            }}
+            onPointRecorded={(point) => {
+              setRecordedPath((prev) => [...prev, { lat: point.lat, lng: point.lng }]);
+            }}
+          />
         )}
 
         {/* Post-Ride Review Dialog */}
