@@ -31,6 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import {
   Star,
   MapPin,
@@ -294,6 +296,7 @@ export function RouteDetailDrawer({
   const [submittingReply, setSubmittingReply] = useState(false);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [discussionExpanded, setDiscussionExpanded] = useState(false);
   
   const [deleteHazardDialogOpen, setDeleteHazardDialogOpen] = useState(false);
   const [hazardToDelete, setHazardToDelete] = useState<any>(null);
@@ -306,6 +309,9 @@ export function RouteDetailDrawer({
     severity: "medium",
   });
   const [submittingHazard, setSubmittingHazard] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<"idle" | "checking" | "near" | "far" | "error">("idle");
+  const [locationError, setLocationError] = useState<string | null>(null);
   
   const [waypointDialogOpen, setWaypointDialogOpen] = useState(false);
   const [newWaypoint, setNewWaypoint] = useState({
@@ -828,6 +834,97 @@ export function RouteDetailDrawer({
     return isAdmin || isOwner || hazard.reported_by_user_id === userId;
   };
 
+  // Calculate distance between two points in meters using Haversine formula
+  const getDistanceMeters = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371000; // Earth's radius in meters
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  // Check if user is near the route
+  const checkUserLocation = () => {
+    setLocationStatus("checking");
+    setLocationError(null);
+
+    if (!navigator.geolocation) {
+      setLocationStatus("error");
+      setLocationError("Geolocation is not supported by your browser");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+        setUserLocation({ lat: userLat, lng: userLng });
+
+        // Get route geometry
+        const geometry = route?.geometry || route?.route_geometry;
+        if (!geometry?.coordinates) {
+          // No route geometry, allow hazard report
+          setLocationStatus("near");
+          return;
+        }
+
+        // Find minimum distance to any point on the route
+        let minDistance = Infinity;
+        const coords = geometry.coordinates as [number, number][];
+        
+        for (const coord of coords) {
+          const distance = getDistanceMeters(userLat, userLng, coord[1], coord[0]);
+          if (distance < minDistance) {
+            minDistance = distance;
+          }
+        }
+
+        // Allow if within 500m of the route
+        const MAX_DISTANCE_METERS = 500;
+        if (minDistance <= MAX_DISTANCE_METERS) {
+          setLocationStatus("near");
+        } else {
+          setLocationStatus("far");
+          setLocationError(`You appear to be ${Math.round(minDistance / 1000)}km from this route. Hazard reports must be made while near the route.`);
+        }
+      },
+      (error) => {
+        setLocationStatus("error");
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError("Location access denied. Please enable location services to report hazards.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError("Location unavailable. Please try again.");
+            break;
+          case error.TIMEOUT:
+            setLocationError("Location request timed out. Please try again.");
+            break;
+          default:
+            setLocationError("Unable to get your location. Please try again.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+  // Check location when hazard dialog opens
+  useEffect(() => {
+    if (hazardDialogOpen && locationStatus === "idle") {
+      checkUserLocation();
+    }
+    if (!hazardDialogOpen) {
+      setLocationStatus("idle");
+      setLocationError(null);
+    }
+  }, [hazardDialogOpen]);
+
   const handleAddWaypoint = async () => {
     if (!newWaypoint.name.trim()) {
       toast.error("Please provide a name");
@@ -1192,63 +1289,121 @@ export function RouteDetailDrawer({
                         Help other riders and walkers by reporting hazards on this route.
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label>Hazard Type *</Label>
-                        <Select
-                          value={newHazard.hazard_type}
-                          onValueChange={(v) => setNewHazard((prev) => ({ ...prev, hazard_type: v }))}
+
+                    {/* Location Status Banner */}
+                    {locationStatus === "checking" && (
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                        <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" />
+                        <span className="text-sm text-blue-700">Checking your location...</span>
+                      </div>
+                    )}
+                    {locationStatus === "near" && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-green-600" />
+                        <span className="text-sm text-green-700">Location verified - you're near the route</span>
+                      </div>
+                    )}
+                    {locationStatus === "far" && (
+                      <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <MapPin className="h-4 w-4 text-orange-600" />
+                          <span className="text-sm font-medium text-orange-700">Too far from route</span>
+                        </div>
+                        <p className="text-sm text-orange-600">{locationError}</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2"
+                          onClick={checkUserLocation}
                         >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select type..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {HAZARD_TYPES.map((type) => (
-                              <SelectItem key={type.value} value={type.value}>
-                                {type.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          Try Again
+                        </Button>
                       </div>
-                      <div>
-                        <Label>Title *</Label>
-                        <Input
-                          placeholder="Brief description..."
-                          value={newHazard.title}
-                          onChange={(e) => setNewHazard((prev) => ({ ...prev, title: e.target.value }))}
-                        />
-                      </div>
-                      <div>
-                        <Label>Details</Label>
-                        <Textarea
-                          placeholder="Additional details..."
-                          value={newHazard.description}
-                          onChange={(e) => setNewHazard((prev) => ({ ...prev, description: e.target.value }))}
-                        />
-                      </div>
-                      <div>
-                        <Label>Severity</Label>
-                        <Select
-                          value={newHazard.severity}
-                          onValueChange={(v) => setNewHazard((prev) => ({ ...prev, severity: v }))}
+                    )}
+                    {locationStatus === "error" && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertTriangle className="h-4 w-4 text-red-600" />
+                          <span className="text-sm font-medium text-red-700">Location Error</span>
+                        </div>
+                        <p className="text-sm text-red-600">{locationError}</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2"
+                          onClick={checkUserLocation}
                         >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="low">Low - Minor inconvenience</SelectItem>
-                            <SelectItem value="medium">Medium - Use caution</SelectItem>
-                            <SelectItem value="high">High - Significant danger</SelectItem>
-                            <SelectItem value="critical">Critical - Do not proceed</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          Try Again
+                        </Button>
                       </div>
-                    </div>
+                    )}
+
+                    {/* Only show form when location is verified or admin/owner */}
+                    {(locationStatus === "near" || isAdmin || isOwner) && (
+                      <div className="space-y-4">
+                        {(isAdmin || isOwner) && locationStatus !== "near" && (
+                          <p className="text-xs text-muted-foreground italic">
+                            As {isAdmin ? "an admin" : "the route owner"}, you can report hazards without location verification.
+                          </p>
+                        )}
+                        <div>
+                          <Label>Hazard Type *</Label>
+                          <Select
+                            value={newHazard.hazard_type}
+                            onValueChange={(v) => setNewHazard((prev) => ({ ...prev, hazard_type: v }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select type..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {HAZARD_TYPES.map((type) => (
+                                <SelectItem key={type.value} value={type.value}>
+                                  {type.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Title *</Label>
+                          <Input
+                            placeholder="Brief description..."
+                            value={newHazard.title}
+                            onChange={(e) => setNewHazard((prev) => ({ ...prev, title: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <Label>Details</Label>
+                          <Textarea
+                            placeholder="Additional details..."
+                            value={newHazard.description}
+                            onChange={(e) => setNewHazard((prev) => ({ ...prev, description: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <Label>Severity</Label>
+                          <Select
+                            value={newHazard.severity}
+                            onValueChange={(v) => setNewHazard((prev) => ({ ...prev, severity: v }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="low">Low - Minor inconvenience</SelectItem>
+                              <SelectItem value="medium">Medium - Use caution</SelectItem>
+                              <SelectItem value="high">High - Significant danger</SelectItem>
+                              <SelectItem value="critical">Critical - Do not proceed</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
+
                     <DialogFooter>
                       <Button
                         onClick={handleSubmitHazard}
-                        disabled={submittingHazard}
+                        disabled={submittingHazard || (locationStatus !== "near" && !isAdmin && !isOwner)}
                       >
                         {submittingHazard ? "Submitting..." : "Report Hazard"}
                       </Button>
@@ -1732,44 +1887,134 @@ export function RouteDetailDrawer({
               </TabsContent>
 
               <TabsContent value="comments" className="space-y-4">
-                {/* Comment Input */}
-                {userId ? (
-                  <div className="flex gap-2 items-start">
-                    <Textarea
-                      placeholder="Share your experience or ask a question..."
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      className="min-h-[60px] resize-none"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey && newComment.trim()) {
-                          e.preventDefault();
-                          handleSubmitComment();
-                        }
-                      }}
-                    />
-                    <Button
-                      onClick={handleSubmitComment}
-                      disabled={submittingComment || !newComment.trim()}
-                      size="icon"
-                      className="shrink-0"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center p-4 bg-muted rounded-lg">
-                    <Link href="/auth/sign-in" className="text-primary hover:underline">
-                      Sign in
-                    </Link>{" "}
-                    to join the discussion
-                  </p>
-                )}
-
-                {/* Comments List - Instagram Style */}
+                {/* Loading state */}
                 {loadingComments ? (
-                  <p className="text-muted-foreground text-center py-8">Loading comments...</p>
-                ) : comments.length > 0 ? (
-                  <div className="space-y-4">
+                  <p className="text-muted-foreground text-center py-8">Loading discussion...</p>
+                ) : (
+                  <>
+                    {/* Horizontal Preview Mode - Shows first when not expanded */}
+                    {!discussionExpanded && comments.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-medium text-muted-foreground">
+                            {comments.length} {comments.length === 1 ? "Comment" : "Comments"}
+                          </h4>
+                        </div>
+                        
+                        {/* Horizontal scroll preview of top comments */}
+                        <ScrollArea className="w-full">
+                          <div className="flex gap-3 pb-2">
+                            {comments.slice(0, 5).map((comment: any) => (
+                              <div
+                                key={comment.id}
+                                className="flex-shrink-0 w-64 p-3 bg-muted/50 rounded-xl border cursor-pointer hover:bg-muted transition-colors"
+                                onClick={() => setDiscussionExpanded(true)}
+                              >
+                                <div className="flex items-start gap-2">
+                                  <Avatar className="h-7 w-7">
+                                    <AvatarImage src={comment.user?.avatar_url || undefined} />
+                                    <AvatarFallback className="text-xs">
+                                      {comment.user?.name?.[0]?.toUpperCase() || "?"}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium truncate">{comment.user?.name || "Unknown"}</p>
+                                    <p className="text-sm line-clamp-2 mt-0.5">{comment.body}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                                    </p>
+                                  </div>
+                                </div>
+                                {(comment.replies?.length || 0) > 0 && (
+                                  <p className="text-xs text-primary mt-2">
+                                    {comment.replies.length} {comment.replies.length === 1 ? "reply" : "replies"}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <ScrollBar orientation="horizontal" />
+                        </ScrollArea>
+
+                        {/* Expand button */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setDiscussionExpanded(true)}
+                        >
+                          <ChevronDown className="h-4 w-4 mr-2" />
+                          View All {comments.length} Comments
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* No comments yet - show in collapsed mode */}
+                    {!discussionExpanded && comments.length === 0 && (
+                      <div className="text-center py-6">
+                        <MessageCircle className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                        <p className="text-muted-foreground text-sm">No comments yet</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3"
+                          onClick={() => setDiscussionExpanded(true)}
+                        >
+                          Start the Discussion
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Expanded Full Discussion View */}
+                    {discussionExpanded && (
+                      <>
+                        {/* Collapse button */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full mb-2"
+                          onClick={() => setDiscussionExpanded(false)}
+                        >
+                          <ChevronUp className="h-4 w-4 mr-2" />
+                          Collapse Discussion
+                        </Button>
+
+                        {/* Comment Input */}
+                        {userId ? (
+                          <div className="flex gap-2 items-start">
+                            <Textarea
+                              placeholder="Share your experience or ask a question..."
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              className="min-h-[60px] resize-none"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey && newComment.trim()) {
+                                  e.preventDefault();
+                                  handleSubmitComment();
+                                }
+                              }}
+                            />
+                            <Button
+                              onClick={handleSubmitComment}
+                              disabled={submittingComment || !newComment.trim()}
+                              size="icon"
+                              className="shrink-0"
+                            >
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center p-4 bg-muted rounded-lg">
+                            <Link href="/auth/sign-in" className="text-primary hover:underline">
+                              Sign in
+                            </Link>{" "}
+                            to join the discussion
+                          </p>
+                        )}
+
+                        {/* Full Comments List - Instagram Style */}
+                        {comments.length > 0 ? (
+                          <div className="space-y-4">
                     {comments.map((comment) => {
                       const replyCount = comment.replies?.length || 0;
                       const isExpanded = expandedComments.has(comment.id);
@@ -2031,14 +2276,18 @@ export function RouteDetailDrawer({
                         </div>
                       );
                     })}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">
-                      No comments yet. Be the first to share your thoughts!
-                    </p>
-                  </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-8">
+                            <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                            <p className="text-muted-foreground">
+                              No comments yet. Be the first to share your thoughts!
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
                 )}
               </TabsContent>
             </Tabs>

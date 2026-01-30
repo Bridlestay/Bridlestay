@@ -453,6 +453,7 @@ export default function RoutesPage() {
             ref={mapRef}
             routes={exploreRoutes}
             onRouteClick={handleRouteClick}
+            onClusterClick={handleClusterClick}
             pathLayers={pathLayers}
             propertyPins={layerSettings.showProperties ? nearbyProperties : []}
           />

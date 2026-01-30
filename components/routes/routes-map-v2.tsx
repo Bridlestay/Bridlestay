@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useGoogleMaps } from "@/lib/hooks/use-google-maps";
+import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { Loader2, AlertCircle, Info } from "lucide-react";
 import type { Waypoint, RouteStyle, ToolMode } from "./route-creator";
 
@@ -34,6 +35,7 @@ export interface PathLayers {
 export interface RoutesMapV2Props {
   routes?: any[];
   onRouteClick?: (routeId: string) => void;
+  onClusterClick?: (routeIds: string[], count: number) => void;
   center?: { lat: number; lng: number };
   zoom?: number;
   propertyPins?: any[];
@@ -68,6 +70,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
     {
       routes = [],
       onRouteClick,
+      onClusterClick,
       center = { lat: 52.2, lng: -2.2 }, // Worcestershire center
       zoom = 10,
       propertyPins = [],
@@ -90,6 +93,8 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<google.maps.Map | null>(null);
     const routePolylinesRef = useRef<google.maps.Polyline[]>([]);
+    const routeMarkersRef = useRef<google.maps.Marker[]>([]);
+    const markerClustererRef = useRef<MarkerClusterer | null>(null);
     const waypointMarkersRef = useRef<Map<string, google.maps.Marker>>(new Map());
     const routeLineRef = useRef<google.maps.Polyline | null>(null);
     const propertyMarkersRef = useRef<google.maps.Marker[]>([]);
@@ -179,6 +184,8 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
 
       return () => {
         routePolylinesRef.current.forEach((p) => p.setMap(null));
+        routeMarkersRef.current.forEach((m) => m.setMap(null));
+        markerClustererRef.current?.clearMarkers();
         waypointMarkersRef.current.forEach((m) => m.setMap(null));
         propertyMarkersRef.current.forEach((m) => m.setMap(null));
         routeLineRef.current?.setMap(null);
@@ -790,12 +797,18 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       };
     }, [isLoaded, isCreating, waypoints, routeStyle, routeType, findBridlewayPath]);
 
-    // Render user routes
+    // Render user routes with clustering
     useEffect(() => {
       if (!mapRef.current || !isLoaded) return;
 
+      // Clean up previous routes
       routePolylinesRef.current.forEach((p) => p.setMap(null));
       routePolylinesRef.current = [];
+      routeMarkersRef.current.forEach((m) => m.setMap(null));
+      routeMarkersRef.current = [];
+      markerClustererRef.current?.clearMarkers();
+
+      const markers: google.maps.Marker[] = [];
 
       routes.forEach((route) => {
         if (!route.geometry?.coordinates) return;
@@ -809,6 +822,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
 
         const color = DIFFICULTY_COLORS[route.difficulty as keyof typeof DIFFICULTY_COLORS] || DIFFICULTY_COLORS.unrated;
 
+        // Create route polyline
         const polyline = new google.maps.Polyline({
           path,
           strokeColor: color,
@@ -859,8 +873,92 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
         });
 
         routePolylinesRef.current.push(polyline);
+
+        // Create route start marker for clustering
+        if (path.length > 0) {
+          const startPoint = path[0];
+          const marker = new google.maps.Marker({
+            position: startPoint,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 10,
+              fillColor: color,
+              fillOpacity: 1,
+              strokeColor: "#ffffff",
+              strokeWeight: 2,
+            },
+            title: route.title,
+            // Store route ID for cluster click handling
+          });
+
+          // Attach route ID to marker for cluster handling
+          (marker as any).routeId = route.id;
+
+          marker.addListener("click", () => {
+            infoWindowRef.current?.close();
+            onRouteClick?.(route.id);
+          });
+
+          markers.push(marker);
+          routeMarkersRef.current.push(marker);
+        }
       });
-    }, [isLoaded, routes, onRouteClick]);
+
+      // Create or update marker clusterer
+      if (markers.length > 0 && mapRef.current) {
+        markerClustererRef.current = new MarkerClusterer({
+          map: mapRef.current,
+          markers,
+          onClusterClick: (event, cluster, map) => {
+            // Get all route IDs in this cluster
+            const clusterMarkers = cluster.markers;
+            if (clusterMarkers && clusterMarkers.length > 0) {
+              const routeIds = clusterMarkers
+                .map((m) => (m as any).routeId)
+                .filter(Boolean);
+              
+              if (onClusterClick && routeIds.length > 1) {
+                onClusterClick(routeIds, routeIds.length);
+              } else if (routeIds.length === 1) {
+                // Single route, just show it
+                onRouteClick?.(routeIds[0]);
+              } else {
+                // Default behavior - zoom in
+                const bounds = new google.maps.LatLngBounds();
+                clusterMarkers.forEach((m) => {
+                  const pos = m.getPosition?.();
+                  if (pos) bounds.extend(pos);
+                });
+                map.fitBounds(bounds);
+              }
+            }
+          },
+          renderer: {
+            render: ({ count, position }) => {
+              // Custom cluster marker styling
+              return new google.maps.Marker({
+                position,
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 18 + Math.min(count, 10),
+                  fillColor: "#3B82F6",
+                  fillOpacity: 0.9,
+                  strokeColor: "#ffffff",
+                  strokeWeight: 3,
+                },
+                label: {
+                  text: String(count),
+                  color: "#ffffff",
+                  fontWeight: "bold",
+                  fontSize: "12px",
+                },
+                zIndex: 1000,
+              });
+            },
+          },
+        });
+      }
+    }, [isLoaded, routes, onRouteClick, onClusterClick]);
 
     // Render waypoints for route creation (markers only - line is drawn separately)
     useEffect(() => {
