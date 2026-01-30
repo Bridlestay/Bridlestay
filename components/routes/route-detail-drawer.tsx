@@ -535,7 +535,7 @@ export function RouteDetailDrawer({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ share_method: "link" }),
         });
-        toast.success("Link copied to clipboard!");
+    toast.success("Link copied to clipboard!");
       }
     } catch (error) {
       // User cancelled share - that's fine
@@ -1039,20 +1039,20 @@ export function RouteDetailDrawer({
                   <div className="flex items-center gap-2 mt-2">
                     {route.featured && <Badge>Featured Route</Badge>}
                     {isOwner && <Badge variant="outline">Your Route</Badge>}
-                  </div>
+                </div>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  {route.avg_rating > 0 && (
-                    <div className="flex items-center gap-1">
-                      <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
-                      <span className="font-semibold">
-                        {route.avg_rating.toFixed(1)}
-                      </span>
-                      <span className="text-muted-foreground text-sm">
-                        ({route.review_count})
-                      </span>
-                    </div>
-                  )}
+                {route.avg_rating > 0 && (
+                  <div className="flex items-center gap-1">
+                    <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+                    <span className="font-semibold">
+                      {route.avg_rating.toFixed(1)}
+                    </span>
+                    <span className="text-muted-foreground text-sm">
+                      ({route.review_count})
+                    </span>
+                  </div>
+                )}
                   {activeHazards.length > 0 && (
                     <Badge variant="destructive" className="gap-1">
                       <AlertTriangle className="h-3 w-3" />
@@ -1107,10 +1107,10 @@ export function RouteDetailDrawer({
                 {getDifficultyInfo(route.difficulty).label}
               </Badge>
               {route.distance_km && (
-                <Badge variant="outline" className="gap-1">
-                  <Ruler className="h-3 w-3" />
+              <Badge variant="outline" className="gap-1">
+                <Ruler className="h-3 w-3" />
                   {Number(route.distance_km).toFixed(1)} km
-                </Badge>
+              </Badge>
               )}
               {route.distance_km && (
                 <>
@@ -1136,17 +1136,17 @@ export function RouteDetailDrawer({
             {route.owner && (
               <Link href={`/profile/${route.owner.id}`} className="block">
                 <div className="flex items-center gap-3 p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
-                  <Avatar>
-                    <AvatarImage src={route.owner.avatar_url || undefined} />
-                    <AvatarFallback>
-                      {route.owner.name?.[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p className="font-medium">{route.owner.name}</p>
-                    <p className="text-sm text-muted-foreground">Route Creator</p>
-                  </div>
+                <Avatar>
+                  <AvatarImage src={route.owner.avatar_url || undefined} />
+                  <AvatarFallback>
+                    {route.owner.name?.[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <p className="font-medium">{route.owner.name}</p>
+                  <p className="text-sm text-muted-foreground">Route Creator</p>
                 </div>
+              </div>
               </Link>
             )}
 
@@ -1569,25 +1569,25 @@ export function RouteDetailDrawer({
 
                 {/* Route Completion & Photo Upload for regular users */}
                 {!isOwner && !isAdmin && (
-                  <RouteCompletion
+                <RouteCompletion 
                     routeId={routeId || ""}
-                    userId={userId}
-                    onCompletionChange={() => {
-                      if (routeId) {
-                        fetch(`/api/routes/${routeId}`)
+                  userId={userId}
+                  onCompletionChange={() => {
+                    if (routeId) {
+                      fetch(`/api/routes/${routeId}`)
                           .then((res) => res.json())
                           .then((data) => setRoute(data.route))
-                          .catch(console.error);
-                      }
-                    }}
-                  />
+                        .catch(console.error);
+                    }
+                  }}
+                />
                 )}
 
                 {/* Photos by Category */}
                 <div className="space-y-6">
                   {/* Display Photos Section - for Authors/Admins */}
                   {(isOwner || isAdmin) && (
-                    <div>
+                  <div>
                       <h4 className="text-sm font-semibold text-muted-foreground mb-2">Display Photos</h4>
                       {(coverPhoto || apiDisplayPhotos.length > 0) ? (
                         <div className="grid grid-cols-3 gap-2">
@@ -1614,7 +1614,7 @@ export function RouteDetailDrawer({
                           )}
                           {apiDisplayPhotos.map((photo: any) => (
                             <PhotoCard 
-                              key={photo.id} 
+                          key={photo.id}
                               photo={photo} 
                               routeId={routeId!}
                               isOwnerOrAdmin={true}
@@ -1633,7 +1633,7 @@ export function RouteDetailDrawer({
                               showActions
                             />
                           ))}
-                        </div>
+                            </div>
                       ) : (
                         <p className="text-sm text-muted-foreground italic">
                           No display photos yet. Upload photos below and use the menu to add them to display.
@@ -1657,16 +1657,16 @@ export function RouteDetailDrawer({
                           {apiDisplayPhotos.map((photo: any) => (
                             <div key={photo.id} className="relative h-36 rounded-lg overflow-hidden">
                               <Image src={photo.url} alt="Route photo" fill className="object-cover" />
-                            </div>
-                          ))}
                         </div>
+                      ))}
+                    </div>
                       ) : (
                         <p className="text-sm text-muted-foreground italic">
                           No featured photos for this route yet.
                         </p>
                       )}
-                    </div>
-                  )}
+                  </div>
+                )}
 
                   {/* Author Photos */}
                   <div>
