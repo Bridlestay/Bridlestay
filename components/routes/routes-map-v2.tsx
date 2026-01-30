@@ -39,6 +39,9 @@ export interface RoutesMapV2Props {
   center?: { lat: number; lng: number };
   zoom?: number;
   propertyPins?: any[];
+  highlightedRouteId?: string | null;
+  mapType?: "roadmap" | "satellite" | "terrain" | "hybrid";
+  monochrome?: boolean;
   // Route creation props
   isCreating?: boolean;
   isPlotting?: boolean;
@@ -54,12 +57,19 @@ export interface RoutesMapV2Props {
   onCircularDetected?: () => void;
   // Path layer visibility
   pathLayers?: PathLayers;
+  // Navigation mode
+  userPosition?: { lat: number; lng: number; heading: number } | null;
+  followUser?: boolean;
+  // Recorded route (for GPS recording)
+  recordedPath?: { lat: number; lng: number }[];
 }
 
 export interface RoutesMapV2Handle {
   getMap: () => google.maps.Map | null;
   panTo: (lat: number, lng: number) => void;
   setZoom: (zoom: number) => void;
+  highlightRoute: (routeId: string | null) => void;
+  setMapType: (type: "roadmap" | "satellite" | "terrain" | "hybrid") => void;
 }
 
 // Distance threshold for detecting circular route (in meters)
@@ -74,6 +84,9 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       center = { lat: 52.2, lng: -2.2 }, // Worcestershire center
       zoom = 10,
       propertyPins = [],
+      highlightedRouteId,
+      mapType = "terrain",
+      monochrome = false,
       isCreating = false,
       isPlotting = false,
       snapEnabled = true,
@@ -87,12 +100,16 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       onWaypointInsert,
       onCircularDetected,
       pathLayers = { bridleways: true, boats: true, footpaths: true, permissive: true },
+      userPosition,
+      followUser = false,
+      recordedPath = [],
     },
     ref
   ) => {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<google.maps.Map | null>(null);
     const routePolylinesRef = useRef<google.maps.Polyline[]>([]);
+    const routeIdToPolylineRef = useRef<Map<string, google.maps.Polyline>>(new Map());
     const routeMarkersRef = useRef<google.maps.Marker[]>([]);
     const markerClustererRef = useRef<MarkerClusterer | null>(null);
     const waypointMarkersRef = useRef<Map<string, google.maps.Marker>>(new Map());
@@ -100,6 +117,9 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
     const propertyMarkersRef = useRef<google.maps.Marker[]>([]);
     const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
     const directionsServiceRef = useRef<google.maps.DirectionsService | null>(null);
+    const userMarkerRef = useRef<google.maps.Marker | null>(null);
+    const recordedPolylineRef = useRef<google.maps.Polyline | null>(null);
+    const [currentHighlightId, setCurrentHighlightId] = useState<string | null>(null);
     const snapPolylineRef = useRef<google.maps.Polyline | null>(null);
     const pathPolylinesRef = useRef<google.maps.Polyline[]>([]);
     const pathDataRef = useRef<{ path: google.maps.LatLng[]; type: string }[]>([]); // Store path data for snapping
@@ -138,6 +158,12 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       },
       setZoom: (zoom: number) => {
         mapRef.current?.setZoom(zoom);
+      },
+      highlightRoute: (routeId: string | null) => {
+        setCurrentHighlightId(routeId);
+      },
+      setMapType: (type: "roadmap" | "satellite" | "terrain" | "hybrid") => {
+        mapRef.current?.setMapTypeId(type);
       },
     }));
 
@@ -873,6 +899,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
         });
 
         routePolylinesRef.current.push(polyline);
+        routeIdToPolylineRef.current.set(route.id, polyline);
 
         // Create route start marker for clustering
         if (path.length > 0) {
@@ -959,6 +986,108 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
         });
       }
     }, [isLoaded, routes, onRouteClick, onClusterClick]);
+
+    // Route highlighting effect
+    useEffect(() => {
+      const highlightId = highlightedRouteId || currentHighlightId;
+      
+      routeIdToPolylineRef.current.forEach((polyline, routeId) => {
+        const isHighlighted = routeId === highlightId;
+        polyline.setOptions({
+          strokeWeight: isHighlighted ? 8 : 4,
+          strokeOpacity: isHighlighted ? 1 : 0.9,
+          zIndex: isHighlighted ? 500 : 1,
+        });
+      });
+    }, [highlightedRouteId, currentHighlightId]);
+
+    // Map type switching effect
+    useEffect(() => {
+      if (!mapRef.current) return;
+      
+      mapRef.current.setMapTypeId(mapType);
+      
+      // Apply monochrome styling if enabled
+      if (monochrome) {
+        mapRef.current.setOptions({
+          styles: [
+            { elementType: "geometry", stylers: [{ saturation: -100 }] },
+            { elementType: "labels.text.fill", stylers: [{ saturation: -100 }] },
+            { elementType: "labels.text.stroke", stylers: [{ saturation: -100 }] },
+          ],
+        });
+      } else {
+        mapRef.current.setOptions({ styles: [] });
+      }
+    }, [mapType, monochrome]);
+
+    // User position marker for navigation
+    useEffect(() => {
+      if (!mapRef.current || !isLoaded) return;
+
+      if (!userPosition) {
+        userMarkerRef.current?.setMap(null);
+        userMarkerRef.current = null;
+        return;
+      }
+
+      if (!userMarkerRef.current) {
+        userMarkerRef.current = new google.maps.Marker({
+          position: userPosition,
+          map: mapRef.current,
+          icon: {
+            path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+            scale: 8,
+            fillColor: "#3B82F6",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+            rotation: userPosition.heading || 0,
+          },
+          zIndex: 1000,
+        });
+      } else {
+        userMarkerRef.current.setPosition(userPosition);
+        userMarkerRef.current.setIcon({
+          path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+          scale: 8,
+          fillColor: "#3B82F6",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 2,
+          rotation: userPosition.heading || 0,
+        });
+      }
+
+      // Follow user if enabled
+      if (followUser) {
+        mapRef.current.panTo(userPosition);
+      }
+    }, [isLoaded, userPosition, followUser]);
+
+    // Recorded path polyline for route recording
+    useEffect(() => {
+      if (!mapRef.current || !isLoaded) return;
+
+      if (recordedPath.length === 0) {
+        recordedPolylineRef.current?.setMap(null);
+        recordedPolylineRef.current = null;
+        return;
+      }
+
+      if (!recordedPolylineRef.current) {
+        recordedPolylineRef.current = new google.maps.Polyline({
+          path: recordedPath,
+          strokeColor: "#EF4444",
+          strokeWeight: 5,
+          strokeOpacity: 0.9,
+          map: mapRef.current,
+          zIndex: 100,
+        });
+      } else {
+        recordedPolylineRef.current.setPath(recordedPath);
+      }
+    }, [isLoaded, recordedPath]);
 
     // Render waypoints for route creation (markers only - line is drawn separately)
     useEffect(() => {

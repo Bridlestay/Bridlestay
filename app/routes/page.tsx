@@ -6,18 +6,25 @@ import { RoutesMapV2, RoutesMapV2Handle } from "@/components/routes/routes-map-v
 import { RouteDetailDrawer } from "@/components/routes/route-detail-drawer";
 import { RouteCreator, RouteCreatorToolbar, PathLayerToggles, Waypoint, RouteData, RouteStyle, ToolMode } from "@/components/routes/route-creator";
 import { MapLayerControls, LayerSettings } from "@/components/routes/map-layer-controls";
-import { MapSearchPanel } from "@/components/routes/map-search-panel";
+import { RoutesNavTabs, RouteTab } from "@/components/routes/routes-nav-tabs";
+import { SavedRoutesPanel } from "@/components/routes/saved-routes-panel";
+import { FindRoutesPanel } from "@/components/routes/find-routes-panel";
 import { RouteBottomSheet } from "@/components/routes/route-bottom-sheet";
-import { ClearRouteDialog, DiscardRouteDialog, DeleteRouteDialog } from "@/components/routes/confirm-dialog";
+import { RouteNavigator } from "@/components/routes/route-navigator";
+import { RouteRecorder } from "@/components/routes/route-recorder";
+import { PostRideReview } from "@/components/routes/post-ride-review";
+import { ElevationProfile } from "@/components/routes/elevation-profile";
+import { ClearRouteDialog, DiscardRouteDialog } from "@/components/routes/confirm-dialog";
 import { toast } from "sonner";
-import { Plus, X, Menu } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function RoutesPage() {
   const mapRef = useRef<RoutesMapV2Handle>(null);
-  
+
+  // Navigation tab state
+  const [activeTab, setActiveTab] = useState<RouteTab>("map");
+
   // Panel states
-  const [searchPanelOpen, setSearchPanelOpen] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
@@ -25,22 +32,25 @@ export default function RoutesPage() {
   const [isCluster, setIsCluster] = useState(false);
   const [clusterCount, setClusterCount] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [highlightedRouteId, setHighlightedRouteId] = useState<string | null>(null);
 
   // Route data
   const [exploreRoutes, setExploreRoutes] = useState<any[]>([]);
   const [nearbyProperties, setNearbyProperties] = useState<any[]>([]);
+  const [selectedRouteData, setSelectedRouteData] = useState<any | null>(null);
 
-  // Layer settings
+  // Layer settings - paths hidden by default in explore mode
   const [layerSettings, setLayerSettings] = useState<LayerSettings>({
     mapType: "topographic",
-    showBridleways: true,
-    showFootpaths: false, // Hidden by default as requested
-    showByways: true,
-    showRestrictedByways: true,
+    showBridleways: false, // Hidden in explore mode
+    showFootpaths: false,
+    showByways: false,
+    showRestrictedByways: false,
     showWaymarkers: true,
     showHazards: true,
     showProperties: true,
     routeLineWidth: 4,
+    monochrome: false,
   });
 
   // Create Route state
@@ -51,6 +61,19 @@ export default function RoutesPage() {
   const [routeType, setRouteType] = useState<"circular" | "linear">("linear");
   const [history, setHistory] = useState<Waypoint[][]>([]);
   const [toolMode, setToolMode] = useState<ToolMode>("plot");
+
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedPath, setRecordedPath] = useState<{ lat: number; lng: number }[]>([]);
+
+  // Navigation state
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [navigatingRoute, setNavigatingRoute] = useState<any | null>(null);
+  const [userPosition, setUserPosition] = useState<{ lat: number; lng: number; heading: number } | null>(null);
+
+  // Post-ride review
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [rideStats, setRideStats] = useState<any>(null);
 
   // Dialog states
   const [showClearDialog, setShowClearDialog] = useState(false);
@@ -71,11 +94,55 @@ export default function RoutesPage() {
     permissive: layerSettings.showRestrictedByways,
   };
 
+  // Get Google Maps type from our type
+  const getGoogleMapType = () => {
+    switch (layerSettings.mapType) {
+      case "aerial": return "satellite";
+      case "topographic": return "terrain";
+      default: return "roadmap";
+    }
+  };
+
   // Fetch routes on mount
   useEffect(() => {
     fetchExploreRoutes();
     fetchNearbyProperties();
   }, []);
+
+  // Handle tab changes
+  useEffect(() => {
+    if (activeTab === "create") {
+      startCreating();
+    } else {
+      if (isCreating && waypoints.length > 0) {
+        setShowDiscardDialog(true);
+      } else {
+        cancelCreating();
+      }
+    }
+  }, [activeTab]);
+
+  // Enable path layers when creating routes
+  useEffect(() => {
+    if (isCreating) {
+      setLayerSettings((prev) => ({
+        ...prev,
+        showBridleways: true,
+        showByways: true,
+        showRestrictedByways: true,
+        showFootpaths: false, // Still keep footpaths off
+      }));
+    } else {
+      // Reset to explore mode defaults
+      setLayerSettings((prev) => ({
+        ...prev,
+        showBridleways: false,
+        showByways: false,
+        showRestrictedByways: false,
+        showFootpaths: false,
+      }));
+    }
+  }, [isCreating]);
 
   const fetchExploreRoutes = async () => {
     try {
@@ -106,6 +173,20 @@ export default function RoutesPage() {
     }
   };
 
+  // Fetch full route data for navigation
+  const fetchRouteData = async (routeId: string) => {
+    try {
+      const res = await fetch(`/api/routes/${routeId}`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.route;
+      }
+    } catch (error) {
+      console.error("Failed to fetch route:", error);
+    }
+    return null;
+  };
+
   // Handle route click on map
   const handleRouteClick = (routeId: string) => {
     const route = exploreRoutes.find((r) => r.id === routeId);
@@ -114,6 +195,7 @@ export default function RoutesPage() {
       setSelectedRouteId(routeId);
       setShowBottomSheet(true);
       setIsCluster(false);
+      setHighlightedRouteId(routeId);
     }
   };
 
@@ -125,20 +207,68 @@ export default function RoutesPage() {
     setShowBottomSheet(true);
     setIsCluster(true);
     setClusterCount(count);
+    if (routes[0]) setHighlightedRouteId(routes[0].id);
   };
 
   // Open full route details
-  const handleRouteDetails = (routeId: string) => {
+  const handleRouteDetails = async (routeId: string) => {
     setSelectedRouteId(routeId);
     setDrawerOpen(true);
     setShowBottomSheet(false);
+    
+    // Fetch full route data for navigation/elevation
+    const fullRoute = await fetchRouteData(routeId);
+    setSelectedRouteData(fullRoute);
   };
 
   // Handle route selection in carousel
   const handleRouteSelect = (routeId: string) => {
     setSelectedRouteId(routeId);
-    // Highlight route on map
-    // mapRef.current?.highlightRoute(routeId);
+    setHighlightedRouteId(routeId);
+    mapRef.current?.highlightRoute(routeId);
+  };
+
+  // Handle route hover in panels
+  const handleRouteHover = (routeId: string | null) => {
+    setHighlightedRouteId(routeId);
+    mapRef.current?.highlightRoute(routeId);
+  };
+
+  // Start following a route
+  const handleStartNavigation = async (routeId: string) => {
+    const route = await fetchRouteData(routeId);
+    if (route) {
+      setNavigatingRoute(route);
+      setIsNavigating(true);
+      setShowBottomSheet(false);
+      setDrawerOpen(false);
+      toast.success("Navigation started! Follow the route on the map.");
+    }
+  };
+
+  // Handle navigation completion
+  const handleNavigationComplete = () => {
+    setIsNavigating(false);
+    setRideStats({
+      distance_km: navigatingRoute?.distance_km || 0,
+      duration_minutes: 45, // Would come from actual tracking
+      avg_speed_kmh: 12,
+    });
+    setShowReviewDialog(true);
+  };
+
+  // Submit post-ride review
+  const handleSubmitReview = async (review: { rating: number; difficulty: string; review_text: string }) => {
+    try {
+      await fetch(`/api/routes/${navigatingRoute?.id}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(review),
+      });
+      setNavigatingRoute(null);
+    } catch (error) {
+      throw error;
+    }
   };
 
   // Map controls
@@ -149,7 +279,7 @@ export default function RoutesPage() {
           mapRef.current?.panTo(pos.coords.latitude, pos.coords.longitude);
           mapRef.current?.setZoom(15);
         },
-        (error) => {
+        () => {
           toast.error("Could not get your location");
         }
       );
@@ -308,27 +438,47 @@ export default function RoutesPage() {
     setHistory([]);
     setRouteType("linear");
     setToolMode("plot");
+    setActiveTab("map");
     fetchExploreRoutes();
     toast.success("Route saved!");
+  };
+
+  // Handle recorded route save
+  const handleSaveRecordedRoute = async (routeData: {
+    title: string;
+    description: string;
+    visibility: string;
+    difficulty: string;
+    geometry: { type: string; coordinates: [number, number][] };
+    distance_km: number;
+    estimated_time_minutes: number;
+  }) => {
+    const res = await fetch("/api/routes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...routeData,
+        route_type: "linear",
+        is_public: routeData.visibility === "public",
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to save route");
+    }
+
+    setRecordedPath([]);
+    fetchExploreRoutes();
   };
 
   const startCreating = () => {
     setIsCreating(true);
     setIsPlotting(true);
     setToolMode("plot");
-    setSearchPanelOpen(false);
     setShowBottomSheet(false);
   };
 
   const cancelCreating = () => {
-    if (waypoints.length > 0) {
-      setShowDiscardDialog(true);
-    } else {
-      confirmCancel();
-    }
-  };
-
-  const confirmCancel = () => {
     setIsCreating(false);
     setIsPlotting(false);
     setWaypoints([]);
@@ -337,8 +487,13 @@ export default function RoutesPage() {
     setToolMode("plot");
   };
 
+  const confirmCancel = () => {
+    cancelCreating();
+    setActiveTab("map");
+  };
+
   // Route creation mode
-  if (isCreating) {
+  if (isCreating && activeTab === "create") {
     return (
       <TooltipProvider>
         <div className="fixed inset-0 bg-background">
@@ -354,6 +509,7 @@ export default function RoutesPage() {
               routeStyle={routeStyle}
               toolMode={toolMode}
               pathLayers={pathLayers}
+              mapType={getGoogleMapType()}
               onWaypointAdd={addWaypoint}
               onWaypointUpdate={updateWaypoint}
               onWaypointRemove={removeWaypoint}
@@ -362,12 +518,21 @@ export default function RoutesPage() {
             />
           </div>
 
+          {/* Navigation tabs */}
+          <RoutesNavTabs activeTab={activeTab} onTabChange={setActiveTab} />
+
           {/* Route creation sidebar (left panel) */}
-          <div className="absolute top-0 left-0 bottom-0 w-80 bg-white shadow-2xl z-20 flex flex-col overflow-hidden">
+          <div className="absolute top-0 left-0 bottom-0 w-96 bg-white shadow-2xl z-20 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
               <RouteCreator
                 onSave={handleSaveRoute}
-                onCancel={cancelCreating}
+                onCancel={() => {
+                  if (waypoints.length > 0) {
+                    setShowDiscardDialog(true);
+                  } else {
+                    confirmCancel();
+                  }
+                }}
                 mapRef={mapRef}
                 existingRoute={{
                   title: "",
@@ -425,7 +590,27 @@ export default function RoutesPage() {
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             isFullscreen={isFullscreen}
-            className="left-84"
+            className="left-[26rem]"
+          />
+
+          {/* Route Recorder option */}
+          <RouteRecorder
+            isRecording={isRecording}
+            onStart={() => {
+              setIsRecording(true);
+              setRecordedPath([]);
+            }}
+            onPause={() => {}}
+            onResume={() => {}}
+            onStop={() => setIsRecording(false)}
+            onSave={handleSaveRecordedRoute}
+            onDiscard={() => {
+              setIsRecording(false);
+              setRecordedPath([]);
+            }}
+            onPointRecorded={(point) => {
+              setRecordedPath((prev) => [...prev, { lat: point.lat, lng: point.lng }]);
+            }}
           />
         </div>
 
@@ -456,19 +641,33 @@ export default function RoutesPage() {
             onClusterClick={handleClusterClick}
             pathLayers={pathLayers}
             propertyPins={layerSettings.showProperties ? nearbyProperties : []}
+            highlightedRouteId={highlightedRouteId}
+            mapType={getGoogleMapType()}
+            monochrome={layerSettings.monochrome}
+            userPosition={userPosition}
+            followUser={isNavigating}
+            recordedPath={recordedPath}
           />
         </div>
 
-        {/* Search panel (left side on desktop, fullscreen on mobile) */}
-        <MapSearchPanel
-          isOpen={searchPanelOpen}
-          onToggle={() => setSearchPanelOpen(!searchPanelOpen)}
+        {/* Navigation tabs */}
+        <RoutesNavTabs activeTab={activeTab} onTabChange={setActiveTab} />
+
+        {/* Saved Routes Panel */}
+        <SavedRoutesPanel
+          isOpen={activeTab === "saved"}
+          onClose={() => setActiveTab("map")}
           onRouteClick={handleRouteDetails}
-          onPlaceClick={(lat, lng) => {
-            mapRef.current?.panTo(lat, lng);
-            mapRef.current?.setZoom(14);
-          }}
-          onCreateRoute={startCreating}
+          onRouteHover={handleRouteHover}
+        />
+
+        {/* Find Routes Panel */}
+        <FindRoutesPanel
+          isOpen={activeTab === "find"}
+          onClose={() => setActiveTab("map")}
+          onRouteClick={handleRouteDetails}
+          onRouteHover={handleRouteHover}
+          onRoutesFound={(routes) => setExploreRoutes(routes)}
         />
 
         {/* Layer controls (bottom right) */}
@@ -483,29 +682,68 @@ export default function RoutesPage() {
         />
 
         {/* Route info bottom sheet */}
-        {showBottomSheet && bottomSheetRoutes.length > 0 && (
+        {showBottomSheet && bottomSheetRoutes.length > 0 && !isNavigating && (
           <RouteBottomSheet
             routes={bottomSheetRoutes}
             selectedRouteId={selectedRouteId}
             onRouteSelect={handleRouteSelect}
             onRouteClick={handleRouteDetails}
-            onClose={() => setShowBottomSheet(false)}
+            onClose={() => {
+              setShowBottomSheet(false);
+              setHighlightedRouteId(null);
+            }}
             isCluster={isCluster}
             clusterCount={clusterCount}
           />
         )}
 
-        {/* Floating create button (when search panel closed) */}
-        {!searchPanelOpen && (
-          <Button
-            onClick={startCreating}
-            className="absolute top-4 right-4 z-20 shadow-lg gap-2"
-            size="lg"
-          >
-            <Plus className="h-5 w-5" />
-            Create Route
-          </Button>
+        {/* Route Navigation */}
+        {isNavigating && navigatingRoute && (
+          <RouteNavigator
+            route={navigatingRoute}
+            isActive={isNavigating}
+            onClose={() => {
+              setIsNavigating(false);
+              setNavigatingRoute(null);
+            }}
+            onComplete={handleNavigationComplete}
+            onPositionUpdate={(lat, lng, heading) => {
+              setUserPosition({ lat, lng, heading });
+            }}
+          />
         )}
+
+        {/* Route Recorder (when not creating) */}
+        {!isCreating && activeTab === "map" && (
+          <RouteRecorder
+            isRecording={isRecording}
+            onStart={() => {
+              setIsRecording(true);
+              setRecordedPath([]);
+            }}
+            onPause={() => {}}
+            onResume={() => {}}
+            onStop={() => setIsRecording(false)}
+            onSave={handleSaveRecordedRoute}
+            onDiscard={() => {
+              setIsRecording(false);
+              setRecordedPath([]);
+            }}
+            onPointRecorded={(point) => {
+              setRecordedPath((prev) => [...prev, { lat: point.lat, lng: point.lng }]);
+            }}
+          />
+        )}
+
+        {/* Post-Ride Review Dialog */}
+        <PostRideReview
+          open={showReviewDialog}
+          onOpenChange={setShowReviewDialog}
+          routeId={navigatingRoute?.id || ""}
+          routeTitle={navigatingRoute?.title || ""}
+          rideStats={rideStats || { distance_km: 0, duration_minutes: 0 }}
+          onSubmit={handleSubmitReview}
+        />
 
         {/* Route Detail Drawer */}
         <RouteDetailDrawer
@@ -514,8 +752,23 @@ export default function RoutesPage() {
           onClose={() => {
             setDrawerOpen(false);
             setSelectedRouteId(null);
+            setSelectedRouteData(null);
+            setHighlightedRouteId(null);
           }}
         />
+
+        {/* Elevation Profile (shown when route selected) */}
+        {selectedRouteData?.geometry?.coordinates && drawerOpen && (
+          <div className="absolute bottom-4 left-4 right-[600px] z-10">
+            <ElevationProfile
+              coordinates={selectedRouteData.geometry.coordinates}
+              distanceKm={selectedRouteData.distance_km || 0}
+              onHover={(idx, pos) => {
+                // Could highlight point on map
+              }}
+            />
+          </div>
+        )}
       </div>
     </TooltipProvider>
   );
