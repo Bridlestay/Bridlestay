@@ -1907,39 +1907,41 @@ export function RouteDetailDrawer({
                         </div>
                         
                         {/* Horizontal scroll preview of top comments */}
-                        <ScrollArea className="w-full">
-                          <div className="flex gap-3 pb-2">
-                            {comments.slice(0, 5).map((comment: any) => (
-                              <div
-                                key={comment.id}
-                                className="flex-shrink-0 w-64 p-3 bg-muted/50 rounded-xl border cursor-pointer hover:bg-muted transition-colors"
-                                onClick={() => setDiscussionExpanded(true)}
-                              >
-                                <div className="flex items-start gap-2">
-                                  <Avatar className="h-7 w-7">
-                                    <AvatarImage src={comment.user?.avatar_url || undefined} />
-                                    <AvatarFallback className="text-xs">
-                                      {comment.user?.name?.[0]?.toUpperCase() || "?"}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium truncate">{comment.user?.name || "Unknown"}</p>
-                                    <p className="text-sm line-clamp-2 mt-0.5">{comment.body}</p>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-                                    </p>
+                        <div className="overflow-hidden w-full">
+                          <ScrollArea className="w-full" type="scroll">
+                            <div className="flex gap-3 pb-2 pr-4">
+                              {comments.slice(0, 5).map((comment: any) => (
+                                <div
+                                  key={comment.id}
+                                  className="flex-shrink-0 w-48 p-3 bg-muted/50 rounded-xl border cursor-pointer hover:bg-muted transition-colors"
+                                  onClick={() => setDiscussionExpanded(true)}
+                                >
+                                  <div className="flex items-start gap-2">
+                                    <Avatar className="h-7 w-7 flex-shrink-0">
+                                      <AvatarImage src={comment.user?.avatar_url || undefined} />
+                                      <AvatarFallback className="text-xs">
+                                        {comment.user?.name?.[0]?.toUpperCase() || "?"}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0 overflow-hidden">
+                                      <p className="text-xs font-medium truncate">{comment.user?.name || "Unknown"}</p>
+                                      <p className="text-sm line-clamp-2 mt-0.5">{comment.body}</p>
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                                      </p>
+                                    </div>
                                   </div>
+                                  {(comment.replies?.length || 0) > 0 && (
+                                    <p className="text-xs text-primary mt-2">
+                                      {comment.replies.length} {comment.replies.length === 1 ? "reply" : "replies"}
+                                    </p>
+                                  )}
                                 </div>
-                                {(comment.replies?.length || 0) > 0 && (
-                                  <p className="text-xs text-primary mt-2">
-                                    {comment.replies.length} {comment.replies.length === 1 ? "reply" : "replies"}
-                                  </p>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                          <ScrollBar orientation="horizontal" />
-                        </ScrollArea>
+                              ))}
+                            </div>
+                            <ScrollBar orientation="horizontal" />
+                          </ScrollArea>
+                        </div>
 
                         {/* Expand button */}
                         <Button
