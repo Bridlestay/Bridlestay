@@ -864,16 +864,30 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
         const color = DIFFICULTY_COLORS[route.difficulty as keyof typeof DIFFICULTY_COLORS] || DIFFICULTY_COLORS.unrated;
         const isSelected = route.id === selectedRouteId;
 
-        // Only create polyline for selected route
-        if (isSelected) {
+        // Only create polyline for selected route - with arrows and start/finish markers
+        if (isSelected && path.length > 0) {
+          // Create main route polyline with direction arrows
           const polyline = new google.maps.Polyline({
             path,
-            strokeColor: color,
+            strokeColor: "#4338CA", // Deep indigo like OS Maps
             strokeWeight: 5,
             strokeOpacity: 1,
             map: mapRef.current,
             clickable: true,
             zIndex: 100,
+            geodesic: true, // Smooth curved lines
+            icons: [{
+              icon: {
+                path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                scale: 3,
+                strokeColor: "#ffffff",
+                strokeWeight: 1,
+                fillColor: "#4338CA",
+                fillOpacity: 1,
+              },
+              offset: "0",
+              repeat: "100px", // Arrow every 100px
+            }],
           });
 
           polyline.addListener("click", () => {
@@ -882,6 +896,40 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
 
           routePolylinesRef.current.push(polyline);
           routeIdToPolylineRef.current.set(route.id, polyline);
+
+          // Start marker (green circle with flag)
+          const startMarker = new google.maps.Marker({
+            position: path[0],
+            map: mapRef.current,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 10,
+              fillColor: "#22C55E", // Green
+              fillOpacity: 1,
+              strokeColor: "#ffffff",
+              strokeWeight: 3,
+            },
+            title: "Start",
+            zIndex: 200,
+          });
+          routeMarkersRef.current.push(startMarker);
+
+          // Finish marker (red/orange circle with checkered flag appearance)
+          const endMarker = new google.maps.Marker({
+            position: path[path.length - 1],
+            map: mapRef.current,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 10,
+              fillColor: "#EF4444", // Red
+              fillOpacity: 1,
+              strokeColor: "#ffffff",
+              strokeWeight: 3,
+            },
+            title: "Finish",
+            zIndex: 200,
+          });
+          routeMarkersRef.current.push(endMarker);
         }
 
         // Create route pin marker for clustering

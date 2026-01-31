@@ -1,12 +1,5 @@
 "use client";
 
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -33,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { RoutesPanelHeader } from "./routes-panel-header";
 import {
   Star,
   MapPin,
@@ -1023,46 +1017,57 @@ export function RouteDetailDrawer({
 
   const activeHazards = hazards.filter((h) => h.status === "active");
 
+  if (!open) return null;
+
   return (
-    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent side="left" className="w-full sm:max-w-md overflow-y-auto p-0">
+    <div className="absolute top-0 left-0 bottom-0 w-[420px] bg-white shadow-2xl z-30 flex flex-col">
+      {/* Panel Header with menu, search, profile, close */}
+      <RoutesPanelHeader
+        onClose={onClose}
+        showSearch={false}
+      />
+      
+      <ScrollArea className="flex-1">
         {loading ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-64">
             <p className="text-muted-foreground">Loading...</p>
           </div>
         ) : route ? (
-          <div className="space-y-6">
-            <SheetHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <SheetTitle className="text-2xl">{route.title}</SheetTitle>
-                  <div className="flex items-center gap-2 mt-2">
-                    {route.featured && <Badge>Featured Route</Badge>}
-                    {isOwner && <Badge variant="outline">Your Route</Badge>}
-                </div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                {route.avg_rating > 0 && (
-                  <div className="flex items-center gap-1">
-                    <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
-                    <span className="font-semibold">
-                      {route.avg_rating.toFixed(1)}
-                    </span>
-                    <span className="text-muted-foreground text-sm">
-                      ({route.review_count})
-                    </span>
+          <div className="p-4 space-y-4">
+            {/* Header */}
+            <div>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-xl font-bold leading-tight">{route.title}</h1>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {route.featured && <Badge className="text-xs">Featured</Badge>}
+                    {isOwner && <Badge variant="outline" className="text-xs">Your Route</Badge>}
                   </div>
-                )}
+                </div>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  {route.avg_rating > 0 && (
+                    <div className="flex items-center gap-1">
+                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                      <span className="font-semibold text-sm">
+                        {route.avg_rating.toFixed(1)}
+                      </span>
+                      <span className="text-muted-foreground text-xs">
+                        ({route.review_count})
+                      </span>
+                    </div>
+                  )}
                   {activeHazards.length > 0 && (
-                    <Badge variant="destructive" className="gap-1">
+                    <Badge variant="destructive" className="gap-1 text-xs">
                       <AlertTriangle className="h-3 w-3" />
-                      {activeHazards.length} Active Hazard{activeHazards.length > 1 ? "s" : ""}
+                      {activeHazards.length} Hazard{activeHazards.length > 1 ? "s" : ""}
                     </Badge>
                   )}
                 </div>
               </div>
-              <SheetDescription>{route.description}</SheetDescription>
-            </SheetHeader>
+              {route.description && (
+                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{route.description}</p>
+              )}
+            </div>
 
             {/* Display Photos Carousel */}
             {displayPhotosForCarousel.length > 0 && (
@@ -2387,7 +2392,7 @@ export function RouteDetailDrawer({
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </SheetContent>
-    </Sheet>
+      </ScrollArea>
+    </div>
   );
 }
