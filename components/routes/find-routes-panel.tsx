@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -16,10 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  ChevronLeft,
-  Search,
   X,
-  MapPin,
   Clock,
   Ruler,
   Star,
@@ -29,6 +25,7 @@ import {
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { RoutesPanelHeader } from "./routes-panel-header";
 
 interface FindRoutesPanelProps {
   isOpen: boolean;
@@ -175,36 +172,35 @@ export function FindRoutesPanel({
 
   return (
     <div className="absolute top-0 left-0 bottom-0 w-96 bg-white shadow-2xl z-20 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-lg font-semibold">Find Routes</h2>
-        <div className="flex items-center gap-2">
+      {/* Panel Header with menu, search, profile, close */}
+      <RoutesPanelHeader
+        onClose={onClose}
+        onSearch={(query) => setSearchQuery(query)}
+        searchPlaceholder="Search for places and routes"
+      />
+
+      {/* Sort dropdown and Share */}
+      <div className="px-4 py-2 border-b">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Sort by:</span>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-40 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="most_popular">Most popular</SelectItem>
+                <SelectItem value="highest_rated">Highest rated</SelectItem>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="shortest">Shortest</SelectItem>
+                <SelectItem value="longest">Longest</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Button variant="ghost" size="sm" onClick={handleShare} className="gap-1">
             <Share2 className="h-4 w-4" />
-            Share view
+            Share
           </Button>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Sort dropdown */}
-      <div className="px-4 py-2 border-b">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Sort by:</span>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-40 h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="most_popular">Most popular</SelectItem>
-              <SelectItem value="highest_rated">Highest rated</SelectItem>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="shortest">Shortest</SelectItem>
-              <SelectItem value="longest">Longest</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
@@ -220,19 +216,6 @@ export function FindRoutesPanel({
             </TabsTrigger>
           </TabsList>
         </Tabs>
-      </div>
-
-      {/* Search */}
-      <div className="px-4 pb-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search for places and routes"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
       </div>
 
       {/* Filters */}

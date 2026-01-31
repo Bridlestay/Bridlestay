@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -15,17 +14,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  ChevronLeft,
-  Search,
   X,
-  MapPin,
   Clock,
   Ruler,
   Star,
-  Bookmark,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { RoutesPanelHeader } from "./routes-panel-header";
 
 interface SavedRoutesPanelProps {
   isOpen: boolean;
@@ -123,13 +119,12 @@ export function SavedRoutesPanel({
 
   return (
     <div className="absolute top-0 left-0 bottom-0 w-96 bg-white shadow-2xl z-20 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-lg font-semibold">Saved</h2>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-      </div>
+      {/* Panel Header with menu, search, profile, close */}
+      <RoutesPanelHeader
+        onClose={onClose}
+        onSearch={(query) => setSearchQuery(query)}
+        searchPlaceholder="Search saved routes"
+      />
 
       {/* Sort dropdown */}
       <div className="px-4 py-2 border-b">
@@ -170,19 +165,6 @@ export function SavedRoutesPanel({
             </TabsTrigger>
           </TabsList>
         </Tabs>
-      </div>
-
-      {/* Search */}
-      <div className="px-4 pb-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search my routes (min. 1 char)"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
       </div>
 
       {/* Filters */}

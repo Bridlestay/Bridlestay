@@ -9,16 +9,21 @@ interface RoutesNavTabsProps {
   activeTab: RouteTab;
   onTabChange: (tab: RouteTab) => void;
   className?: string;
+  hideInCreateMode?: boolean;
 }
 
+// Tab order: Map, Find Routes, Saved Routes, Create Route
 const tabs: { id: RouteTab; label: string; icon: typeof Map }[] = [
   { id: "map", label: "Map", icon: Map },
-  { id: "saved", label: "Saved Routes", icon: Bookmark },
   { id: "find", label: "Find Routes", icon: Search },
+  { id: "saved", label: "Saved Routes", icon: Bookmark },
   { id: "create", label: "Create Route", icon: Pencil },
 ];
 
-export function RoutesNavTabs({ activeTab, onTabChange, className }: RoutesNavTabsProps) {
+export function RoutesNavTabs({ activeTab, onTabChange, className, hideInCreateMode }: RoutesNavTabsProps) {
+  // Hide tabs when in create mode (only show header in sidebar)
+  if (hideInCreateMode) return null;
+
   return (
     <div className={cn(
       "absolute top-4 right-4 z-30 flex bg-white rounded-lg shadow-lg overflow-hidden border",

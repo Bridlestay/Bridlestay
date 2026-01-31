@@ -33,6 +33,7 @@ import {
   Eraser,
   PlusCircle,
 } from "lucide-react";
+import { RoutesPanelHeader } from "./routes-panel-header";
 
 // Types
 export interface Waypoint {
@@ -199,14 +200,15 @@ export function RouteCreator({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="px-4 py-3 border-b bg-background">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{isEditing ? "Edit Route" : "Create Route"}</h2>
-          <Button variant="ghost" size="icon" onClick={onCancel}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+      {/* Panel Header with menu, search, profile, close */}
+      <RoutesPanelHeader
+        onClose={onCancel}
+        showSearch={false}
+      />
+      
+      {/* Title bar */}
+      <div className="px-4 py-2 border-b bg-background">
+        <h2 className="text-lg font-semibold">{isEditing ? "Edit Route" : "Create Route"}</h2>
       </div>
 
       {/* Scrollable content */}

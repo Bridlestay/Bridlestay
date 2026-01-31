@@ -15,6 +15,7 @@ import { RouteRecorder } from "@/components/routes/route-recorder";
 import { PostRideReview } from "@/components/routes/post-ride-review";
 import { ElevationProfile } from "@/components/routes/elevation-profile";
 import { ClearRouteDialog, DiscardRouteDialog } from "@/components/routes/confirm-dialog";
+import { RoutesMapHeader } from "@/components/routes/routes-map-header";
 import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -629,6 +630,11 @@ export default function RoutesPage() {
             recordedPath={recordedPath}
           />
         </div>
+
+        {/* Map Header with hamburger menu (only visible when map tab is active) */}
+        {activeTab === "map" && (
+          <RoutesMapHeader />
+        )}
 
         {/* Navigation tabs */}
         <RoutesNavTabs activeTab={activeTab} onTabChange={setActiveTab} />
