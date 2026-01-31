@@ -534,7 +534,7 @@ export function RouteCreatorToolbar({
   };
 
   return (
-    <div className="absolute top-2 right-16 z-[1000]">
+    <div className="absolute top-20 right-4 z-30">
       <Card className="p-1.5 bg-white shadow-lg border-0 rounded-lg">
         <div className="flex items-center gap-0.5">
           {/* Plot */}
