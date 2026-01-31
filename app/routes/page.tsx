@@ -147,16 +147,36 @@ export default function RoutesPage() {
 
   const fetchExploreRoutes = async () => {
     try {
-      const res = await fetch("/api/routes/search", {
+      // Fetch public routes
+      const publicRes = await fetch("/api/routes/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visibility: "public" }),
+        body: JSON.stringify({}),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setExploreRoutes(data.routes || []);
+      // Also fetch user's own routes (they should see their own regardless of visibility)
+      const myRes = await fetch("/api/routes/my-routes");
+
+      let allRoutes: any[] = [];
+
+      if (publicRes.ok) {
+        const data = await publicRes.json();
+        allRoutes = data.routes || [];
       }
+
+      if (myRes.ok) {
+        const myData = await myRes.json();
+        const myRouteIds = new Set((myData.routes || []).map((r: any) => r.id));
+        // Add user's own routes that aren't already in the list
+        const existingIds = new Set(allRoutes.map(r => r.id));
+        for (const route of myData.routes || []) {
+          if (!existingIds.has(route.id)) {
+            allRoutes.push(route);
+          }
+        }
+      }
+
+      setExploreRoutes(allRoutes);
     } catch (error) {
       console.error("Failed to fetch routes:", error);
     }
