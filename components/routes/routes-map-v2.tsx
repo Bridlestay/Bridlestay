@@ -956,7 +956,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
           (marker as any).routeId = route.id;
           (marker as any).routeData = route;
 
-          // Click marker to show preview card - Clean Airbnb-style design
+          // Click marker to show preview card - OS Maps style with route thumbnail
           marker.addListener("click", () => {
             const clickedRoute = routesMap.get(route.id);
             if (!clickedRoute) return;
@@ -966,125 +966,167 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
             const hours = Math.floor(rideTimeMinutes / 60);
             const mins = rideTimeMinutes % 60;
             const rideTimeStr = hours > 0 ? `${hours} h ${mins} min` : `${mins} min`;
-            
-            // Walking time (5 km/h)
-            const walkTimeMinutes = Math.round((clickedRoute.distance_km || 0) / 5 * 60);
-            const walkHours = Math.floor(walkTimeMinutes / 60);
-            const walkMins = walkTimeMinutes % 60;
-            const walkTimeStr = walkHours > 0 ? `${walkHours} h ${walkMins} min` : `${walkMins} min`;
 
             // Difficulty badge colors - muted, elegant
             const difficultyStyles: Record<string, { bg: string; text: string }> = {
               easy: { bg: "#DCFCE7", text: "#166534" },
-              moderate: { bg: "#DBEAFE", text: "#1E40AF" },
-              difficult: { bg: "#FEF3C7", text: "#92400E" },
-              severe: { bg: "#FEE2E2", text: "#991B1B" },
+              moderate: { bg: "#FEF9C3", text: "#854D0E" },
+              difficult: { bg: "#FED7AA", text: "#9A3412" },
+              severe: { bg: "#FECACA", text: "#991B1B" },
               unrated: { bg: "#F3F4F6", text: "#374151" },
             };
             const diffStyle = difficultyStyles[clickedRoute.difficulty] || difficultyStyles.unrated;
 
-            // Create clean preview card - Airbnb meets OS Maps style
+            // Generate static map URL with route path
+            let staticMapUrl = "";
+            try {
+              const geometry = clickedRoute.geometry;
+              if (geometry && geometry.coordinates && geometry.coordinates.length > 0) {
+                // Simplify path for URL (take every Nth point to stay under URL limit)
+                const coords = geometry.coordinates;
+                const step = Math.max(1, Math.floor(coords.length / 30));
+                const simplifiedPath = coords
+                  .filter((_: any, i: number) => i % step === 0 || i === coords.length - 1)
+                  .map((c: number[]) => `${c[1]},${c[0]}`)
+                  .join("|");
+                
+                // Calculate center from first coordinate
+                const centerLat = coords[Math.floor(coords.length / 2)][1];
+                const centerLng = coords[Math.floor(coords.length / 2)][0];
+                
+                staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?size=100x100&scale=2&maptype=terrain&path=color:0x4338CA|weight:3|${simplifiedPath}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`;
+              }
+            } catch (e) {
+              console.error("Error generating static map:", e);
+            }
+
+            // Fallback placeholder if no route image
+            const mapThumbnail = staticMapUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect fill='%23e5e7eb' width='100' height='100'/%3E%3Cpath d='M20 60 Q 35 30, 50 50 T 80 40' stroke='%234338CA' stroke-width='3' fill='none'/%3E%3C/svg%3E";
+
+            // Create OS Maps style card with thumbnail
             const content = `
               <div style="
-                min-width: 280px;
-                max-width: 320px;
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                width: 300px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 background: white;
-                border-radius: 16px;
+                border-radius: 12px;
                 overflow: hidden;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+                box-shadow: 0 2px 12px rgba(0,0,0,0.15);
               ">
-                <!-- Route Title -->
-                <div style="padding: 16px 16px 12px;">
+                <!-- Header: Title & Creator -->
+                <div style="padding: 14px 14px 10px;">
                   <h3 style="
                     margin: 0 0 4px 0;
-                    font-size: 17px;
+                    font-size: 16px;
                     font-weight: 600;
-                    color: #111827;
-                    line-height: 1.3;
+                    color: #1f2937;
+                    line-height: 1.25;
                   ">${clickedRoute.title || "Untitled Route"}</h3>
                   ${clickedRoute.owner?.name ? `
                     <div style="
                       display: flex;
                       align-items: center;
-                      gap: 6px;
+                      gap: 5px;
                       color: #2E8B57;
                       font-size: 13px;
-                      font-weight: 500;
                     ">
-                      <span style="font-size: 8px;">●</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2E8B57" stroke-width="2.5">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                      </svg>
                       ${clickedRoute.owner.name}
                     </div>
                   ` : ""}
                 </div>
                 
-                <!-- Stats Row -->
+                <!-- Main content: Thumbnail + Stats -->
                 <div style="
-                  padding: 0 16px 14px;
                   display: flex;
-                  flex-wrap: wrap;
-                  gap: 12px;
+                  padding: 0 14px 14px;
+                  gap: 14px;
                 ">
-                  <!-- Distance -->
+                  <!-- Route Thumbnail -->
                   <div style="
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    color: #374151;
-                    font-size: 13px;
+                    width: 90px;
+                    height: 90px;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    flex-shrink: 0;
+                    background: #f3f4f6;
                   ">
-                    <span style="font-size: 15px;">🐴</span>
-                    <span style="font-weight: 500;">${(clickedRoute.distance_km || 0).toFixed(2)} km</span>
+                    <img 
+                      src="${mapThumbnail}" 
+                      alt="Route preview"
+                      style="width: 100%; height: 100%; object-fit: cover;"
+                      onerror="this.style.display='none'"
+                    />
                   </div>
                   
-                  <!-- Ride Time -->
+                  <!-- Stats -->
                   <div style="
                     display: flex;
-                    align-items: center;
-                    gap: 5px;
-                    color: #6B7280;
-                    font-size: 12px;
+                    flex-direction: column;
+                    justify-content: center;
+                    gap: 6px;
                   ">
-                    <span>⏱</span>
-                    <span>${rideTimeStr}</span>
+                    <!-- Distance -->
+                    <div style="
+                      display: flex;
+                      align-items: center;
+                      gap: 8px;
+                      color: #374151;
+                      font-size: 14px;
+                    ">
+                      <span style="font-size: 16px;">🐴</span>
+                      <span style="font-weight: 500;">${(clickedRoute.distance_km || 0).toFixed(2)} km</span>
+                    </div>
+                    
+                    <!-- Time -->
+                    <div style="
+                      display: flex;
+                      align-items: center;
+                      gap: 8px;
+                      color: #374151;
+                      font-size: 14px;
+                    ">
+                      <span style="font-size: 14px;">⏱️</span>
+                      <span>${rideTimeStr}</span>
+                    </div>
+                    
+                    <!-- Difficulty Badge -->
+                    <div style="margin-top: 4px;">
+                      <span style="
+                        display: inline-block;
+                        padding: 4px 12px;
+                        background: ${diffStyle.bg};
+                        color: ${diffStyle.text};
+                        border-radius: 16px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        text-transform: capitalize;
+                      ">${clickedRoute.difficulty || "Unrated"}</span>
+                    </div>
                   </div>
                 </div>
                 
-                <!-- Difficulty Badge -->
-                <div style="padding: 0 16px 16px;">
-                  <span style="
-                    display: inline-block;
-                    padding: 5px 12px;
-                    background: ${diffStyle.bg};
-                    color: ${diffStyle.text};
-                    border-radius: 20px;
-                    font-size: 12px;
-                    font-weight: 600;
-                    text-transform: capitalize;
-                  ">${clickedRoute.difficulty || "Unrated"}</span>
-                </div>
-                
-                <!-- View Details Button -->
+                <!-- View Details Link -->
                 <div 
                   id="route-preview-btn-${route.id}"
                   style="
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 6px;
-                    padding: 14px 16px;
-                    background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
-                    color: white;
+                    display: block;
+                    padding: 12px 14px;
+                    border-top: 1px solid #e5e7eb;
+                    color: #2E8B57;
                     font-size: 14px;
-                    font-weight: 600;
+                    font-weight: 500;
                     cursor: pointer;
-                    transition: opacity 0.2s;
+                    text-align: center;
+                    background: #fafafa;
                   "
-                  onmouseover="this.style.opacity='0.9'"
-                  onmouseout="this.style.opacity='1'"
+                  onmouseover="this.style.background='#f0fdf4'"
+                  onmouseout="this.style.background='#fafafa'"
                 >
                   View details
-                  <span style="font-size: 12px;">→</span>
                 </div>
               </div>
             `;
