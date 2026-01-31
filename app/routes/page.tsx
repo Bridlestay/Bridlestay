@@ -188,15 +188,35 @@ export default function RoutesPage() {
     return null;
   };
 
-  // Handle route click on map
-  const handleRouteClick = (routeId: string) => {
-    const route = exploreRoutes.find((r) => r.id === routeId);
-    if (route) {
-      setBottomSheetRoutes([route]);
-      setSelectedRouteId(routeId);
-      setShowBottomSheet(true);
-      setIsCluster(false);
-      setHighlightedRouteId(routeId);
+  // State for which route's polyline is drawn on the map
+  const [drawnRouteId, setDrawnRouteId] = useState<string | null>(null);
+
+  // Handle pin click - shows preview card (from info window)
+  const handleRoutePreview = (route: any) => {
+    // Just highlight, don't draw polyline yet
+    setHighlightedRouteId(route.id);
+  };
+
+  // Handle "View details" click from preview card - draw route & show details
+  const handleRouteClick = async (routeId: string) => {
+    // Draw the route polyline on the map
+    setDrawnRouteId(routeId);
+    setSelectedRouteId(routeId);
+    setHighlightedRouteId(routeId);
+    
+    // Open the full route drawer
+    setDrawerOpen(true);
+    setShowBottomSheet(false);
+    
+    // Fetch full route data
+    const fullRoute = await fetchRouteData(routeId);
+    setSelectedRouteData(fullRoute);
+    
+    // Pan to route
+    if (fullRoute?.geometry?.coordinates?.length > 0) {
+      const midIdx = Math.floor(fullRoute.geometry.coordinates.length / 2);
+      const midPoint = fullRoute.geometry.coordinates[midIdx];
+      mapRef.current?.panTo(midPoint[1], midPoint[0]);
     }
   };
 
@@ -211,8 +231,10 @@ export default function RoutesPage() {
     if (routes[0]) setHighlightedRouteId(routes[0].id);
   };
 
-  // Open full route details
+  // Open full route details (from panels/bottom sheet)
   const handleRouteDetails = async (routeId: string) => {
+    // Draw the route polyline on the map
+    setDrawnRouteId(routeId);
     setSelectedRouteId(routeId);
     setDrawerOpen(true);
     setShowBottomSheet(false);
@@ -220,6 +242,13 @@ export default function RoutesPage() {
     // Fetch full route data for navigation/elevation
     const fullRoute = await fetchRouteData(routeId);
     setSelectedRouteData(fullRoute);
+    
+    // Pan to route center
+    if (fullRoute?.geometry?.coordinates?.length > 0) {
+      const midIdx = Math.floor(fullRoute.geometry.coordinates.length / 2);
+      const midPoint = fullRoute.geometry.coordinates[midIdx];
+      mapRef.current?.panTo(midPoint[1], midPoint[0]);
+    }
   };
 
   // Handle route selection in carousel
@@ -619,7 +648,9 @@ export default function RoutesPage() {
             ref={mapRef}
             routes={exploreRoutes}
             onRouteClick={handleRouteClick}
+            onRoutePreview={handleRoutePreview}
             onClusterClick={handleClusterClick}
+            selectedRouteId={drawnRouteId}
             pathLayers={pathLayers}
             propertyPins={layerSettings.showProperties ? nearbyProperties : []}
             highlightedRouteId={highlightedRouteId}
@@ -742,6 +773,7 @@ export default function RoutesPage() {
             setSelectedRouteId(null);
             setSelectedRouteData(null);
             setHighlightedRouteId(null);
+            setDrawnRouteId(null); // Clear route polyline from map
           }}
         />
 

@@ -35,11 +35,13 @@ export interface PathLayers {
 export interface RoutesMapV2Props {
   routes?: any[];
   onRouteClick?: (routeId: string) => void;
+  onRoutePreview?: (route: any) => void; // Called when pin is clicked to show preview card
   onClusterClick?: (routeIds: string[], count: number) => void;
   center?: { lat: number; lng: number };
   zoom?: number;
   propertyPins?: any[];
   highlightedRouteId?: string | null;
+  selectedRouteId?: string | null; // Route to draw on map (polyline visible)
   mapType?: "roadmap" | "satellite" | "terrain" | "hybrid";
   monochrome?: boolean;
   // Route creation props
@@ -80,11 +82,13 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
     {
       routes = [],
       onRouteClick,
+      onRoutePreview,
       onClusterClick,
       center = { lat: 52.2, lng: -2.2 }, // Worcestershire center
       zoom = 10,
       propertyPins = [],
       highlightedRouteId,
+      selectedRouteId,
       mapType = "terrain",
       monochrome = false,
       isCreating = false,
@@ -823,18 +827,20 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       };
     }, [isLoaded, isCreating, waypoints, routeStyle, routeType, findBridlewayPath]);
 
-    // Render user routes with clustering
+    // Render user routes with clustering - pins only, polylines drawn for selected route
     useEffect(() => {
       if (!mapRef.current || !isLoaded) return;
 
       // Clean up previous routes
       routePolylinesRef.current.forEach((p) => p.setMap(null));
       routePolylinesRef.current = [];
+      routeIdToPolylineRef.current.clear();
       routeMarkersRef.current.forEach((m) => m.setMap(null));
       routeMarkersRef.current = [];
       markerClustererRef.current?.clearMarkers();
 
       const markers: google.maps.Marker[] = [];
+      const routesMap = new Map(routes.map(r => [r.id, r]));
 
       routes.forEach((route) => {
         if (!route.geometry?.coordinates) return;
@@ -847,83 +853,120 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
         );
 
         const color = DIFFICULTY_COLORS[route.difficulty as keyof typeof DIFFICULTY_COLORS] || DIFFICULTY_COLORS.unrated;
+        const isSelected = route.id === selectedRouteId;
 
-        // Create route polyline
-        const polyline = new google.maps.Polyline({
-          path,
-          strokeColor: color,
-          strokeWeight: 4,
-          strokeOpacity: 0.9,
-          map: mapRef.current,
-          clickable: true,
-        });
-
-        polyline.addListener("mouseover", (e: google.maps.MapMouseEvent) => {
-          polyline.setOptions({
-            strokeWeight: 6,
+        // Only create polyline for selected route
+        if (isSelected) {
+          const polyline = new google.maps.Polyline({
+            path,
+            strokeColor: color,
+            strokeWeight: 5,
             strokeOpacity: 1,
-            zIndex: 200,
+            map: mapRef.current,
+            clickable: true,
+            zIndex: 100,
           });
 
-          if (infoWindowRef.current && e.latLng) {
-            const rideTime = Math.round((route.distance_km / 10) * 60);
-            const content = `
-              <div style="padding: 12px; min-width: 200px; font-family: system-ui, sans-serif;">
-                <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">${route.title}</div>
-                <div style="display: flex; gap: 12px; font-size: 12px; color: #666;">
-                  <span>📏 ${route.distance_km?.toFixed(1)} km</span>
-                  <span>🐴 ${rideTime}m</span>
-                </div>
-                <div style="margin-top: 8px; padding: 6px; background: #3B82F6; color: white; text-align: center; border-radius: 4px; font-size: 12px; cursor: pointer;">
-                  Click for details
-                </div>
-              </div>
-            `;
-            infoWindowRef.current.setContent(content);
-            infoWindowRef.current.setPosition(e.latLng);
-            infoWindowRef.current.open(mapRef.current);
-          }
-        });
-
-        polyline.addListener("mouseout", () => {
-          polyline.setOptions({
-            strokeWeight: 4,
-            strokeOpacity: 0.9,
-            zIndex: 1,
+          polyline.addListener("click", () => {
+            onRouteClick?.(route.id);
           });
-        });
 
-        polyline.addListener("click", () => {
-          infoWindowRef.current?.close();
-          onRouteClick?.(route.id);
-        });
+          routePolylinesRef.current.push(polyline);
+          routeIdToPolylineRef.current.set(route.id, polyline);
+        }
 
-        routePolylinesRef.current.push(polyline);
-        routeIdToPolylineRef.current.set(route.id, polyline);
-
-        // Create route start marker for clustering
+        // Create route pin marker for clustering
         if (path.length > 0) {
           const startPoint = path[0];
+          
+          // Use custom pin icon
           const marker = new google.maps.Marker({
             position: startPoint,
             icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 10,
-              fillColor: color,
+              path: "M12 0C7.58 0 4 3.58 4 8c0 5.25 8 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z",
+              fillColor: isSelected ? "#2E8B57" : "#4338CA",
               fillOpacity: 1,
               strokeColor: "#ffffff",
               strokeWeight: 2,
+              scale: isSelected ? 1.8 : 1.4,
+              anchor: new google.maps.Point(12, 21),
             },
             title: route.title,
-            // Store route ID for cluster click handling
+            zIndex: isSelected ? 1000 : 1,
           });
 
-          // Attach route ID to marker for cluster handling
+          // Attach route data to marker
           (marker as any).routeId = route.id;
+          (marker as any).routeData = route;
 
+          // Click marker to show preview card
           marker.addListener("click", () => {
+            const clickedRoute = routesMap.get(route.id);
+            if (!clickedRoute) return;
+
+            // Calculate ride time estimate
+            const rideTimeMinutes = Math.round((clickedRoute.distance_km || 0) / 8 * 60);
+            const hours = Math.floor(rideTimeMinutes / 60);
+            const mins = rideTimeMinutes % 60;
+            const timeStr = hours > 0 ? `${hours} h ${mins} min` : `${mins} min`;
+
+            // Difficulty badge color
+            const difficultyColors: Record<string, string> = {
+              easy: "#10B981",
+              moderate: "#3B82F6", 
+              difficult: "#F59E0B",
+              severe: "#EF4444",
+              unrated: "#6B7280",
+            };
+            const diffColor = difficultyColors[clickedRoute.difficulty] || difficultyColors.unrated;
+
+            // Create preview card HTML
+            const content = `
+              <div style="padding: 0; min-width: 240px; font-family: system-ui, -apple-system, sans-serif; border-radius: 8px; overflow: hidden;">
+                <div style="padding: 12px;">
+                  <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px; color: #111;">${clickedRoute.title || "Untitled Route"}</div>
+                  ${clickedRoute.owner?.name ? `<div style="font-size: 12px; color: #3B82F6; margin-bottom: 8px;">● ${clickedRoute.owner.name}</div>` : ""}
+                  <div style="display: flex; gap: 16px; font-size: 13px; color: #444; margin-bottom: 8px;">
+                    <span style="display: flex; align-items: center; gap: 4px;">
+                      <span style="font-size: 16px;">🐴</span>
+                      ${(clickedRoute.distance_km || 0).toFixed(2)} km
+                    </span>
+                    <span style="display: flex; align-items: center; gap: 4px;">
+                      <span style="font-size: 14px;">⏱</span>
+                      ${timeStr}
+                    </span>
+                  </div>
+                  <div style="display: inline-block; padding: 4px 10px; background: ${diffColor}; color: white; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: capitalize;">
+                    ${clickedRoute.difficulty || "Unrated"}
+                  </div>
+                </div>
+                <div 
+                  id="route-preview-btn-${route.id}"
+                  style="display: block; padding: 10px; background: #f8fafc; color: #3B82F6; text-align: center; font-size: 13px; font-weight: 500; cursor: pointer; border-top: 1px solid #e2e8f0; text-decoration: none;"
+                >
+                  View details
+                </div>
+              </div>
+            `;
+
             infoWindowRef.current?.close();
-            onRouteClick?.(route.id);
+            infoWindowRef.current?.setContent(content);
+            infoWindowRef.current?.setPosition(marker.getPosition()!);
+            infoWindowRef.current?.open(mapRef.current);
+
+            // Call preview callback
+            onRoutePreview?.(clickedRoute);
+
+            // Add click listener for "View details" after content is set
+            setTimeout(() => {
+              const btn = document.getElementById(`route-preview-btn-${route.id}`);
+              if (btn) {
+                btn.onclick = () => {
+                  infoWindowRef.current?.close();
+                  onRouteClick?.(route.id);
+                };
+              }
+            }, 100);
           });
 
           markers.push(marker);
@@ -940,15 +983,16 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
             // Get all route IDs in this cluster
             const clusterMarkers = cluster.markers;
             if (clusterMarkers && clusterMarkers.length > 0) {
-              const routeIds = clusterMarkers
-                .map((m) => (m as any).routeId)
+              const clusterRoutes = clusterMarkers
+                .map((m) => (m as any).routeData)
                 .filter(Boolean);
+              const routeIds = clusterRoutes.map((r: any) => r.id);
               
               if (onClusterClick && routeIds.length > 1) {
                 onClusterClick(routeIds, routeIds.length);
               } else if (routeIds.length === 1) {
-                // Single route, just show it
-                onRouteClick?.(routeIds[0]);
+                // Single route, show preview
+                onRoutePreview?.(clusterRoutes[0]);
               } else {
                 // Default behavior - zoom in
                 const bounds = new google.maps.LatLngBounds();
@@ -962,14 +1006,14 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
           },
           renderer: {
             render: ({ count, position }) => {
-              // Custom cluster marker styling
+              // Custom cluster marker styling - like OS Maps
               return new google.maps.Marker({
                 position,
                 icon: {
                   path: google.maps.SymbolPath.CIRCLE,
-                  scale: 18 + Math.min(count, 10),
-                  fillColor: "#3B82F6",
-                  fillOpacity: 0.9,
+                  scale: 20 + Math.min(count, 15),
+                  fillColor: "#4338CA",
+                  fillOpacity: 0.95,
                   strokeColor: "#ffffff",
                   strokeWeight: 3,
                 },
@@ -977,15 +1021,15 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
                   text: String(count),
                   color: "#ffffff",
                   fontWeight: "bold",
-                  fontSize: "12px",
+                  fontSize: "13px",
                 },
-                zIndex: 1000,
+                zIndex: 500,
               });
             },
           },
         });
       }
-    }, [isLoaded, routes, onRouteClick, onClusterClick]);
+    }, [isLoaded, routes, selectedRouteId, onRouteClick, onRoutePreview, onClusterClick]);
 
     // Route highlighting effect
     useEffect(() => {
