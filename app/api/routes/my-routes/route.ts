@@ -10,6 +10,7 @@ export async function GET() {
   }
 
   try {
+    // First get user's routes
     const { data: routes, error } = await supabase
       .from("routes")
       .select(`
@@ -24,13 +25,31 @@ export async function GET() {
         geometry,
         avg_rating,
         review_count,
-        created_at,
-        cover_photo_url
+        created_at
       `)
       .eq("owner_user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
+
+    // Get cover photos for these routes
+    if (routes && routes.length > 0) {
+      const routeIds = routes.map(r => r.id);
+      const { data: photos } = await supabase
+        .from("route_photos")
+        .select("route_id, url")
+        .in("route_id", routeIds)
+        .eq("is_cover", true);
+
+      // Merge cover photos into routes
+      const photosMap = new Map(photos?.map(p => [p.route_id, p.url]) || []);
+      const routesWithPhotos = routes.map(route => ({
+        ...route,
+        cover_photo_url: photosMap.get(route.id) || null
+      }));
+
+      return NextResponse.json({ routes: routesWithPhotos });
+    }
 
     return NextResponse.json({ routes: routes || [] });
   } catch (error: any) {

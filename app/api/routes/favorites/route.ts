@@ -24,7 +24,7 @@ export async function GET() {
 
     const routeIds = favorites.map((f) => f.route_id);
 
-    // Fetch the actual routes
+    // Fetch the actual routes (without the problematic join)
     const { data: routes, error: routesError } = await supabase
       .from("routes")
       .select(`
@@ -40,15 +40,46 @@ export async function GET() {
         avg_rating,
         review_count,
         created_at,
-        cover_photo_url,
-        owner:users!routes_owner_user_id_fkey(id, name, avatar_url)
+        owner_user_id
       `)
       .in("id", routeIds)
       .order("created_at", { ascending: false });
 
     if (routesError) throw routesError;
 
-    return NextResponse.json({ routes: routes || [] });
+    if (!routes || routes.length === 0) {
+      return NextResponse.json({ routes: [] });
+    }
+
+    // Get cover photos for these routes
+    const { data: photos } = await supabase
+      .from("route_photos")
+      .select("route_id, url")
+      .in("route_id", routeIds)
+      .eq("is_cover", true);
+
+    // Get owner info separately
+    const ownerIds = [...new Set(routes.map(r => r.owner_user_id).filter(Boolean))];
+    let ownersMap = new Map();
+    
+    if (ownerIds.length > 0) {
+      const { data: owners } = await supabase
+        .from("users")
+        .select("id, name, avatar_url")
+        .in("id", ownerIds);
+      
+      ownersMap = new Map(owners?.map(o => [o.id, o]) || []);
+    }
+
+    // Merge data
+    const photosMap = new Map(photos?.map(p => [p.route_id, p.url]) || []);
+    const routesWithData = routes.map(route => ({
+      ...route,
+      cover_photo_url: photosMap.get(route.id) || null,
+      owner: ownersMap.get(route.owner_user_id) || null
+    }));
+
+    return NextResponse.json({ routes: routesWithData });
   } catch (error: any) {
     console.error("Favorites error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
