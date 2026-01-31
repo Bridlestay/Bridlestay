@@ -510,6 +510,7 @@ export default function RoutesPage() {
               toolMode={toolMode}
               pathLayers={pathLayers}
               mapType={getGoogleMapType()}
+              monochrome={layerSettings.monochrome}
               onWaypointAdd={addWaypoint}
               onWaypointUpdate={updateWaypoint}
               onWaypointRemove={removeWaypoint}
@@ -581,7 +582,7 @@ export default function RoutesPage() {
             onStyleChange={setRouteStyle}
           />
 
-          {/* Map controls */}
+          {/* Map controls - stays on right side */}
           <MapLayerControls
             settings={layerSettings}
             onSettingsChange={setLayerSettings}
@@ -590,27 +591,6 @@ export default function RoutesPage() {
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             isFullscreen={isFullscreen}
-            className="left-[26rem]"
-          />
-
-          {/* Route Recorder option */}
-          <RouteRecorder
-            isRecording={isRecording}
-            onStart={() => {
-              setIsRecording(true);
-              setRecordedPath([]);
-            }}
-            onPause={() => {}}
-            onResume={() => {}}
-            onStop={() => setIsRecording(false)}
-            onSave={handleSaveRecordedRoute}
-            onDiscard={() => {
-              setIsRecording(false);
-              setRecordedPath([]);
-            }}
-            onPointRecorded={(point) => {
-              setRecordedPath((prev) => [...prev, { lat: point.lat, lng: point.lng }]);
-            }}
           />
         </div>
 
@@ -713,26 +693,28 @@ export default function RoutesPage() {
           />
         )}
 
-        {/* Route Recorder (when not creating) */}
+        {/* Route Recorder - MOBILE ONLY (GPS recording while riding) */}
         {!isCreating && activeTab === "map" && (
-          <RouteRecorder
-            isRecording={isRecording}
-            onStart={() => {
-              setIsRecording(true);
-              setRecordedPath([]);
-            }}
-            onPause={() => {}}
-            onResume={() => {}}
-            onStop={() => setIsRecording(false)}
-            onSave={handleSaveRecordedRoute}
-            onDiscard={() => {
-              setIsRecording(false);
-              setRecordedPath([]);
-            }}
-            onPointRecorded={(point) => {
-              setRecordedPath((prev) => [...prev, { lat: point.lat, lng: point.lng }]);
-            }}
-          />
+          <div className="md:hidden">
+            <RouteRecorder
+              isRecording={isRecording}
+              onStart={() => {
+                setIsRecording(true);
+                setRecordedPath([]);
+              }}
+              onPause={() => {}}
+              onResume={() => {}}
+              onStop={() => setIsRecording(false)}
+              onSave={handleSaveRecordedRoute}
+              onDiscard={() => {
+                setIsRecording(false);
+                setRecordedPath([]);
+              }}
+              onPointRecorded={(point) => {
+                setRecordedPath((prev) => [...prev, { lat: point.lat, lng: point.lng }]);
+              }}
+            />
+          </div>
         )}
 
         {/* Post-Ride Review Dialog */}
