@@ -70,6 +70,7 @@ export interface RoutesMapV2Handle {
   getMap: () => google.maps.Map | null;
   panTo: (lat: number, lng: number) => void;
   setZoom: (zoom: number) => void;
+  fitBounds: (coordinates: [number, number][]) => void;
   highlightRoute: (routeId: string | null) => void;
   setMapType: (type: "roadmap" | "satellite" | "terrain" | "hybrid") => void;
 }
@@ -162,6 +163,14 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       },
       setZoom: (zoom: number) => {
         mapRef.current?.setZoom(zoom);
+      },
+      fitBounds: (coordinates: [number, number][]) => {
+        if (!mapRef.current || coordinates.length === 0) return;
+        const bounds = new google.maps.LatLngBounds();
+        coordinates.forEach(([lng, lat]) => {
+          bounds.extend({ lat, lng });
+        });
+        mapRef.current.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 420 }); // Leave space for left panel
       },
       highlightRoute: (routeId: string | null) => {
         setCurrentHighlightId(routeId);

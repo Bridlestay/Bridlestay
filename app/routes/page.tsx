@@ -224,7 +224,7 @@ export default function RoutesPage() {
     setSelectedRouteId(routeId);
     setHighlightedRouteId(routeId);
     
-    // Open the full route drawer
+    // Open the full route drawer (now on left side)
     setDrawerOpen(true);
     setShowBottomSheet(false);
     
@@ -232,11 +232,9 @@ export default function RoutesPage() {
     const fullRoute = await fetchRouteData(routeId);
     setSelectedRouteData(fullRoute);
     
-    // Pan to route
+    // Zoom to fit the route
     if (fullRoute?.geometry?.coordinates?.length > 0) {
-      const midIdx = Math.floor(fullRoute.geometry.coordinates.length / 2);
-      const midPoint = fullRoute.geometry.coordinates[midIdx];
-      mapRef.current?.panTo(midPoint[1], midPoint[0]);
+      mapRef.current?.fitBounds(fullRoute.geometry.coordinates);
     }
   };
 
@@ -263,11 +261,9 @@ export default function RoutesPage() {
     const fullRoute = await fetchRouteData(routeId);
     setSelectedRouteData(fullRoute);
     
-    // Pan to route center
+    // Zoom to fit the route
     if (fullRoute?.geometry?.coordinates?.length > 0) {
-      const midIdx = Math.floor(fullRoute.geometry.coordinates.length / 2);
-      const midPoint = fullRoute.geometry.coordinates[midIdx];
-      mapRef.current?.panTo(midPoint[1], midPoint[0]);
+      mapRef.current?.fitBounds(fullRoute.geometry.coordinates);
     }
   };
 
@@ -797,18 +793,7 @@ export default function RoutesPage() {
           }}
         />
 
-        {/* Elevation Profile (shown when route selected) */}
-        {selectedRouteData?.geometry?.coordinates && drawerOpen && (
-          <div className="absolute bottom-4 left-4 right-[600px] z-10">
-            <ElevationProfile
-              coordinates={selectedRouteData.geometry.coordinates}
-              distanceKm={selectedRouteData.distance_km || 0}
-              onHover={(idx, pos) => {
-                // Could highlight point on map
-              }}
-            />
-          </div>
-        )}
+        {/* Elevation Profile moved inside the route detail panel */}
       </div>
     </TooltipProvider>
   );

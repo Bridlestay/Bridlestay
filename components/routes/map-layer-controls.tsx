@@ -18,7 +18,7 @@ import {
   Plus,
   MapPin,
   AlertTriangle,
-  Route,
+  Home,
   Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -260,7 +260,7 @@ export function MapLayerControls({
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Route className="h-4 w-4 text-purple-500" />
+                      <Home className="h-4 w-4 text-emerald-600" />
                       <span className="text-sm">Properties</span>
                     </div>
                     <Switch

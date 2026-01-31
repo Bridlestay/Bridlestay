@@ -1025,7 +1025,7 @@ export function RouteDetailDrawer({
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+      <SheetContent side="left" className="w-full sm:max-w-md overflow-y-auto p-0">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-muted-foreground">Loading...</p>
