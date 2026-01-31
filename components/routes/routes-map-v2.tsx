@@ -956,52 +956,135 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
           (marker as any).routeId = route.id;
           (marker as any).routeData = route;
 
-          // Click marker to show preview card
+          // Click marker to show preview card - Clean Airbnb-style design
           marker.addListener("click", () => {
             const clickedRoute = routesMap.get(route.id);
             if (!clickedRoute) return;
 
-            // Calculate ride time estimate
+            // Calculate ride time estimate (8 km/h average for horse riding)
             const rideTimeMinutes = Math.round((clickedRoute.distance_km || 0) / 8 * 60);
             const hours = Math.floor(rideTimeMinutes / 60);
             const mins = rideTimeMinutes % 60;
-            const timeStr = hours > 0 ? `${hours} h ${mins} min` : `${mins} min`;
+            const rideTimeStr = hours > 0 ? `${hours} h ${mins} min` : `${mins} min`;
+            
+            // Walking time (5 km/h)
+            const walkTimeMinutes = Math.round((clickedRoute.distance_km || 0) / 5 * 60);
+            const walkHours = Math.floor(walkTimeMinutes / 60);
+            const walkMins = walkTimeMinutes % 60;
+            const walkTimeStr = walkHours > 0 ? `${walkHours} h ${walkMins} min` : `${walkMins} min`;
 
-            // Difficulty badge color
-            const difficultyColors: Record<string, string> = {
-              easy: "#10B981",
-              moderate: "#3B82F6", 
-              difficult: "#F59E0B",
-              severe: "#EF4444",
-              unrated: "#6B7280",
+            // Difficulty badge colors - muted, elegant
+            const difficultyStyles: Record<string, { bg: string; text: string }> = {
+              easy: { bg: "#DCFCE7", text: "#166534" },
+              moderate: { bg: "#DBEAFE", text: "#1E40AF" },
+              difficult: { bg: "#FEF3C7", text: "#92400E" },
+              severe: { bg: "#FEE2E2", text: "#991B1B" },
+              unrated: { bg: "#F3F4F6", text: "#374151" },
             };
-            const diffColor = difficultyColors[clickedRoute.difficulty] || difficultyColors.unrated;
+            const diffStyle = difficultyStyles[clickedRoute.difficulty] || difficultyStyles.unrated;
 
-            // Create preview card HTML
+            // Create clean preview card - Airbnb meets OS Maps style
             const content = `
-              <div style="padding: 0; min-width: 240px; font-family: system-ui, -apple-system, sans-serif; border-radius: 8px; overflow: hidden;">
-                <div style="padding: 12px;">
-                  <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px; color: #111;">${clickedRoute.title || "Untitled Route"}</div>
-                  ${clickedRoute.owner?.name ? `<div style="font-size: 12px; color: #3B82F6; margin-bottom: 8px;">● ${clickedRoute.owner.name}</div>` : ""}
-                  <div style="display: flex; gap: 16px; font-size: 13px; color: #444; margin-bottom: 8px;">
-                    <span style="display: flex; align-items: center; gap: 4px;">
-                      <span style="font-size: 16px;">🐴</span>
-                      ${(clickedRoute.distance_km || 0).toFixed(2)} km
-                    </span>
-                    <span style="display: flex; align-items: center; gap: 4px;">
-                      <span style="font-size: 14px;">⏱</span>
-                      ${timeStr}
-                    </span>
+              <div style="
+                min-width: 280px;
+                max-width: 320px;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: white;
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+              ">
+                <!-- Route Title -->
+                <div style="padding: 16px 16px 12px;">
+                  <h3 style="
+                    margin: 0 0 4px 0;
+                    font-size: 17px;
+                    font-weight: 600;
+                    color: #111827;
+                    line-height: 1.3;
+                  ">${clickedRoute.title || "Untitled Route"}</h3>
+                  ${clickedRoute.owner?.name ? `
+                    <div style="
+                      display: flex;
+                      align-items: center;
+                      gap: 6px;
+                      color: #2E8B57;
+                      font-size: 13px;
+                      font-weight: 500;
+                    ">
+                      <span style="font-size: 8px;">●</span>
+                      ${clickedRoute.owner.name}
+                    </div>
+                  ` : ""}
+                </div>
+                
+                <!-- Stats Row -->
+                <div style="
+                  padding: 0 16px 14px;
+                  display: flex;
+                  flex-wrap: wrap;
+                  gap: 12px;
+                ">
+                  <!-- Distance -->
+                  <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    color: #374151;
+                    font-size: 13px;
+                  ">
+                    <span style="font-size: 15px;">🐴</span>
+                    <span style="font-weight: 500;">${(clickedRoute.distance_km || 0).toFixed(2)} km</span>
                   </div>
-                  <div style="display: inline-block; padding: 4px 10px; background: ${diffColor}; color: white; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: capitalize;">
-                    ${clickedRoute.difficulty || "Unrated"}
+                  
+                  <!-- Ride Time -->
+                  <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    color: #6B7280;
+                    font-size: 12px;
+                  ">
+                    <span>⏱</span>
+                    <span>${rideTimeStr}</span>
                   </div>
                 </div>
+                
+                <!-- Difficulty Badge -->
+                <div style="padding: 0 16px 16px;">
+                  <span style="
+                    display: inline-block;
+                    padding: 5px 12px;
+                    background: ${diffStyle.bg};
+                    color: ${diffStyle.text};
+                    border-radius: 20px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    text-transform: capitalize;
+                  ">${clickedRoute.difficulty || "Unrated"}</span>
+                </div>
+                
+                <!-- View Details Button -->
                 <div 
                   id="route-preview-btn-${route.id}"
-                  style="display: block; padding: 10px; background: #f8fafc; color: #3B82F6; text-align: center; font-size: 13px; font-weight: 500; cursor: pointer; border-top: 1px solid #e2e8f0; text-decoration: none;"
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    padding: 14px 16px;
+                    background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+                    color: white;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: opacity 0.2s;
+                  "
+                  onmouseover="this.style.opacity='0.9'"
+                  onmouseout="this.style.opacity='1'"
                 >
                   View details
+                  <span style="font-size: 12px;">→</span>
                 </div>
               </div>
             `;
