@@ -21,6 +21,7 @@ import {
   Star,
   Share2,
   Navigation,
+  Search,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
