@@ -70,7 +70,7 @@ export interface RoutesMapV2Handle {
   getMap: () => google.maps.Map | null;
   panTo: (lat: number, lng: number) => void;
   setZoom: (zoom: number) => void;
-  fitBounds: (coordinates: [number, number][]) => void;
+  fitBounds: (coordinates: [number, number][], padding?: { top?: number; right?: number; bottom?: number; left?: number }) => void;
   highlightRoute: (routeId: string | null) => void;
   setMapType: (type: "roadmap" | "satellite" | "terrain" | "hybrid") => void;
 }
@@ -164,13 +164,15 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       setZoom: (zoom: number) => {
         mapRef.current?.setZoom(zoom);
       },
-      fitBounds: (coordinates: [number, number][]) => {
+      fitBounds: (coordinates: [number, number][], padding?: { top?: number; right?: number; bottom?: number; left?: number }) => {
         if (!mapRef.current || coordinates.length === 0) return;
         const bounds = new google.maps.LatLngBounds();
         coordinates.forEach(([lng, lat]) => {
           bounds.extend({ lat, lng });
         });
-        mapRef.current.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 420 }); // Leave space for left panel
+        // Use provided padding or default (leave space for left panel in route view)
+        const defaultPadding = { top: 50, right: 50, bottom: 50, left: 100 };
+        mapRef.current.fitBounds(bounds, padding || defaultPadding);
       },
       highlightRoute: (routeId: string | null) => {
         setCurrentHighlightId(routeId);

@@ -104,9 +104,9 @@ export async function GET(
         name: property.name,
         city: property.city,
         county: property.county,
-        // Privacy: provide approximate lat/lng (rounded to 2 decimals ≈ 1km accuracy)
-        approximateLat: Math.round(Number(property.lat) * 100) / 100,
-        approximateLng: Math.round(Number(property.lng) * 100) / 100,
+        // Actual coordinates for map positioning
+        lat: Number(property.lat),
+        lng: Number(property.lng),
         distanceKm: Math.round(distance * 10) / 10, // Round to 1 decimal
         pricePerNight: property.nightly_price_pennies / 100,
         maxGuests: property.max_guests,

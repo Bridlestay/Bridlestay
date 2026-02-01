@@ -2,9 +2,8 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, Home, Warehouse } from "lucide-react";
+import { Star, Home, Warehouse, MapPin } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { HorseIcon } from "@/components/icons/horseshoe";
 
 interface NearbyPropertyCardProps {
@@ -21,13 +20,24 @@ interface NearbyPropertyCardProps {
     mainPhoto: string | null;
     stableCount: number;
     paddockCount: number;
+    lat?: number;
+    lng?: number;
   };
+  onShowOnMap?: (propertyId: string, lat: number, lng: number) => void;
 }
 
-export function NearbyPropertyCard({ property }: NearbyPropertyCardProps) {
+export function NearbyPropertyCard({ property, onShowOnMap }: NearbyPropertyCardProps) {
+  const handleClick = () => {
+    if (onShowOnMap && property.lat && property.lng) {
+      onShowOnMap(property.id, property.lat, property.lng);
+    }
+  };
+
   return (
-    <Link href={`/property/${property.id}`}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
+    <Card 
+      className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+      onClick={handleClick}
+    >
         {/* Property Image */}
         <div className="relative h-48 w-full bg-muted">
           {property.mainPhoto ? (
@@ -87,14 +97,20 @@ export function NearbyPropertyCard({ property }: NearbyPropertyCardProps) {
 
           {/* Price */}
           <div className="pt-2 border-t">
-            <div className="flex items-baseline gap-1">
-              <span className="text-xl font-bold">£{property.pricePerNight}</span>
-              <span className="text-sm text-muted-foreground">/night</span>
+            <div className="flex items-baseline justify-between">
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-bold">£{property.pricePerNight}</span>
+                <span className="text-sm text-muted-foreground">/night</span>
+              </div>
+              {/* Show on map indicator */}
+              <div className="flex items-center gap-1 text-primary text-sm font-medium">
+                <MapPin className="h-4 w-4" />
+                <span>Show on map</span>
+              </div>
             </div>
           </div>
         </div>
       </Card>
-    </Link>
   );
 }
 

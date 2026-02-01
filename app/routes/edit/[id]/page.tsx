@@ -127,28 +127,9 @@ export default function EditRoutePage() {
       // Give map time to initialize
       setTimeout(() => {
         if (mapRef.current && waypoints.length > 0) {
-          const lats = waypoints.map(wp => wp.lat);
-          const lngs = waypoints.map(wp => wp.lng);
-          
-          const bounds = {
-            north: Math.max(...lats),
-            south: Math.min(...lats),
-            east: Math.max(...lngs),
-            west: Math.min(...lngs),
-          };
-          
-          // Add 20% padding to bounds for better visibility
-          const latPadding = (bounds.north - bounds.south) * 0.2 || 0.005;
-          const lngPadding = (bounds.east - bounds.west) * 0.2 || 0.005;
-          
-          const paddedBounds = {
-            north: bounds.north + latPadding,
-            south: bounds.south - latPadding,
-            east: bounds.east + lngPadding,
-            west: bounds.west - lngPadding,
-          };
-          
-          mapRef.current.fitBounds?.(paddedBounds);
+          // Convert waypoints to [lng, lat] format for fitBounds
+          const coordinates: [number, number][] = waypoints.map(wp => [wp.lng, wp.lat]);
+          mapRef.current.fitBounds?.(coordinates);
         }
       }, 800);
     }

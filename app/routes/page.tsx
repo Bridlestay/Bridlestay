@@ -791,6 +791,21 @@ export default function RoutesPage() {
             setHighlightedRouteId(null);
             setDrawnRouteId(null); // Clear route polyline from map
           }}
+          onShowPropertyOnMap={(propertyId, lat, lng) => {
+            // Close the route drawer
+            setDrawerOpen(false);
+            setSelectedRouteId(null);
+            setSelectedRouteData(null);
+            setHighlightedRouteId(null);
+            setDrawnRouteId(null);
+            
+            // Pan to the property location and zoom in
+            mapRef.current?.panTo(lat, lng);
+            mapRef.current?.setZoom(15);
+            
+            // Switch to map tab to show the property pin
+            setActiveTab("map");
+          }}
         />
 
         {/* Elevation Profile moved inside the route detail panel */}

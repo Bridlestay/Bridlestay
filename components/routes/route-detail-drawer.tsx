@@ -72,6 +72,7 @@ interface RouteDetailDrawerProps {
   routeId: string | null;
   open: boolean;
   onClose: () => void;
+  onShowPropertyOnMap?: (propertyId: string, lat: number, lng: number) => void;
 }
 
 const HAZARD_TYPES = [
@@ -252,6 +253,7 @@ export function RouteDetailDrawer({
   routeId,
   open,
   onClose,
+  onShowPropertyOnMap,
 }: RouteDetailDrawerProps) {
   const [route, setRoute] = useState<any>(null);
   const [waypoints, setWaypoints] = useState<any[]>([]);
@@ -1877,7 +1879,11 @@ export function RouteDetailDrawer({
                     </p>
                     <div className="grid gap-4">
                       {nearbyProperties.map((property) => (
-                        <NearbyPropertyCard key={property.id} property={property} />
+                        <NearbyPropertyCard 
+                          key={property.id} 
+                          property={property} 
+                          onShowOnMap={onShowPropertyOnMap}
+                        />
                       ))}
                     </div>
                   </div>
