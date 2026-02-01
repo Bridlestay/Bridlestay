@@ -12,8 +12,6 @@ import {
   Mountain,
   Satellite,
   X,
-  Navigation,
-  Maximize,
   Minus,
   Plus,
   MapPin,
@@ -41,25 +39,30 @@ export interface LayerSettings {
 interface MapLayerControlsProps {
   settings: LayerSettings;
   onSettingsChange: (settings: LayerSettings) => void;
-  onLocateMe: () => void;
-  onFullscreen: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
-  isFullscreen?: boolean;
   className?: string;
+  showPanel?: boolean;
+  onPanelChange?: (open: boolean) => void;
 }
 
 export function MapLayerControls({
   settings,
   onSettingsChange,
-  onLocateMe,
-  onFullscreen,
   onZoomIn,
   onZoomOut,
-  isFullscreen,
   className,
+  showPanel: externalShowPanel,
+  onPanelChange,
 }: MapLayerControlsProps) {
-  const [showLayerPanel, setShowLayerPanel] = useState(false);
+  const [internalShowPanel, setInternalShowPanel] = useState(false);
+  
+  // Use external state if provided, otherwise internal
+  const showLayerPanel = externalShowPanel ?? internalShowPanel;
+  const setShowLayerPanel = (open: boolean) => {
+    setInternalShowPanel(open);
+    onPanelChange?.(open);
+  };
 
   const updateSetting = <K extends keyof LayerSettings>(
     key: K,
@@ -86,26 +89,6 @@ export function MapLayerControls({
           onClick={() => setShowLayerPanel(!showLayerPanel)}
         >
           <Layers className="h-5 w-5 text-gray-700" />
-        </Button>
-
-        {/* GPS Location button */}
-        <Button
-          variant="secondary"
-          size="icon"
-          className="h-11 w-11 rounded-full shadow-lg bg-white hover:bg-gray-100"
-          onClick={onLocateMe}
-        >
-          <Navigation className="h-5 w-5 text-gray-700" />
-        </Button>
-
-        {/* Fullscreen button */}
-        <Button
-          variant="secondary"
-          size="icon"
-          className="h-11 w-11 rounded-full shadow-lg bg-white hover:bg-gray-100"
-          onClick={onFullscreen}
-        >
-          <Maximize className="h-5 w-5 text-gray-700" />
         </Button>
 
         {/* Zoom controls */}

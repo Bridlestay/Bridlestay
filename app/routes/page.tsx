@@ -16,6 +16,9 @@ import { PostRideReview } from "@/components/routes/post-ride-review";
 import { ElevationProfile } from "@/components/routes/elevation-profile";
 import { ClearRouteDialog, DiscardRouteDialog } from "@/components/routes/confirm-dialog";
 import { RoutesMapHeader } from "@/components/routes/routes-map-header";
+import { MobileTopHeader } from "@/components/routes/mobile-top-header";
+import { MobileBottomNav } from "@/components/routes/mobile-bottom-nav";
+import { MobileFabMenu } from "@/components/routes/mobile-fab-menu";
 import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -82,6 +85,7 @@ export default function RoutesPage() {
   // Dialog states
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [showLayerPanel, setShowLayerPanel] = useState(false);
 
   // Route style state
   const [routeStyle, setRouteStyle] = useState<RouteStyle>({
@@ -685,11 +689,8 @@ export default function RoutesPage() {
           <MapLayerControls
             settings={layerSettings}
             onSettingsChange={setLayerSettings}
-            onLocateMe={handleLocateMe}
-            onFullscreen={handleFullscreen}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
-            isFullscreen={isFullscreen}
           />
         </div>
 
@@ -731,13 +732,29 @@ export default function RoutesPage() {
           />
         </div>
 
-        {/* Map Header with hamburger menu (only visible when map tab is active) */}
+        {/* Mobile Top Header (hamburger, search, profile) - visible on mobile */}
+        <MobileTopHeader />
+
+        {/* Desktop Map Header with hamburger menu (only visible when map tab is active) */}
         {activeTab === "map" && (
-          <RoutesMapHeader />
+          <div className="hidden md:block">
+            <RoutesMapHeader />
+          </div>
         )}
 
-        {/* Navigation tabs */}
-        <RoutesNavTabs activeTab={activeTab} onTabChange={setActiveTab} />
+        {/* Desktop Navigation tabs - hidden on mobile */}
+        <div className="hidden md:block">
+          <RoutesNavTabs activeTab={activeTab} onTabChange={setActiveTab} />
+        </div>
+
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+
+        {/* Mobile FAB Menu (+ button for settings) */}
+        <MobileFabMenu 
+          onOpenSettings={() => setShowLayerPanel(true)}
+          onLocateMe={handleLocateMe}
+        />
 
         {/* Saved Routes Panel */}
         <SavedRoutesPanel
@@ -756,15 +773,15 @@ export default function RoutesPage() {
           onRoutesFound={(routes) => setExploreRoutes(routes)}
         />
 
-        {/* Layer controls (bottom right) */}
+        {/* Layer controls (bottom right) - FAB buttons hidden on mobile, panel visible on both */}
         <MapLayerControls
           settings={layerSettings}
           onSettingsChange={setLayerSettings}
-          onLocateMe={handleLocateMe}
-          onFullscreen={handleFullscreen}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
-          isFullscreen={isFullscreen}
+          showPanel={showLayerPanel}
+          onPanelChange={setShowLayerPanel}
+          className="hidden md:flex"
         />
 
         {/* Route info bottom sheet */}
