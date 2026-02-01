@@ -54,8 +54,11 @@ export default function RoutesPage() {
     monochrome: false,
   });
 
-  // Create Route state
+  // Create/Edit Route state
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingRouteId, setEditingRouteId] = useState<string | null>(null);
+  const [editingRouteData, setEditingRouteData] = useState<any>(null);
   const [isPlotting, setIsPlotting] = useState(false);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
@@ -455,23 +458,31 @@ export default function RoutesPage() {
       throw new Error("At least 2 waypoints are required");
     }
 
-    const res = await fetch("/api/routes", {
-      method: "POST",
+    const payload = {
+      title: routeData.title.trim(),
+      description: routeData.description?.trim() || "",
+      visibility: routeData.visibility,
+      difficulty: routeData.difficulty,
+      route_type: routeType,
+      geometry: {
+        type: "LineString",
+        coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
+      },
+      distance_km: routeData.distanceKm,
+      estimated_time_minutes: routeData.estimatedTimeMinutes,
+      is_public: routeData.visibility === "public",
+    };
+
+    // Use PATCH for editing, POST for creating
+    const url = isEditing && editingRouteId 
+      ? `/api/routes/${editingRouteId}` 
+      : "/api/routes";
+    const method = isEditing && editingRouteId ? "PATCH" : "POST";
+
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: routeData.title.trim(),
-        description: routeData.description?.trim() || "",
-        visibility: routeData.visibility,
-        difficulty: routeData.difficulty,
-        route_type: routeType,
-        geometry: {
-          type: "LineString",
-          coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
-        },
-        distance_km: routeData.distanceKm,
-        estimated_time_minutes: routeData.estimatedTimeMinutes,
-        is_public: routeData.visibility === "public",
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
@@ -479,14 +490,19 @@ export default function RoutesPage() {
       throw new Error(errorData.error || "Failed to save route");
     }
 
+    // Reset state
     setIsCreating(false);
+    setIsEditing(false);
+    setEditingRouteId(null);
+    setEditingRouteData(null);
     setWaypoints([]);
     setHistory([]);
     setRouteType("linear");
     setToolMode("plot");
     setActiveTab("map");
+    setDrawnRouteId(null);
     fetchExploreRoutes();
-    toast.success("Route saved!");
+    toast.success(isEditing ? "Route updated!" : "Route saved!");
   };
 
   // Handle recorded route save
@@ -519,18 +535,54 @@ export default function RoutesPage() {
 
   const startCreating = () => {
     setIsCreating(true);
+    setIsEditing(false);
+    setEditingRouteId(null);
+    setEditingRouteData(null);
     setIsPlotting(true);
     setToolMode("plot");
     setShowBottomSheet(false);
   };
 
+  const startEditing = (routeId: string, routeData: any) => {
+    // Close the drawer first
+    setDrawerOpen(false);
+    setSelectedRouteId(null);
+    
+    // Extract waypoints from route geometry
+    const coords = routeData.geometry?.coordinates || [];
+    const extractedWaypoints: Waypoint[] = coords.map((coord: number[], index: number) => ({
+      id: `wp-${Date.now()}-${index}`,
+      lat: coord[1],
+      lng: coord[0],
+      snapped: false,
+    }));
+    
+    // Set up editing state
+    setWaypoints(extractedWaypoints);
+    setRouteType(routeData.route_type === "circular" ? "circular" : "linear");
+    setIsEditing(true);
+    setEditingRouteId(routeId);
+    setEditingRouteData(routeData);
+    setIsCreating(true);
+    setIsPlotting(true);
+    setToolMode("plot");
+    setActiveTab("create");
+    
+    // Keep the route visible by setting drawnRouteId temporarily
+    setDrawnRouteId(routeId);
+  };
+
   const cancelCreating = () => {
     setIsCreating(false);
+    setIsEditing(false);
+    setEditingRouteId(null);
+    setEditingRouteData(null);
     setIsPlotting(false);
     setWaypoints([]);
     setHistory([]);
     setRouteType("linear");
     setToolMode("plot");
+    setDrawnRouteId(null);
   };
 
   const confirmCancel = () => {
@@ -582,19 +634,20 @@ export default function RoutesPage() {
                 }}
                 mapRef={mapRef}
                 existingRoute={{
-                  title: "",
-                  description: "",
-                  visibility: "private",
-                  difficulty: "unrated",
+                  title: isEditing && editingRouteData ? editingRouteData.title : "",
+                  description: isEditing && editingRouteData ? (editingRouteData.description || "") : "",
+                  visibility: isEditing && editingRouteData ? (editingRouteData.visibility || "private") : "private",
+                  difficulty: isEditing && editingRouteData ? (editingRouteData.difficulty || "unrated") : "unrated",
                   routeType,
                   waypoints,
                   geometry: {
                     type: "LineString",
                     coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
                   },
-                  distanceKm: 0,
-                  estimatedTimeMinutes: 0,
+                  distanceKm: isEditing && editingRouteData ? (editingRouteData.distance_km || 0) : 0,
+                  estimatedTimeMinutes: isEditing && editingRouteData ? (editingRouteData.estimated_time_minutes || 0) : 0,
                 }}
+                isEditing={isEditing}
               />
             </div>
             <div className="border-t p-4">
@@ -805,6 +858,14 @@ export default function RoutesPage() {
             
             // Switch to map tab to show the property pin
             setActiveTab("map");
+            
+            // Open the property's info window after a short delay (allow map to pan first)
+            setTimeout(() => {
+              mapRef.current?.showPropertyInfoWindow(propertyId);
+            }, 500);
+          }}
+          onEditRoute={(routeId, routeData) => {
+            startEditing(routeId, routeData);
           }}
         />
 

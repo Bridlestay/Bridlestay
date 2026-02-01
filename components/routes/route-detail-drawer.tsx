@@ -73,6 +73,7 @@ interface RouteDetailDrawerProps {
   open: boolean;
   onClose: () => void;
   onShowPropertyOnMap?: (propertyId: string, lat: number, lng: number) => void;
+  onEditRoute?: (routeId: string, routeData: any) => void;
 }
 
 const HAZARD_TYPES = [
@@ -254,6 +255,7 @@ export function RouteDetailDrawer({
   open,
   onClose,
   onShowPropertyOnMap,
+  onEditRoute,
 }: RouteDetailDrawerProps) {
   const [route, setRoute] = useState<any>(null);
   const [waypoints, setWaypoints] = useState<any[]>([]);
@@ -1183,13 +1185,15 @@ export function RouteDetailDrawer({
             </div>
 
             {/* Edit Route Button for Owners */}
-            {(isOwner || isAdmin) && (
-              <Link href={`/routes/edit/${routeId}`} className="block">
-                <Button variant="outline" className="w-full">
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Edit Route
-                </Button>
-              </Link>
+            {(isOwner || isAdmin) && onEditRoute && (
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => onEditRoute(routeId!, route)}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit Route
+              </Button>
             )}
 
             <Separator />

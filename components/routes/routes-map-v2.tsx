@@ -73,6 +73,7 @@ export interface RoutesMapV2Handle {
   fitBounds: (coordinates: [number, number][], padding?: { top?: number; right?: number; bottom?: number; left?: number }) => void;
   highlightRoute: (routeId: string | null) => void;
   setMapType: (type: "roadmap" | "satellite" | "terrain" | "hybrid") => void;
+  showPropertyInfoWindow: (propertyId: string) => void;
 }
 
 // Distance threshold for detecting circular route (in meters)
@@ -119,7 +120,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
     const markerClustererRef = useRef<MarkerClusterer | null>(null);
     const waypointMarkersRef = useRef<Map<string, google.maps.Marker>>(new Map());
     const routeLineRef = useRef<google.maps.Polyline | null>(null);
-    const propertyMarkersRef = useRef<google.maps.Marker[]>([]);
+    const propertyMarkersRef = useRef<Map<string, google.maps.Marker>>(new Map());
     const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
     const directionsServiceRef = useRef<google.maps.DirectionsService | null>(null);
     const userMarkerRef = useRef<google.maps.Marker | null>(null);
@@ -180,6 +181,13 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       setMapType: (type: "roadmap" | "satellite" | "terrain" | "hybrid") => {
         mapRef.current?.setMapTypeId(type);
       },
+      showPropertyInfoWindow: (propertyId: string) => {
+        const marker = propertyMarkersRef.current.get(propertyId);
+        if (marker && infoWindowRef.current) {
+          // Trigger the click event on the marker to show its info window
+          google.maps.event.trigger(marker, 'click');
+        }
+      },
     }));
 
     // Initialize map with terrain and trails visible
@@ -197,6 +205,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
         zoomControl: false,
         rotateControl: false,
         scaleControl: true,
+        keyboardShortcuts: false, // Disable keyboard shortcuts hint
         // Default cursor (not hand tool)
         draggableCursor: "default",
         // Custom styling to highlight paths and trails
@@ -229,6 +238,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
         markerClustererRef.current?.clearMarkers();
         waypointMarkersRef.current.forEach((m) => m.setMap(null));
         propertyMarkersRef.current.forEach((m) => m.setMap(null));
+        propertyMarkersRef.current.clear();
         routeLineRef.current?.setMap(null);
         snapPolylineRef.current?.setMap(null);
         pathPolylinesRef.current.forEach((p) => p.setMap(null));
@@ -1399,7 +1409,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       if (!mapRef.current || !isLoaded) return;
 
       propertyMarkersRef.current.forEach((m) => m.setMap(null));
-      propertyMarkersRef.current = [];
+      propertyMarkersRef.current.clear();
 
       // Create custom markers with price labels
       propertyPins.forEach((property) => {
@@ -1442,6 +1452,9 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
           optimized: true,
         });
 
+        // Store property data on marker for info window
+        (marker as any).propertyData = property;
+
         marker.addListener("click", () => {
           if (infoWindowRef.current) {
             const rating = property.average_rating 
@@ -1476,7 +1489,8 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
           }
         });
 
-        propertyMarkersRef.current.push(marker);
+        // Store marker by property ID
+        propertyMarkersRef.current.set(property.id, marker);
       });
     }, [isLoaded, propertyPins]);
 
