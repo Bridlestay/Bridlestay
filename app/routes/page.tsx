@@ -21,6 +21,8 @@ import { MobileBottomNav } from "@/components/routes/mobile-bottom-nav";
 import { MobileFabMenu } from "@/components/routes/mobile-fab-menu";
 import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { Map, Settings } from "lucide-react";
 
 export default function RoutesPage() {
   const mapRef = useRef<RoutesMapV2Handle>(null);
@@ -73,6 +75,10 @@ export default function RoutesPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordedPath, setRecordedPath] = useState<{ lat: number; lng: number }[]>([]);
 
+  // Mobile create route state (toggles between map and options/settings view)
+  const [mobileCreateView, setMobileCreateView] = useState<"options" | "map">("options");
+  const [pendingTabChange, setPendingTabChange] = useState<RouteTab | null>(null);
+
   // Navigation state
   const [isNavigating, setIsNavigating] = useState(false);
   const [navigatingRoute, setNavigatingRoute] = useState<any | null>(null);
@@ -121,14 +127,39 @@ export default function RoutesPage() {
   useEffect(() => {
     if (activeTab === "create") {
       startCreating();
+      setMobileCreateView("options"); // Start with options on mobile
     } else {
       if (isCreating && waypoints.length > 0) {
-        setShowDiscardDialog(true);
+        // Don't auto-cancel if there's a pending tab change dialog
+        if (!pendingTabChange) {
+          setShowDiscardDialog(true);
+        }
       } else {
         cancelCreating();
       }
     }
   }, [activeTab]);
+
+  // Handle mobile tab change with discard confirmation
+  const handleMobileTabChange = (tab: RouteTab) => {
+    if (isCreating && waypoints.length > 0 && tab !== "create") {
+      setPendingTabChange(tab);
+      setShowDiscardDialog(true);
+    } else {
+      setActiveTab(tab);
+    }
+  };
+
+  // Handle discard confirmation for mobile
+  const handleDiscardConfirm = () => {
+    cancelCreating();
+    if (pendingTabChange) {
+      setActiveTab(pendingTabChange);
+      setPendingTabChange(null);
+    } else {
+      setActiveTab("map");
+    }
+  };
 
   // Enable path layers when creating routes
   useEffect(() => {
@@ -590,8 +621,7 @@ export default function RoutesPage() {
   };
 
   const confirmCancel = () => {
-    cancelCreating();
-    setActiveTab("map");
+    handleDiscardConfirm();
   };
 
   // Route creation mode
@@ -599,8 +629,12 @@ export default function RoutesPage() {
     return (
       <TooltipProvider>
         <div className="fixed inset-0 bg-background">
-          {/* Full-screen map for route creation */}
-          <div className="absolute inset-0">
+          {/* Full-screen map for route creation - always rendered, visibility controlled */}
+          <div className={cn(
+            "absolute inset-0",
+            // On mobile, only show map when in map view
+            mobileCreateView === "options" ? "hidden md:block" : "block"
+          )}>
             <RoutesMapV2
               ref={mapRef}
               isCreating={isCreating}
@@ -621,11 +655,13 @@ export default function RoutesPage() {
             />
           </div>
 
-          {/* Navigation tabs */}
-          <RoutesNavTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          {/* Desktop Navigation tabs - hidden on mobile */}
+          <div className="hidden md:block">
+            <RoutesNavTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          </div>
 
-          {/* Route creation sidebar (left panel) */}
-          <div className="absolute top-0 left-0 bottom-0 w-96 bg-white shadow-2xl z-20 flex flex-col overflow-hidden">
+          {/* DESKTOP: Route creation sidebar (left panel) */}
+          <div className="hidden md:flex absolute top-0 left-0 bottom-0 w-96 bg-white shadow-2xl z-20 flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
               <RouteCreator
                 onSave={handleSaveRoute}
@@ -670,27 +706,162 @@ export default function RoutesPage() {
             </div>
           </div>
 
-          {/* Route creation toolbar */}
-          <RouteCreatorToolbar
-            isPlotting={isPlotting}
-            setIsPlotting={setIsPlotting}
-            snapEnabled={snapEnabled}
-            setSnapEnabled={setSnapEnabled}
-            toolMode={toolMode}
-            setToolMode={setToolMode}
-            onUndo={handleUndo}
-            onClear={handleClear}
-            canUndo={history.length > 0}
-            routeStyle={routeStyle}
-            onStyleChange={setRouteStyle}
-          />
+          {/* MOBILE: Options view (route form/settings) */}
+          {mobileCreateView === "options" && (
+            <div className="md:hidden fixed inset-0 bg-white z-20 flex flex-col overflow-hidden">
+              {/* Mobile top header with hamburger, search, profile */}
+              <MobileTopHeader />
 
-          {/* Map controls - stays on right side */}
+              {/* Floating Map button - appears at top when scrolled up */}
+              <div className="fixed top-20 left-1/2 -translate-x-1/2 z-30">
+                <Button
+                  onClick={() => setMobileCreateView("map")}
+                  className="rounded-full px-6 py-2 bg-gray-800 hover:bg-gray-700 text-white shadow-lg flex items-center gap-2"
+                >
+                  <Map className="h-4 w-4" />
+                  Map
+                </Button>
+              </div>
+
+              {/* Create Route Form */}
+              <div className="flex-1 overflow-y-auto pt-32 pb-20">
+                <RouteCreator
+                  onSave={handleSaveRoute}
+                  onCancel={() => {
+                    if (waypoints.length > 0) {
+                      setShowDiscardDialog(true);
+                    } else {
+                      confirmCancel();
+                    }
+                  }}
+                  mapRef={mapRef}
+                  existingRoute={{
+                    title: isEditing && editingRouteData ? editingRouteData.title : "",
+                    description: isEditing && editingRouteData ? (editingRouteData.description || "") : "",
+                    visibility: isEditing && editingRouteData ? (editingRouteData.visibility || "private") : "private",
+                    difficulty: isEditing && editingRouteData ? (editingRouteData.difficulty || "unrated") : "unrated",
+                    routeType,
+                    waypoints,
+                    geometry: {
+                      type: "LineString",
+                      coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
+                    },
+                    distanceKm: isEditing && editingRouteData ? (editingRouteData.distance_km || 0) : 0,
+                    estimatedTimeMinutes: isEditing && editingRouteData ? (editingRouteData.estimated_time_minutes || 0) : 0,
+                  }}
+                  isEditing={isEditing}
+                  isMobile={true}
+                />
+              </div>
+
+              {/* Mobile Bottom Nav */}
+              <MobileBottomNav 
+                activeTab={activeTab} 
+                onTabChange={handleMobileTabChange}
+                isRecording={isRecording}
+                onRecordClick={() => {
+                  if (isRecording) {
+                    setIsRecording(false);
+                  } else {
+                    setIsRecording(true);
+                    setRecordedPath([]);
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* MOBILE: Map view for plotting route */}
+          {mobileCreateView === "map" && (
+            <div className="md:hidden">
+              {/* Mobile Route Creator Toolbar at top */}
+              <div className="fixed top-4 left-4 right-4 z-30 bg-white rounded-lg shadow-lg p-2">
+                <RouteCreatorToolbar
+                  isPlotting={isPlotting}
+                  setIsPlotting={setIsPlotting}
+                  snapEnabled={snapEnabled}
+                  setSnapEnabled={setSnapEnabled}
+                  toolMode={toolMode}
+                  setToolMode={setToolMode}
+                  onUndo={handleUndo}
+                  onClear={handleClear}
+                  canUndo={history.length > 0}
+                  routeStyle={routeStyle}
+                  onStyleChange={setRouteStyle}
+                  isMobile={true}
+                />
+              </div>
+
+              {/* Options button - bottom center */}
+              <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-30">
+                <Button
+                  onClick={() => setMobileCreateView("options")}
+                  className="rounded-full px-6 py-2.5 bg-gray-800 hover:bg-gray-700 text-white shadow-lg flex items-center gap-2"
+                >
+                  <Settings className="h-4 w-4" />
+                  Options
+                </Button>
+              </div>
+
+              {/* Mobile FAB for map settings */}
+              <MobileFabMenu 
+                onOpenSettings={() => setShowLayerPanel(true)}
+                onLocateMe={handleLocateMe}
+              />
+
+              {/* Mobile Bottom Nav */}
+              <MobileBottomNav 
+                activeTab={activeTab} 
+                onTabChange={handleMobileTabChange}
+                isRecording={isRecording}
+                onRecordClick={() => {
+                  if (isRecording) {
+                    setIsRecording(false);
+                  } else {
+                    setIsRecording(true);
+                    setRecordedPath([]);
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* Desktop Route creation toolbar */}
+          <div className="hidden md:block">
+            <RouteCreatorToolbar
+              isPlotting={isPlotting}
+              setIsPlotting={setIsPlotting}
+              snapEnabled={snapEnabled}
+              setSnapEnabled={setSnapEnabled}
+              toolMode={toolMode}
+              setToolMode={setToolMode}
+              onUndo={handleUndo}
+              onClear={handleClear}
+              canUndo={history.length > 0}
+              routeStyle={routeStyle}
+              onStyleChange={setRouteStyle}
+            />
+          </div>
+
+          {/* Map controls - desktop only, mobile uses FAB */}
+          <div className="hidden md:block">
+            <MapLayerControls
+              settings={layerSettings}
+              onSettingsChange={setLayerSettings}
+              onZoomIn={handleZoomIn}
+              onZoomOut={handleZoomOut}
+            />
+          </div>
+
+          {/* Mobile layer panel - shared between views */}
           <MapLayerControls
             settings={layerSettings}
             onSettingsChange={setLayerSettings}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
+            showPanel={showLayerPanel}
+            onPanelChange={setShowLayerPanel}
+            className="hidden"
           />
         </div>
 
@@ -701,7 +872,10 @@ export default function RoutesPage() {
         />
         <DiscardRouteDialog
           open={showDiscardDialog}
-          onOpenChange={setShowDiscardDialog}
+          onOpenChange={(open) => {
+            setShowDiscardDialog(open);
+            if (!open) setPendingTabChange(null);
+          }}
           onConfirm={confirmCancel}
         />
       </TooltipProvider>
@@ -748,7 +922,19 @@ export default function RoutesPage() {
         </div>
 
         {/* Mobile Bottom Navigation */}
-        <MobileBottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+        <MobileBottomNav 
+          activeTab={activeTab} 
+          onTabChange={handleMobileTabChange}
+          isRecording={isRecording}
+          onRecordClick={() => {
+            if (isRecording) {
+              setIsRecording(false);
+            } else {
+              setIsRecording(true);
+              setRecordedPath([]);
+            }
+          }}
+        />
 
         {/* Mobile FAB Menu (+ button for settings) */}
         <MobileFabMenu 

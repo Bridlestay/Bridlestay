@@ -51,6 +51,7 @@ export interface RouteCreatorProps {
   existingRoute?: RouteData | null;
   onRouteTypeChange?: (routeType: "circular" | "linear") => void;
   isEditing?: boolean;
+  isMobile?: boolean;
 }
 
 export interface RouteData {
@@ -75,6 +76,7 @@ export function RouteCreator({
   existingRoute,
   onRouteTypeChange,
   isEditing = false,
+  isMobile = false,
 }: RouteCreatorProps) {
   // Route metadata
   const [title, setTitle] = useState(existingRoute?.title || "");
@@ -200,14 +202,16 @@ export function RouteCreator({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Panel Header with menu, search, profile, close */}
-      <RoutesPanelHeader
-        onClose={onCancel}
-        showSearch={false}
-      />
+      {/* Panel Header with menu, search, profile, close - desktop only */}
+      {!isMobile && (
+        <RoutesPanelHeader
+          onClose={onCancel}
+          showSearch={false}
+        />
+      )}
       
       {/* Title bar */}
-      <div className="px-4 py-2 border-b bg-background">
+      <div className={`px-4 py-2 border-b bg-background ${isMobile ? "text-center" : ""}`}>
         <h2 className="text-lg font-semibold">{isEditing ? "Edit Route" : "Create Route"}</h2>
       </div>
 
@@ -497,6 +501,7 @@ export function RouteCreatorToolbar({
   canUndo,
   routeStyle,
   onStyleChange,
+  isMobile = false,
 }: {
   isPlotting: boolean;
   setIsPlotting: (v: boolean) => void;
@@ -509,6 +514,7 @@ export function RouteCreatorToolbar({
   canUndo: boolean;
   routeStyle?: RouteStyle;
   onStyleChange?: (style: RouteStyle) => void;
+  isMobile?: boolean;
 }) {
   const [showStylePopup, setShowStylePopup] = useState(false);
   const [localStyle, setLocalStyle] = useState<RouteStyle>(
@@ -535,6 +541,126 @@ export function RouteCreatorToolbar({
     }
   };
 
+  // Mobile layout - compact horizontal toolbar
+  if (isMobile) {
+    return (
+      <div className="flex items-center justify-around gap-1 w-full">
+        {/* Plot */}
+        <button
+          onClick={() => handleToolClick("plot")}
+          className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all ${
+            isPlotting && toolMode === "plot"
+              ? `${activeColor} ${activeTextColor}` 
+              : "text-gray-600"
+          }`}
+        >
+          <Pencil className="h-5 w-5" />
+          <span className="text-[10px] mt-0.5 font-medium">Plot</span>
+        </button>
+
+        {/* Snap */}
+        <button
+          onClick={() => setSnapEnabled(!snapEnabled)}
+          className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all ${
+            snapEnabled 
+              ? `${activeColor} ${activeTextColor}` 
+              : "text-gray-600"
+          }`}
+        >
+          <Magnet className="h-5 w-5" />
+          <span className="text-[10px] mt-0.5 font-medium">Snap</span>
+        </button>
+
+        {/* Undo */}
+        <button
+          onClick={onUndo}
+          disabled={!canUndo}
+          className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all ${
+            canUndo ? "text-gray-600" : "text-gray-300"
+          }`}
+        >
+          <Undo2 className="h-5 w-5" />
+          <span className="text-[10px] mt-0.5 font-medium">Undo</span>
+        </button>
+
+        {/* Remove (Erase) */}
+        <button
+          onClick={() => handleToolClick("erase")}
+          className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all ${
+            isPlotting && toolMode === "erase"
+              ? `${activeColor} ${activeTextColor}` 
+              : "text-gray-600"
+          }`}
+        >
+          <Eraser className="h-5 w-5" />
+          <span className="text-[10px] mt-0.5 font-medium">Remove</span>
+        </button>
+
+        {/* Style */}
+        <div className="relative">
+          <button
+            onClick={() => setShowStylePopup(!showStylePopup)}
+            className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all ${
+              showStylePopup ? `${activeColor} ${activeTextColor}` : "text-gray-600"
+            }`}
+          >
+            <Palette className="h-5 w-5" />
+            <span className="text-[10px] mt-0.5 font-medium">Style</span>
+          </button>
+
+          {/* Style Popup - positioned for mobile */}
+          {showStylePopup && (
+            <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border p-3 z-50">
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1.5">Colour</label>
+                  <div className="flex gap-2">
+                    {ROUTE_COLORS.map((c) => (
+                      <button
+                        key={c.value}
+                        onClick={() => handleStyleChange({ color: c.value })}
+                        className={`w-7 h-7 rounded-full transition-all ${
+                          localStyle.color === c.value ? "ring-2 ring-offset-1 ring-[#2E8B57]" : ""
+                        }`}
+                        style={{ backgroundColor: c.value }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1.5">Thickness</label>
+                  <div className="flex items-center gap-1">
+                    {THICKNESS_OPTIONS.map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => handleStyleChange({ thickness: t })}
+                        className={`flex-1 h-7 rounded border transition-all flex items-center justify-center ${
+                          localStyle.thickness === t ? "border-[#2E8B57] bg-[#2E8B57]/10" : "border-gray-200"
+                        }`}
+                      >
+                        <div className="rounded-full bg-gray-800" style={{ height: `${t}px`, width: "16px" }} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* More (3 dots for additional options) */}
+        <button
+          onClick={onClear}
+          className="flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all text-gray-600"
+        >
+          <Trash2 className="h-5 w-5" />
+          <span className="text-[10px] mt-0.5 font-medium">Clear</span>
+        </button>
+      </div>
+    );
+  }
+
+  // Desktop layout
   return (
     <div className="absolute top-20 right-4 z-30">
       <Card className="p-1.5 bg-white shadow-lg border-0 rounded-lg">
