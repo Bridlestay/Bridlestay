@@ -11,7 +11,6 @@ import { SavedRoutesPanel } from "@/components/routes/saved-routes-panel";
 import { FindRoutesPanel } from "@/components/routes/find-routes-panel";
 import { RouteBottomSheet } from "@/components/routes/route-bottom-sheet";
 import { RouteNavigator } from "@/components/routes/route-navigator";
-import { RouteRecorder } from "@/components/routes/route-recorder";
 import { PostRideReview } from "@/components/routes/post-ride-review";
 import { ElevationProfile } from "@/components/routes/elevation-profile";
 import { ClearRouteDialog, DiscardRouteDialog } from "@/components/routes/confirm-dialog";
@@ -706,25 +705,67 @@ export default function RoutesPage() {
             </div>
           </div>
 
-          {/* MOBILE: Options view (route form/settings) */}
-          {mobileCreateView === "options" && (
-            <div className="md:hidden fixed inset-0 bg-white z-20 flex flex-col overflow-hidden">
-              {/* Mobile top header with hamburger, search, profile */}
-              <MobileTopHeader />
+          {/* MOBILE: Map view with bottom sheet for options */}
+          <div className="md:hidden">
+            {/* Mobile top header with hamburger, search, profile - always visible */}
+            <MobileTopHeader />
 
-              {/* Floating Map button - appears at top when scrolled up */}
-              <div className="fixed top-20 left-1/2 -translate-x-1/2 z-30">
+            {/* Mobile Route Creator Toolbar below header */}
+            <div className="fixed top-14 left-0 right-0 z-30 bg-white border-b border-gray-100 px-3 py-2">
+              <RouteCreatorToolbar
+                isPlotting={isPlotting}
+                setIsPlotting={setIsPlotting}
+                snapEnabled={snapEnabled}
+                setSnapEnabled={setSnapEnabled}
+                toolMode={toolMode}
+                setToolMode={setToolMode}
+                onUndo={handleUndo}
+                onClear={handleClear}
+                canUndo={history.length > 0}
+                routeStyle={routeStyle}
+                onStyleChange={setRouteStyle}
+                isMobile={true}
+              />
+            </div>
+
+            {/* Options button - bottom center (only when sheet is closed) */}
+            {mobileCreateView === "map" && (
+              <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-30">
                 <Button
-                  onClick={() => setMobileCreateView("map")}
-                  className="rounded-full px-6 py-2 bg-gray-800 hover:bg-gray-700 text-white shadow-lg flex items-center gap-2"
+                  onClick={() => setMobileCreateView("options")}
+                  className="rounded-full px-6 py-2.5 bg-gray-800 hover:bg-gray-700 text-white shadow-lg flex items-center gap-2"
                 >
-                  <Map className="h-4 w-4" />
-                  Map
+                  <Settings className="h-4 w-4" />
+                  Options
                 </Button>
               </div>
+            )}
 
-              {/* Create Route Form */}
-              <div className="flex-1 overflow-y-auto pt-32 pb-20">
+            {/* Mobile FAB for map settings (only when sheet is closed) */}
+            {mobileCreateView === "map" && (
+              <MobileFabMenu 
+                onOpenSettings={() => setShowLayerPanel(true)}
+                onLocateMe={handleLocateMe}
+              />
+            )}
+
+            {/* Bottom sheet for route options - slides up */}
+            <div
+              className={cn(
+                "fixed left-0 right-0 bottom-0 z-40 bg-white rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out",
+                mobileCreateView === "options"
+                  ? "translate-y-0"
+                  : "translate-y-full"
+              )}
+              style={{ maxHeight: "85vh" }}
+            >
+              {/* Sheet handle */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-10 h-1 bg-gray-300 rounded-full" />
+              </div>
+
+              {/* Create Route Form - scrollable */}
+              <div className="overflow-y-auto pb-4" style={{ maxHeight: "calc(85vh - 180px)" }}>
                 <RouteCreator
                   onSave={handleSaveRoute}
                   onCancel={() => {
@@ -751,80 +792,67 @@ export default function RoutesPage() {
                   }}
                   isEditing={isEditing}
                   isMobile={true}
+                  onMapClick={() => setMobileCreateView("map")}
                 />
               </div>
 
-              {/* Mobile Bottom Nav */}
-              <MobileBottomNav 
-                activeTab={activeTab} 
-                onTabChange={handleMobileTabChange}
-                isRecording={isRecording}
-                onRecordClick={() => {
-                  if (isRecording) {
-                    setIsRecording(false);
-                  } else {
-                    setIsRecording(true);
-                    setRecordedPath([]);
-                  }
-                }}
-              />
-            </div>
-          )}
-
-          {/* MOBILE: Map view for plotting route */}
-          {mobileCreateView === "map" && (
-            <div className="md:hidden">
-              {/* Mobile Route Creator Toolbar at top */}
-              <div className="fixed top-4 left-4 right-4 z-30 bg-white rounded-lg shadow-lg p-2">
-                <RouteCreatorToolbar
-                  isPlotting={isPlotting}
-                  setIsPlotting={setIsPlotting}
-                  snapEnabled={snapEnabled}
-                  setSnapEnabled={setSnapEnabled}
-                  toolMode={toolMode}
-                  setToolMode={setToolMode}
-                  onUndo={handleUndo}
-                  onClear={handleClear}
-                  canUndo={history.length > 0}
-                  routeStyle={routeStyle}
-                  onStyleChange={setRouteStyle}
-                  isMobile={true}
-                />
-              </div>
-
-              {/* Options button - bottom center */}
-              <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-30">
+              {/* Fixed bottom buttons - Map button above Cancel/Save */}
+              <div className="px-4 pb-4 pt-2 border-t bg-white space-y-3">
+                {/* Map button */}
                 <Button
-                  onClick={() => setMobileCreateView("options")}
-                  className="rounded-full px-6 py-2.5 bg-gray-800 hover:bg-gray-700 text-white shadow-lg flex items-center gap-2"
+                  onClick={() => setMobileCreateView("map")}
+                  variant="outline"
+                  className="w-full rounded-full h-11 border-2 border-gray-800 text-gray-800 hover:bg-gray-100 flex items-center justify-center gap-2"
                 >
-                  <Settings className="h-4 w-4" />
-                  Options
+                  <Map className="h-4 w-4" />
+                  Map
                 </Button>
+                
+                {/* Cancel / Save buttons side by side */}
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1 rounded-full h-11 border-2 border-red-500 text-red-500 hover:bg-red-50"
+                    onClick={() => {
+                      if (waypoints.length > 0) {
+                        setShowDiscardDialog(true);
+                      } else {
+                        confirmCancel();
+                      }
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1 rounded-full h-11 bg-[#2E8B57] hover:bg-[#256b45] text-white"
+                    onClick={() => {
+                      // Trigger save from RouteCreator
+                      const saveBtn = document.querySelector('[data-mobile-save]') as HTMLButtonElement;
+                      saveBtn?.click();
+                    }}
+                    disabled={waypoints.length < 2}
+                  >
+                    Save
+                  </Button>
+                </div>
               </div>
-
-              {/* Mobile FAB for map settings */}
-              <MobileFabMenu 
-                onOpenSettings={() => setShowLayerPanel(true)}
-                onLocateMe={handleLocateMe}
-              />
-
-              {/* Mobile Bottom Nav */}
-              <MobileBottomNav 
-                activeTab={activeTab} 
-                onTabChange={handleMobileTabChange}
-                isRecording={isRecording}
-                onRecordClick={() => {
-                  if (isRecording) {
-                    setIsRecording(false);
-                  } else {
-                    setIsRecording(true);
-                    setRecordedPath([]);
-                  }
-                }}
-              />
             </div>
-          )}
+
+            {/* Mobile Bottom Nav - always visible */}
+            <MobileBottomNav 
+              activeTab={activeTab} 
+              onTabChange={handleMobileTabChange}
+              isRecording={isRecording}
+              onRecordClick={() => {
+                if (isRecording) {
+                  setIsRecording(false);
+                } else {
+                  setIsRecording(true);
+                  setRecordedPath([]);
+                }
+              }}
+            />
+          </div>
 
           {/* Desktop Route creation toolbar */}
           <div className="hidden md:block">
@@ -1002,29 +1030,6 @@ export default function RoutesPage() {
           />
         )}
 
-        {/* Route Recorder - MOBILE ONLY (GPS recording while riding) */}
-        {!isCreating && activeTab === "map" && (
-          <div className="md:hidden">
-            <RouteRecorder
-              isRecording={isRecording}
-              onStart={() => {
-                setIsRecording(true);
-                setRecordedPath([]);
-              }}
-              onPause={() => {}}
-              onResume={() => {}}
-              onStop={() => setIsRecording(false)}
-              onSave={handleSaveRecordedRoute}
-              onDiscard={() => {
-                setIsRecording(false);
-                setRecordedPath([]);
-              }}
-              onPointRecorded={(point) => {
-                setRecordedPath((prev) => [...prev, { lat: point.lat, lng: point.lng }]);
-              }}
-            />
-          </div>
-        )}
 
         {/* Post-Ride Review Dialog */}
         <PostRideReview

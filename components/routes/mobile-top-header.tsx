@@ -30,7 +30,10 @@ import {
   HelpCircle,
   AlertTriangle,
   Route,
+  X,
+  MapPin,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface MobileTopHeaderProps {
   onSearch?: (query: string) => void;
@@ -41,6 +44,8 @@ export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchTab, setSearchTab] = useState<"places" | "routes">("places");
   const router = useRouter();
   const supabase = createClient();
 
@@ -110,178 +115,263 @@ export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 md:hidden">
-      <div className="flex items-center gap-2 px-3 py-2">
-        {/* Hamburger Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="shrink-0">
+    <>
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 md:hidden">
+        <div className="flex items-center gap-2 px-3 py-2">
+          {/* Hamburger Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="shrink-0">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-64">
+              <DropdownMenuLabel>
+                <Link href="/" className="flex items-center mb-2">
+                  <Image
+                    src="/logo.png"
+                    alt="padoq"
+                    width={100}
+                    height={30}
+                    className="object-contain"
+                    priority
+                  />
+                </Link>
+                {user && (
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      Hi, {user.name}!
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                )}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/routes" className="cursor-pointer">
+                  <Route className="mr-2 h-4 w-4" />
+                  Routes
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {user ? (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/messages" className="cursor-pointer">
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Messages
+                      {unreadCount > 0 && (
+                        <Badge className="ml-auto bg-primary text-white text-xs">
+                          {unreadCount}
+                        </Badge>
+                      )}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/favorites" className="cursor-pointer">
+                      <Heart className="mr-2 h-4 w-4" />
+                      My Favorites
+                    </Link>
+                  </DropdownMenuItem>
+                  {(user.role === "host" || user.role === "admin") && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/host/listings" className="cursor-pointer">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        My Listings
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {user.role === "admin" && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin/dashboard" className="cursor-pointer text-primary font-semibold">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Admin Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/account" className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Account Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/help" className="cursor-pointer">
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      Help
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/feedback" className="cursor-pointer">
+                      <MessageSquarePlus className="mr-2 h-4 w-4" />
+                      Send Feedback
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/claims" className="cursor-pointer">
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      Claims
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log Out
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/auth/sign-in">Sign In</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/auth/sign-up">Sign Up</Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Search Bar - Click to open search overlay */}
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className="flex-1 relative"
+          >
+            <div className="flex items-center pl-3 pr-10 py-2 h-10 rounded-full border border-gray-200 bg-gray-50 text-sm text-gray-500">
+              Search for places and routes
+            </div>
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          </button>
+
+          {/* Profile Picture */}
+          {loading ? (
+            <div className="h-9 w-9 rounded-full bg-muted animate-pulse shrink-0" />
+          ) : user ? (
+            <Link href="/profile" className="shrink-0">
+              <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+                <AvatarImage src={user.avatar_url || undefined} alt={user.name} />
+                <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                  {user.name?.charAt(0).toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
+          ) : (
+            <Link href="/auth/sign-in" className="shrink-0">
+              <Avatar className="h-9 w-9 cursor-pointer bg-gray-200">
+                <AvatarFallback className="text-gray-500">
+                  <User className="h-5 w-5" />
+                </AvatarFallback>
+              </Avatar>
+            </Link>
+          )}
+        </div>
+      </header>
+
+      {/* Search Overlay - Full screen when open */}
+      {isSearchOpen && (
+        <div className="fixed inset-0 z-[100] bg-white md:hidden flex flex-col">
+          {/* Search Header */}
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0"
+              onClick={() => {
+                setIsSearchOpen(false);
+                setSearchQuery("");
+              }}
+            >
               <Menu className="h-6 w-6" />
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-64">
-            <DropdownMenuLabel>
-              <Link href="/" className="flex items-center mb-2">
-                <Image
-                  src="/logo.png"
-                  alt="padoq"
-                  width={100}
-                  height={30}
-                  className="object-contain"
-                  priority
-                />
-              </Link>
-              {user && (
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    Hi, {user.name}!
-                  </p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {user.email}
-                  </p>
-                </div>
-              )}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/routes" className="cursor-pointer">
-                <Route className="mr-2 h-4 w-4" />
-                Routes
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {user ? (
-              <>
-                <DropdownMenuItem asChild>
-                  <Link href="/messages" className="cursor-pointer">
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    Messages
-                    {unreadCount > 0 && (
-                      <Badge className="ml-auto bg-primary text-white text-xs">
-                        {unreadCount}
-                      </Badge>
-                    )}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/favorites" className="cursor-pointer">
-                    <Heart className="mr-2 h-4 w-4" />
-                    My Favorites
-                  </Link>
-                </DropdownMenuItem>
-                {(user.role === "host" || user.role === "admin") && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/host/listings" className="cursor-pointer">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      My Listings
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                {user.role === "admin" && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin/dashboard" className="cursor-pointer text-primary font-semibold">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Admin Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile" className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/account" className="cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Account Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/help" className="cursor-pointer">
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    Help
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/feedback" className="cursor-pointer">
-                    <MessageSquarePlus className="mr-2 h-4 w-4" />
-                    Send Feedback
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/claims" className="cursor-pointer">
-                    <AlertTriangle className="mr-2 h-4 w-4" />
-                    Claims
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="cursor-pointer text-red-600 focus:text-red-600"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log Out
-                </DropdownMenuItem>
-              </>
-            ) : (
-              <>
-                <DropdownMenuItem asChild>
-                  <Link href="/auth/sign-in">Sign In</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/auth/sign-up">Sign Up</Link>
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
 
-        {/* Search Bar */}
-        <form onSubmit={handleSearchSubmit} className="flex-1">
-          <div className="relative">
-            <Input
-              placeholder="Search for places and routes"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                onSearch?.(e.target.value);
-              }}
-              className="pl-3 pr-10 py-2 h-10 rounded-full border-gray-200 bg-gray-50 focus:bg-white text-sm"
-            />
+            <form onSubmit={handleSearchSubmit} className="flex-1">
+              <div className="relative">
+                <Input
+                  placeholder="Search for places and routes"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-3 pr-10 py-2 h-10 rounded-full border-gray-200 bg-gray-50 focus:bg-white text-sm"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <Search className="h-4 w-4" />
+                </button>
+              </div>
+            </form>
+
+            {loading ? (
+              <div className="h-9 w-9 rounded-full bg-muted animate-pulse shrink-0" />
+            ) : user ? (
+              <Avatar className="h-9 w-9 shrink-0">
+                <AvatarImage src={user.avatar_url || undefined} alt={user.name} />
+                <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                  {user.name?.charAt(0).toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <Avatar className="h-9 w-9 shrink-0 bg-gray-200">
+                <AvatarFallback className="text-gray-500">
+                  <User className="h-5 w-5" />
+                </AvatarFallback>
+              </Avatar>
+            )}
+          </div>
+
+          {/* Places / Routes Tabs */}
+          <div className="flex px-4 py-2">
             <button
-              type="submit"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              onClick={() => setSearchTab("places")}
+              className={cn(
+                "flex-1 py-2 rounded-full text-sm font-medium transition-colors",
+                searchTab === "places"
+                  ? "bg-gray-100 text-gray-900"
+                  : "text-gray-500"
+              )}
             >
-              <Search className="h-4 w-4" />
+              Places
+            </button>
+            <button
+              onClick={() => setSearchTab("routes")}
+              className={cn(
+                "flex-1 py-2 rounded-full text-sm font-medium transition-colors",
+                searchTab === "routes"
+                  ? "bg-gray-100 text-gray-900"
+                  : "text-gray-500"
+              )}
+            >
+              Routes
             </button>
           </div>
-        </form>
 
-        {/* Profile Picture */}
-        {loading ? (
-          <div className="h-9 w-9 rounded-full bg-muted animate-pulse shrink-0" />
-        ) : user ? (
-          <Link href="/profile" className="shrink-0">
-            <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-primary transition-all">
-              <AvatarImage src={user.avatar_url || undefined} alt={user.name} />
-              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                {user.name?.charAt(0).toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
-          </Link>
-        ) : (
-          <Link href="/auth/sign-in" className="shrink-0">
-            <Avatar className="h-9 w-9 cursor-pointer bg-gray-200">
-              <AvatarFallback className="text-gray-500">
-                <User className="h-5 w-5" />
-              </AvatarFallback>
-            </Avatar>
-          </Link>
-        )}
-      </div>
-    </header>
+          {/* Search Content */}
+          <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+            <Search className="h-12 w-12 text-gray-300 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Start searching</h3>
+            <p className="text-sm text-gray-500 max-w-xs">
+              {searchTab === "places"
+                ? "Search for a Place, grid reference (min. 3 chars) or select Routes to search for Routes"
+                : "Search for routes by name, location, or browse popular routes nearby"
+              }
+            </p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

@@ -52,6 +52,7 @@ export interface RouteCreatorProps {
   onRouteTypeChange?: (routeType: "circular" | "linear") => void;
   isEditing?: boolean;
   isMobile?: boolean;
+  onMapClick?: () => void;
 }
 
 export interface RouteData {
@@ -77,6 +78,7 @@ export function RouteCreator({
   onRouteTypeChange,
   isEditing = false,
   isMobile = false,
+  onMapClick,
 }: RouteCreatorProps) {
   // Route metadata
   const [title, setTitle] = useState(existingRoute?.title || "");
@@ -440,30 +442,50 @@ export function RouteCreator({
         </div>
       </div>
 
-      {/* Bottom actions */}
-      <div className="px-4 py-4 border-t bg-background space-y-3">
-        {/* Save requirements hint */}
-        {(waypoints.length < 2 || !title.trim()) && (
-          <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
-            {!title.trim() && <p>• Enter a route name</p>}
-            {waypoints.length < 2 && <p>• Add at least 2 waypoints on the map</p>}
-          </div>
-        )}
-        <Button
-          variant="outline"
-          className="w-full text-destructive hover:text-destructive"
-          onClick={onCancel}
-        >
-          CANCEL
-        </Button>
-        <Button
-          className="w-full bg-[#2E8B57] hover:bg-[#256b45]"
+      {/* Bottom actions - hidden on mobile (handled by parent bottom sheet) */}
+      {!isMobile && (
+        <div className="px-4 py-4 border-t bg-background space-y-3">
+          {/* Save requirements hint */}
+          {(waypoints.length < 2 || !title.trim()) && (
+            <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+              {!title.trim() && <p>• Enter a route name</p>}
+              {waypoints.length < 2 && <p>• Add at least 2 waypoints on the map</p>}
+            </div>
+          )}
+          <Button
+            variant="outline"
+            className="w-full text-destructive hover:text-destructive"
+            onClick={onCancel}
+          >
+            CANCEL
+          </Button>
+          <Button
+            className="w-full bg-[#2E8B57] hover:bg-[#256b45]"
+            onClick={handleSave}
+            disabled={saving || waypoints.length < 2 || !title.trim()}
+          >
+            {saving ? "SAVING..." : "SAVE ROUTE"}
+          </Button>
+        </div>
+      )}
+
+      {/* Hidden save button for mobile - triggered by parent */}
+      {isMobile && (
+        <button
+          data-mobile-save
           onClick={handleSave}
+          className="hidden"
           disabled={saving || waypoints.length < 2 || !title.trim()}
-        >
-          {saving ? "SAVING..." : "SAVE ROUTE"}
-        </Button>
-      </div>
+        />
+      )}
+
+      {/* Mobile save requirements hint */}
+      {isMobile && (waypoints.length < 2 || !title.trim()) && (
+        <div className="mx-4 mb-4 text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+          {!title.trim() && <p>• Enter a route name</p>}
+          {waypoints.length < 2 && <p>• Add at least 2 waypoints on the map</p>}
+        </div>
+      )}
     </div>
   );
 }
