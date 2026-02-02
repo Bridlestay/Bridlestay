@@ -5,6 +5,7 @@ import mapboxgl from "mapbox-gl";
 import { useMapbox } from "@/lib/hooks/use-mapbox";
 import { Loader2, AlertCircle } from "lucide-react";
 import type { Waypoint, RouteStyle, ToolMode } from "./route-creator";
+import { getMapboxThumbnailUrl } from "@/lib/routes/route-thumbnail";
 
 // Route difficulty colors
 const DIFFICULTY_COLORS = {
@@ -14,6 +15,10 @@ const DIFFICULTY_COLORS = {
   difficult: "#F59E0B",
   severe: "#EF4444",
 };
+
+// Brand colors for pins (dark green like Padoq)
+const PIN_COLOR = "#166534"; // Dark green
+const PIN_BORDER = "#ffffff";
 
 // Map style options
 const MAP_STYLES = {
@@ -128,6 +133,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map | null>(null);
     const markersRef = useRef<mapboxgl.Marker[]>([]);
+    const pinMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
     const popupRef = useRef<mapboxgl.Popup | null>(null);
     const waypointMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
     const startEndMarkersRef = useRef<mapboxgl.Marker[]>([]);
@@ -157,10 +163,12 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         const bounds = new mapboxgl.LngLatBounds();
         coordinates.forEach(([lng, lat]) => bounds.extend([lng, lat]));
         
-        const defaultPadding = { top: 50, bottom: 50, left: 420, right: 50 };
+        // More padding to zoom out slightly for better context
+        const defaultPadding = { top: 80, bottom: 80, left: 450, right: 80 };
         mapRef.current.fitBounds(bounds, {
           padding: padding || defaultPadding,
           duration: 1000,
+          maxZoom: 14, // Don't zoom in too close
         });
       },
       getMap: () => mapRef.current,
@@ -367,23 +375,23 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           clusterRadius: 50,
         });
 
-        // Cluster circles (purple like OS Maps)
+        // Cluster circles (dark green - Padoq brand)
         map.addLayer({
           id: "clusters",
           type: "circle",
           source: sourceId,
           filter: ["has", "point_count"],
           paint: {
-            "circle-color": "#5E35B1",
+            "circle-color": PIN_COLOR,
             "circle-radius": [
               "step",
               ["get", "point_count"],
-              20,   // size for count < 10
-              10, 25, // size for count >= 10
-              30, 30, // size for count >= 30
+              22,   // size for count < 10
+              10, 26, // size for count >= 10
+              30, 32, // size for count >= 30
             ],
             "circle-stroke-width": 3,
-            "circle-stroke-color": "#ffffff",
+            "circle-stroke-color": PIN_BORDER,
           },
         });
 
@@ -403,17 +411,17 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           },
         });
 
-        // Individual route pins (unclustered) - purple circles like OS Maps
+        // Individual route pins (unclustered) - dark green pin markers
+        // We'll use HTML markers for these instead of a layer
+        // This layer is just for hit detection
         map.addLayer({
           id: "unclustered-point",
           type: "circle",
           source: sourceId,
           filter: ["!", ["has", "point_count"]],
           paint: {
-            "circle-color": "#5E35B1",
-            "circle-radius": 12,
-            "circle-stroke-width": 3,
-            "circle-stroke-color": "#ffffff",
+            "circle-color": "transparent",
+            "circle-radius": 20,
           },
         });
 
@@ -446,32 +454,51 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           const hours = Math.floor(rideTimeMinutes / 60);
           const mins = rideTimeMinutes % 60;
           const rideTimeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+          
+          // Get route thumbnail
+          const thumbnailUrl = getMapboxThumbnailUrl(route.geometry, {
+            width: 200,
+            height: 120,
+            routeColor: "166534",
+            routeWeight: 4,
+          });
 
-          new mapboxgl.Popup({ closeButton: true, maxWidth: "320px" })
+          new mapboxgl.Popup({ closeButton: true, maxWidth: "300px", className: "route-preview-popup" })
             .setLngLat(coords)
             .setHTML(`
-              <div style="padding: 12px; font-family: system-ui, -apple-system, sans-serif;">
-                <h3 style="margin: 0 0 8px; font-size: 16px; font-weight: 600;">${route.title}</h3>
-                <div style="display: flex; gap: 12px; margin-bottom: 12px;">
-                  <span style="font-size: 14px;">🐴 ${(route.distance_km || 0).toFixed(1)} km</span>
-                  <span style="font-size: 14px;">⏱️ ${rideTimeStr}</span>
+              <div style="font-family: system-ui, -apple-system, sans-serif; overflow: hidden; border-radius: 12px;">
+                ${thumbnailUrl ? `
+                  <div style="width: 100%; height: 100px; overflow: hidden;">
+                    <img src="${thumbnailUrl}" alt="${route.title}" style="width: 100%; height: 100%; object-fit: cover;" />
+                  </div>
+                ` : ''}
+                <div style="padding: 12px;">
+                  <h3 style="margin: 0 0 8px; font-size: 15px; font-weight: 600; color: #1f2937;">${route.title}</h3>
+                  <div style="display: flex; gap: 16px; margin-bottom: 12px; color: #4b5563; font-size: 13px;">
+                    <span style="display: flex; align-items: center; gap: 4px;">
+                      🐴 ${(route.distance_km || 0).toFixed(1)} km
+                    </span>
+                    <span style="display: flex; align-items: center; gap: 4px;">
+                      ⏱️ ${rideTimeStr}
+                    </span>
+                  </div>
+                  <button 
+                    onclick="window.dispatchEvent(new CustomEvent('route-click', {detail: '${route.id}'}))"
+                    style="
+                      width: 100%;
+                      padding: 10px;
+                      background: #166534;
+                      color: white;
+                      border: none;
+                      border-radius: 8px;
+                      font-size: 14px;
+                      font-weight: 500;
+                      cursor: pointer;
+                    "
+                  >
+                    View details
+                  </button>
                 </div>
-                <button 
-                  onclick="window.dispatchEvent(new CustomEvent('route-click', {detail: '${route.id}'}))"
-                  style="
-                    width: 100%;
-                    padding: 10px;
-                    background: #2E8B57;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    font-size: 14px;
-                    font-weight: 500;
-                    cursor: pointer;
-                  "
-                >
-                  View details
-                </button>
               </div>
             `)
             .addTo(map);
@@ -494,6 +521,65 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         });
       }
 
+      // Function to update pin markers for unclustered points
+      const updatePinMarkers = () => {
+        if (!map.isStyleLoaded()) return;
+        
+        const features = map.querySourceFeatures(sourceId, {
+          filter: ["!", ["has", "point_count"]],
+        });
+
+        // Track which markers we've seen
+        const seenIds = new Set<string>();
+
+        features.forEach((feature) => {
+          const id = feature.properties?.id;
+          if (!id) return;
+          seenIds.add(id);
+
+          // Skip if marker already exists
+          if (pinMarkersRef.current.has(id)) return;
+
+          const coords = (feature.geometry as any).coordinates;
+          
+          // Create pin marker element (map pin shape)
+          const el = document.createElement("div");
+          el.innerHTML = `
+            <div style="cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+              <svg width="28" height="36" viewBox="0 0 24 32" fill="${PIN_COLOR}">
+                <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z"/>
+                <circle cx="12" cy="11" r="4" fill="${PIN_BORDER}"/>
+              </svg>
+            </div>
+          `;
+
+          const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+            .setLngLat(coords)
+            .addTo(map);
+
+          pinMarkersRef.current.set(id, marker);
+        });
+
+        // Remove markers that are no longer visible (clustered)
+        pinMarkersRef.current.forEach((marker, id) => {
+          if (!seenIds.has(id)) {
+            marker.remove();
+            pinMarkersRef.current.delete(id);
+          }
+        });
+      };
+
+      // Update markers when map moves or zooms
+      map.on("moveend", updatePinMarkers);
+      map.on("data", (e) => {
+        if (e.sourceId === sourceId && e.isSourceLoaded) {
+          updatePinMarkers();
+        }
+      });
+
+      // Initial update
+      setTimeout(updatePinMarkers, 500);
+
       // Listen for route click events from popup
       const handleRouteClick = (e: CustomEvent) => {
         onRouteClick?.(e.detail);
@@ -502,6 +588,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
       return () => {
         window.removeEventListener("route-click", handleRouteClick as EventListener);
+        // Clean up pin markers
+        pinMarkersRef.current.forEach((marker) => marker.remove());
+        pinMarkersRef.current.clear();
       };
     }, [routes, mapLoaded, isCreating, onRouteClick, onRoutePreview]);
 
