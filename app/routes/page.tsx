@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { RoutesMapV2, RoutesMapV2Handle } from "@/components/routes/routes-map-v2";
+// Using Mapbox instead of Google Maps for better outdoor mapping
+import { RoutesMapMapbox as RoutesMapV2, RoutesMapMapboxHandle as RoutesMapV2Handle } from "@/components/routes/routes-map-mapbox";
 import { RouteDetailDrawer } from "@/components/routes/route-detail-drawer";
 import { RouteCreator, RouteCreatorToolbar, PathLayerToggles, Waypoint, RouteData, RouteStyle, ToolMode } from "@/components/routes/route-creator";
 import { MapLayerControls, LayerSettings } from "@/components/routes/map-layer-controls";

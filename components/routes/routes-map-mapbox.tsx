@@ -26,18 +26,29 @@ const MAP_STYLES = {
   light: "mapbox://styles/mapbox/light-v11",
 };
 
+// Path layer visibility (compatibility with Google Maps version)
+export interface PathLayers {
+  bridleways: boolean;
+  boats: boolean;
+  footpaths: boolean;
+  permissive: boolean;
+}
+
 export interface RoutesMapMapboxProps {
   routes?: any[];
   onRouteClick?: (routeId: string) => void;
   onRoutePreview?: (route: any) => void;
+  onClusterClick?: (routeIds: string[], count: number) => void;
   center?: { lat: number; lng: number };
   zoom?: number;
   highlightedRouteId?: string | null;
   selectedRouteId?: string | null;
-  mapType?: "outdoors" | "streets" | "satellite" | "light";
+  // Map type - accepts both Mapbox style names and Google Maps style names for compatibility
+  mapType?: "outdoors" | "streets" | "satellite" | "light" | "roadmap" | "terrain" | "hybrid";
   // Creation mode props
   isCreating?: boolean;
   isPlotting?: boolean;
+  snapEnabled?: boolean; // Not yet implemented for Mapbox
   waypoints?: Waypoint[];
   routeType?: "linear" | "circular";
   routeStyle?: RouteStyle;
@@ -45,14 +56,43 @@ export interface RoutesMapMapboxProps {
   onWaypointAdd?: (waypoint: Waypoint) => void;
   onWaypointUpdate?: (index: number, waypoint: Waypoint) => void;
   onWaypointRemove?: (index: number) => void;
+  onWaypointInsert?: (index: number, waypoint: Waypoint) => void; // Not yet implemented
+  onCircularDetected?: (isCircular: boolean) => void; // Not yet implemented
+  // Layer settings (compatibility props - some not yet implemented)
+  pathLayers?: PathLayers;
+  propertyPins?: any[];
+  monochrome?: boolean; // Not yet implemented
+  // Navigation/recording (not yet implemented)
+  userPosition?: { lat: number; lng: number; heading: number } | null;
+  followUser?: boolean;
+  recordedPath?: { lat: number; lng: number }[];
 }
 
 export interface RoutesMapMapboxHandle {
   panTo: (lat: number, lng: number) => void;
   setZoom: (zoom: number) => void;
   flyTo: (lat: number, lng: number, zoom?: number) => void;
-  fitBounds: (coordinates: [number, number][]) => void;
+  fitBounds: (coordinates: [number, number][], padding?: { top?: number; right?: number; bottom?: number; left?: number }) => void;
   getMap: () => mapboxgl.Map | null;
+  highlightRoute: (routeId: string | null) => void;
+  setMapType: (type: string) => void;
+  showPropertyInfoWindow: (propertyId: string) => void;
+}
+
+// Convert Google Maps map types to Mapbox styles
+function getMapboxStyle(mapType: string): string {
+  const styleMap: Record<string, string> = {
+    // Mapbox native styles
+    outdoors: "mapbox://styles/mapbox/outdoors-v12",
+    streets: "mapbox://styles/mapbox/streets-v12",
+    satellite: "mapbox://styles/mapbox/satellite-streets-v12",
+    light: "mapbox://styles/mapbox/light-v11",
+    // Google Maps style names -> Mapbox equivalents
+    roadmap: "mapbox://styles/mapbox/streets-v12",
+    terrain: "mapbox://styles/mapbox/outdoors-v12", // Outdoors is best for terrain
+    hybrid: "mapbox://styles/mapbox/satellite-streets-v12",
+  };
+  return styleMap[mapType] || MAP_STYLES.outdoors;
 }
 
 export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapboxProps>(
@@ -61,6 +101,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       routes = [],
       onRouteClick,
       onRoutePreview,
+      onClusterClick,
       center = { lat: 52.2, lng: -2.2 },
       zoom = 10,
       highlightedRouteId,
@@ -68,6 +109,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       mapType = "outdoors",
       isCreating = false,
       isPlotting = false,
+      snapEnabled = false,
       waypoints = [],
       routeType = "linear",
       routeStyle = { color: "#3B82F6", thickness: 4, opacity: 100 },
@@ -75,6 +117,14 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       onWaypointAdd,
       onWaypointUpdate,
       onWaypointRemove,
+      onWaypointInsert,
+      onCircularDetected,
+      pathLayers,
+      propertyPins = [],
+      monochrome = false,
+      userPosition,
+      followUser = false,
+      recordedPath = [],
     },
     ref
   ) => {
@@ -103,18 +153,30 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           essential: true,
         });
       },
-      fitBounds: (coordinates: [number, number][]) => {
+      fitBounds: (coordinates: [number, number][], padding?: { top?: number; right?: number; bottom?: number; left?: number }) => {
         if (!mapRef.current || coordinates.length === 0) return;
         
         const bounds = new mapboxgl.LngLatBounds();
         coordinates.forEach(([lng, lat]) => bounds.extend([lng, lat]));
         
+        const defaultPadding = { top: 50, bottom: 50, left: 420, right: 50 };
         mapRef.current.fitBounds(bounds, {
-          padding: { top: 50, bottom: 50, left: 420, right: 50 },
+          padding: padding || defaultPadding,
           duration: 1000,
         });
       },
       getMap: () => mapRef.current,
+      highlightRoute: (routeId: string | null) => {
+        // TODO: Implement route highlighting
+        console.log("highlightRoute called:", routeId);
+      },
+      setMapType: (type: string) => {
+        mapRef.current?.setStyle(getMapboxStyle(type));
+      },
+      showPropertyInfoWindow: (propertyId: string) => {
+        // TODO: Implement property info window
+        console.log("showPropertyInfoWindow called:", propertyId);
+      },
     }));
 
     // Initialize map
@@ -123,7 +185,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: MAP_STYLES[mapType],
+        style: getMapboxStyle(mapType),
         center: [center.lng, center.lat],
         zoom: zoom,
         // Performance optimizations
@@ -215,7 +277,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     // Update map style when mapType changes
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
-      mapRef.current.setStyle(MAP_STYLES[mapType]);
+      mapRef.current.setStyle(getMapboxStyle(mapType));
     }, [mapType, mapLoaded]);
 
     // Update cursor based on mode
