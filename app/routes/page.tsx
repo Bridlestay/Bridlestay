@@ -78,6 +78,9 @@ export default function RoutesPage() {
   const [mobileCreateView, setMobileCreateView] = useState<"options" | "map">("options");
   const [pendingTabChange, setPendingTabChange] = useState<RouteTab | null>(null);
 
+  // Mobile panel state for Find/Saved (whether to show panel or map)
+  const [mobilePanelOpen, setMobilePanelOpen] = useState(true);
+
   // Navigation state
   const [isNavigating, setIsNavigating] = useState(false);
   const [navigatingRoute, setNavigatingRoute] = useState<any | null>(null);
@@ -137,6 +140,8 @@ export default function RoutesPage() {
         cancelCreating();
       }
     }
+    // Reset mobile panel state when switching tabs
+    setMobilePanelOpen(true);
   }, [activeTab]);
 
   // Handle mobile tab change with discard confirmation
@@ -976,6 +981,8 @@ export default function RoutesPage() {
           onClose={() => setActiveTab("map")}
           onRouteClick={handleRouteDetails}
           onRouteHover={handleRouteHover}
+          mobilePanelOpen={mobilePanelOpen}
+          onMobilePanelToggle={setMobilePanelOpen}
         />
 
         {/* Find Routes Panel */}
@@ -985,7 +992,22 @@ export default function RoutesPage() {
           onRouteClick={handleRouteDetails}
           onRouteHover={handleRouteHover}
           onRoutesFound={(routes) => setExploreRoutes(routes)}
+          mobilePanelOpen={mobilePanelOpen}
+          onMobilePanelToggle={setMobilePanelOpen}
         />
+
+        {/* Mobile Options button - shown when panel is collapsed on Find/Saved tabs */}
+        {(activeTab === "find" || activeTab === "saved") && !mobilePanelOpen && (
+          <div className="md:hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-30">
+            <Button
+              onClick={() => setMobilePanelOpen(true)}
+              className="rounded-full px-6 py-2.5 bg-gray-800 hover:bg-gray-700 text-white shadow-lg flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Options
+            </Button>
+          </div>
+        )}
 
         {/* Layer controls (bottom right) - FAB buttons hidden on mobile, panel visible on both */}
         <MapLayerControls
