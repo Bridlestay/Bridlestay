@@ -267,8 +267,13 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       };
 
       map.on("load", () => {
+        console.log("Mapbox map loaded and ready!");
         setMapLoaded(true);
         setupSourcesAndLayers();
+      });
+
+      map.on("error", (e) => {
+        console.error("Mapbox error:", e);
       });
 
       // Re-add sources when style changes
@@ -290,8 +295,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       });
 
       mapRef.current = map;
+      console.log("Mapbox map created successfully");
 
       return () => {
+        console.log("Mapbox map cleanup");
         map.remove();
         mapRef.current = null;
       };
@@ -569,11 +576,23 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     }
 
     return (
-      <div className="relative w-full h-full">
-        <div ref={mapContainerRef} className="absolute inset-0" />
+      <div className="relative w-full h-full" style={{ minHeight: "100vh" }}>
+        <div 
+          ref={mapContainerRef} 
+          className="absolute inset-0"
+          style={{ width: "100%", height: "100%" }}
+        />
         
-        {/* Custom styles for popups */}
+        {/* Custom styles for Mapbox */}
         <style jsx global>{`
+          .mapboxgl-map {
+            width: 100% !important;
+            height: 100% !important;
+          }
+          .mapboxgl-canvas {
+            width: 100% !important;
+            height: 100% !important;
+          }
           .mapboxgl-popup-content {
             padding: 0 !important;
             border-radius: 12px !important;
