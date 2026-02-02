@@ -133,3 +133,74 @@ export function getRoutePlaceholderUrl(width = 200, height = 150): string {
   return `https://via.placeholder.com/${width}x${height}/e8e8e8/666666?text=No+Route`;
 }
 
+// ============================================
+// MAPBOX STATIC IMAGES API
+// ============================================
+
+/**
+ * Generate a Mapbox Static Images API URL for a route thumbnail
+ * Mapbox uses a different polyline encoding format
+ */
+export function getMapboxThumbnailUrl(
+  geometry: RouteGeometry | null | undefined,
+  options: RouteThumbnailOptions = {}
+): string | null {
+  if (!geometry?.coordinates || geometry.coordinates.length < 2) {
+    return null;
+  }
+
+  const {
+    width = 200,
+    height = 150,
+    routeColor = "5E35B1", // Purple
+    routeWeight = 4,
+    mapType = "outdoors-v12", // Mapbox style
+  } = options;
+
+  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  if (!token) {
+    console.warn("Mapbox token not found");
+    return null;
+  }
+
+  // Encode the route as a polyline for Mapbox
+  const encodedPath = encodePolyline(geometry.coordinates);
+  
+  // Calculate bounds for auto-fit
+  let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+  geometry.coordinates.forEach(([lng, lat]) => {
+    minLng = Math.min(minLng, lng);
+    maxLng = Math.max(maxLng, lng);
+    minLat = Math.min(minLat, lat);
+    maxLat = Math.max(maxLat, lat);
+  });
+
+  // Add padding to bounds
+  const padding = 0.01;
+  const bounds = `[${minLng - padding},${minLat - padding},${maxLng + padding},${maxLat + padding}]`;
+
+  // Mapbox Static Images URL
+  // path-{strokeWidth}+{strokeColor}({encodedPolyline})
+  const pathOverlay = `path-${routeWeight}+${routeColor}(${encodeURIComponent(encodedPath)})`;
+  
+  const baseUrl = "https://api.mapbox.com/styles/v1/mapbox";
+  return `${baseUrl}/${mapType}/static/${pathOverlay}/auto/${width}x${height}@2x?access_token=${token}&padding=30`;
+}
+
+/**
+ * Get route thumbnail URL - tries Mapbox first, falls back to Google
+ */
+export function getRouteThumbnailUrlAuto(
+  geometry: RouteGeometry | null | undefined,
+  options: RouteThumbnailOptions = {}
+): string | null {
+  // Try Mapbox first if token is available
+  if (process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
+    const mapboxUrl = getMapboxThumbnailUrl(geometry, options);
+    if (mapboxUrl) return mapboxUrl;
+  }
+  
+  // Fall back to Google Maps
+  return getRouteThumbnailUrl(geometry, options);
+}
+
