@@ -5,6 +5,7 @@ import { useGoogleMaps } from "@/lib/hooks/use-google-maps";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { Loader2, AlertCircle, Info } from "lucide-react";
 import type { Waypoint, RouteStyle, ToolMode } from "./route-creator";
+import { getRouteThumbnailUrl } from "@/lib/routes/route-thumbnail";
 
 // Route difficulty colors
 const DIFFICULTY_COLORS = {
@@ -206,6 +207,8 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
         rotateControl: false,
         scaleControl: true,
         keyboardShortcuts: false, // Disable keyboard shortcuts hint
+        // Allow single-finger panning (no two-finger requirement)
+        gestureHandling: "greedy",
         // Default cursor (not hand tool)
         draggableCursor: "default",
         // Custom styling to highlight paths and trails
@@ -989,31 +992,15 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
             };
             const diffStyle = difficultyStyles[clickedRoute.difficulty] || difficultyStyles.unrated;
 
-            // Generate static map URL with route path
-            let staticMapUrl = "";
-            try {
-              const geometry = clickedRoute.geometry;
-              if (geometry && geometry.coordinates && geometry.coordinates.length > 0) {
-                // Simplify path for URL (take every Nth point to stay under URL limit)
-                const coords = geometry.coordinates;
-                const step = Math.max(1, Math.floor(coords.length / 30));
-                const simplifiedPath = coords
-                  .filter((_: any, i: number) => i % step === 0 || i === coords.length - 1)
-                  .map((c: number[]) => `${c[1]},${c[0]}`)
-                  .join("|");
-                
-                // Calculate center from first coordinate
-                const centerLat = coords[Math.floor(coords.length / 2)][1];
-                const centerLng = coords[Math.floor(coords.length / 2)][0];
-                
-                staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?size=100x100&scale=2&maptype=terrain&path=color:0x4338CA|weight:3|${simplifiedPath}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`;
-              }
-            } catch (e) {
-              console.error("Error generating static map:", e);
-            }
-
-            // Fallback placeholder if no route image
-            const mapThumbnail = staticMapUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect fill='%23e5e7eb' width='100' height='100'/%3E%3Cpath d='M20 60 Q 35 30, 50 50 T 80 40' stroke='%234338CA' stroke-width='3' fill='none'/%3E%3C/svg%3E";
+            // Generate static map URL with route path using encoded polyline
+            const mapThumbnail = getRouteThumbnailUrl(clickedRoute.geometry, {
+              width: 200,
+              height: 200,
+              routeColor: "5E35B1", // Purple like OS Maps
+              routeWeight: 4,
+              mapType: "terrain",
+              style: "minimal",
+            }) || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect fill='%23e5e7eb' width='100' height='100'/%3E%3Cpath d='M20 60 Q 35 30, 50 50 T 80 40' stroke='%235E35B1' stroke-width='3' fill='none'/%3E%3C/svg%3E";
 
             // Create OS Maps style card with thumbnail
             const content = `

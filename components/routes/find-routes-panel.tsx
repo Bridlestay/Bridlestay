@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { RoutesPanelHeader } from "./routes-panel-header";
 import { MobileTopHeader } from "./mobile-top-header";
+import { getRouteThumbnailUrl } from "@/lib/routes/route-thumbnail";
 import { MobilePanelToggle } from "./mobile-panel-toggle";
 
 interface FindRoutesPanelProps {
@@ -367,16 +368,32 @@ export function FindRoutesPanel({
                 onMouseLeave={() => onRouteHover?.(null)}
               >
                 <div className="flex gap-3">
-                  {route.cover_photo_url && (
-                    <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                      <Image
-                        src={route.cover_photo_url}
-                        alt={route.title}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  )}
+                  {/* Route snapshot thumbnail */}
+                  <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                    {(() => {
+                      const thumbnailUrl = getRouteThumbnailUrl(route.geometry, {
+                        width: 160,
+                        height: 160,
+                        routeColor: "5E35B1",
+                        routeWeight: 4,
+                        mapType: "terrain",
+                        style: "minimal",
+                      });
+                      return thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt={route.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <svg viewBox="0 0 100 100" className="w-12 h-12 text-gray-300">
+                            <path d="M20 60 Q 35 30, 50 50 T 80 40" stroke="currentColor" strokeWidth="4" fill="none"/>
+                          </svg>
+                        </div>
+                      );
+                    })()}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-medium text-sm truncate">{route.title}</h4>
                     {route.visibility === "private" && (
