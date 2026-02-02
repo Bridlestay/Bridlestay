@@ -27,6 +27,8 @@ import {
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { RoutesPanelHeader } from "./routes-panel-header";
+import { MobileTopHeader } from "./mobile-top-header";
+import { MobilePanelToggle } from "./mobile-panel-toggle";
 import {
   Star,
   MapPin,
@@ -60,6 +62,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { WaypointCard } from "./waypoint-card";
 import { NearbyPropertyCard } from "./nearby-property-card";
 import { RouteCompletion } from "./route-completion";
@@ -74,6 +77,9 @@ interface RouteDetailDrawerProps {
   onClose: () => void;
   onShowPropertyOnMap?: (propertyId: string, lat: number, lng: number) => void;
   onEditRoute?: (routeId: string, routeData: any) => void;
+  // Mobile panel control
+  mobileShowDetails?: boolean;
+  onMobileToggleDetails?: (show: boolean) => void;
 }
 
 const HAZARD_TYPES = [
@@ -256,6 +262,8 @@ export function RouteDetailDrawer({
   onClose,
   onShowPropertyOnMap,
   onEditRoute,
+  mobileShowDetails = true,
+  onMobileToggleDetails,
 }: RouteDetailDrawerProps) {
   const [route, setRoute] = useState<any>(null);
   const [waypoints, setWaypoints] = useState<any[]>([]);
@@ -1023,15 +1031,8 @@ export function RouteDetailDrawer({
 
   if (!open) return null;
 
-  return (
-    <div className="absolute top-0 left-0 bottom-0 w-[420px] bg-white shadow-2xl z-30 flex flex-col">
-      {/* Panel Header with menu, search, profile, close */}
-      <RoutesPanelHeader
-        onClose={onClose}
-        showSearch={false}
-      />
-      
-      <ScrollArea className="flex-1">
+  const drawerContent = (
+    <ScrollArea className="flex-1">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <p className="text-muted-foreground">Loading...</p>
@@ -2405,6 +2406,46 @@ export function RouteDetailDrawer({
           </DialogContent>
         </Dialog>
       </ScrollArea>
-    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Panel */}
+      <div className="hidden md:flex absolute top-0 left-0 bottom-0 w-[420px] bg-white shadow-2xl z-30 flex-col">
+        {/* Panel Header with menu, search, profile, close */}
+        <RoutesPanelHeader
+          onClose={onClose}
+          showSearch={false}
+        />
+        {drawerContent}
+      </div>
+
+      {/* Mobile Panel with slide animation */}
+      <div 
+        className={cn(
+          "md:hidden fixed inset-x-0 bottom-0 top-0 z-30 transition-transform duration-300 ease-out",
+          mobileShowDetails ? "translate-y-0" : "translate-y-full"
+        )}
+      >
+        <div className="h-full bg-white flex flex-col">
+          {/* Mobile top header */}
+          <MobileTopHeader />
+          
+          {/* Content with padding for header and bottom button */}
+          <div className="flex-1 flex flex-col pt-14 pb-24 overflow-hidden">
+            {drawerContent}
+          </div>
+
+          {/* Map button at bottom - small and discreet */}
+          <div className="absolute bottom-20 left-0 right-0 pb-2">
+            <MobilePanelToggle
+              mode="map"
+              onClick={() => onMobileToggleDetails?.(false)}
+              alwaysVisible={true}
+            />
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

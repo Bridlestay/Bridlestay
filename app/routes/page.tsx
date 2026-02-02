@@ -82,6 +82,9 @@ export default function RoutesPage() {
   // Mobile panel state for Find/Saved (whether to show panel or map)
   const [mobilePanelOpen, setMobilePanelOpen] = useState(true);
 
+  // Mobile route detail view state
+  const [mobileRouteDetailOpen, setMobileRouteDetailOpen] = useState(true);
+
   // Navigation state
   const [isNavigating, setIsNavigating] = useState(false);
   const [navigatingRoute, setNavigatingRoute] = useState<any | null>(null);
@@ -147,11 +150,23 @@ export default function RoutesPage() {
 
   // Handle mobile tab change with discard confirmation
   const handleMobileTabChange = (tab: RouteTab) => {
+    // Close route detail drawer if open
+    if (drawerOpen) {
+      setDrawerOpen(false);
+      setSelectedRouteId(null);
+      setSelectedRouteData(null);
+      setHighlightedRouteId(null);
+      setDrawnRouteId(null);
+      setMobileRouteDetailOpen(true);
+    }
+    
     if (isCreating && waypoints.length > 0 && tab !== "create") {
       setPendingTabChange(tab);
       setShowDiscardDialog(true);
     } else {
       setActiveTab(tab);
+      // Reset panel states when switching tabs
+      setMobilePanelOpen(true);
     }
   };
 
@@ -965,11 +980,16 @@ export default function RoutesPage() {
           }}
         />
 
-        {/* Mobile FAB Menu (+ button for settings) */}
-        <MobileFabMenu 
-          onOpenSettings={() => setShowLayerPanel(true)}
-          onLocateMe={handleLocateMe}
-        />
+        {/* Mobile FAB Menu (+ button for settings) - only show when map is visible */}
+        {/* Show when: map tab with no open panels, or viewing route with details collapsed */}
+        {((activeTab === "map" && !drawerOpen) || 
+          (activeTab === "map" && drawerOpen && !mobileRouteDetailOpen) ||
+          ((activeTab === "find" || activeTab === "saved") && !mobilePanelOpen)) && (
+          <MobileFabMenu 
+            onOpenSettings={() => setShowLayerPanel(true)}
+            onLocateMe={handleLocateMe}
+          />
+        )}
 
         {/* Saved Routes Panel */}
         <SavedRoutesPanel
@@ -998,6 +1018,17 @@ export default function RoutesPage() {
             <MobilePanelToggle
               mode="options"
               onClick={() => setMobilePanelOpen(true)}
+              alwaysVisible={true}
+            />
+          </div>
+        )}
+
+        {/* Mobile Options button - shown when viewing route with details collapsed */}
+        {drawerOpen && !mobileRouteDetailOpen && (
+          <div className="md:hidden fixed bottom-20 left-0 right-0 pb-2 z-30">
+            <MobilePanelToggle
+              mode="options"
+              onClick={() => setMobileRouteDetailOpen(true)}
               alwaysVisible={true}
             />
           </div>
@@ -1067,6 +1098,7 @@ export default function RoutesPage() {
             setSelectedRouteData(null);
             setHighlightedRouteId(null);
             setDrawnRouteId(null); // Clear route polyline from map
+            setMobileRouteDetailOpen(true); // Reset for next time
           }}
           onShowPropertyOnMap={(propertyId, lat, lng) => {
             // Close the route drawer
@@ -1075,6 +1107,7 @@ export default function RoutesPage() {
             setSelectedRouteData(null);
             setHighlightedRouteId(null);
             setDrawnRouteId(null);
+            setMobileRouteDetailOpen(true);
             
             // Pan to the property location and zoom in
             mapRef.current?.panTo(lat, lng);
@@ -1091,6 +1124,8 @@ export default function RoutesPage() {
           onEditRoute={(routeId, routeData) => {
             startEditing(routeId, routeData);
           }}
+          mobileShowDetails={mobileRouteDetailOpen}
+          onMobileToggleDetails={setMobileRouteDetailOpen}
         />
 
         {/* Elevation Profile moved inside the route detail panel */}
