@@ -315,67 +315,149 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       }
     }, [isCreating, isPlotting, toolMode]);
 
-    // Add route markers (pins)
+    // Store routes data for click handlers
+    const routesDataRef = useRef<Map<string, any>>(new Map());
+
+    // Add clustered route pins using Mapbox native clustering
     useEffect(() => {
       if (!mapRef.current || !mapLoaded || isCreating) return;
 
-      // Clear existing markers
-      markersRef.current.forEach((m) => m.remove());
-      markersRef.current = [];
+      const map = mapRef.current;
 
-      // Create markers for each route
-      routes.forEach((route) => {
-        if (!route.geometry?.coordinates?.length) return;
+      // Store routes data for later lookup
+      routesDataRef.current.clear();
+      routes.forEach(r => routesDataRef.current.set(r.id, r));
 
-        // Use start point of route for marker
-        const [lng, lat] = route.geometry.coordinates[0];
+      // Create GeoJSON features for clustering
+      const features = routes
+        .filter(route => route.geometry?.coordinates?.length > 0)
+        .map(route => ({
+          type: "Feature" as const,
+          properties: {
+            id: route.id,
+            title: route.title || "Untitled Route",
+            difficulty: route.difficulty || "unrated",
+            distance_km: route.distance_km || 0,
+          },
+          geometry: {
+            type: "Point" as const,
+            coordinates: route.geometry.coordinates[0],
+          },
+        }));
 
-        // Create custom marker element
-        const el = document.createElement("div");
-        el.className = "route-marker";
-        el.innerHTML = `
-          <div style="
-            width: 32px;
-            height: 40px;
-            position: relative;
-          ">
-            <svg viewBox="0 0 24 32" fill="${DIFFICULTY_COLORS[route.difficulty] || DIFFICULTY_COLORS.unrated}" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
-              <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0zm0 16c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z"/>
-            </svg>
-          </div>
-        `;
-        el.style.cursor = "pointer";
+      // Add or update the clustered source
+      const sourceId = "route-pins";
+      const existingSource = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
+      
+      if (existingSource) {
+        existingSource.setData({
+          type: "FeatureCollection",
+          features,
+        });
+      } else {
+        // Add source with clustering
+        map.addSource(sourceId, {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features,
+          },
+          cluster: true,
+          clusterMaxZoom: 14,
+          clusterRadius: 50,
+        });
 
-        const marker = new mapboxgl.Marker({ element: el })
-          .setLngLat([lng, lat])
-          .addTo(mapRef.current!);
+        // Cluster circles (purple like OS Maps)
+        map.addLayer({
+          id: "clusters",
+          type: "circle",
+          source: sourceId,
+          filter: ["has", "point_count"],
+          paint: {
+            "circle-color": "#5E35B1",
+            "circle-radius": [
+              "step",
+              ["get", "point_count"],
+              20,   // size for count < 10
+              10, 25, // size for count >= 10
+              30, 30, // size for count >= 30
+            ],
+            "circle-stroke-width": 3,
+            "circle-stroke-color": "#ffffff",
+          },
+        });
 
-        // Click handler for marker
-        el.addEventListener("click", (e) => {
-          e.stopPropagation();
+        // Cluster count labels
+        map.addLayer({
+          id: "cluster-count",
+          type: "symbol",
+          source: sourceId,
+          filter: ["has", "point_count"],
+          layout: {
+            "text-field": ["get", "point_count_abbreviated"],
+            "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
+            "text-size": 14,
+          },
+          paint: {
+            "text-color": "#ffffff",
+          },
+        });
+
+        // Individual route pins (unclustered) - purple circles like OS Maps
+        map.addLayer({
+          id: "unclustered-point",
+          type: "circle",
+          source: sourceId,
+          filter: ["!", ["has", "point_count"]],
+          paint: {
+            "circle-color": "#5E35B1",
+            "circle-radius": 12,
+            "circle-stroke-width": 3,
+            "circle-stroke-color": "#ffffff",
+          },
+        });
+
+
+        // Click on cluster to zoom
+        map.on("click", "clusters", (e) => {
+          const features = map.queryRenderedFeatures(e.point, { layers: ["clusters"] });
+          const clusterId = features[0].properties?.cluster_id;
+          const source = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
           
-          // Show popup with route info
+          source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+            if (err) return;
+            map.easeTo({
+              center: (features[0].geometry as any).coordinates,
+              zoom: zoom,
+            });
+          });
+        });
+
+        // Click on individual pin
+        map.on("click", "unclustered-point", (e) => {
+          if (!e.features?.[0]) return;
+          const props = e.features[0].properties;
+          const coords = (e.features[0].geometry as any).coordinates.slice();
+          const route = routesDataRef.current.get(props?.id);
+          
+          if (!route) return;
+
           const rideTimeMinutes = Math.round((route.distance_km || 0) / 8 * 60);
           const hours = Math.floor(rideTimeMinutes / 60);
           const mins = rideTimeMinutes % 60;
           const rideTimeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 
-          const popup = new mapboxgl.Popup({
-            closeButton: true,
-            closeOnClick: true,
-            maxWidth: "320px",
-            className: "route-popup",
-          })
-            .setLngLat([lng, lat])
+          new mapboxgl.Popup({ closeButton: true, maxWidth: "320px" })
+            .setLngLat(coords)
             .setHTML(`
               <div style="padding: 12px; font-family: system-ui, -apple-system, sans-serif;">
-                <h3 style="margin: 0 0 8px; font-size: 16px; font-weight: 600;">${route.title || "Untitled Route"}</h3>
+                <h3 style="margin: 0 0 8px; font-size: 16px; font-weight: 600;">${route.title}</h3>
                 <div style="display: flex; gap: 12px; margin-bottom: 12px;">
                   <span style="font-size: 14px;">🐴 ${(route.distance_km || 0).toFixed(1)} km</span>
                   <span style="font-size: 14px;">⏱️ ${rideTimeStr}</span>
                 </div>
                 <button 
-                  id="view-route-${route.id}"
+                  onclick="window.dispatchEvent(new CustomEvent('route-click', {detail: '${route.id}'}))"
                   style="
                     width: 100%;
                     padding: 10px;
@@ -392,32 +474,66 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                 </button>
               </div>
             `)
-            .addTo(mapRef.current!);
-
-          // Add click handler for view details button
-          setTimeout(() => {
-            const btn = document.getElementById(`view-route-${route.id}`);
-            if (btn) {
-              btn.onclick = () => {
-                popup.remove();
-                onRouteClick?.(route.id);
-              };
-            }
-          }, 100);
+            .addTo(map);
 
           onRoutePreview?.(route);
         });
 
-        markersRef.current.push(marker);
-      });
+        // Change cursor on hover
+        map.on("mouseenter", "clusters", () => {
+          map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", "clusters", () => {
+          map.getCanvas().style.cursor = "";
+        });
+        map.on("mouseenter", "unclustered-point", () => {
+          map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", "unclustered-point", () => {
+          map.getCanvas().style.cursor = "";
+        });
+      }
+
+      // Listen for route click events from popup
+      const handleRouteClick = (e: CustomEvent) => {
+        onRouteClick?.(e.detail);
+      };
+      window.addEventListener("route-click", handleRouteClick as EventListener);
+
+      return () => {
+        window.removeEventListener("route-click", handleRouteClick as EventListener);
+      };
     }, [routes, mapLoaded, isCreating, onRouteClick, onRoutePreview]);
 
     // Draw selected route polyline with start/end markers
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
 
-      const source = mapRef.current.getSource("routes") as mapboxgl.GeoJSONSource;
-      if (!source) return;
+      const map = mapRef.current;
+
+      // Ensure the routes source exists
+      let source = map.getSource("routes") as mapboxgl.GeoJSONSource;
+      if (!source) {
+        map.addSource("routes", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+        map.addLayer({
+          id: "routes-line",
+          type: "line",
+          source: "routes",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": ["coalesce", ["get", "color"], "#5E35B1"],
+            "line-width": ["coalesce", ["get", "width"], 5],
+            "line-opacity": 0.9,
+          },
+        });
+        source = map.getSource("routes") as mapboxgl.GeoJSONSource;
+      }
 
       // Clear existing start/end markers
       startEndMarkersRef.current.forEach((m) => m.remove());
