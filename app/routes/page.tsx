@@ -18,6 +18,7 @@ import { RoutesMapHeader } from "@/components/routes/routes-map-header";
 import { MobileTopHeader } from "@/components/routes/mobile-top-header";
 import { MobileBottomNav } from "@/components/routes/mobile-bottom-nav";
 import { MobileFabMenu } from "@/components/routes/mobile-fab-menu";
+import { MobilePanelToggle } from "@/components/routes/mobile-panel-toggle";
 import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -735,14 +736,12 @@ export default function RoutesPage() {
 
             {/* Options button - bottom center (only when sheet is closed) */}
             {mobileCreateView === "map" && (
-              <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-30">
-                <Button
+              <div className="fixed bottom-20 left-0 right-0 pb-2 z-30">
+                <MobilePanelToggle
+                  mode="options"
                   onClick={() => setMobileCreateView("options")}
-                  className="rounded-full px-6 py-2.5 bg-gray-800 hover:bg-gray-700 text-white shadow-lg flex items-center gap-2"
-                >
-                  <Settings className="h-4 w-4" />
-                  Options
-                </Button>
+                  alwaysVisible={true}
+                />
               </div>
             )}
 
@@ -801,23 +800,20 @@ export default function RoutesPage() {
                 />
               </div>
 
-              {/* Fixed bottom buttons - Map button above Cancel/Save */}
+              {/* Fixed bottom buttons */}
               <div className="px-4 pb-4 pt-2 border-t bg-white space-y-3">
-                {/* Map button */}
-                <Button
+                {/* Map button - centered, discreet */}
+                <MobilePanelToggle
+                  mode="map"
                   onClick={() => setMobileCreateView("map")}
-                  variant="outline"
-                  className="w-full rounded-full h-11 border-2 border-gray-800 text-gray-800 hover:bg-gray-100 flex items-center justify-center gap-2"
-                >
-                  <Map className="h-4 w-4" />
-                  Map
-                </Button>
+                  alwaysVisible={true}
+                />
                 
                 {/* Cancel / Save buttons side by side */}
                 <div className="flex gap-3">
                   <Button
                     variant="outline"
-                    className="flex-1 rounded-full h-11 border-2 border-red-500 text-red-500 hover:bg-red-50"
+                    className="flex-1 rounded-full h-10 border-2 border-red-500 text-red-500 hover:bg-red-50"
                     onClick={() => {
                       if (waypoints.length > 0) {
                         setShowDiscardDialog(true);
@@ -829,7 +825,7 @@ export default function RoutesPage() {
                     Cancel
                   </Button>
                   <Button
-                    className="flex-1 rounded-full h-11 bg-[#2E8B57] hover:bg-[#256b45] text-white"
+                    className="flex-1 rounded-full h-10 bg-[#2E8B57] hover:bg-[#256b45] text-white"
                     onClick={() => {
                       // Trigger save from RouteCreator
                       const saveBtn = document.querySelector('[data-mobile-save]') as HTMLButtonElement;
@@ -998,14 +994,12 @@ export default function RoutesPage() {
 
         {/* Mobile Options button - shown when panel is collapsed on Find/Saved tabs */}
         {(activeTab === "find" || activeTab === "saved") && !mobilePanelOpen && (
-          <div className="md:hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-30">
-            <Button
+          <div className="md:hidden fixed bottom-20 left-0 right-0 pb-2 z-30">
+            <MobilePanelToggle
+              mode="options"
               onClick={() => setMobilePanelOpen(true)}
-              className="rounded-full px-6 py-2.5 bg-gray-800 hover:bg-gray-700 text-white shadow-lg flex items-center gap-2"
-            >
-              <Settings className="h-4 w-4" />
-              Options
-            </Button>
+              alwaysVisible={true}
+            />
           </div>
         )}
 

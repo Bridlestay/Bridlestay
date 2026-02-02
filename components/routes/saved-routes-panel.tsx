@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,12 +19,12 @@ import {
   Ruler,
   Star,
   Search,
-  Map,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { RoutesPanelHeader } from "./routes-panel-header";
 import { MobileTopHeader } from "./mobile-top-header";
+import { MobilePanelToggle } from "./mobile-panel-toggle";
 
 interface SavedRoutesPanelProps {
   isOpen: boolean;
@@ -301,29 +301,32 @@ export function SavedRoutesPanel({
         {panelContent}
       </div>
 
-      {/* Mobile Full Screen Panel - only show when mobilePanelOpen is true */}
-      {mobilePanelOpen && (
-        <div className="md:hidden fixed inset-0 bg-white z-20 flex flex-col">
+      {/* Mobile Panel with slide animation */}
+      <div 
+        className={cn(
+          "md:hidden fixed inset-x-0 bottom-0 top-0 z-20 transition-transform duration-300 ease-out",
+          mobilePanelOpen ? "translate-y-0" : "translate-y-full"
+        )}
+      >
+        <div className="h-full bg-white flex flex-col">
           {/* Mobile top header */}
           <MobileTopHeader onSearch={(query) => setSearchQuery(query)} />
           
-          {/* Content with padding for header */}
-          <div className="flex-1 flex flex-col pt-14 pb-32 overflow-hidden">
+          {/* Content with padding for header and bottom button */}
+          <div className="flex-1 flex flex-col pt-14 pb-24 overflow-hidden">
             {panelContent}
           </div>
 
-          {/* Fixed Map button at bottom */}
-          <div className="fixed bottom-16 left-0 right-0 px-4 pb-4 bg-gradient-to-t from-white via-white to-transparent pt-6">
-            <Button
+          {/* Map button at bottom - small and discreet */}
+          <div className="absolute bottom-20 left-0 right-0 pb-2">
+            <MobilePanelToggle
+              mode="map"
               onClick={() => onMobilePanelToggle?.(false)}
-              className="w-full rounded-full h-12 bg-gray-800 hover:bg-gray-700 text-white shadow-lg flex items-center justify-center gap-2"
-            >
-              <Map className="h-5 w-5" />
-              Map
-            </Button>
+              alwaysVisible={true}
+            />
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 }
