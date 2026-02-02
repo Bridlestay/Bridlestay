@@ -178,10 +178,14 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
     // Initialize map
     useEffect(() => {
+      console.log("Mapbox init check:", { isLoaded, hasContainer: !!mapContainerRef.current, hasMap: !!mapRef.current });
+      
       if (!isLoaded || !mapContainerRef.current || mapRef.current) return;
 
       // Set access token right before creating the map
       const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      console.log("Mapbox token:", token ? `${token.substring(0, 20)}...` : "NOT FOUND");
+      
       if (!token) {
         console.error("Mapbox token not found");
         return;
@@ -211,51 +215,65 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         "bottom-right"
       );
 
+      // Function to add sources and layers (called on load and style change)
+      const setupSourcesAndLayers = () => {
+        if (!map.getSource("routes")) {
+          map.addSource("routes", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] },
+          });
+        }
+
+        if (!map.getLayer("routes-line")) {
+          map.addLayer({
+            id: "routes-line",
+            type: "line",
+            source: "routes",
+            layout: {
+              "line-join": "round",
+              "line-cap": "round",
+            },
+            paint: {
+              "line-color": ["get", "color"],
+              "line-width": ["get", "width"],
+              "line-opacity": 0.8,
+            },
+          });
+        }
+
+        if (!map.getSource("creation-route")) {
+          map.addSource("creation-route", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] },
+          });
+        }
+
+        if (!map.getLayer("creation-route-line")) {
+          map.addLayer({
+            id: "creation-route-line",
+            type: "line",
+            source: "creation-route",
+            layout: {
+              "line-join": "round",
+              "line-cap": "round",
+            },
+            paint: {
+              "line-color": routeStyle.color,
+              "line-width": routeStyle.thickness,
+              "line-opacity": routeStyle.opacity / 100,
+            },
+          });
+        }
+      };
+
       map.on("load", () => {
         setMapLoaded(true);
-        
-        // Add route source and layer for displaying routes
-        map.addSource("routes", {
-          type: "geojson",
-          data: { type: "FeatureCollection", features: [] },
-        });
+        setupSourcesAndLayers();
+      });
 
-        // Route line layer
-        map.addLayer({
-          id: "routes-line",
-          type: "line",
-          source: "routes",
-          layout: {
-            "line-join": "round",
-            "line-cap": "round",
-          },
-          paint: {
-            "line-color": ["get", "color"],
-            "line-width": ["get", "width"],
-            "line-opacity": 0.8,
-          },
-        });
-
-        // Add creation route source and layer
-        map.addSource("creation-route", {
-          type: "geojson",
-          data: { type: "FeatureCollection", features: [] },
-        });
-
-        map.addLayer({
-          id: "creation-route-line",
-          type: "line",
-          source: "creation-route",
-          layout: {
-            "line-join": "round",
-            "line-cap": "round",
-          },
-          paint: {
-            "line-color": routeStyle.color,
-            "line-width": routeStyle.thickness,
-            "line-opacity": routeStyle.opacity / 100,
-          },
-        });
+      // Re-add sources when style changes
+      map.on("style.load", () => {
+        setupSourcesAndLayers();
       });
 
       // Handle click on map for adding waypoints
