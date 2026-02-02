@@ -2,12 +2,9 @@
 
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
-import { useMapbox, getMapboxToken } from "@/lib/hooks/use-mapbox";
+import { useMapbox } from "@/lib/hooks/use-mapbox";
 import { Loader2, AlertCircle } from "lucide-react";
 import type { Waypoint, RouteStyle, ToolMode } from "./route-creator";
-
-// Set access token
-mapboxgl.accessToken = getMapboxToken();
 
 // Route difficulty colors
 const DIFFICULTY_COLORS = {
@@ -182,6 +179,14 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     // Initialize map
     useEffect(() => {
       if (!isLoaded || !mapContainerRef.current || mapRef.current) return;
+
+      // Set access token right before creating the map
+      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      if (!token) {
+        console.error("Mapbox token not found");
+        return;
+      }
+      mapboxgl.accessToken = token;
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
