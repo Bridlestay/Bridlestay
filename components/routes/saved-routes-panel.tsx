@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { RoutesPanelHeader } from "./routes-panel-header";
 import { MobileTopHeader } from "./mobile-top-header";
 import { MobilePanelToggle } from "./mobile-panel-toggle";
-import { getRouteThumbnailUrl } from "@/lib/routes/route-thumbnail";
+import { getRouteThumbnailUrlAuto } from "@/lib/routes/route-thumbnail";
 
 interface SavedRoutesPanelProps {
   isOpen: boolean;
@@ -233,13 +233,11 @@ export function SavedRoutesPanel({
                   {/* Route snapshot thumbnail */}
                   <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                     {(() => {
-                      const thumbnailUrl = getRouteThumbnailUrl(route.geometry, {
+                      const thumbnailUrl = getRouteThumbnailUrlAuto(route.geometry, {
                         width: 160,
                         height: 160,
                         routeColor: "5E35B1",
                         routeWeight: 4,
-                        mapType: "terrain",
-                        style: "minimal",
                       });
                       return thumbnailUrl ? (
                         <img

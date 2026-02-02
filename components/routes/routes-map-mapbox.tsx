@@ -130,6 +130,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const markersRef = useRef<mapboxgl.Marker[]>([]);
     const popupRef = useRef<mapboxgl.Popup | null>(null);
     const waypointMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+    const startEndMarkersRef = useRef<mapboxgl.Marker[]>([]);
     
     const { isLoaded, loadError } = useMapbox();
     const [mapLoaded, setMapLoaded] = useState(false);
@@ -178,16 +179,12 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
     // Initialize map
     useEffect(() => {
-      console.log("Mapbox init check:", { isLoaded, hasContainer: !!mapContainerRef.current, hasMap: !!mapRef.current });
-      
       if (!isLoaded || !mapContainerRef.current || mapRef.current) return;
 
       // Set access token right before creating the map
       const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-      console.log("Mapbox token:", token ? `${token.substring(0, 20)}...` : "NOT FOUND");
-      
       if (!token) {
-        console.error("Mapbox token not found");
+        console.error("Mapbox token not found in environment variables");
         return;
       }
       mapboxgl.accessToken = token;
@@ -267,13 +264,12 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       };
 
       map.on("load", () => {
-        console.log("Mapbox map loaded and ready!");
         setMapLoaded(true);
         setupSourcesAndLayers();
       });
 
       map.on("error", (e) => {
-        console.error("Mapbox error:", e);
+        console.error("Mapbox map error:", e.error);
       });
 
       // Re-add sources when style changes
@@ -295,10 +291,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       });
 
       mapRef.current = map;
-      console.log("Mapbox map created successfully");
 
       return () => {
-        console.log("Mapbox map cleanup");
         map.remove();
         mapRef.current = null;
       };
@@ -418,16 +412,23 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       });
     }, [routes, mapLoaded, isCreating, onRouteClick, onRoutePreview]);
 
-    // Draw selected route polyline
+    // Draw selected route polyline with start/end markers
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
 
       const source = mapRef.current.getSource("routes") as mapboxgl.GeoJSONSource;
       if (!source) return;
 
+      // Clear existing start/end markers
+      startEndMarkersRef.current.forEach((m) => m.remove());
+      startEndMarkersRef.current = [];
+
       if (selectedRouteId) {
         const route = routes.find((r) => r.id === selectedRouteId);
-        if (route?.geometry?.coordinates) {
+        if (route?.geometry?.coordinates && route.geometry.coordinates.length >= 2) {
+          const coords = route.geometry.coordinates;
+          
+          // Draw the route line
           source.setData({
             type: "FeatureCollection",
             features: [
@@ -441,6 +442,59 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
               },
             ],
           });
+
+          // Add START marker (green)
+          const startEl = document.createElement("div");
+          startEl.innerHTML = `
+            <div style="
+              width: 28px;
+              height: 28px;
+              background: #22C55E;
+              border: 3px solid white;
+              border-radius: 50%;
+              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 12px;
+              font-weight: bold;
+              color: white;
+            ">S</div>
+          `;
+          const startMarker = new mapboxgl.Marker({ element: startEl })
+            .setLngLat([coords[0][0], coords[0][1]])
+            .addTo(mapRef.current!);
+          startEndMarkersRef.current.push(startMarker);
+
+          // Add END marker (red) - only if different from start
+          const endCoord = coords[coords.length - 1];
+          const startCoord = coords[0];
+          const isSamePoint = Math.abs(endCoord[0] - startCoord[0]) < 0.0001 && 
+                             Math.abs(endCoord[1] - startCoord[1]) < 0.0001;
+          
+          if (!isSamePoint) {
+            const endEl = document.createElement("div");
+            endEl.innerHTML = `
+              <div style="
+                width: 28px;
+                height: 28px;
+                background: #EF4444;
+                border: 3px solid white;
+                border-radius: 50%;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                font-weight: bold;
+                color: white;
+              ">E</div>
+            `;
+            const endMarker = new mapboxgl.Marker({ element: endEl })
+              .setLngLat([endCoord[0], endCoord[1]])
+              .addTo(mapRef.current!);
+            startEndMarkersRef.current.push(endMarker);
+          }
         }
       } else {
         // Clear route display
