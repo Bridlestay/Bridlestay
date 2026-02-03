@@ -484,38 +484,38 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           });
 
           const popupId = `popup-${route.id}-${Date.now()}`;
-          const popup = new mapboxgl.Popup({ closeButton: false, maxWidth: "280px", className: "route-preview-popup" })
+          const popup = new mapboxgl.Popup({ closeButton: false, maxWidth: "260px", className: "route-preview-popup" })
             .setLngLat(coords)
             .setHTML(`
-              <div style="font-family: system-ui, -apple-system, sans-serif; overflow: hidden; border-radius: 12px; position: relative; background: white;">
-                <!-- Corner cutout close button (OS Maps style) -->
+              <div style="font-family: system-ui, -apple-system, sans-serif; overflow: hidden; border-radius: 10px; position: relative; background: white;">
+                <!-- Smaller corner cutout close button (OS Maps style) -->
                 <div style="
                   position: absolute;
                   top: 0;
                   right: 0;
-                  width: 36px;
-                  height: 36px;
+                  width: 26px;
+                  height: 26px;
                   background: white;
-                  border-bottom-left-radius: 12px;
+                  border-bottom-left-radius: 10px;
                   display: flex;
                   align-items: center;
                   justify-content: center;
                   cursor: pointer;
                   z-index: 10;
                 " onclick="this.closest('.mapboxgl-popup').remove()">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2.5" stroke-linecap="round">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                   </svg>
                 </div>
                 ${thumbnailUrl ? `
-                  <div style="width: 100%; height: 90px; overflow: hidden;">
+                  <div style="width: 100%; height: 85px; overflow: hidden;">
                     <img src="${thumbnailUrl}" alt="${route.title}" style="width: 100%; height: 100%; object-fit: cover;" />
                   </div>
                 ` : ''}
-                <div style="padding: 12px;">
-                  <h3 style="margin: 0 0 6px; font-size: 15px; font-weight: 600; color: #1f2937;">${route.title}</h3>
-                  <div style="display: flex; gap: 16px; margin-bottom: 10px; color: #4b5563; font-size: 13px;">
+                <div style="padding: 10px 12px;">
+                  <h3 style="margin: 0 0 5px; font-size: 14px; font-weight: 600; color: #1f2937;">${route.title}</h3>
+                  <div style="display: flex; gap: 14px; margin-bottom: 10px; color: #4b5563; font-size: 12px;">
                     <span style="display: flex; align-items: center; gap: 4px;">
                       🐴 ${(route.distance_km || 0).toFixed(1)} km
                     </span>
@@ -527,12 +527,12 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                     id="${popupId}"
                     style="
                       width: 100%;
-                      padding: 10px;
+                      padding: 9px;
                       background: #166534;
                       color: white;
                       border: none;
                       border-radius: 8px;
-                      font-size: 14px;
+                      font-size: 13px;
                       font-weight: 500;
                       cursor: pointer;
                     "
@@ -544,12 +544,16 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             `)
             .addTo(map);
 
+          // Store popup reference for later removal
+          popupRef.current = popup;
+
           // Add click handler that closes popup then triggers route click
           const setupClickHandler = () => {
             const btn = document.getElementById(popupId);
             if (btn) {
               btn.addEventListener('click', () => {
                 popup.remove();
+                popupRef.current = null;
                 onRouteClick?.(route.id);
               });
             } else {

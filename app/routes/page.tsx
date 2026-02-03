@@ -316,6 +316,12 @@ export default function RoutesPage() {
     setDrawerOpen(true);
     setShowBottomSheet(false);
     
+    // On mobile, switch to map tab when viewing route details
+    // This ensures the Map button shows the map, not the previous panel
+    setActiveTab("map");
+    setMobilePanelOpen(false); // Close any open panel
+    setMobileRouteDetailOpen(true); // Show route details
+    
     // Fetch full route data for navigation/elevation
     const fullRoute = await fetchRouteData(routeId);
     setSelectedRouteData(fullRoute);
