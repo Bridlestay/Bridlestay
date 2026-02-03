@@ -501,7 +501,21 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             routeWeight: 4,
           });
 
-          const popupId = `popup-${route.id}-${Date.now()}`;
+          // Use a global handler approach for mobile reliability
+          const routeIdForClick = route.id;
+          
+          // Define global handler for this popup
+          const handlerName = `__routePopupClick_${route.id.replace(/-/g, '_')}`;
+          (window as any)[handlerName] = () => {
+            // Clean up handler
+            delete (window as any)[handlerName];
+            // Close popup
+            popup?.remove();
+            popupRef.current = null;
+            // Trigger route click
+            onRouteClick?.(routeIdForClick);
+          };
+          
           const popup = new mapboxgl.Popup({ closeButton: false, maxWidth: "260px", className: "route-preview-popup" })
             .setLngLat(coords)
             .setHTML(`
@@ -542,7 +556,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                     </span>
                   </div>
                   <button 
-                    id="${popupId}"
+                    onclick="window.${handlerName}?.()"
                     style="
                       width: 100%;
                       padding: 9px;
@@ -553,6 +567,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                       font-size: 13px;
                       font-weight: 500;
                       cursor: pointer;
+                      -webkit-tap-highlight-color: transparent;
                     "
                   >
                     View details
@@ -564,22 +579,11 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
           // Store popup reference for later removal
           popupRef.current = popup;
-
-          // Add click handler that closes popup then triggers route click
-          const setupClickHandler = () => {
-            const btn = document.getElementById(popupId);
-            if (btn) {
-              btn.addEventListener('click', () => {
-                popup.remove();
-                popupRef.current = null;
-                onRouteClick?.(route.id);
-              });
-            } else {
-              // Retry if button not found yet
-              setTimeout(setupClickHandler, 50);
-            }
-          };
-          setupClickHandler();
+          
+          // Clean up handler when popup is closed
+          popup.on('close', () => {
+            delete (window as any)[handlerName];
+          });
 
           onRoutePreview?.(route);
         });
