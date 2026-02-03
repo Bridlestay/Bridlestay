@@ -946,6 +946,7 @@ export default function RoutesPage() {
             onRoutePreview={handleRoutePreview}
             onClusterClick={handleClusterClick}
             selectedRouteId={drawnRouteId}
+            selectedRouteData={selectedRouteData}
             pathLayers={pathLayers}
             propertyPins={layerSettings.showProperties ? nearbyProperties : []}
             highlightedRouteId={highlightedRouteId}

@@ -62,6 +62,8 @@ export interface RoutesMapMapboxProps {
   zoom?: number;
   highlightedRouteId?: string | null;
   selectedRouteId?: string | null;
+  // Direct route data for selected route (used when route may not be in routes array)
+  selectedRouteData?: any;
   // Map type - accepts both Mapbox style names and Google Maps style names for compatibility
   mapType?: "outdoors" | "streets" | "satellite" | "light" | "roadmap" | "terrain" | "hybrid";
   // Creation mode props
@@ -125,6 +127,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       zoom = 10,
       highlightedRouteId,
       selectedRouteId,
+      selectedRouteData,
       mapType = "outdoors",
       isCreating = false,
       isPlotting = false,
@@ -503,19 +506,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
           // Use a global handler approach for mobile reliability
           const routeIdForClick = route.id;
-          
-          // Define global handler for this popup
           const handlerName = `__routePopupClick_${route.id.replace(/-/g, '_')}`;
-          (window as any)[handlerName] = () => {
-            // Clean up handler
-            delete (window as any)[handlerName];
-            // Close popup
-            popup?.remove();
-            popupRef.current = null;
-            // Trigger route click
-            onRouteClick?.(routeIdForClick);
-          };
           
+          // Create popup first
           const popup = new mapboxgl.Popup({ closeButton: false, maxWidth: "260px", className: "route-preview-popup" })
             .setLngLat(coords)
             .setHTML(`
@@ -580,7 +573,18 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           // Store popup reference for later removal
           popupRef.current = popup;
           
-          // Clean up handler when popup is closed
+          // Define global handler for this popup (after popup is created)
+          (window as any)[handlerName] = () => {
+            // Clean up handler
+            delete (window as any)[handlerName];
+            // Close popup
+            popup.remove();
+            popupRef.current = null;
+            // Trigger route click to open details and zoom
+            onRouteClick?.(routeIdForClick);
+          };
+          
+          // Clean up handler when popup is closed by other means
           popup.on('close', () => {
             delete (window as any)[handlerName];
           });
@@ -711,7 +715,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       startEndMarkersRef.current = [];
 
       if (selectedRouteId) {
-        const route = routes.find((r) => r.id === selectedRouteId);
+        // Try to find route in routes array, or use selectedRouteData directly
+        const route = routes.find((r) => r.id === selectedRouteId) || selectedRouteData;
         if (route?.geometry?.coordinates && route.geometry.coordinates.length >= 2) {
           const coords = route.geometry.coordinates;
           
@@ -787,7 +792,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         // Clear route display
         source.setData({ type: "FeatureCollection", features: [] });
       }
-    }, [selectedRouteId, routes, mapLoaded, styleLoadCount]);
+    }, [selectedRouteId, selectedRouteData, routes, mapLoaded, styleLoadCount]);
 
     // Draw creation route from waypoints
     useEffect(() => {
