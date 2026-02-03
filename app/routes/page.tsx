@@ -287,13 +287,20 @@ export default function RoutesPage() {
     setDrawerOpen(true);
     setShowBottomSheet(false);
     
+    // Mobile: switch to map tab and open route details
+    setActiveTab("map");
+    setMobilePanelOpen(false);
+    setMobileRouteDetailOpen(true);
+    
     // Fetch full route data
     const fullRoute = await fetchRouteData(routeId);
     setSelectedRouteData(fullRoute);
     
-    // Zoom to fit the route
+    // Zoom to fit the route (with slight delay to ensure map is ready)
     if (fullRoute?.geometry?.coordinates?.length > 0) {
-      mapRef.current?.fitBounds(fullRoute.geometry.coordinates);
+      setTimeout(() => {
+        mapRef.current?.fitBounds(fullRoute.geometry.coordinates);
+      }, 100);
     }
   };
 

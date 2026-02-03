@@ -504,17 +504,16 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             routeWeight: 4,
           });
 
-          // Use a global handler approach for mobile reliability
+          // Store route ID for the click handler
           const routeIdForClick = route.id;
-          const handlerName = `__routePopupClick_${route.id.replace(/-/g, '_')}`;
           
-          // Create popup first
+          // Create popup
           const popup = new mapboxgl.Popup({ closeButton: false, maxWidth: "260px", className: "route-preview-popup" })
             .setLngLat(coords)
             .setHTML(`
               <div style="font-family: system-ui, -apple-system, sans-serif; overflow: hidden; border-radius: 10px; position: relative; background: white;">
                 <!-- Smaller corner cutout close button (OS Maps style) -->
-                <div style="
+                <div class="popup-close-btn" style="
                   position: absolute;
                   top: 0;
                   right: 0;
@@ -527,7 +526,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                   justify-content: center;
                   cursor: pointer;
                   z-index: 10;
-                " onclick="this.closest('.mapboxgl-popup').remove()">
+                ">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -549,7 +548,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                     </span>
                   </div>
                   <button 
-                    onclick="window.${handlerName}?.()"
+                    class="popup-view-details-btn"
+                    data-route-id="${routeIdForClick}"
                     style="
                       width: 100%;
                       padding: 9px;
@@ -573,21 +573,32 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           // Store popup reference for later removal
           popupRef.current = popup;
           
-          // Define global handler for this popup (after popup is created)
-          (window as any)[handlerName] = () => {
-            // Clean up handler
-            delete (window as any)[handlerName];
-            // Close popup
-            popup.remove();
-            popupRef.current = null;
-            // Trigger route click to open details and zoom
-            onRouteClick?.(routeIdForClick);
-          };
+          // Get the popup element and add click handlers directly
+          const popupEl = popup.getElement();
           
-          // Clean up handler when popup is closed by other means
-          popup.on('close', () => {
-            delete (window as any)[handlerName];
-          });
+          // Close button handler
+          const closeBtn = popupEl?.querySelector('.popup-close-btn');
+          if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              popup.remove();
+              popupRef.current = null;
+            });
+          }
+          
+          // View details button handler
+          const viewDetailsBtn = popupEl?.querySelector('.popup-view-details-btn');
+          if (viewDetailsBtn) {
+            viewDetailsBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const routeId = (viewDetailsBtn as HTMLElement).dataset.routeId;
+              popup.remove();
+              popupRef.current = null;
+              if (routeId) {
+                onRouteClick?.(routeId);
+              }
+            });
+          }
 
           onRoutePreview?.(route);
         });
