@@ -417,20 +417,20 @@ export function FindRoutesPanel({
                 onMouseLeave={() => onRouteHover?.(null)}
               >
                 <div className="flex gap-3">
-                  {/* Route snapshot thumbnail with bookmark */}
+                  {/* Route snapshot thumbnail with corner bookmark (OS Maps style) */}
                   <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                    {/* Bookmark button */}
+                    {/* Corner cutout bookmark button */}
                     <button
                       onClick={(e) => toggleSaveRoute(route.id, e)}
-                      className="absolute top-1 left-1 z-10 w-7 h-7 bg-white rounded-md shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
+                      className="absolute top-0 left-0 z-10 w-8 h-8 bg-white rounded-br-xl flex items-center justify-center hover:bg-gray-50 transition-colors"
                       title={savedRouteIds.has(route.id) ? "Remove from saved" : "Save route"}
                     >
                       <Bookmark 
                         className={cn(
                           "h-4 w-4",
                           savedRouteIds.has(route.id) 
-                            ? "fill-green-600 text-green-600" 
-                            : "text-gray-500"
+                            ? "fill-green-700 text-green-700" 
+                            : "text-gray-400"
                         )} 
                       />
                     </button>

@@ -6,6 +6,7 @@ import { useMapbox } from "@/lib/hooks/use-mapbox";
 import { Loader2, AlertCircle } from "lucide-react";
 import type { Waypoint, RouteStyle, ToolMode } from "./route-creator";
 import { getMapboxThumbnailUrl } from "@/lib/routes/route-thumbnail";
+import { toast } from "sonner";
 
 // Route difficulty colors
 const DIFFICULTY_COLORS = {
@@ -19,6 +20,22 @@ const DIFFICULTY_COLORS = {
 // Brand colors for pins (dark green like Padoq)
 const PIN_COLOR = "#166534"; // Dark green
 const PIN_BORDER = "#ffffff";
+
+// UK bounds for route creation restriction
+const UK_BOUNDS = {
+  north: 60.86,  // Shetland
+  south: 49.86,  // Channel Islands
+  east: 1.77,    // Lowestoft
+  west: -8.65,   // Western Ireland/Scotland
+};
+
+// Check if coordinates are within UK
+function isWithinUK(lng: number, lat: number): boolean {
+  return lat >= UK_BOUNDS.south && 
+         lat <= UK_BOUNDS.north && 
+         lng >= UK_BOUNDS.west && 
+         lng <= UK_BOUNDS.east;
+}
 
 // Map style options
 const MAP_STYLES = {
@@ -214,11 +231,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         "bottom-right"
       );
 
-      // Add navigation controls (zoom buttons)
-      map.addControl(
-        new mapboxgl.NavigationControl({ showCompass: false }),
-        "bottom-right"
-      );
+      // Don't add NavigationControl - we use our own custom controls
 
       // Function to add sources and layers (called on load and style change)
       const setupSourcesAndLayers = () => {
@@ -285,11 +298,18 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         setupSourcesAndLayers();
       });
 
-      // Handle click on map for adding waypoints
+      // Handle click on map for adding waypoints (UK only)
       map.on("click", (e) => {
         if (!isCreating || !isPlotting || toolMode !== "plot") return;
         
         const { lng, lat } = e.lngLat;
+        
+        // Check if point is within UK bounds
+        if (!isWithinUK(lng, lat)) {
+          toast.error("Routes can only be created within the UK & Ireland");
+          return;
+        }
+        
         onWaypointAdd?.({
           id: `wp-${Date.now()}`,
           lat,
@@ -463,41 +483,39 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             routeWeight: 4,
           });
 
-          const popup = new mapboxgl.Popup({ closeButton: false, maxWidth: "300px", className: "route-preview-popup" })
+          const popupId = `popup-${route.id}-${Date.now()}`;
+          const popup = new mapboxgl.Popup({ closeButton: false, maxWidth: "280px", className: "route-preview-popup" })
             .setLngLat(coords)
             .setHTML(`
-              <div style="font-family: system-ui, -apple-system, sans-serif; overflow: hidden; border-radius: 12px; position: relative;">
-                <!-- Custom close button with white background -->
-                <button 
-                  onclick="this.closest('.mapboxgl-popup').remove()"
-                  style="
-                    position: absolute;
-                    top: 8px;
-                    right: 8px;
-                    width: 28px;
-                    height: 28px;
-                    background: white;
-                    border: none;
-                    border-radius: 50%;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-                    z-index: 10;
-                    font-size: 18px;
-                    color: #374151;
-                    line-height: 1;
-                  "
-                >×</button>
+              <div style="font-family: system-ui, -apple-system, sans-serif; overflow: hidden; border-radius: 12px; position: relative; background: white;">
+                <!-- Corner cutout close button (OS Maps style) -->
+                <div style="
+                  position: absolute;
+                  top: 0;
+                  right: 0;
+                  width: 36px;
+                  height: 36px;
+                  background: white;
+                  border-bottom-left-radius: 12px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  cursor: pointer;
+                  z-index: 10;
+                " onclick="this.closest('.mapboxgl-popup').remove()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </div>
                 ${thumbnailUrl ? `
-                  <div style="width: 100%; height: 100px; overflow: hidden;">
+                  <div style="width: 100%; height: 90px; overflow: hidden;">
                     <img src="${thumbnailUrl}" alt="${route.title}" style="width: 100%; height: 100%; object-fit: cover;" />
                   </div>
                 ` : ''}
                 <div style="padding: 12px;">
-                  <h3 style="margin: 0 0 8px; font-size: 15px; font-weight: 600; color: #1f2937;">${route.title}</h3>
-                  <div style="display: flex; gap: 16px; margin-bottom: 12px; color: #4b5563; font-size: 13px;">
+                  <h3 style="margin: 0 0 6px; font-size: 15px; font-weight: 600; color: #1f2937;">${route.title}</h3>
+                  <div style="display: flex; gap: 16px; margin-bottom: 10px; color: #4b5563; font-size: 13px;">
                     <span style="display: flex; align-items: center; gap: 4px;">
                       🐴 ${(route.distance_km || 0).toFixed(1)} km
                     </span>
@@ -506,7 +524,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                     </span>
                   </div>
                   <button 
-                    id="view-details-btn-${route.id}"
+                    id="${popupId}"
                     style="
                       width: 100%;
                       padding: 10px;
@@ -527,15 +545,19 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             .addTo(map);
 
           // Add click handler that closes popup then triggers route click
-          setTimeout(() => {
-            const btn = document.getElementById(`view-details-btn-${route.id}`);
+          const setupClickHandler = () => {
+            const btn = document.getElementById(popupId);
             if (btn) {
-              btn.onclick = () => {
+              btn.addEventListener('click', () => {
                 popup.remove();
-                window.dispatchEvent(new CustomEvent('route-click', { detail: route.id }));
-              };
+                onRouteClick?.(route.id);
+              });
+            } else {
+              // Retry if button not found yet
+              setTimeout(setupClickHandler, 50);
             }
-          }, 100);
+          };
+          setupClickHandler();
 
           onRoutePreview?.(route);
         });
