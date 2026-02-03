@@ -151,14 +151,23 @@ export default function RoutesPage() {
 
   // Handle mobile tab change with discard confirmation
   const handleMobileTabChange = (tab: RouteTab) => {
-    // Close route detail drawer if open
+    // If viewing a route and clicking "Map" tab, keep the route visible
+    if (drawerOpen && tab === "map") {
+      // Just close the details panel, keep the route drawn on the map
+      setDrawerOpen(false);
+      setMobileRouteDetailOpen(false); // Hide details, show map with route
+      setActiveTab(tab);
+      return; // Don't clear route data, don't continue
+    }
+    
+    // Close route detail drawer if open and navigating to other tabs
     if (drawerOpen) {
       setDrawerOpen(false);
+      setMobileRouteDetailOpen(true);
       setSelectedRouteId(null);
       setSelectedRouteData(null);
       setHighlightedRouteId(null);
       setDrawnRouteId(null);
-      setMobileRouteDetailOpen(true);
     }
     
     if (isCreating && waypoints.length > 0 && tab !== "create") {

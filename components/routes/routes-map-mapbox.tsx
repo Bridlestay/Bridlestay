@@ -583,46 +583,55 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           // Store popup reference for later removal
           popupRef.current = popup;
           
-          // Use requestAnimationFrame to ensure popup is rendered before attaching handlers
-          requestAnimationFrame(() => {
+          // Use setTimeout to ensure popup is fully rendered before attaching handlers
+          setTimeout(() => {
             const popupEl = popup.getElement();
             if (!popupEl) return;
             
             // Close button handler
             const closeBtn = popupEl.querySelector('.popup-close-btn');
             if (closeBtn) {
-              closeBtn.addEventListener('click', (e) => {
+              const handleClose = (e: Event) => {
                 e.stopPropagation();
                 e.preventDefault();
-                popup.remove();
-                popupRef.current = null;
-              });
-              // Also handle touch
-              closeBtn.addEventListener('touchend', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                popup.remove();
-                popupRef.current = null;
-              });
+                // Use popupRef to ensure we have the current popup
+                if (popupRef.current) {
+                  popupRef.current.remove();
+                  popupRef.current = null;
+                }
+              };
+              closeBtn.addEventListener('click', handleClose);
+              closeBtn.addEventListener('touchstart', handleClose, { passive: false });
             }
             
             // View details button handler
             const viewDetailsBtn = popupEl.querySelector('.popup-view-details-btn');
             if (viewDetailsBtn) {
+              let hasTriggered = false; // Prevent double-trigger
               const handleViewDetails = (e: Event) => {
+                if (hasTriggered) return;
+                hasTriggered = true;
+                
                 e.stopPropagation();
                 e.preventDefault();
+                
                 const routeId = (viewDetailsBtn as HTMLElement).dataset.routeId;
-                popup.remove();
-                popupRef.current = null;
+                
+                // Close popup first
+                if (popupRef.current) {
+                  popupRef.current.remove();
+                  popupRef.current = null;
+                }
+                
+                // Then trigger route click
                 if (routeId && onRouteClick) {
                   onRouteClick(routeId);
                 }
               };
               viewDetailsBtn.addEventListener('click', handleViewDetails);
-              viewDetailsBtn.addEventListener('touchend', handleViewDetails);
+              viewDetailsBtn.addEventListener('touchstart', handleViewDetails, { passive: false });
             }
-          });
+          }, 50);
 
           onRoutePreview?.(route);
         });
