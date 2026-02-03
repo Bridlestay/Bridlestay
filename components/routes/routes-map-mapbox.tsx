@@ -463,10 +463,33 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             routeWeight: 4,
           });
 
-          new mapboxgl.Popup({ closeButton: true, maxWidth: "300px", className: "route-preview-popup" })
+          const popup = new mapboxgl.Popup({ closeButton: false, maxWidth: "300px", className: "route-preview-popup" })
             .setLngLat(coords)
             .setHTML(`
-              <div style="font-family: system-ui, -apple-system, sans-serif; overflow: hidden; border-radius: 12px;">
+              <div style="font-family: system-ui, -apple-system, sans-serif; overflow: hidden; border-radius: 12px; position: relative;">
+                <!-- Custom close button with white background -->
+                <button 
+                  onclick="this.closest('.mapboxgl-popup').remove()"
+                  style="
+                    position: absolute;
+                    top: 8px;
+                    right: 8px;
+                    width: 28px;
+                    height: 28px;
+                    background: white;
+                    border: none;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+                    z-index: 10;
+                    font-size: 18px;
+                    color: #374151;
+                    line-height: 1;
+                  "
+                >×</button>
                 ${thumbnailUrl ? `
                   <div style="width: 100%; height: 100px; overflow: hidden;">
                     <img src="${thumbnailUrl}" alt="${route.title}" style="width: 100%; height: 100%; object-fit: cover;" />
@@ -483,7 +506,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                     </span>
                   </div>
                   <button 
-                    onclick="window.dispatchEvent(new CustomEvent('route-click', {detail: '${route.id}'}))"
+                    id="view-details-btn-${route.id}"
                     style="
                       width: 100%;
                       padding: 10px;
@@ -502,6 +525,17 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
               </div>
             `)
             .addTo(map);
+
+          // Add click handler that closes popup then triggers route click
+          setTimeout(() => {
+            const btn = document.getElementById(`view-details-btn-${route.id}`);
+            if (btn) {
+              btn.onclick = () => {
+                popup.remove();
+                window.dispatchEvent(new CustomEvent('route-click', { detail: route.id }));
+              };
+            }
+          }, 100);
 
           onRoutePreview?.(route);
         });

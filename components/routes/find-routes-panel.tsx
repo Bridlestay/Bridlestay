@@ -22,6 +22,7 @@ import {
   Share2,
   Navigation,
   Search,
+  Bookmark,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -84,6 +85,54 @@ export function FindRoutesPanel({
   const [routes, setRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("recommended");
+  const [savedRouteIds, setSavedRouteIds] = useState<Set<string>>(new Set());
+
+  // Fetch user's saved routes on mount
+  useEffect(() => {
+    const fetchSavedRoutes = async () => {
+      try {
+        const res = await fetch("/api/routes/favorites");
+        if (res.ok) {
+          const data = await res.json();
+          setSavedRouteIds(new Set(data.map((r: any) => r.id)));
+        }
+      } catch (error) {
+        console.error("Error fetching saved routes:", error);
+      }
+    };
+    fetchSavedRoutes();
+  }, []);
+
+  // Toggle bookmark/save route
+  const toggleSaveRoute = async (routeId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    
+    const isSaved = savedRouteIds.has(routeId);
+    
+    try {
+      const res = await fetch(`/api/routes/${routeId}/favorite`, {
+        method: isSaved ? "DELETE" : "POST",
+      });
+      
+      if (res.ok) {
+        setSavedRouteIds(prev => {
+          const newSet = new Set(prev);
+          if (isSaved) {
+            newSet.delete(routeId);
+            toast.success("Route removed from saved");
+          } else {
+            newSet.add(routeId);
+            toast.success("Route saved!");
+          }
+          return newSet;
+        });
+      } else {
+        toast.error("Please sign in to save routes");
+      }
+    } catch (error) {
+      toast.error("Failed to update saved routes");
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -368,8 +417,23 @@ export function FindRoutesPanel({
                 onMouseLeave={() => onRouteHover?.(null)}
               >
                 <div className="flex gap-3">
-                  {/* Route snapshot thumbnail */}
+                  {/* Route snapshot thumbnail with bookmark */}
                   <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                    {/* Bookmark button */}
+                    <button
+                      onClick={(e) => toggleSaveRoute(route.id, e)}
+                      className="absolute top-1 left-1 z-10 w-7 h-7 bg-white rounded-md shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
+                      title={savedRouteIds.has(route.id) ? "Remove from saved" : "Save route"}
+                    >
+                      <Bookmark 
+                        className={cn(
+                          "h-4 w-4",
+                          savedRouteIds.has(route.id) 
+                            ? "fill-green-600 text-green-600" 
+                            : "text-gray-500"
+                        )} 
+                      />
+                    </button>
                     {(() => {
                       const thumbnailUrl = getRouteThumbnailUrlAuto(route.geometry, {
                         width: 160,
