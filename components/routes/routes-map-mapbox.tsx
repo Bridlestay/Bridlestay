@@ -326,10 +326,28 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       };
     }, [isLoaded]);
 
+    // Track style load count to trigger re-renders of sources/layers
+    const [styleLoadCount, setStyleLoadCount] = useState(0);
+
     // Update map style when mapType changes
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
-      mapRef.current.setStyle(getMapboxStyle(mapType));
+      
+      const map = mapRef.current;
+      
+      // Listen for style load completion to re-add sources/layers
+      const handleStyleLoad = () => {
+        // Increment style load count to trigger re-renders of all useEffects
+        // that depend on sources/layers existing
+        setStyleLoadCount(prev => prev + 1);
+      };
+      
+      map.once("style.load", handleStyleLoad);
+      map.setStyle(getMapboxStyle(mapType));
+      
+      return () => {
+        map.off("style.load", handleStyleLoad);
+      };
     }, [mapType, mapLoaded]);
 
     // Update cursor based on mode
@@ -652,7 +670,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         pinMarkersRef.current.forEach((marker) => marker.remove());
         pinMarkersRef.current.clear();
       };
-    }, [routes, mapLoaded, isCreating, onRouteClick, onRoutePreview]);
+    }, [routes, mapLoaded, isCreating, onRouteClick, onRoutePreview, styleLoadCount]);
 
     // Draw selected route polyline with start/end markers
     useEffect(() => {
@@ -765,13 +783,38 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         // Clear route display
         source.setData({ type: "FeatureCollection", features: [] });
       }
-    }, [selectedRouteId, routes, mapLoaded]);
+    }, [selectedRouteId, routes, mapLoaded, styleLoadCount]);
 
     // Draw creation route from waypoints
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
 
-      const source = mapRef.current.getSource("creation-route") as mapboxgl.GeoJSONSource;
+      const map = mapRef.current;
+      
+      // Ensure creation-route source and layer exist (they may be removed on style change)
+      let source = map.getSource("creation-route") as mapboxgl.GeoJSONSource;
+      if (!source) {
+        map.addSource("creation-route", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+        map.addLayer({
+          id: "creation-route-line",
+          type: "line",
+          source: "creation-route",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": routeStyle.color,
+            "line-width": routeStyle.thickness,
+            "line-opacity": routeStyle.opacity / 100,
+          },
+        });
+        source = map.getSource("creation-route") as mapboxgl.GeoJSONSource;
+      }
+      
       if (!source) return;
 
       // Clear existing waypoint markers
@@ -853,7 +896,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       } else {
         source.setData({ type: "FeatureCollection", features: [] });
       }
-    }, [isCreating, waypoints, routeType, toolMode, mapLoaded, onWaypointUpdate, onWaypointRemove]);
+    }, [isCreating, waypoints, routeType, toolMode, mapLoaded, onWaypointUpdate, onWaypointRemove, styleLoadCount, routeStyle]);
 
     // Update creation route style
     useEffect(() => {
@@ -865,7 +908,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         mapRef.current.setPaintProperty("creation-route-line", "line-width", routeStyle.thickness);
         mapRef.current.setPaintProperty("creation-route-line", "line-opacity", routeStyle.opacity / 100);
       }
-    }, [routeStyle, mapLoaded]);
+    }, [routeStyle, mapLoaded, styleLoadCount]);
 
     // Loading state
     if (loadError) {
