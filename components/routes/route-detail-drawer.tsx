@@ -1034,12 +1034,168 @@ export function RouteDetailDrawer({
 
   if (!open) return null;
 
+  // Full Discussion Panel Content
+  const fullDiscussionPanel = (
+    <div className="flex flex-col h-full">
+      {/* Header with Back Button */}
+      <div className="flex items-center gap-3 p-4 border-b bg-white sticky top-0 z-10">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => setActiveFullPanel(null)}
+          className="h-8 w-8 p-0"
+        >
+          <ChevronDown className="h-5 w-5 rotate-90" />
+        </Button>
+        <h2 className="font-semibold text-lg">Discussion</h2>
+        <Badge variant="outline" className="ml-auto">
+          {comments.length} {comments.length === 1 ? "comment" : "comments"}
+        </Badge>
+      </div>
+
+      {/* Discussion Content */}
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4">
+          {/* Add Comment Form */}
+          <div className="space-y-2">
+            <Textarea
+              placeholder="Share your thoughts about this route..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              className="min-h-[80px]"
+            />
+            <Button
+              onClick={async () => {
+                if (!newComment.trim() || submittingComment) return;
+                setSubmittingComment(true);
+                try {
+                  const res = await fetch(`/api/routes/${routeId}/comments`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ content: newComment }),
+                  });
+                  if (res.ok) {
+                    toast.success("Comment posted!");
+                    setNewComment("");
+                    // Refresh comments
+                    const commentsRes = await fetch(`/api/routes/${routeId}/comments`);
+                    if (commentsRes.ok) {
+                      const data = await commentsRes.json();
+                      setComments(data.comments || []);
+                    }
+                  }
+                } catch {
+                  toast.error("Failed to post comment");
+                } finally {
+                  setSubmittingComment(false);
+                }
+              }}
+              disabled={!newComment.trim() || submittingComment}
+              className="w-full"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Post Comment
+            </Button>
+          </div>
+
+          <Separator />
+
+          {/* Comments List */}
+          {comments.length > 0 ? (
+            <div className="space-y-4">
+              {comments.map((comment: any) => (
+                <div key={comment.id} className="bg-slate-50 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={comment.user?.avatar_url} />
+                      <AvatarFallback>
+                        {comment.user?.name?.[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium">{comment.user?.name}</p>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600 mt-1">{comment.content}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No comments yet. Be the first to share your thoughts!</p>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
+  // Full Waypoints Panel Content
+  const fullWaypointsPanel = (
+    <div className="flex flex-col h-full">
+      {/* Header with Back Button */}
+      <div className="flex items-center gap-3 p-4 border-b bg-white sticky top-0 z-10">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => setActiveFullPanel(null)}
+          className="h-8 w-8 p-0"
+        >
+          <ChevronDown className="h-5 w-5 rotate-90" />
+        </Button>
+        <h2 className="font-semibold text-lg">Waypoints</h2>
+        <Badge variant="outline" className="ml-auto">{waypoints.length}</Badge>
+      </div>
+
+      {/* Waypoints Content */}
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-3">
+          {waypoints.length > 0 ? (
+            waypoints.map((waypoint: any, index: number) => (
+              <div key={waypoint.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-medium text-sm">
+                  {index + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium">{waypoint.name || `Waypoint ${index + 1}`}</p>
+                  {waypoint.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-1">{waypoint.description}</p>
+                  )}
+                </div>
+                {waypoint.distance_from_start && (
+                  <span className="text-sm text-muted-foreground">
+                    {(waypoint.distance_from_start / 1000).toFixed(2)} km
+                  </span>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No waypoints added to this route yet.</p>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
   const drawerContent = (
     <ScrollArea className="flex-1">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <p className="text-muted-foreground">Loading...</p>
           </div>
+        ) : activeFullPanel === "discussion" ? (
+          fullDiscussionPanel
+        ) : activeFullPanel === "waypoints" ? (
+          fullWaypointsPanel
         ) : route ? (
           <div className="p-4 space-y-4">
             {/* Header - Title & Badges */}
