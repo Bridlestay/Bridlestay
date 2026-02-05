@@ -304,6 +304,9 @@ export function RouteDetailDrawer({
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   const [discussionExpanded, setDiscussionExpanded] = useState(false);
   
+  // Full panel view states (for Discussion, Reviews, Waypoints)
+  const [activeFullPanel, setActiveFullPanel] = useState<"discussion" | "reviews" | "waypoints" | null>(null);
+  
   const [deleteHazardDialogOpen, setDeleteHazardDialogOpen] = useState(false);
   const [hazardToDelete, setHazardToDelete] = useState<any>(null);
   
@@ -1039,28 +1042,17 @@ export function RouteDetailDrawer({
           </div>
         ) : route ? (
           <div className="p-4 space-y-4">
-            {/* Header */}
+            {/* Header - Title & Badges */}
             <div>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <h1 className="text-xl font-bold leading-tight">{route.title}</h1>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    {route.featured && <Badge className="text-xs">Featured</Badge>}
+                    {route.featured && <Badge className="text-xs bg-amber-500">Featured</Badge>}
                     {isOwner && <Badge variant="outline" className="text-xs">Your Route</Badge>}
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
-                  {route.avg_rating > 0 && (
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                      <span className="font-semibold text-sm">
-                        {route.avg_rating.toFixed(1)}
-                      </span>
-                      <span className="text-muted-foreground text-xs">
-                        ({route.review_count})
-                      </span>
-                    </div>
-                  )}
                   {activeHazards.length > 0 && (
                     <Badge variant="destructive" className="gap-1 text-xs">
                       <AlertTriangle className="h-3 w-3" />
@@ -1069,10 +1061,60 @@ export function RouteDetailDrawer({
                   )}
                 </div>
               </div>
-              {route.description && (
-                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{route.description}</p>
+            </div>
+
+            {/* PROMINENT STATS - OS Maps Style */}
+            <div className="grid grid-cols-3 gap-4 py-4 border-y bg-slate-50/50 rounded-lg px-3">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-slate-900">
+                  {Number(route.distance_km || 0).toFixed(1)}
+                  <span className="text-base font-normal text-slate-500 ml-1">km</span>
+                </p>
+                <p className="text-xs text-slate-500 uppercase tracking-wide">Distance</p>
+              </div>
+              <div className="text-center border-x border-slate-200">
+                <p className="text-2xl font-bold text-slate-900">
+                  {route.distance_km ? `${Math.floor((Number(route.distance_km) / 12) * 60)}` : '—'}
+                  <span className="text-base font-normal text-slate-500 ml-1">min</span>
+                </p>
+                <p className="text-xs text-slate-500 uppercase tracking-wide">🐴 Ride</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-slate-900">
+                  {route.distance_km ? `${Math.floor((Number(route.distance_km) / 5) * 60)}` : '—'}
+                  <span className="text-base font-normal text-slate-500 ml-1">min</span>
+                </p>
+                <p className="text-xs text-slate-500 uppercase tracking-wide">🚶 Walk</p>
+              </div>
+            </div>
+
+            {/* Difficulty Badge - Large */}
+            <div className="flex items-center justify-between">
+              <Badge
+                className={cn(
+                  "text-sm px-4 py-1.5",
+                  getDifficultyInfo(route.difficulty).color
+                )}
+              >
+                {getDifficultyInfo(route.difficulty).label}
+              </Badge>
+              {route.county && (
+                <span className="text-sm text-slate-500 flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  {route.county}
+                </span>
               )}
             </div>
+
+            {/* Description (collapsible preview) */}
+            {route.description && (
+              <div className="bg-slate-50 rounded-lg p-3">
+                <p className="text-sm text-slate-600 line-clamp-3">{route.description}</p>
+                {route.description.length > 150 && (
+                  <button className="text-xs text-blue-600 hover:underline mt-1">Show more</button>
+                )}
+              </div>
+            )}
 
             {/* Display Photos Carousel */}
             {displayPhotosForCarousel.length > 0 && (
@@ -1108,172 +1150,178 @@ export function RouteDetailDrawer({
               </div>
             )}
 
-            {/* Metadata */}
-            <div className="flex flex-wrap gap-2">
-              <Badge
-                variant="outline"
-                className={getDifficultyInfo(route.difficulty).color}
-              >
-                {getDifficultyInfo(route.difficulty).label}
-              </Badge>
-              {route.distance_km && (
-              <Badge variant="outline" className="gap-1">
-                <Ruler className="h-3 w-3" />
-                  {Number(route.distance_km).toFixed(1)} km
-              </Badge>
-              )}
-              {route.distance_km && (
-                <>
-                  <Badge variant="outline" className="gap-1 bg-blue-50 text-blue-700 border-blue-300">
-                    <Clock className="h-3 w-3" />
-                    🐴 {Math.floor((Number(route.distance_km) / 12) * 60)}m ride
+            {/* Terrain/Surface Tags */}
+            {(route.terrain_tags?.length > 0 || route.surface) && (
+              <div className="flex flex-wrap gap-2">
+                {route.terrain_tags?.map((tag: string) => (
+                  <Badge key={tag} variant="secondary" className="text-xs">
+                    {tag}
                   </Badge>
-                  <Badge variant="outline" className="gap-1 bg-green-50 text-green-700 border-green-300">
-                    <Clock className="h-3 w-3" />
-                    🚶 {Math.floor((Number(route.distance_km) / 5) * 60)}m walk
+                ))}
+                {route.surface && (
+                  <Badge variant="outline" className="text-xs">
+                    {route.surface}
                   </Badge>
-                </>
-              )}
-              {route.county && (
-                <Badge variant="outline" className="gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {route.county}
-                </Badge>
-              )}
-            </div>
-
-            {/* Owner */}
-            {route.owner && (
-              <Link href={`/profile/${route.owner.id}`} className="block">
-                <div className="flex items-center gap-3 p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
-                <Avatar>
-                  <AvatarImage src={route.owner.avatar_url || undefined} />
-                  <AvatarFallback>
-                    {route.owner.name?.[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <p className="font-medium">{route.owner.name}</p>
-                  <p className="text-sm text-muted-foreground">Route Creator</p>
-                </div>
+                )}
               </div>
-              </Link>
             )}
 
-            {/* Actions */}
-            <div className="flex gap-2 flex-wrap">
-              <Button onClick={handleDownloadGPX} className="flex-1">
-                <Download className="mr-2 h-4 w-4" />
-                Download GPX
-              </Button>
+            {/* Primary Actions - Like, Bookmark, Share */}
+            <div className="flex gap-2">
               <Button
                 variant={liked ? "default" : "outline"}
                 onClick={handleLike}
-                className="gap-1"
+                className="flex-1 gap-2"
               >
                 <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
-                {likesCount > 0 && likesCount}
+                {likesCount > 0 ? likesCount : "Like"}
               </Button>
               <Button
                 variant={favorited ? "default" : "outline"}
                 onClick={handleFavorite}
+                className="flex-1 gap-2"
               >
                 <Bookmark className={`h-4 w-4 ${favorited ? "fill-current" : ""}`} />
+                {favorited ? "Saved" : "Save"}
               </Button>
-              <Button variant="outline" onClick={handleShare}>
+              <Button variant="outline" onClick={handleShare} className="flex-1 gap-2">
                 <Share2 className="h-4 w-4" />
+                Share
               </Button>
             </div>
 
-            {/* Edit Route Button for Owners */}
-            {(isOwner || isAdmin) && onEditRoute && (
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => onEditRoute(routeId!, route)}
+            {/* Secondary Action Icons Row */}
+            <div className="flex items-center justify-around py-2 border rounded-lg bg-slate-50">
+              <button 
+                onClick={handleDownloadGPX}
+                className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors"
               >
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit Route
-              </Button>
-            )}
+                <Download className="h-5 w-5 text-slate-600" />
+                <span className="text-xs text-slate-500">Export GPX</span>
+              </button>
+              {(isOwner || isAdmin) && onEditRoute && (
+                <button 
+                  onClick={() => onEditRoute(routeId!, route)}
+                  className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <Pencil className="h-5 w-5 text-slate-600" />
+                  <span className="text-xs text-slate-500">Copy & Edit</span>
+                </button>
+              )}
+              <button 
+                onClick={() => setReportDialogOpen(true)}
+                className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <Flag className="h-5 w-5 text-slate-600" />
+                <span className="text-xs text-slate-500">Report</span>
+              </button>
+            </div>
 
             <Separator />
 
-            {/* Tabs */}
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-6 h-auto">
-                <TabsTrigger value="overview" className="text-xs px-2">Overview</TabsTrigger>
-                <TabsTrigger value="comments" className="text-xs px-2">
+            {/* NEARBY STAYS - Always Visible Carousel */}
+            {nearbyProperties.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Home className="h-4 w-4" />
+                  Nearby Stays
+                  <Badge variant="secondary" className="text-xs">{nearbyProperties.length}</Badge>
+                </h3>
+                <ScrollArea className="w-full" type="scroll">
+                  <div className="flex gap-3 pb-2">
+                    {nearbyProperties.map((property) => (
+                      <div key={property.id} className="flex-shrink-0 w-64">
+                        <NearbyPropertyCard 
+                          property={property} 
+                          onShowOnMap={onShowPropertyOnMap}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+              </div>
+            )}
+
+            {/* DISCUSSION PREVIEW CARD */}
+            <div 
+              className="border rounded-lg p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+              onClick={() => setActiveFullPanel("discussion")}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
                   Discussion
-                </TabsTrigger>
-                <TabsTrigger value="photos" className="text-xs px-2">
-                  Photos
-                </TabsTrigger>
-                <TabsTrigger value="waypoints" className="text-xs px-2">
-                  Waypoints
-                </TabsTrigger>
-                <TabsTrigger value="hazards" className="text-xs px-2 relative">
-                  Hazards
-                  {activeHazards.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                      {activeHazards.length}
-                    </span>
+                </h3>
+                <Badge variant="outline" className="text-xs">
+                  {comments.length} {comments.length === 1 ? "comment" : "comments"}
+                </Badge>
+              </div>
+              {comments.length > 0 ? (
+                <div className="flex items-start gap-3">
+                  <Avatar className="h-8 w-8 flex-shrink-0">
+                    <AvatarImage src={comments[0]?.user?.avatar_url} />
+                    <AvatarFallback className="text-xs">
+                      {comments[0]?.user?.name?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{comments[0]?.user?.name}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{comments[0]?.content}</p>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground rotate-[-90deg]" />
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Be the first to start the discussion!</p>
+              )}
+            </div>
+
+            {/* WAYPOINTS & HAZARDS ROW */}
+            <div className="grid grid-cols-2 gap-3">
+              <div 
+                className="border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors"
+                onClick={() => setActiveFullPanel("waypoints")}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-sm flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Waypoints
+                  </span>
+                  <Badge variant="outline" className="text-xs">{waypoints.length}</Badge>
+                </div>
+              </div>
+              <div 
+                className="border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors relative"
+                onClick={() => setHazardDialogOpen(true)}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-sm flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Hazards
+                  </span>
+                  {activeHazards.length > 0 ? (
+                    <Badge variant="destructive" className="text-xs">{activeHazards.length}</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs">Report</Badge>
                   )}
-                </TabsTrigger>
-                <TabsTrigger value="nearby" className="text-xs px-2">
-                  Stays
-                </TabsTrigger>
-              </TabsList>
+                </div>
+              </div>
+            </div>
 
-              <TabsContent value="overview" className="space-y-4">
-                {/* Terrain Tags */}
-                {route.terrain_tags && route.terrain_tags.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Terrain</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {route.terrain_tags.map((tag: string) => (
-                        <Badge key={tag} variant="secondary">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Surface */}
-                {route.surface && (
-                  <div>
-                    <h3 className="font-semibold mb-1">Surface</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {route.surface}
-                    </p>
-                  </div>
-                )}
-
-                {/* Seasonal Notes */}
-                {route.seasonal_notes && (
-                  <div>
-                    <h3 className="font-semibold mb-1">Seasonal Notes</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {route.seasonal_notes}
-                    </p>
-                  </div>
-                )}
-
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{likesCount}</p>
-                    <p className="text-xs text-muted-foreground">Likes</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{route.completions_count || 0}</p>
-                    <p className="text-xs text-muted-foreground">Completions</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{route.shares_count || 0}</p>
-                    <p className="text-xs text-muted-foreground">Shares</p>
-                  </div>
+            {/* ROUTE STATS - Engagement */}
+            <div className="grid grid-cols-3 gap-4 p-3 bg-slate-50 rounded-lg">
+              <div className="text-center">
+                <p className="text-xl font-bold">{likesCount}</p>
+                <p className="text-xs text-muted-foreground">Likes</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-bold">{route.completions_count || 0}</p>
+                <p className="text-xs text-muted-foreground">Completions</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-bold">{route.shares_count || 0}</p>
+                <p className="text-xs text-muted-foreground">Shares</p>
+              </div>
                 </div>
 
                 {/* Safety Notice */}
@@ -2309,6 +2357,91 @@ export function RouteDetailDrawer({
                 )}
               </TabsContent>
             </Tabs>
+
+            {/* PHOTOS SECTION - At Bottom */}
+            <Separator className="my-4" />
+            <div className="space-y-4">
+              <h3 className="font-semibold">Route Photos</h3>
+              
+              {/* Author Photos */}
+              {(authorPhotos.length > 0 || (coverPhoto && coverPhoto.url)) && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide">By {route?.owner?.name || "Author"}</p>
+                  <ScrollArea className="w-full" type="scroll">
+                    <div className="flex gap-2 pb-2">
+                      {coverPhoto && (
+                        <div className="flex-shrink-0 w-32 h-24 rounded-lg overflow-hidden relative">
+                          <Image
+                            src={coverPhoto.url}
+                            alt="Cover"
+                            fill
+                            className="object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+                          <Badge className="absolute top-1 left-1 text-xs bg-amber-500">Cover</Badge>
+                        </div>
+                      )}
+                      {authorPhotos.filter(p => p.id !== coverPhoto?.id).map((photo: any) => (
+                        <div key={photo.id} className="flex-shrink-0 w-32 h-24 rounded-lg overflow-hidden relative">
+                          <Image
+                            src={photo.url}
+                            alt={photo.caption || "Route photo"}
+                            fill
+                            className="object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                </div>
+              )}
+
+              {/* Community Photos */}
+              {userPhotos.length > 0 && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide">Community Photos</p>
+                  <ScrollArea className="w-full" type="scroll">
+                    <div className="flex gap-2 pb-2">
+                      {userPhotos.map((photo: any) => (
+                        <div key={photo.id} className="flex-shrink-0 w-32 h-24 rounded-lg overflow-hidden relative">
+                          <Image
+                            src={photo.url}
+                            alt={photo.caption || "Community photo"}
+                            fill
+                            className="object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                </div>
+              )}
+
+              {!coverPhoto && authorPhotos.length === 0 && userPhotos.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No photos yet</p>
+              )}
+            </div>
+
+            {/* AUTHOR INFO - At Very Bottom */}
+            {route?.owner && (
+              <div className="pt-4 border-t">
+                <Link href={`/profile/${route.owner.id}`} className="block">
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                    <Avatar>
+                      <AvatarImage src={route.owner.avatar_url || undefined} />
+                      <AvatarFallback>
+                        {route.owner.name?.[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className="font-medium">{route.owner.name}</p>
+                      <p className="text-sm text-muted-foreground">Route Creator</p>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            )}
           </div>
         ) : null}
         
