@@ -87,6 +87,16 @@ export interface RoutesMapMapboxProps {
   userPosition?: { lat: number; lng: number; heading: number } | null;
   followUser?: boolean;
   recordedPath?: { lat: number; lng: number }[];
+  // POI (Points of Interest)
+  pois?: Array<{
+    id: string;
+    name: string;
+    category: string;
+    coordinates: { lat: number; lng: number };
+    address?: string;
+    distance?: number;
+  }>;
+  onPoiClick?: (poi: any) => void;
 }
 
 export interface RoutesMapMapboxHandle {
@@ -147,6 +157,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       userPosition,
       followUser = false,
       recordedPath = [],
+      pois = [],
+      onPoiClick,
     },
     ref
   ) => {
@@ -154,6 +166,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const mapRef = useRef<mapboxgl.Map | null>(null);
     const markersRef = useRef<mapboxgl.Marker[]>([]);
     const pinMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+    const poiMarkersRef = useRef<mapboxgl.Marker[]>([]);
     const popupRef = useRef<mapboxgl.Popup | null>(null);
     const waypointMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
     const startEndMarkersRef = useRef<mapboxgl.Marker[]>([]);
@@ -723,6 +736,112 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         pinMarkersRef.current.clear();
       };
     }, [routes, mapLoaded, isCreating, onRouteClick, onRoutePreview, styleLoadCount]);
+
+    // Display POI markers
+    useEffect(() => {
+      if (!mapRef.current || !mapLoaded) return;
+
+      const map = mapRef.current;
+
+      // Clear existing POI markers
+      poiMarkersRef.current.forEach((marker) => marker.remove());
+      poiMarkersRef.current = [];
+
+      if (!pois || pois.length === 0) return;
+
+      // Add POI markers
+      pois.forEach((poi) => {
+        const el = document.createElement("div");
+        el.className = "mapbox-poi-marker";
+        el.innerHTML = `
+          <div style="
+            width: 28px;
+            height: 28px;
+            background: #f97316;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+          ">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="3" fill="white"/>
+            </svg>
+          </div>
+        `;
+        el.style.cursor = "pointer";
+
+        const marker = new mapboxgl.Marker({ element: el })
+          .setLngLat([poi.coordinates.lng, poi.coordinates.lat])
+          .addTo(map);
+
+        // Add click handler
+        el.addEventListener("click", () => {
+          // Show popup with POI info
+          if (popupRef.current) {
+            popupRef.current.remove();
+          }
+
+          const popup = new mapboxgl.Popup({
+            closeButton: true,
+            closeOnClick: true,
+            maxWidth: "280px",
+            offset: 15,
+          });
+
+          popup.setLngLat([poi.coordinates.lng, poi.coordinates.lat])
+            .setHTML(`
+              <div style="
+                padding: 12px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              ">
+                <h3 style="
+                  margin: 0 0 4px 0;
+                  font-size: 15px;
+                  font-weight: 600;
+                  color: #1f2937;
+                ">${poi.name}</h3>
+                <p style="
+                  margin: 0 0 8px 0;
+                  font-size: 12px;
+                  color: #f97316;
+                  text-transform: capitalize;
+                ">${poi.category}</p>
+                ${poi.address ? `
+                  <p style="
+                    margin: 0 0 8px 0;
+                    font-size: 13px;
+                    color: #6b7280;
+                  ">${poi.address}</p>
+                ` : ''}
+                ${poi.distance !== undefined ? `
+                  <p style="
+                    margin: 0;
+                    font-size: 12px;
+                    color: #10b981;
+                  ">${poi.distance < 1 
+                      ? (poi.distance * 1000).toFixed(0) + 'm away' 
+                      : poi.distance.toFixed(1) + 'km away'
+                    }</p>
+                ` : ''}
+              </div>
+            `)
+            .addTo(map);
+
+          popupRef.current = popup;
+          onPoiClick?.(poi);
+        });
+
+        poiMarkersRef.current.push(marker);
+      });
+
+      return () => {
+        poiMarkersRef.current.forEach((marker) => marker.remove());
+        poiMarkersRef.current = [];
+      };
+    }, [pois, mapLoaded, onPoiClick]);
 
     // Draw selected route polyline with start/end markers
     useEffect(() => {

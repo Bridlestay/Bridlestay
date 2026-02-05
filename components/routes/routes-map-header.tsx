@@ -36,9 +36,11 @@ import {
 
 interface RoutesMapHeaderProps {
   onSearch?: (query: string) => void;
+  showPOIs?: boolean;
+  onTogglePOIs?: (show: boolean) => void;
 }
 
-export function RoutesMapHeader({ onSearch }: RoutesMapHeaderProps) {
+export function RoutesMapHeader({ onSearch, showPOIs = false, onTogglePOIs }: RoutesMapHeaderProps) {
   const [user, setUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
@@ -232,7 +234,7 @@ export function RoutesMapHeader({ onSearch }: RoutesMapHeaderProps) {
       </DropdownMenu>
 
       {/* Search Bar */}
-      <form onSubmit={handleSearchSubmit} className="hidden md:block">
+      <form onSubmit={handleSearchSubmit} className="hidden md:flex items-center gap-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
@@ -246,6 +248,19 @@ export function RoutesMapHeader({ onSearch }: RoutesMapHeaderProps) {
             className="pl-10 w-64 h-10 bg-white shadow-lg border"
           />
         </div>
+        
+        {/* POI Toggle */}
+        <Button
+          type="button"
+          variant={showPOIs ? "default" : "outline"}
+          size="sm"
+          onClick={() => onTogglePOIs?.(!showPOIs)}
+          className={`h-10 px-3 shadow-lg ${showPOIs ? 'bg-green-600 hover:bg-green-700' : 'bg-white'}`}
+          title="Show Points of Interest"
+        >
+          <MapPin className="h-4 w-4 mr-1" />
+          POI
+        </Button>
       </form>
 
       {/* Profile Picture */}

@@ -99,6 +99,10 @@ export default function RoutesPage() {
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showLayerPanel, setShowLayerPanel] = useState(false);
+  
+  // POI state
+  const [showPOIs, setShowPOIs] = useState(false);
+  const [pois, setPois] = useState<any[]>([]);
 
   // Route style state
   const [routeStyle, setRouteStyle] = useState<RouteStyle>({
@@ -129,6 +133,46 @@ export default function RoutesPage() {
     fetchExploreRoutes();
     fetchNearbyProperties();
   }, []);
+
+  // Fetch POIs when toggle is activated
+  useEffect(() => {
+    if (showPOIs) {
+      fetchPOIs();
+    } else {
+      setPois([]);
+    }
+  }, [showPOIs]);
+
+  const fetchPOIs = async () => {
+    try {
+      // Get the current map center (default to UK center)
+      let lat = 52.4862;
+      let lng = -1.8904;
+      
+      // Try to get current map center if available
+      if (mapRef.current?.getMap) {
+        const map = mapRef.current.getMap();
+        const center = map?.getCenter?.();
+        if (center) {
+          lat = center.lat;
+          lng = center.lng;
+        }
+      }
+      
+      const res = await fetch("/api/pois", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat, lng, radius: 10, limit: 20 }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setPois(data.pois || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch POIs:", error);
+    }
+  };
 
   // Handle tab changes
   useEffect(() => {
@@ -971,6 +1015,7 @@ export default function RoutesPage() {
             userPosition={userPosition}
             followUser={isNavigating}
             recordedPath={recordedPath}
+            pois={showPOIs ? pois : []}
           />
         </div>
 
@@ -980,7 +1025,10 @@ export default function RoutesPage() {
         {/* Desktop Map Header with hamburger menu (only visible when map tab is active) */}
         {activeTab === "map" && (
           <div className="hidden md:block">
-            <RoutesMapHeader />
+            <RoutesMapHeader 
+              showPOIs={showPOIs}
+              onTogglePOIs={setShowPOIs}
+            />
           </div>
         )}
 
