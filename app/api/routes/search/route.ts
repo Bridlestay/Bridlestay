@@ -31,6 +31,10 @@ export async function POST(request: NextRequest) {
       myRoutes, // filter for user's own routes
       page = 1,
       limit = 20,
+      // New: Location-based search
+      lat, // latitude for proximity search
+      lng, // longitude for proximity search
+      searchRadius = 25, // radius in km for location search
     } = body;
 
     // Get current user for myRoutes filter
@@ -105,6 +109,120 @@ export async function POST(request: NextRequest) {
 
     // For public routes, use a simple query that only returns USER-CREATED routes
     // Bridleways/byways imported from external sources have owner_user_id = null
+
+    // Location-based search: if lat/lng provided, search within radius
+    if (lat !== undefined && lng !== undefined) {
+      // Use bounding box approach for initial filtering
+      const kmPerDegLat = 111.32;
+      const kmPerDegLng = 111.32 * Math.cos(lat * Math.PI / 180);
+      const latDelta = searchRadius / kmPerDegLat;
+      const lngDelta = searchRadius / kmPerDegLng;
+
+      // Fetch routes with geometry that could be within range
+      const { data: nearbyRoutes, error: nearbyError } = await supabase
+        .from("routes")
+        .select(`id, title, description, difficulty, distance_km, county, visibility,
+          terrain_tags, avg_rating, review_count, is_public, created_at, owner_user_id,
+          geometry, route_type`)
+        .eq("is_public", true)
+        .not("owner_user_id", "is", null)
+        .not("geometry", "is", null);
+
+      if (nearbyError) {
+        console.error("[ROUTES_SEARCH_LOCATION] Error:", nearbyError);
+        return NextResponse.json({ error: nearbyError.message }, { status: 500 });
+      }
+
+      // Filter by actual distance using route start point
+      const routesWithDistance = (nearbyRoutes || [])
+        .map(route => {
+          if (!route.geometry?.coordinates?.length) return null;
+          
+          // Get first coordinate of route as reference point
+          const routeStart = route.geometry.coordinates[0];
+          if (!routeStart || routeStart.length < 2) return null;
+          
+          const routeLng = routeStart[0];
+          const routeLat = routeStart[1];
+          
+          // Calculate distance using Haversine formula
+          const R = 6371; // Earth radius in km
+          const dLat = (routeLat - lat) * Math.PI / 180;
+          const dLng = (routeLng - lng) * Math.PI / 180;
+          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat * Math.PI / 180) * Math.cos(routeLat * Math.PI / 180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          const distance = R * c;
+          
+          if (distance <= searchRadius) {
+            return { ...route, distanceFromSearch: distance };
+          }
+          return null;
+        })
+        .filter((r): r is NonNullable<typeof r> => r !== null)
+        .sort((a, b) => a.distanceFromSearch - b.distanceFromSearch);
+
+      // Apply text search filter if provided
+      let filteredRoutes = routesWithDistance;
+      if (q) {
+        const qLower = q.toLowerCase();
+        filteredRoutes = routesWithDistance.filter(r => 
+          r.title?.toLowerCase().includes(qLower) ||
+          r.description?.toLowerCase().includes(qLower)
+        );
+      }
+
+      // Paginate
+      const total = filteredRoutes.length;
+      const offset = (page - 1) * limit;
+      const paginatedRoutes = filteredRoutes.slice(offset, offset + limit);
+
+      // Get cover photos
+      if (paginatedRoutes.length > 0) {
+        const routeIds = paginatedRoutes.map(r => r.id);
+        const { data: photos } = await supabase
+          .from("route_photos")
+          .select("route_id, url, is_cover")
+          .in("route_id", routeIds);
+
+        const coverMap = new Map<string, string>();
+        photos?.forEach(p => {
+          if (p.is_cover && !coverMap.has(p.route_id)) {
+            coverMap.set(p.route_id, p.url);
+          }
+        });
+        photos?.forEach(p => {
+          if (!coverMap.has(p.route_id)) {
+            coverMap.set(p.route_id, p.url);
+          }
+        });
+
+        const routesWithPhotos = paginatedRoutes.map(route => ({
+          ...route,
+          cover_photo_url: coverMap.get(route.id) || null,
+          route_photos: coverMap.has(route.id) ? [{ url: coverMap.get(route.id) }] : [],
+        }));
+
+        return NextResponse.json({
+          routes: routesWithPhotos,
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+          searchLocation: { lat, lng, radius: searchRadius },
+        });
+      }
+
+      return NextResponse.json({
+        routes: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+        searchLocation: { lat, lng, radius: searchRadius },
+      });
+    }
 
     // Fallback: simple public routes query - ONLY user-created routes
     let query = supabase

@@ -35,17 +35,46 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface MobileTopHeaderProps {
-  onSearch?: (query: string) => void;
+interface PlaceResult {
+  id: string;
+  name: string;
+  placeName: string;
+  coordinates: { lat: number; lng: number };
+  type: string;
 }
 
-export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
+interface RouteResult {
+  id: string;
+  title: string;
+  description?: string;
+  difficulty?: string;
+  distance_km?: number;
+  distanceFromSearch?: number;
+  geometry?: any;
+}
+
+interface MobileTopHeaderProps {
+  onSearch?: (query: string) => void;
+  onPlaceSelect?: (place: PlaceResult) => void;
+  onRouteSelect?: (route: RouteResult) => void;
+  onCreateRoute?: (location: { lat: number; lng: number }) => void;
+}
+
+export function MobileTopHeader({ onSearch, onPlaceSelect, onRouteSelect, onCreateRoute }: MobileTopHeaderProps) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTab, setSearchTab] = useState<"places" | "routes">("places");
+  
+  // Geocoding state
+  const [places, setPlaces] = useState<PlaceResult[]>([]);
+  const [routes, setRoutes] = useState<RouteResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
+  const [searchRadius, setSearchRadius] = useState(25); // km
+  
   const router = useRouter();
   const supabase = createClient();
 
@@ -107,6 +136,105 @@ export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
     setUser(null);
     router.push("/");
     router.refresh();
+  };
+
+  // Geocode address as user types
+  useEffect(() => {
+    if (searchTab !== "places" || searchQuery.length < 3) {
+      setPlaces([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await fetch("/api/geocode/mapbox", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: searchQuery, limit: 5 }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPlaces(data.places || []);
+        }
+      } catch (error) {
+        console.error("Geocoding error:", error);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, searchTab]);
+
+  // Search routes when query changes (routes tab)
+  useEffect(() => {
+    if (searchTab !== "routes" || searchQuery.length < 2) {
+      setRoutes([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const body: any = { q: searchQuery, limit: 10 };
+        if (selectedPlace) {
+          body.lat = selectedPlace.coordinates.lat;
+          body.lng = selectedPlace.coordinates.lng;
+          body.searchRadius = searchRadius;
+        }
+        const res = await fetch("/api/routes/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setRoutes(data.routes || []);
+        }
+      } catch (error) {
+        console.error("Route search error:", error);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, searchTab, selectedPlace, searchRadius]);
+
+  const handlePlaceSelect = async (place: PlaceResult) => {
+    setSelectedPlace(place);
+    setSearchTab("routes");
+    setSearchQuery("");
+    onPlaceSelect?.(place);
+    
+    // Search for routes near this location
+    setSearchLoading(true);
+    try {
+      const res = await fetch("/api/routes/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat: place.coordinates.lat,
+          lng: place.coordinates.lng,
+          searchRadius: searchRadius,
+          limit: 20,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRoutes(data.routes || []);
+      }
+    } catch (error) {
+      console.error("Route search error:", error);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleRouteSelect = (route: RouteResult) => {
+    onRouteSelect?.(route);
+    setIsSearchOpen(false);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -358,16 +486,128 @@ export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
             </button>
           </div>
 
+          {/* Selected Place Banner */}
+          {selectedPlace && (
+            <div className="px-4 py-2 bg-green-50 border-b border-green-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-green-600" />
+                <span className="text-sm text-green-800">{selectedPlace.name}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-green-600"
+                onClick={() => {
+                  setSelectedPlace(null);
+                  setRoutes([]);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
           {/* Search Content */}
-          <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-            <Search className="h-12 w-12 text-gray-300 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Start searching</h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              {searchTab === "places"
-                ? "Search for a Place, grid reference (min. 3 chars) or select Routes to search for Routes"
-                : "Search for routes by name, location, or browse popular routes nearby"
-              }
-            </p>
+          <div className="flex-1 overflow-y-auto">
+            {searchLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+              </div>
+            ) : searchTab === "places" ? (
+              places.length > 0 ? (
+                <div className="divide-y divide-gray-100">
+                  {places.map((place) => (
+                    <button
+                      key={place.id}
+                      onClick={() => handlePlaceSelect(place)}
+                      className="w-full px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <MapPin className="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-medium text-gray-900">{place.name}</p>
+                        <p className="text-sm text-gray-500 line-clamp-1">{place.placeName}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : searchQuery.length >= 3 ? (
+                <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                  <MapPin className="h-12 w-12 text-gray-300 mb-4" />
+                  <p className="text-gray-500">No places found for &quot;{searchQuery}&quot;</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                  <Search className="h-12 w-12 text-gray-300 mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Search for a place</h3>
+                  <p className="text-sm text-gray-500 max-w-xs">
+                    Type an address, postcode, or place name to find routes nearby
+                  </p>
+                </div>
+              )
+            ) : routes.length > 0 ? (
+              <div className="divide-y divide-gray-100">
+                {routes.map((route) => (
+                  <button
+                    key={route.id}
+                    onClick={() => handleRouteSelect(route)}
+                    className="w-full px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
+                      <Route className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{route.title || "Untitled Route"}</p>
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        {route.distance_km && (
+                          <span>{route.distance_km.toFixed(1)} km</span>
+                        )}
+                        {route.difficulty && (
+                          <span className="capitalize">{route.difficulty}</span>
+                        )}
+                        {route.distanceFromSearch !== undefined && (
+                          <span className="text-green-600">
+                            {route.distanceFromSearch < 1 
+                              ? `${(route.distanceFromSearch * 1000).toFixed(0)}m away`
+                              : `${route.distanceFromSearch.toFixed(1)}km away`
+                            }
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : selectedPlace && !searchLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                <Route className="h-12 w-12 text-gray-300 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No routes nearby</h3>
+                <p className="text-sm text-gray-500 mb-4 max-w-xs">
+                  No routes found within {searchRadius}km of {selectedPlace.name}
+                </p>
+                {onCreateRoute && (
+                  <Button
+                    onClick={() => {
+                      onCreateRoute(selectedPlace.coordinates);
+                      setIsSearchOpen(false);
+                    }}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Create a route here
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                <Search className="h-12 w-12 text-gray-300 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Search for routes</h3>
+                <p className="text-sm text-gray-500 max-w-xs">
+                  {selectedPlace 
+                    ? "Type a route name to search within the selected area"
+                    : "Search for routes by name, or select a place first to find routes nearby"
+                  }
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
