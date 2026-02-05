@@ -3,7 +3,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -32,12 +31,9 @@ import { MobilePanelToggle } from "./mobile-panel-toggle";
 import {
   Star,
   MapPin,
-  Ruler,
   Download,
   Share2,
   Flag,
-  Clock,
-  TrendingUp,
   Home,
   Heart,
   Bookmark,
@@ -45,11 +41,9 @@ import {
   MessageCircle,
   Send,
   Plus,
-  CheckCircle2,
   Trash2,
   Image as ImageIcon,
   MoreHorizontal,
-  Upload,
   Pencil,
 } from "lucide-react";
 import {
@@ -1478,27 +1472,19 @@ export function RouteDetailDrawer({
                 <p className="text-xl font-bold">{route.shares_count || 0}</p>
                 <p className="text-xs text-muted-foreground">Shares</p>
               </div>
-                </div>
+            </div>
 
-                {/* Safety Notice */}
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-sm text-amber-900">
-                    ⚠️ Always respect land access rules, closures, and local
-                    regulations. Check conditions before setting out.
-                  </p>
-                </div>
-              </TabsContent>
+            {/* Safety Notice */}
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-900">
+                ⚠️ Always respect land access rules, closures, and local
+                regulations. Check conditions before setting out.
+              </p>
+            </div>
 
-              <TabsContent value="hazards" className="space-y-4">
-                {/* Report Hazard Button */}
-                <Dialog open={hazardDialogOpen} onOpenChange={setHazardDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="w-full" variant="outline">
-                      <AlertTriangle className="mr-2 h-4 w-4" />
-                      Report a Hazard
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
+            {/* Hazard Reporting Dialog - Opens from Hazards card */}
+            <Dialog open={hazardDialogOpen} onOpenChange={setHazardDialogOpen}>
+              <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Report a Hazard</DialogTitle>
                       <DialogDescription>
@@ -1516,7 +1502,7 @@ export function RouteDetailDrawer({
                     {locationStatus === "near" && (
                       <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-green-600" />
-                        <span className="text-sm text-green-700">Location verified - you're near the route</span>
+                        <span className="text-sm text-green-700">Location verified - you&apos;re near the route</span>
                       </div>
                     )}
                     {locationStatus === "far" && (
@@ -1616,188 +1602,49 @@ export function RouteDetailDrawer({
                       </div>
                     )}
 
-                    <DialogFooter>
-                      <Button
-                        onClick={handleSubmitHazard}
-                        disabled={submittingHazard || (locationStatus !== "near" && !isAdmin && !isOwner)}
-                      >
-                        {submittingHazard ? "Submitting..." : "Report Hazard"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                <DialogFooter>
+                  <Button
+                    onClick={handleSubmitHazard}
+                    disabled={submittingHazard || (locationStatus !== "near" && !isAdmin && !isOwner)}
+                  >
+                    {submittingHazard ? "Submitting..." : "Report Hazard"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
-                {/* Active Hazards */}
-                {loadingHazards ? (
-                  <p className="text-muted-foreground text-center py-8">Loading hazards...</p>
-                ) : activeHazards.length > 0 ? (
-                  <div className="space-y-3">
-                    {activeHazards.map((hazard) => (
-                      <div
-                        key={hazard.id}
-                        className="p-4 border rounded-lg space-y-3"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="h-5 w-5 text-orange-500" />
-                            <span className="font-medium">{hazard.title}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant="outline"
-                              className={SEVERITY_COLORS[hazard.severity as keyof typeof SEVERITY_COLORS]}
-                            >
-                              {hazard.severity}
-                            </Badge>
-                            {canDeleteHazard(hazard) && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleResolveHazard(hazard.id)}>
-                                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                                    Mark Resolved
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    onClick={() => openDeleteHazardDialog(hazard)}
-                                    className="text-red-600"
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {hazard.description && (
-                          <p className="text-sm text-muted-foreground">{hazard.description}</p>
-                        )}
-                        
-                        {/* Reporter Info */}
-                        <div className="flex items-center justify-between">
-                          {hazard.reporter ? (
-                            <Link 
-                              href={`/profile/${hazard.reporter.id}`}
-                              className="flex items-center gap-2 hover:underline"
-                            >
-                              <Avatar className="h-6 w-6">
-                                <AvatarImage src={hazard.reporter.avatar_url || undefined} />
-                                <AvatarFallback className="text-xs">
-                                  {hazard.reporter.name?.[0]?.toUpperCase() || "?"}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm">{hazard.reporter.name}</span>
-                            </Link>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">Anonymous</span>
-                          )}
-                          <Badge variant="secondary" className="text-xs">
-                            {HAZARD_TYPES.find((t) => t.value === hazard.hazard_type)?.label}
-                          </Badge>
-                        </div>
-                        
-                        {/* Date */}
-                        <p className="text-xs text-muted-foreground">
-                          Reported on {new Date(hazard.created_at).toLocaleDateString("en-GB", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })} ({formatDistanceToNow(new Date(hazard.created_at), { addSuffix: true })})
-                        </p>
+            {/* Active Hazards Display - Shows if there are hazards */}
+            {activeHazards.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-orange-600 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Active Hazards ({activeHazards.length})
+                </h3>
+                {activeHazards.map((hazard) => (
+                  <div
+                    key={hazard.id}
+                    className="p-3 border rounded-lg space-y-2 bg-orange-50"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-orange-500" />
+                        <span className="font-medium text-sm">{hazard.title}</span>
                       </div>
-                    ))}
+                      <Badge
+                        variant="outline"
+                        className={SEVERITY_COLORS[hazard.severity as keyof typeof SEVERITY_COLORS]}
+                      >
+                        {hazard.severity}
+                      </Badge>
+                    </div>
+                    {hazard.description && (
+                      <p className="text-xs text-muted-foreground">{hazard.description}</p>
+                    )}
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <CheckCircle2 className="h-12 w-12 mx-auto text-green-500 mb-4" />
-                    <p className="text-muted-foreground">
-                      No active hazards reported on this route.
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Always check conditions before setting out.
-                    </p>
-                  </div>
-                )}
-              </TabsContent>
+                ))}
+              </div>
+            )}
 
-              <TabsContent value="photos" className="space-y-6">
-                {/* Owner/Admin Photo Upload */}
-                {(isOwner || isAdmin) && (
-                  <div className="p-4 border rounded-lg bg-muted/50">
-                    <h3 className="font-medium mb-2">Add Route Photos</h3>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Upload photos as the route {isOwner ? "author" : "admin"}.
-                    </p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      id="owner-photo-upload"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        
-                        const formData = new FormData();
-                        formData.append("file", file);
-                        
-                        toast.loading("Uploading photo...");
-                        try {
-                          const res = await fetch(`/api/routes/${routeId}/photos`, {
-                            method: "POST",
-                            body: formData,
-                          });
-                          
-                          if (res.ok) {
-                            toast.dismiss();
-                            toast.success("Photo uploaded!");
-                            // Refresh photos
-                            const photosRes = await fetch(`/api/routes/${routeId}/photos`);
-                            if (photosRes.ok) {
-                              const data = await photosRes.json();
-                              setPhotos(data.photos || []);
-                            }
-                          } else {
-                            const data = await res.json();
-                            toast.dismiss();
-                            toast.error(data.error || "Failed to upload");
-                          }
-                        } catch {
-                          toast.dismiss();
-                          toast.error("Failed to upload photo");
-                        }
-                        e.target.value = "";
-                      }}
-                    />
-                    <Button
-                      variant="outline"
-                      onClick={() => document.getElementById("owner-photo-upload")?.click()}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Photo
-                    </Button>
-                  </div>
-                )}
-
-                {/* Route Completion & Photo Upload for regular users */}
-                {!isOwner && !isAdmin && (
-                <RouteCompletion 
-                    routeId={routeId || ""}
-                  userId={userId}
-                  onCompletionChange={() => {
-                    if (routeId) {
-                      fetch(`/api/routes/${routeId}`)
-                          .then((res) => res.json())
-                          .then((data) => setRoute(data.route))
-                        .catch(console.error);
-                    }
-                  }}
-                />
-                )}
 
                 {/* Photos by Category */}
                 <div className="space-y-6">
@@ -1952,9 +1799,6 @@ export function RouteDetailDrawer({
                     )}
                   </div>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="waypoints" className="space-y-4">
                 {/* Add Waypoint Button - Any authenticated user can add waypoints */}
                 {userId && (
                   <Dialog open={waypointDialogOpen} onOpenChange={(open) => {
@@ -2076,9 +1920,6 @@ export function RouteDetailDrawer({
                     {isOwner || isAdmin ? "No waypoints yet. Add some to help guide others!" : "No waypoints marked on this route yet."}
                   </p>
                 )}
-              </TabsContent>
-
-              <TabsContent value="nearby" className="space-y-4">
                 {loadingProperties ? (
                   <p className="text-muted-foreground text-center py-8">Loading nearby stays...</p>
                 ) : nearbyProperties.length > 0 ? (
@@ -2104,9 +1945,6 @@ export function RouteDetailDrawer({
                     </p>
                   </div>
                 )}
-              </TabsContent>
-
-              <TabsContent value="comments" className="space-y-4">
                 {/* Loading state */}
                 {loadingComments ? (
                   <p className="text-muted-foreground text-center py-8">Loading discussion...</p>
@@ -2511,9 +2349,6 @@ export function RouteDetailDrawer({
                     )}
                   </>
                 )}
-              </TabsContent>
-            </Tabs>
-
             {/* PHOTOS SECTION - At Bottom */}
             <Separator className="my-4" />
             <div className="space-y-4">
@@ -2607,7 +2442,7 @@ export function RouteDetailDrawer({
             <DialogHeader>
               <DialogTitle>Report Comment</DialogTitle>
               <DialogDescription>
-                Please tell us why you're reporting this comment. Our moderation team will review it.
+                Please tell us why you&apos;re reporting this comment. Our moderation team will review it.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
