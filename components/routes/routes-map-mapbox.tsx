@@ -5,7 +5,6 @@ import mapboxgl from "mapbox-gl";
 import { useMapbox } from "@/lib/hooks/use-mapbox";
 import { Loader2, AlertCircle } from "lucide-react";
 import type { Waypoint, RouteStyle, ToolMode } from "./route-creator";
-import { getMapboxThumbnailUrl } from "@/lib/routes/route-thumbnail";
 import { toast } from "sonner";
 
 // Route difficulty colors
@@ -505,147 +504,21 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           });
         });
 
-        // Click on individual pin
+        // Click on individual pin - directly show route + trigger preview (no popup card)
         map.on("click", "unclustered-point", (e) => {
           if (!e.features?.[0]) return;
           const props = e.features[0].properties;
-          const coords = (e.features[0].geometry as any).coordinates.slice();
           const route = routesDataRef.current.get(props?.id);
           
           if (!route) return;
 
-          const rideTimeMinutes = Math.round((route.distance_km || 0) / 8 * 60);
-          const hours = Math.floor(rideTimeMinutes / 60);
-          const mins = rideTimeMinutes % 60;
-          const rideTimeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-          
-          // Get route thumbnail
-          const thumbnailUrl = getMapboxThumbnailUrl(route.geometry, {
-            width: 200,
-            height: 120,
-            routeColor: "166534",
-            routeWeight: 4,
-          });
+          // Close any existing popup
+          if (popupRef.current) {
+            popupRef.current.remove();
+            popupRef.current = null;
+          }
 
-          // Store route ID for the click handler
-          const routeIdForClick = route.id;
-          
-          // Create popup
-          const popup = new mapboxgl.Popup({ closeButton: false, maxWidth: "260px", className: "route-preview-popup" })
-            .setLngLat(coords)
-            .setHTML(`
-              <div style="font-family: system-ui, -apple-system, sans-serif; overflow: hidden; border-radius: 10px; position: relative; background: white;">
-                <!-- Smaller corner cutout close button (OS Maps style) -->
-                <div class="popup-close-btn" style="
-                  position: absolute;
-                  top: 0;
-                  right: 0;
-                  width: 26px;
-                  height: 26px;
-                  background: white;
-                  border-bottom-left-radius: 10px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  cursor: pointer;
-                  z-index: 10;
-                ">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </div>
-                ${thumbnailUrl ? `
-                  <div style="width: 100%; height: 85px; overflow: hidden;">
-                    <img src="${thumbnailUrl}" alt="${route.title}" style="width: 100%; height: 100%; object-fit: cover;" />
-                  </div>
-                ` : ''}
-                <div style="padding: 10px 12px;">
-                  <h3 style="margin: 0 0 5px; font-size: 14px; font-weight: 600; color: #1f2937;">${route.title}</h3>
-                  <div style="display: flex; gap: 14px; margin-bottom: 10px; color: #4b5563; font-size: 12px;">
-                    <span style="display: flex; align-items: center; gap: 4px;">
-                      🐴 ${(route.distance_km || 0).toFixed(1)} km
-                    </span>
-                    <span style="display: flex; align-items: center; gap: 4px;">
-                      ⏱️ ${rideTimeStr}
-                    </span>
-                  </div>
-                  <button 
-                    class="popup-view-details-btn"
-                    data-route-id="${routeIdForClick}"
-                    style="
-                      width: 100%;
-                      padding: 9px;
-                      background: #166534;
-                      color: white;
-                      border: none;
-                      border-radius: 8px;
-                      font-size: 13px;
-                      font-weight: 500;
-                      cursor: pointer;
-                      -webkit-tap-highlight-color: transparent;
-                    "
-                  >
-                    View details
-                  </button>
-                </div>
-              </div>
-            `)
-            .addTo(map);
-
-          // Store popup reference for later removal
-          popupRef.current = popup;
-          
-          // Use setTimeout to ensure popup is fully rendered before attaching handlers
-          setTimeout(() => {
-            const popupEl = popup.getElement();
-            if (!popupEl) return;
-            
-            // Close button handler
-            const closeBtn = popupEl.querySelector('.popup-close-btn');
-            if (closeBtn) {
-              const handleClose = (e: Event) => {
-                e.stopPropagation();
-                e.preventDefault();
-                // Use popupRef to ensure we have the current popup
-                if (popupRef.current) {
-                  popupRef.current.remove();
-                  popupRef.current = null;
-                }
-              };
-              closeBtn.addEventListener('click', handleClose);
-              closeBtn.addEventListener('touchstart', handleClose, { passive: false });
-            }
-            
-            // View details button handler
-            const viewDetailsBtn = popupEl.querySelector('.popup-view-details-btn');
-            if (viewDetailsBtn) {
-              let hasTriggered = false; // Prevent double-trigger
-              const handleViewDetails = (e: Event) => {
-                if (hasTriggered) return;
-                hasTriggered = true;
-                
-                e.stopPropagation();
-                e.preventDefault();
-                
-                const routeId = (viewDetailsBtn as HTMLElement).dataset.routeId;
-                
-                // Close popup first
-                if (popupRef.current) {
-                  popupRef.current.remove();
-                  popupRef.current = null;
-                }
-                
-                // Then trigger route click
-                if (routeId && onRouteClick) {
-                  onRouteClick(routeId);
-                }
-              };
-              viewDetailsBtn.addEventListener('click', handleViewDetails);
-              viewDetailsBtn.addEventListener('touchstart', handleViewDetails, { passive: false });
-            }
-          }, 50);
-
+          // Directly trigger route preview - parent will draw route + show quick card
           onRoutePreview?.(route);
         });
 
@@ -723,14 +596,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       // Initial update
       setTimeout(updatePinMarkers, 500);
 
-      // Listen for route click events from popup
-      const handleRouteClick = (e: CustomEvent) => {
-        onRouteClick?.(e.detail);
-      };
-      window.addEventListener("route-click", handleRouteClick as EventListener);
-
       return () => {
-        window.removeEventListener("route-click", handleRouteClick as EventListener);
         // Clean up pin markers
         pinMarkersRef.current.forEach((marker) => marker.remove());
         pinMarkersRef.current.clear();

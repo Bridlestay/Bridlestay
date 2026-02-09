@@ -11,6 +11,7 @@ import { RoutesNavTabs, RouteTab } from "@/components/routes/routes-nav-tabs";
 import { SavedRoutesPanel } from "@/components/routes/saved-routes-panel";
 import { FindRoutesPanel } from "@/components/routes/find-routes-panel";
 import { RouteBottomSheet } from "@/components/routes/route-bottom-sheet";
+import { RouteQuickCard } from "@/components/routes/route-quick-card";
 import { RouteNavigator } from "@/components/routes/route-navigator";
 import { PostRideReview } from "@/components/routes/post-ride-review";
 import { ElevationProfile } from "@/components/routes/elevation-profile";
@@ -45,6 +46,9 @@ export default function RoutesPage() {
   const [exploreRoutes, setExploreRoutes] = useState<any[]>([]);
   const [nearbyProperties, setNearbyProperties] = useState<any[]>([]);
   const [selectedRouteData, setSelectedRouteData] = useState<any | null>(null);
+
+  // Route preview (quick card at bottom)
+  const [previewRoute, setPreviewRoute] = useState<any | null>(null);
 
   // Layer settings - paths hidden by default in explore mode
   const [layerSettings, setLayerSettings] = useState<LayerSettings>({
@@ -212,6 +216,14 @@ export default function RoutesPage() {
       setSelectedRouteData(null);
       setHighlightedRouteId(null);
       setDrawnRouteId(null);
+      setPreviewRoute(null);
+    }
+    
+    // Close quick card if showing
+    if (previewRoute) {
+      setPreviewRoute(null);
+      setDrawnRouteId(null);
+      setHighlightedRouteId(null);
     }
     
     if (isCreating && waypoints.length > 0 && tab !== "create") {
@@ -323,24 +335,44 @@ export default function RoutesPage() {
   // State for which route's polyline is drawn on the map
   const [drawnRouteId, setDrawnRouteId] = useState<string | null>(null);
 
-  // Handle pin click - shows preview card (from info window)
+  // Handle pin click - draws route on map + shows quick card at bottom
   const handleRoutePreview = (route: any) => {
-    // Just highlight, don't draw polyline yet
+    // Draw the route polyline on the map immediately
+    setDrawnRouteId(route.id);
     setHighlightedRouteId(route.id);
+    setPreviewRoute(route);
+    
+    // Close any existing drawer
+    setDrawerOpen(false);
+    setShowBottomSheet(false);
+    
+    // Store route data for later use
+    setSelectedRouteData(route);
+    setSelectedRouteId(route.id);
+    
+    // Zoom to fit the route
+    if (route?.geometry?.coordinates?.length > 0) {
+      setTimeout(() => {
+        mapRef.current?.fitBounds(route.geometry.coordinates);
+      }, 100);
+    }
   };
 
-  // Handle "View details" click from preview card - draw route & show details
+  // Handle quick card click OR direct "View details" - open full modal
   const handleRouteClick = async (routeId: string) => {
+    // Close the quick card
+    setPreviewRoute(null);
+    
     // Draw the route polyline on the map
     setDrawnRouteId(routeId);
     setSelectedRouteId(routeId);
     setHighlightedRouteId(routeId);
     
-    // Open the full route drawer (now on left side)
+    // Open the full route detail modal
     setDrawerOpen(true);
     setShowBottomSheet(false);
     
-    // Mobile: switch to map tab and open route details
+    // Mobile: switch to map tab
     setActiveTab("map");
     setMobilePanelOpen(false);
     setMobileRouteDetailOpen(true);
@@ -357,6 +389,15 @@ export default function RoutesPage() {
     }
   };
 
+  // Close the quick card and clear route preview
+  const handleClosePreview = () => {
+    setPreviewRoute(null);
+    setDrawnRouteId(null);
+    setSelectedRouteId(null);
+    setSelectedRouteData(null);
+    setHighlightedRouteId(null);
+  };
+
   // Handle cluster click
   const handleClusterClick = (routeIds: string[], count: number) => {
     const routes = exploreRoutes.filter((r) => routeIds.includes(r.id));
@@ -370,6 +411,9 @@ export default function RoutesPage() {
 
   // Open full route details (from panels/bottom sheet)
   const handleRouteDetails = async (routeId: string) => {
+    // Close any preview
+    setPreviewRoute(null);
+    
     // Draw the route polyline on the map
     setDrawnRouteId(routeId);
     setSelectedRouteId(routeId);
@@ -377,10 +421,9 @@ export default function RoutesPage() {
     setShowBottomSheet(false);
     
     // On mobile, switch to map tab when viewing route details
-    // This ensures the Map button shows the map, not the previous panel
     setActiveTab("map");
-    setMobilePanelOpen(false); // Close any open panel
-    setMobileRouteDetailOpen(true); // Show route details
+    setMobilePanelOpen(false);
+    setMobileRouteDetailOpen(true);
     
     // Fetch full route data for navigation/elevation
     const fullRoute = await fetchRouteData(routeId);
@@ -1117,6 +1160,15 @@ export default function RoutesPage() {
           className="hidden md:flex"
         />
 
+        {/* Route Quick Card - appears when a pin is clicked */}
+        {previewRoute && !drawerOpen && (
+          <RouteQuickCard
+            route={previewRoute}
+            onClose={handleClosePreview}
+            onClick={() => handleRouteClick(previewRoute.id)}
+          />
+        )}
+
         {/* Route info bottom sheet */}
         {showBottomSheet && bottomSheetRoutes.length > 0 && !isNavigating && (
           <RouteBottomSheet
@@ -1160,7 +1212,8 @@ export default function RoutesPage() {
           onSubmit={handleSubmitReview}
         />
 
-        {/* Route Detail Drawer */}
+        {/* Route Detail Modal */}
+        {drawerOpen && (
         <RouteDetailDrawer
           routeId={selectedRouteId}
           open={drawerOpen}
@@ -1170,6 +1223,7 @@ export default function RoutesPage() {
             setSelectedRouteData(null);
             setHighlightedRouteId(null);
             setDrawnRouteId(null); // Clear route polyline from map
+            setPreviewRoute(null); // Clear quick card
             setMobileRouteDetailOpen(true); // Reset for next time
           }}
           onShowPropertyOnMap={(propertyId, lat, lng) => {
@@ -1199,6 +1253,7 @@ export default function RoutesPage() {
           mobileShowDetails={mobileRouteDetailOpen}
           onMobileToggleDetails={setMobileRouteDetailOpen}
         />
+        )}
 
         {/* Elevation Profile moved inside the route detail panel */}
       </div>

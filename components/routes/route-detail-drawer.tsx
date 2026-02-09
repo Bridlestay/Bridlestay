@@ -24,10 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { RoutesPanelHeader } from "./routes-panel-header";
-import { MobileTopHeader } from "./mobile-top-header";
-import { MobilePanelToggle } from "./mobile-panel-toggle";
+import { ChevronDown, ChevronUp, X } from "lucide-react";
+// Modal-based layout - no longer uses panel header or mobile toggle
 import {
   Star,
   MapPin,
@@ -2534,39 +2532,78 @@ export function RouteDetailDrawer({
 
   return (
     <>
-      {/* Desktop Panel */}
-      <div className="hidden md:flex absolute top-0 left-0 bottom-0 w-[420px] bg-white shadow-2xl z-30 flex-col">
-        {/* Panel Header with menu, search, profile, close */}
-        <RoutesPanelHeader
-          onClose={onClose}
-          showSearch={false}
-        />
-        {drawerContent}
-      </div>
-
-      {/* Mobile Panel with slide animation */}
-      <div 
+      {/* Backdrop - blurred overlay */}
+      <div
         className={cn(
-          "md:hidden fixed inset-x-0 bottom-0 top-0 z-30 transition-transform duration-300 ease-out",
-          mobileShowDetails ? "translate-y-0" : "translate-y-full"
+          "fixed inset-0 z-40 transition-all duration-300",
+          "bg-black/40 backdrop-blur-sm",
         )}
-      >
-        <div className="h-full bg-white flex flex-col">
-          {/* Mobile top header */}
-          <MobileTopHeader />
-          
-          {/* Content with padding for header and bottom button */}
-          <div className="flex-1 flex flex-col pt-14 pb-24 overflow-hidden">
+        onClick={onClose}
+      />
+
+      {/* Centered Modal Card */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <div
+          className={cn(
+            "pointer-events-auto bg-white rounded-2xl shadow-2xl border border-gray-100",
+            "w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden",
+            "animate-in zoom-in-95 slide-in-from-bottom-4 fade-in duration-300",
+            // Mobile: a bit taller
+            "md:max-h-[80vh]",
+          )}
+        >
+          {/* Modal Header - green accent bar + close button */}
+          <div className="flex items-center justify-between px-5 py-3 border-b bg-gradient-to-r from-green-50 to-white shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-6 bg-green-600 rounded-full" />
+              <h2 className="font-semibold text-gray-900 truncate">
+                {route?.title || "Route Details"}
+              </h2>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+            >
+              <X className="h-4 w-4 text-gray-600" />
+            </button>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-hidden">
             {drawerContent}
           </div>
 
-          {/* Map button at bottom - small and discreet */}
-          <div className="absolute bottom-20 left-0 right-0 pb-2">
-            <MobilePanelToggle
-              mode="map"
-              onClick={() => onMobileToggleDetails?.(false)}
-              alwaysVisible={true}
-            />
+          {/* Bottom Action Bar */}
+          <div className="shrink-0 border-t bg-white px-5 py-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={liked ? "default" : "outline"}
+                size="sm"
+                onClick={handleLike}
+                className="gap-1.5 rounded-full"
+              >
+                <Heart className={cn("h-4 w-4", liked && "fill-current")} />
+                {likesCount > 0 ? likesCount : "Like"}
+              </Button>
+              <Button
+                variant={favorited ? "default" : "outline"}
+                size="sm"
+                onClick={handleFavorite}
+                className="gap-1.5 rounded-full"
+              >
+                <Bookmark className={cn("h-4 w-4", favorited && "fill-current")} />
+                {favorited ? "Saved" : "Save"}
+              </Button>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleShare}
+              className="gap-1.5 rounded-full"
+            >
+              <Share2 className="h-4 w-4" />
+              Share
+            </Button>
           </div>
         </div>
       </div>
