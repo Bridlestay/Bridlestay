@@ -1218,13 +1218,24 @@ export default function RoutesPage() {
           routeId={selectedRouteId}
           open={drawerOpen}
           onClose={() => {
+            // Full close: clear everything (called from full cleanup paths)
             setDrawerOpen(false);
             setSelectedRouteId(null);
             setSelectedRouteData(null);
             setHighlightedRouteId(null);
-            setDrawnRouteId(null); // Clear route polyline from map
-            setPreviewRoute(null); // Clear quick card
-            setMobileRouteDetailOpen(true); // Reset for next time
+            setDrawnRouteId(null);
+            setPreviewRoute(null);
+            setMobileRouteDetailOpen(true);
+          }}
+          onDismiss={() => {
+            // Dismiss modal only: keep route drawn, restore quick card
+            setDrawerOpen(false);
+            setMobileRouteDetailOpen(true);
+            // Restore quick card with current route data
+            if (selectedRouteData) {
+              setPreviewRoute(selectedRouteData);
+            }
+            // Keep drawnRouteId, selectedRouteId, selectedRouteData, highlightedRouteId
           }}
           onShowPropertyOnMap={(propertyId, lat, lng) => {
             // Close the route drawer

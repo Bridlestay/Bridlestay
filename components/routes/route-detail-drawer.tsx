@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, X, Check } from "lucide-react";
 // Modal-based layout - no longer uses panel header or mobile toggle
 import {
   Star,
@@ -60,6 +60,9 @@ import { NearbyPropertyCard } from "./nearby-property-card";
 import { RouteCompletion } from "./route-completion";
 import { WaypointMapPicker } from "./waypoint-map-picker";
 import { calculateDistanceKm } from "@/lib/routes/distance-calculator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
+import { getMapboxThumbnailUrl } from "@/lib/routes/route-thumbnail";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 
@@ -67,6 +70,7 @@ interface RouteDetailDrawerProps {
   routeId: string | null;
   open: boolean;
   onClose: () => void;
+  onDismiss?: () => void; // Close modal but keep route on map + restore quick card
   onShowPropertyOnMap?: (propertyId: string, lat: number, lng: number) => void;
   onEditRoute?: (routeId: string, routeData: any) => void;
   // Mobile panel control
@@ -94,6 +98,21 @@ const SEVERITY_COLORS = {
   high: "bg-orange-100 text-orange-800 border-orange-300",
   critical: "bg-red-100 text-red-800 border-red-300",
 };
+
+const REVIEW_TAGS = [
+  { id: "muddy_after_rain", label: "Muddy after rain", emoji: "🌧️" },
+  { id: "road_crossings", label: "Road crossings", emoji: "🚗" },
+  { id: "steady_horses", label: "Suitable for steady horses", emoji: "🐴" },
+  { id: "experienced_horses", label: "Better for experienced horses", emoji: "⚡" },
+  { id: "water_available", label: "Water available for horses", emoji: "💧" },
+  { id: "group_friendly", label: "Group friendly", emoji: "👥" },
+  { id: "parking_available", label: "Parking available", emoji: "🅿️" },
+  { id: "good_waymarking", label: "Good waymarking", emoji: "🪧" },
+  { id: "stunning_views", label: "Stunning views", emoji: "🏞️" },
+  { id: "gates_to_open", label: "Gates to open", emoji: "🚪" },
+  { id: "steep_sections", label: "Steep sections", emoji: "⛰️" },
+  { id: "good_surface", label: "Good surface throughout", emoji: "✅" },
+];
 
 // Photo Card Component
 function PhotoCard({
@@ -252,6 +271,7 @@ export function RouteDetailDrawer({
   routeId,
   open,
   onClose,
+  onDismiss,
   onShowPropertyOnMap,
   onEditRoute,
   mobileShowDetails = true,
@@ -298,6 +318,18 @@ export function RouteDetailDrawer({
   
   // Full panel view states (for Discussion, Reviews, Waypoints)
   const [activeFullPanel, setActiveFullPanel] = useState<"discussion" | "reviews" | "waypoints" | null>(null);
+  
+  // Photo carousel state
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  
+  // Review flow state
+  const [reviewStep, setReviewStep] = useState<number | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewTags, setReviewTags] = useState<string[]>([]);
+  const [reviewShortNote, setReviewShortNote] = useState("");
+  const [reviewLongNote, setReviewLongNote] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
   
   const [deleteHazardDialogOpen, setDeleteHazardDialogOpen] = useState(false);
   const [hazardToDelete, setHazardToDelete] = useState<any>(null);
@@ -970,6 +1002,81 @@ export function RouteDetailDrawer({
     }
   };
 
+  // Submit the ride review (card-based flow)
+  const handleSubmitRideReview = async () => {
+    if (!userId || !routeId) return;
+    setSubmittingReview(true);
+    try {
+      // Submit review with rating (collected but NOT publicly displayed)
+      await fetch(`/api/routes/${routeId}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: reviewRating,
+          difficulty: route?.difficulty || "moderate",
+          review_text: reviewShortNote || undefined,
+        }),
+      });
+
+      // Also record as a completion with structured tags
+      await fetch(`/api/routes/${routeId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          notes: JSON.stringify({ tags: reviewTags, short_note: reviewShortNote }),
+          rating: reviewRating,
+        }),
+      });
+
+      setReviewStep(5); // Go to "thank you" / optional long note step
+      toast.success("Review submitted! Thank you 🐴");
+    } catch (error) {
+      console.error("Failed to submit review:", error);
+      toast.error("Failed to submit review. Please try again.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const handleSubmitLongNote = async () => {
+    if (!routeId || !reviewLongNote.trim()) {
+      resetReviewState();
+      return;
+    }
+    try {
+      const combinedText = reviewShortNote
+        ? `${reviewShortNote}\n\n---\n\n${reviewLongNote}`
+        : reviewLongNote;
+      await fetch(`/api/routes/${routeId}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: reviewRating,
+          review_text: combinedText,
+          difficulty: route?.difficulty || "moderate",
+        }),
+      });
+      toast.success("Additional notes saved!");
+    } catch {
+      // Non-critical
+    }
+    resetReviewState();
+  };
+
+  const resetReviewState = () => {
+    setReviewStep(null);
+    setReviewRating(0);
+    setReviewTags([]);
+    setReviewShortNote("");
+    setReviewLongNote("");
+  };
+
+  const toggleReviewTag = (tagId: string) => {
+    setReviewTags((prev) =>
+      prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]
+    );
+  };
+
   const handleDeleteWaypoint = async (waypointId: string) => {
     if (!confirm("Delete this waypoint?")) return;
     
@@ -1178,29 +1285,348 @@ export function RouteDetailDrawer({
     </div>
   );
 
+  // Review Flow Content - card-based, linear, intentionally short
+  const reviewFlowContent = (
+    <div className="p-6">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-gray-700">
+            {reviewStep === 5 ? "Complete!" : `Step ${reviewStep} of 4`}
+          </span>
+          <button
+            onClick={resetReviewState}
+            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+        <Progress value={reviewStep === 5 ? 100 : ((reviewStep || 0) / 4) * 100} className="h-1.5" />
+      </div>
+
+      {/* Step 1: Overall Feel - Star Rating */}
+      {reviewStep === 1 && (
+        <div className="text-center space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">How did this route ride overall?</h2>
+            <p className="text-sm text-gray-500 mt-1">Your honest rating helps us improve</p>
+          </div>
+
+          <div className="flex justify-center gap-3">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                onClick={() => setReviewRating(n)}
+                className="transition-transform hover:scale-110"
+              >
+                <Star
+                  className={cn(
+                    "h-10 w-10 transition-colors",
+                    n <= reviewRating ? "fill-amber-400 text-amber-400" : "text-gray-300"
+                  )}
+                />
+              </button>
+            ))}
+          </div>
+
+          <p className="text-xs text-gray-400 italic">
+            This rating is collected for internal improvement only and won&apos;t be shown publicly
+          </p>
+
+          <div className="flex gap-3 pt-4">
+            <Button variant="outline" className="flex-1 rounded-full" onClick={resetReviewState}>
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
+              onClick={() => setReviewStep(2)}
+              disabled={reviewRating === 0}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Add a Moment (Optional Photo) */}
+      {reviewStep === 2 && (
+        <div className="space-y-5">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Share a moment from your ride</h2>
+            <p className="text-sm text-gray-500 mt-1">Add a photo to help others know what to expect (optional)</p>
+          </div>
+
+          <div className="flex gap-2 flex-wrap">
+            {["🏞️ View", "🌿 Feature", "🍂 Seasonal moment"].map((cat) => (
+              <Badge key={cat} variant="outline" className="cursor-pointer hover:bg-green-50 transition-colors px-3 py-1">
+                {cat}
+              </Badge>
+            ))}
+          </div>
+
+          <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-green-300 transition-colors cursor-pointer">
+            <ImageIcon className="h-10 w-10 mx-auto text-gray-300 mb-3" />
+            <p className="text-sm text-gray-500">Tap to add a photo</p>
+            <p className="text-xs text-gray-400 mt-1">Coming soon</p>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1 rounded-full" onClick={() => setReviewStep(1)}>
+              Back
+            </Button>
+            <Button className="flex-1 rounded-full bg-green-600 hover:bg-green-700" onClick={() => setReviewStep(3)}>
+              Skip / Next
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Things Worth Knowing (Checkboxes) */}
+      {reviewStep === 3 && (
+        <div className="space-y-5">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Things worth knowing</h2>
+            <p className="text-sm text-gray-500 mt-1">Help others by sharing what you noticed — tick all that apply</p>
+          </div>
+
+          <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
+            {REVIEW_TAGS.map((tag) => (
+              <label
+                key={tag.id}
+                className={cn(
+                  "flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors",
+                  reviewTags.includes(tag.id)
+                    ? "bg-green-50 border-green-300"
+                    : "hover:bg-gray-50 border-gray-200"
+                )}
+              >
+                <Checkbox
+                  checked={reviewTags.includes(tag.id)}
+                  onCheckedChange={() => toggleReviewTag(tag.id)}
+                  className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                />
+                <span className="text-lg">{tag.emoji}</span>
+                <span className="text-sm font-medium text-gray-700">{tag.label}</span>
+              </label>
+            ))}
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1 rounded-full" onClick={() => setReviewStep(2)}>
+              Back
+            </Button>
+            <Button className="flex-1 rounded-full bg-green-600 hover:bg-green-700" onClick={() => setReviewStep(4)}>
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: Short Note */}
+      {reviewStep === 4 && (
+        <div className="space-y-5">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Anything you&apos;d tell a friend before riding this?</h2>
+            <p className="text-sm text-gray-500 mt-1">Keep it short and helpful</p>
+          </div>
+
+          <div className="relative">
+            <Textarea
+              placeholder="e.g. Bring waterproofs if it has been raining, the ford crossing can get deep!"
+              value={reviewShortNote}
+              onChange={(e) => {
+                if (e.target.value.length <= 200) setReviewShortNote(e.target.value);
+              }}
+              className="min-h-[100px] resize-none"
+            />
+            <span className={cn(
+              "absolute bottom-2 right-3 text-xs",
+              reviewShortNote.length > 180 ? "text-amber-500" : "text-gray-400"
+            )}>
+              {reviewShortNote.length}/200
+            </span>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1 rounded-full" onClick={() => setReviewStep(3)}>
+              Back
+            </Button>
+            <Button
+              className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
+              onClick={handleSubmitRideReview}
+              disabled={submittingReview}
+            >
+              {submittingReview ? "Submitting..." : "Submit Review"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 5: Thank You + Optional Long Note */}
+      {reviewStep === 5 && (
+        <div className="space-y-5">
+          <div className="text-center py-4">
+            <div className="text-5xl mb-4">🎉</div>
+            <h2 className="text-xl font-bold text-gray-900">Thank you for your review!</h2>
+            <p className="text-sm text-gray-500 mt-2">
+              Your insights help the riding community explore with confidence
+            </p>
+          </div>
+
+          {reviewTags.length > 0 && (
+            <div className="flex flex-wrap gap-2 justify-center">
+              {reviewTags.map((tagId) => {
+                const tag = REVIEW_TAGS.find((t) => t.id === tagId);
+                return tag ? (
+                  <Badge key={tagId} variant="secondary" className="gap-1">
+                    {tag.emoji} {tag.label}
+                  </Badge>
+                ) : null;
+              })}
+            </div>
+          )}
+
+          <Separator />
+
+          <div className="space-y-3">
+            <h3 className="font-medium text-gray-900">Anything else you&apos;d like to note?</h3>
+            <p className="text-xs text-gray-500">
+              Optional — share a longer story about your experience. This helps enthusiasts get the full picture.
+            </p>
+            <Textarea
+              placeholder="Share more details about your ride..."
+              value={reviewLongNote}
+              onChange={(e) => setReviewLongNote(e.target.value)}
+              className="min-h-[120px]"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1 rounded-full" onClick={resetReviewState}>
+              Skip
+            </Button>
+            {reviewLongNote.trim() && (
+              <Button
+                className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
+                onClick={handleSubmitLongNote}
+              >
+                Save Note
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const drawerContent = (
     <ScrollArea className="flex-1">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <p className="text-muted-foreground">Loading...</p>
           </div>
+        ) : reviewStep !== null ? (
+          reviewFlowContent
         ) : activeFullPanel === "discussion" ? (
           fullDiscussionPanel
         ) : activeFullPanel === "waypoints" ? (
           fullWaypointsPanel
         ) : route ? (
-          <div className="p-4 space-y-4">
-            {/* Header - Title & Badges */}
-            <div>
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-xl font-bold leading-tight">{route.title}</h1>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    {route.featured && <Badge className="text-xs bg-amber-500">Featured</Badge>}
-                    {isOwner && <Badge variant="outline" className="text-xs">Your Route</Badge>}
+          <div>
+            {/* PHOTO CAROUSEL - Full bleed at top of card */}
+            {displayPhotosForCarousel.length > 0 && (
+              <div className="relative group">
+                <div className="relative h-52 overflow-hidden">
+                  {displayPhotosForCarousel.map((photo: any, idx: number) => (
+                    <div
+                      key={photo.id || idx}
+                      className={cn(
+                        "absolute inset-0 transition-opacity duration-300",
+                        idx === currentPhotoIndex ? "opacity-100" : "opacity-0 pointer-events-none"
+                      )}
+                    >
+                      <Image
+                        src={photo.url}
+                        alt={photo.caption || `Route photo ${idx + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  ))}
+
+                  {/* Photo count badge */}
+                  <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                    <ImageIcon className="h-3 w-3" />
+                    {currentPhotoIndex + 1} / {displayPhotosForCarousel.length}
                   </div>
+
+                  {/* Navigation arrows - visible on hover */}
+                  {displayPhotosForCarousel.length > 1 && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentPhotoIndex((prev) => (prev > 0 ? prev - 1 : displayPhotosForCarousel.length - 1));
+                        }}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                      >
+                        <ChevronLeft className="h-4 w-4 text-gray-700" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentPhotoIndex((prev) => (prev < displayPhotosForCarousel.length - 1 ? prev + 1 : 0));
+                        }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                      >
+                        <ChevronRight className="h-4 w-4 text-gray-700" />
+                      </button>
+                    </>
+                  )}
+
+                  {/* Dot indicators */}
+                  {displayPhotosForCarousel.length > 1 && (
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {displayPhotosForCarousel.map((_: any, idx: number) => (
+                        <button
+                          key={idx}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentPhotoIndex(idx);
+                          }}
+                          className={cn(
+                            "h-2 rounded-full transition-all",
+                            idx === currentPhotoIndex ? "bg-white w-4" : "bg-white/50 w-2"
+                          )}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
+              </div>
+            )}
+
+            <div className="p-4 space-y-4">
+              {/* AUTHOR - above title, like OS Maps */}
+              {route?.owner && (
+                <Link href={`/profile/${route.owner.id}`} className="flex items-center gap-2.5 group">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={route.owner.avatar_url || undefined} />
+                    <AvatarFallback className="text-xs bg-green-100 text-green-800">
+                      {route.owner.name?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium text-gray-600 group-hover:text-green-700 transition-colors">
+                    {route.owner.name}
+                  </span>
+                </Link>
+              )}
+
+              {/* TITLE */}
+              <div>
+                <h1 className="text-xl font-bold text-gray-900 leading-tight">{route.title}</h1>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  {route.featured && <Badge className="text-xs bg-amber-500">Featured</Badge>}
+                  {isOwner && <Badge variant="outline" className="text-xs">Your Route</Badge>}
                   {activeHazards.length > 0 && (
                     <Badge variant="destructive" className="gap-1 text-xs">
                       <AlertTriangle className="h-3 w-3" />
@@ -1209,94 +1635,102 @@ export function RouteDetailDrawer({
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* PROMINENT STATS - OS Maps Style */}
-            <div className="grid grid-cols-3 gap-4 py-4 border-y bg-slate-50/50 rounded-lg px-3">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-slate-900">
-                  {Number(route.distance_km || 0).toFixed(1)}
-                  <span className="text-base font-normal text-slate-500 ml-1">km</span>
-                </p>
-                <p className="text-xs text-slate-500 uppercase tracking-wide">Distance</p>
-              </div>
-              <div className="text-center border-x border-slate-200">
-                <p className="text-2xl font-bold text-slate-900">
-                  {route.distance_km ? `${Math.floor((Number(route.distance_km) / 12) * 60)}` : '—'}
-                  <span className="text-base font-normal text-slate-500 ml-1">min</span>
-                </p>
-                <p className="text-xs text-slate-500 uppercase tracking-wide">🐴 Ride</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-slate-900">
-                  {route.distance_km ? `${Math.floor((Number(route.distance_km) / 5) * 60)}` : '—'}
-                  <span className="text-base font-normal text-slate-500 ml-1">min</span>
-                </p>
-                <p className="text-xs text-slate-500 uppercase tracking-wide">🚶 Walk</p>
-              </div>
-            </div>
-
-            {/* Difficulty Badge - Large */}
-            <div className="flex items-center justify-between">
-              <Badge
-                className={cn(
-                  "text-sm px-4 py-1.5",
-                  getDifficultyInfo(route.difficulty).color
-                )}
-              >
-                {getDifficultyInfo(route.difficulty).label}
-              </Badge>
-              {route.county && (
-                <span className="text-sm text-slate-500 flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  {route.county}
-                </span>
-              )}
-            </div>
-
-            {/* Description (collapsible preview) */}
-            {route.description && (
-              <div className="bg-slate-50 rounded-lg p-3">
-                <p className="text-sm text-slate-600 line-clamp-3">{route.description}</p>
-                {route.description.length > 150 && (
-                  <button className="text-xs text-blue-600 hover:underline mt-1">Show more</button>
+              {/* DIFFICULTY + TIMES RIDDEN */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <Badge
+                  className={cn(
+                    "text-sm px-3 py-1",
+                    getDifficultyInfo(route.difficulty).color
+                  )}
+                >
+                  {getDifficultyInfo(route.difficulty).label}
+                </Badge>
+                {(route.completions_count > 0) && (
+                  <span className="text-sm text-gray-500">
+                    🐴 {route.completions_count} {route.completions_count === 1 ? "person has" : "people have"} ridden this
+                  </span>
                 )}
               </div>
-            )}
 
-            {/* Display Photos Carousel */}
-            {displayPhotosForCarousel.length > 0 && (
-              <div className="relative h-48 rounded-lg overflow-hidden">
-                <div className="flex overflow-x-auto snap-x snap-mandatory gap-2 h-full pb-2">
-                  {displayPhotosForCarousel.map((photo: any, idx: number) => (
-                    <div 
-                      key={photo.id || idx} 
-                      className="relative flex-shrink-0 w-full h-full snap-center"
-                    >
-                      <Image
-                        src={photo.url}
-                        alt={photo.caption || `Route photo ${idx + 1}`}
-                        fill
-                        className="object-cover rounded-lg"
-                      />
-                      {photo.is_cover && (
-                        <Badge className="absolute top-2 left-2 bg-amber-500">Cover</Badge>
-                      )}
-                    </div>
-                  ))}
+              {/* STATS - Distance, Time, Total Ascent, Total Descent */}
+              <div className="grid grid-cols-4 gap-2 py-3 border-y bg-slate-50/50 rounded-lg px-2">
+                <div className="text-center">
+                  <p className="text-lg font-bold text-slate-900">
+                    {Number(route.distance_km || 0).toFixed(1)}
+                  </p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Distance (km)</p>
                 </div>
-                {displayPhotosForCarousel.length > 1 && (
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-                    {displayPhotosForCarousel.map((_: any, idx: number) => (
-                      <div 
-                        key={idx} 
-                        className="w-2 h-2 rounded-full bg-white/70"
-                      />
-                    ))}
-                  </div>
-                )}
+                <div className="text-center border-l border-slate-200">
+                  <p className="text-lg font-bold text-slate-900">
+                    {route.distance_km
+                      ? (() => {
+                          const mins = Math.floor((Number(route.distance_km) / 8) * 60);
+                          return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60 > 0 ? `${mins % 60}m` : ""}` : `${mins}m`;
+                        })()
+                      : "—"}
+                  </p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">🐴 Ride</p>
+                </div>
+                <div className="text-center border-l border-slate-200">
+                  <p className="text-lg font-bold text-slate-900">
+                    {route.elevation_gain ? `${Math.round(route.elevation_gain)}` : "—"}
+                  </p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Ascent (m)</p>
+                </div>
+                <div className="text-center border-l border-slate-200">
+                  <p className="text-lg font-bold text-slate-900">
+                    {route.elevation_loss ? `${Math.round(route.elevation_loss)}` : "—"}
+                  </p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Descent (m)</p>
+                </div>
               </div>
-            )}
+
+              {/* DESCRIPTION with Read More */}
+              {route.description && (
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <p className={cn(
+                    "text-sm text-slate-600",
+                    !showFullDescription && "line-clamp-3"
+                  )}>
+                    {route.description}
+                  </p>
+                  {route.description.length > 150 && (
+                    <button
+                      onClick={() => setShowFullDescription(!showFullDescription)}
+                      className="text-xs text-green-600 hover:text-green-700 font-medium mt-1"
+                    >
+                      {showFullDescription ? "Show less" : "Read more"}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* ROUTE MAP SNAPSHOT - full width */}
+              {(() => {
+                const geo = route.geometry || route.route_geometry;
+                const snapshotUrl = getMapboxThumbnailUrl(geo, {
+                  width: 600,
+                  height: 200,
+                  routeColor: "166534",
+                  routeWeight: 3,
+                });
+                return snapshotUrl ? (
+                  <div className="relative w-full h-40 rounded-lg overflow-hidden bg-gray-100 border">
+                    <img src={snapshotUrl} alt="Route map" className="w-full h-full object-cover" />
+                  </div>
+                ) : null;
+              })()}
+
+              {/* I'VE RIDDEN THIS ROUTE! button */}
+              {userId && !isOwner && (
+                <Button
+                  onClick={() => setReviewStep(1)}
+                  className="w-full rounded-xl h-12 bg-green-600 hover:bg-green-700 text-white font-semibold text-base shadow-sm"
+                >
+                  🐴 I&apos;ve ridden this route!
+                </Button>
+              )}
 
             {/* Terrain/Surface Tags */}
             {(route.terrain_tags?.length > 0 || route.surface) && (
@@ -1313,30 +1747,6 @@ export function RouteDetailDrawer({
                 )}
               </div>
             )}
-
-            {/* Primary Actions - Like, Bookmark, Share */}
-            <div className="flex gap-2">
-              <Button
-                variant={liked ? "default" : "outline"}
-                onClick={handleLike}
-                className="flex-1 gap-2"
-              >
-                <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
-                {likesCount > 0 ? likesCount : "Like"}
-              </Button>
-              <Button
-                variant={favorited ? "default" : "outline"}
-                onClick={handleFavorite}
-                className="flex-1 gap-2"
-              >
-                <Bookmark className={`h-4 w-4 ${favorited ? "fill-current" : ""}`} />
-                {favorited ? "Saved" : "Save"}
-              </Button>
-              <Button variant="outline" onClick={handleShare} className="flex-1 gap-2">
-                <Share2 className="h-4 w-4" />
-                Share
-              </Button>
-            </div>
 
             {/* Secondary Action Icons Row */}
             <div className="flex items-center justify-around py-2 border rounded-lg bg-slate-50">
@@ -2431,6 +2841,7 @@ export function RouteDetailDrawer({
                 </Link>
               </div>
             )}
+            </div>
           </div>
         ) : null}
         
@@ -2532,13 +2943,13 @@ export function RouteDetailDrawer({
 
   return (
     <>
-      {/* Backdrop - blurred overlay */}
+      {/* Backdrop - blurred overlay. Click dismisses modal but keeps route */}
       <div
         className={cn(
           "fixed inset-0 z-40 transition-all duration-300",
           "bg-black/40 backdrop-blur-sm",
         )}
-        onClick={onClose}
+        onClick={onDismiss || onClose}
       />
 
       {/* Centered Modal Card */}
@@ -2561,7 +2972,7 @@ export function RouteDetailDrawer({
               </h2>
             </div>
             <button
-              onClick={onClose}
+              onClick={onDismiss || onClose}
               className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
             >
               <X className="h-4 w-4 text-gray-600" />
