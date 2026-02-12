@@ -2161,8 +2161,10 @@ export function RouteDetailDrawer({
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            {drawerContent}
+          <div className="flex-1 min-h-0">
+            <ScrollArea className="h-full">
+              {drawerContent}
+            </ScrollArea>
           </div>
 
           {/* Bottom Action Bar */}
