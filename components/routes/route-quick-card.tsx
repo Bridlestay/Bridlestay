@@ -144,7 +144,8 @@ export function RouteQuickCard({ route, onClose, onClick, className }: RouteQuic
         {/* Subtle tap hint */}
         <div className="bg-green-50 px-3 py-1.5 border-t border-green-100">
           <p className="text-[11px] text-green-700 text-center font-medium">
-            Tap for full details
+            <span className="md:hidden">Tap for full details</span>
+            <span className="hidden md:inline">Click for full details</span>
           </p>
         </div>
       </div>
