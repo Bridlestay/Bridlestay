@@ -1,0 +1,417 @@
+{
+  "main": {
+    "id": "b51ff361d48c97ef",
+    "type": "split",
+    "children": [
+      {
+        "id": "b11dcfbd2aa4a62c",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "6d037d09fca42537",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "BridleStay - Payments.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "BridleStay - Payments"
+            }
+          },
+          {
+            "id": "2c8fce339c758abc",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "BridleStay - Moderation.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "BridleStay - Moderation"
+            }
+          },
+          {
+            "id": "607ad34fdd640d2a",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "BridleStay - Google Cloud API.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "BridleStay - Google Cloud API"
+            }
+          },
+          {
+            "id": "070d18e9d2c3c86f",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "BridleStay - Google Cloud API.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "BridleStay - Google Cloud API"
+            }
+          },
+          {
+            "id": "c67f275bc534968c",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Things of note.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Things of note"
+            }
+          },
+          {
+            "id": "2e74d3d902764b16",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "BridleStay - Pricing, Discounts & Damage.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "BridleStay - Pricing, Discounts & Damage"
+            }
+          },
+          {
+            "id": "732922cbb9cc81a7",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "BridleStay - Founding Hosts.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "BridleStay - Founding Hosts"
+            }
+          },
+          {
+            "id": "121745e48d09d959",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Disputes and things to ammend.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Disputes and things to ammend"
+            }
+          },
+          {
+            "id": "2e5d7c6fcea1a4e4",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "BridleStay - List Rankings.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "BridleStay - List Rankings"
+            }
+          },
+          {
+            "id": "3c73d1ac72ef4fcf",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "BridleStay - Property Page Design.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "BridleStay - Property Page Design"
+            }
+          },
+          {
+            "id": "456ad950a535cf3e",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "BridleStay - Route Making and Contribution.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "BridleStay - Route Making and Contribution"
+            }
+          },
+          {
+            "id": "6f10df87e673288e",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "BridleStay - Route Making and Contribution.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "BridleStay - Route Making and Contribution"
+            }
+          },
+          {
+            "id": "cc1c96e1ffcd5f51",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "WEBSITE FEEDBACK.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "WEBSITE FEEDBACK"
+            }
+          },
+          {
+            "id": "4f66e4786db13f8d",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "WEBSITE FEEDBACK.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "WEBSITE FEEDBACK"
+            }
+          },
+          {
+            "id": "6805bb77cf8a0c8c",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "WEBSITE FEEDBACK.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "WEBSITE FEEDBACK"
+            }
+          }
+        ],
+        "currentTab": 14
+      },
+      {
+        "id": "152a7cc50444d309",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "e612db98d407158d",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "383368a4c90c8346",
+    "type": "split",
+    "children": [
+      {
+        "id": "60db12ccae3234dd",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "856b41c8ee1482c1",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "67391c714be40030",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "811b3936fe46b019",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "89ee64809c28ba4a",
+    "type": "split",
+    "children": [
+      {
+        "id": "feac5b4812fb9892",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "09d145a0c820db64",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Bridlestay - Moderation.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Bridlestay - Moderation"
+            }
+          },
+          {
+            "id": "8f27e457954cadcb",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Bridlestay - Moderation.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Bridlestay - Moderation"
+            }
+          },
+          {
+            "id": "03312698c5604136",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "ba7d4b08fe5725b8",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "e7afed4de20187ff",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Bridlestay - Moderation.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Bridlestay - Moderation"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "6805bb77cf8a0c8c",
+  "lastOpenFiles": [
+    "BridleStay - Route Making and Contribution.md",
+    "WEBSITE FEEDBACK.md",
+    "BridleStay - Map API and Route Making.md",
+    "Things of note.md",
+    "BridleStay - Calendar.md",
+    "Disputes and things to ammend.md",
+    "BridleStay - Founding Hosts.md",
+    "BridleStay - Google Cloud API.md",
+    "BridleStay - List Rankings.md",
+    "BridleStay - Moderation.md",
+    "BridleStay - Payments.md",
+    "BridleStay - Pricing, Discounts & Damage.md",
+    "BridleStay - Property Page Design.md",
+    "Api doc.md",
+    "Welcome.md"
+  ]
+}

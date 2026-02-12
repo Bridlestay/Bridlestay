@@ -1519,7 +1519,7 @@ export function RouteDetailDrawer({
   );
 
   const drawerContent = (
-    <ScrollArea className="flex-1">
+    <div className="h-full overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <p className="text-muted-foreground">Loading...</p>
@@ -2119,7 +2119,7 @@ export function RouteDetailDrawer({
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </ScrollArea>
+      </div>
   );
 
   return (
@@ -2161,7 +2161,7 @@ export function RouteDetailDrawer({
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 min-h-0">
             {drawerContent}
           </div>
 
