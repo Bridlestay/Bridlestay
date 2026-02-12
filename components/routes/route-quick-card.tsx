@@ -62,7 +62,7 @@ export function RouteQuickCard({ route, onClose, onClick, className }: RouteQuic
             e.stopPropagation();
             onClose();
           }}
-          className="absolute top-0 right-0 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-bl-xl flex items-center justify-center hover:bg-gray-100 transition-colors"
+          className="absolute top-0 right-0 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-bl-xl rounded-tr-2xl flex items-center justify-center hover:bg-gray-100 transition-colors"
         >
           <X className="h-3.5 w-3.5 text-gray-500" />
         </button>
