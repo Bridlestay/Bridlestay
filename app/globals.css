@@ -60,6 +60,16 @@
   border-top: 1px solid hsl(var(--border));
 }
 
+/* Scrollable container with hidden scrollbar */
+.scrollbar-hidden {
+  overflow-y: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
 @layer base {
   :root {
     --background: 30 30% 98%;

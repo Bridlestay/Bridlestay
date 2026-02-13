@@ -321,6 +321,7 @@ export function RouteDetailDrawer({
   
   // Photo carousel state
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   
   // Review flow state
@@ -1535,7 +1536,10 @@ export function RouteDetailDrawer({
             {/* PHOTO CAROUSEL - Full bleed at top of card */}
             {displayPhotosForCarousel.length > 0 && (
               <div className="relative group">
-                <div className="relative h-52 overflow-hidden">
+                <div
+                  className="relative h-52 overflow-hidden cursor-pointer"
+                  onClick={() => setLightboxOpen(true)}
+                >
                   {displayPhotosForCarousel.map((photo: any, idx: number) => (
                     <div
                       key={photo.id || idx}
@@ -2161,10 +2165,8 @@ export function RouteDetailDrawer({
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 min-h-0">
-            <ScrollArea className="h-full">
-              {drawerContent}
-            </ScrollArea>
+          <div className="flex-1 min-h-0 scrollbar-hidden">
+            {drawerContent}
           </div>
 
           {/* Bottom Action Bar */}
@@ -2201,6 +2203,73 @@ export function RouteDetailDrawer({
           </div>
         </div>
       </div>
+
+      {/* Photo Lightbox */}
+      {lightboxOpen && displayPhotosForCarousel.length > 0 && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center"
+          onClick={() => setLightboxOpen(false)}
+        >
+          {/* Close button */}
+          <button
+            onClick={() => setLightboxOpen(false)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors z-10"
+          >
+            <X className="h-5 w-5 text-white" />
+          </button>
+
+          {/* Photo counter */}
+          <div className="absolute top-4 left-4 text-white/80 text-sm font-medium">
+            {currentPhotoIndex + 1} / {displayPhotosForCarousel.length}
+          </div>
+
+          {/* Main photo */}
+          <div
+            className="relative w-full h-full max-w-4xl max-h-[85vh] mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Image
+              src={displayPhotosForCarousel[currentPhotoIndex]?.url}
+              alt={displayPhotosForCarousel[currentPhotoIndex]?.caption || "Route photo"}
+              fill
+              className="object-contain"
+              sizes="100vw"
+              priority
+            />
+          </div>
+
+          {/* Navigation arrows */}
+          {displayPhotosForCarousel.length > 1 && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentPhotoIndex((prev) => (prev > 0 ? prev - 1 : displayPhotosForCarousel.length - 1));
+                }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              >
+                <ChevronLeft className="h-5 w-5 text-white" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentPhotoIndex((prev) => (prev < displayPhotosForCarousel.length - 1 ? prev + 1 : 0));
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              >
+                <ChevronRight className="h-5 w-5 text-white" />
+              </button>
+            </>
+          )}
+
+          {/* Caption */}
+          {displayPhotosForCarousel[currentPhotoIndex]?.caption && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/90 text-sm bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full max-w-md text-center">
+              {displayPhotosForCarousel[currentPhotoIndex].caption}
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
