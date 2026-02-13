@@ -1220,6 +1220,77 @@ export function RouteDetailDrawer({
     }
   };
 
+  // Build full waypoint list with Start/Finish from route geometry
+  const fullWaypointList = useMemo(() => {
+    const geo = route?.geometry || route?.route_geometry;
+    const coords = geo?.coordinates || [];
+    const sorted = [...(waypoints || [])].sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0));
+
+    const list: any[] = [];
+
+    // Start point
+    if (coords.length > 0) {
+      list.push({
+        id: "__start",
+        type: "start",
+        name: "Start",
+        lat: coords[0][1],
+        lng: coords[0][0],
+        order_index: -1,
+      });
+    }
+
+    // Named waypoints
+    sorted.forEach((wp: any, idx: number) => {
+      list.push({ ...wp, type: "waypoint", listIndex: idx });
+    });
+
+    // Finish point
+    if (coords.length > 1) {
+      const last = coords[coords.length - 1];
+      list.push({
+        id: "__finish",
+        type: "finish",
+        name: "Finish",
+        lat: last[1],
+        lng: last[0],
+        order_index: 9999,
+      });
+    }
+
+    // Calculate distance from previous and cumulative distance from start
+    for (let i = 1; i < list.length; i++) {
+      const prev = list[i - 1];
+      const curr = list[i];
+      const R = 6371;
+      const dLat = ((curr.lat - prev.lat) * Math.PI) / 180;
+      const dLng = ((curr.lng - prev.lng) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((prev.lat * Math.PI) / 180) *
+          Math.cos((curr.lat * Math.PI) / 180) *
+          Math.sin(dLng / 2) ** 2;
+      const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      curr._distFromPrev = dist;
+      curr._distFromStart = (prev._distFromStart || 0) + dist;
+    }
+
+    return list;
+  }, [route, waypoints]);
+
+  // Per-waypoint elevation data (aligned with fullWaypointList waypoints only)
+  const waypointElevationMap = useMemo(() => {
+    if (!elevationData?.waypointElevations || !waypoints || waypoints.length === 0) return {};
+    const sorted = [...waypoints].sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0));
+    const map: Record<string, number> = {};
+    sorted.forEach((wp: any, i: number) => {
+      if (elevationData.waypointElevations[i] !== undefined) {
+        map[wp.id] = elevationData.waypointElevations[i];
+      }
+    });
+    return map;
+  }, [elevationData, waypoints]);
+
   if (!route && !loading) {
     return null;
   }
@@ -1358,77 +1429,6 @@ export function RouteDetailDrawer({
       </ScrollArea>
     </div>
   );
-
-  // Build full waypoint list with Start/Finish from route geometry
-  const fullWaypointList = useMemo(() => {
-    const geo = route?.geometry || route?.route_geometry;
-    const coords = geo?.coordinates || [];
-    const sorted = [...waypoints].sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0));
-
-    const list: any[] = [];
-
-    // Start point
-    if (coords.length > 0) {
-      list.push({
-        id: "__start",
-        type: "start",
-        name: "Start",
-        lat: coords[0][1],
-        lng: coords[0][0],
-        order_index: -1,
-      });
-    }
-
-    // Named waypoints
-    sorted.forEach((wp: any, idx: number) => {
-      list.push({ ...wp, type: "waypoint", listIndex: idx });
-    });
-
-    // Finish point
-    if (coords.length > 1) {
-      const last = coords[coords.length - 1];
-      list.push({
-        id: "__finish",
-        type: "finish",
-        name: "Finish",
-        lat: last[1],
-        lng: last[0],
-        order_index: 9999,
-      });
-    }
-
-    // Calculate distance from previous and cumulative distance from start
-    for (let i = 1; i < list.length; i++) {
-      const prev = list[i - 1];
-      const curr = list[i];
-      const R = 6371;
-      const dLat = ((curr.lat - prev.lat) * Math.PI) / 180;
-      const dLng = ((curr.lng - prev.lng) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos((prev.lat * Math.PI) / 180) *
-          Math.cos((curr.lat * Math.PI) / 180) *
-          Math.sin(dLng / 2) ** 2;
-      const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      curr._distFromPrev = dist;
-      curr._distFromStart = (prev._distFromStart || 0) + dist;
-    }
-
-    return list;
-  }, [route, waypoints]);
-
-  // Per-waypoint elevation data (aligned with fullWaypointList waypoints only)
-  const waypointElevationMap = useMemo(() => {
-    if (!elevationData?.waypointElevations || waypoints.length === 0) return {};
-    const sorted = [...waypoints].sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0));
-    const map: Record<string, number> = {};
-    sorted.forEach((wp: any, i: number) => {
-      if (elevationData.waypointElevations[i] !== undefined) {
-        map[wp.id] = elevationData.waypointElevations[i];
-      }
-    });
-    return map;
-  }, [elevationData, waypoints]);
 
   // Full Waypoints Panel Content
   const fullWaypointsPanel = (

@@ -362,7 +362,10 @@ export default function RoutesPage() {
     // Store route data for later use
     setSelectedRouteData(route);
     setSelectedRouteId(route.id);
-    
+
+    // Fetch waypoints for map markers
+    fetchRouteWaypoints(route.id);
+
     // Zoom to fit the route
     if (route?.geometry?.coordinates?.length > 0) {
       setTimeout(() => {

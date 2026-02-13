@@ -94,7 +94,8 @@ export function FindRoutesPanel({
         const res = await fetch("/api/routes/favorites");
         if (res.ok) {
           const data = await res.json();
-          setSavedRouteIds(new Set(data.map((r: any) => r.id)));
+          const routes = Array.isArray(data) ? data : data.routes || [];
+          setSavedRouteIds(new Set(routes.map((r: any) => r.id)));
         }
       } catch (error) {
         console.error("Error fetching saved routes:", error);
