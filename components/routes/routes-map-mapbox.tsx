@@ -96,6 +96,17 @@ export interface RoutesMapMapboxProps {
     distance?: number;
   }>;
   onPoiClick?: (poi: any) => void;
+  // Waypoint markers for selected route
+  routeWaypoints?: Array<{
+    id: string;
+    lat: number;
+    lng: number;
+    name?: string | null;
+    description?: string | null;
+    icon_type?: string | null;
+    order_index: number;
+  }>;
+  showWaypoints?: boolean;
 }
 
 export interface RoutesMapMapboxHandle {
@@ -158,6 +169,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       recordedPath = [],
       pois = [],
       onPoiClick,
+      routeWaypoints = [],
+      showWaypoints = false,
     },
     ref
   ) => {
@@ -168,6 +181,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const poiMarkersRef = useRef<mapboxgl.Marker[]>([]);
     const popupRef = useRef<mapboxgl.Popup | null>(null);
     const waypointMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+    const routeWaypointMarkersRef = useRef<mapboxgl.Marker[]>([]);
     const startEndMarkersRef = useRef<mapboxgl.Marker[]>([]);
     
     const { isLoaded, loadError } = useMapbox();
@@ -708,6 +722,68 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         poiMarkersRef.current = [];
       };
     }, [pois, mapLoaded, onPoiClick]);
+
+    // Draw route waypoint markers (from selected route)
+    useEffect(() => {
+      if (!mapRef.current || !mapLoaded) return;
+
+      // Clean up existing markers
+      routeWaypointMarkersRef.current.forEach((m) => m.remove());
+      routeWaypointMarkersRef.current = [];
+
+      if (!showWaypoints || routeWaypoints.length === 0) return;
+
+      const sorted = [...routeWaypoints].sort(
+        (a, b) => (a.order_index || 0) - (b.order_index || 0)
+      );
+
+      sorted.forEach((wp, index) => {
+        const el = document.createElement("div");
+        el.innerHTML = `
+          <div style="
+            width: 24px;
+            height: 24px;
+            background: #3B82F6;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+          ">${index + 1}</div>
+        `;
+
+        const marker = new mapboxgl.Marker({ element: el })
+          .setLngLat([wp.lng, wp.lat])
+          .addTo(mapRef.current!);
+
+        // Add popup on click
+        if (wp.name || wp.description) {
+          const popup = new mapboxgl.Popup({
+            offset: 20,
+            closeButton: true,
+            maxWidth: "200px",
+          }).setHTML(`
+            <div style="padding: 4px;">
+              <strong style="font-size: 13px;">${wp.name || `Waypoint ${index + 1}`}</strong>
+              ${wp.description ? `<p style="font-size: 12px; margin-top: 4px; color: #666;">${wp.description}</p>` : ""}
+            </div>
+          `);
+          marker.setPopup(popup);
+        }
+
+        routeWaypointMarkersRef.current.push(marker);
+      });
+
+      return () => {
+        routeWaypointMarkersRef.current.forEach((m) => m.remove());
+        routeWaypointMarkersRef.current = [];
+      };
+    }, [routeWaypoints, showWaypoints, mapLoaded]);
 
     // Draw selected route polyline with start/end markers
     useEffect(() => {

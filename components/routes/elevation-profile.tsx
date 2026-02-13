@@ -5,7 +5,13 @@ import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown, Mountain } from "lucide-react";
 
 interface ElevationProfileProps {
-  coordinates: [number, number, number?][]; // [lng, lat, elevation?]
+  // Pre-computed data from API (preferred)
+  elevations?: number[];
+  distances?: number[];
+  totalAscent?: number;
+  totalDescent?: number;
+  // Legacy: raw coordinates
+  coordinates?: [number, number, number?][]; // [lng, lat, elevation?]
   distanceKm: number;
   className?: string;
   onHover?: (index: number | null, position: { lat: number; lng: number } | null) => void;
@@ -13,6 +19,10 @@ interface ElevationProfileProps {
 }
 
 export function ElevationProfile({
+  elevations: preElevations,
+  distances: preDistances,
+  totalAscent: preTotalAscent,
+  totalDescent: preTotalDescent,
   coordinates,
   distanceKm,
   className,
@@ -22,63 +32,72 @@ export function ElevationProfile({
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Calculate elevation data
+  // Calculate elevation data from pre-computed or coordinates
   const elevationData = useMemo(() => {
-    // Extract elevations or generate mock data based on position
-    const elevations = coordinates.map((coord, i) => {
-      if (coord[2] !== undefined) return coord[2];
-      // Generate mock elevation based on lat/lng for demo
-      return 50 + Math.sin(i * 0.1) * 30 + Math.sin(i * 0.05) * 20;
-    });
+    let elevations: number[];
+    let distances: number[];
+    let totalAscent: number;
+    let totalDescent: number;
+
+    if (preElevations && preDistances) {
+      elevations = preElevations;
+      distances = preDistances;
+      totalAscent = preTotalAscent ?? 0;
+      totalDescent = preTotalDescent ?? 0;
+    } else if (coordinates) {
+      elevations = coordinates.map((coord, i) => {
+        if (coord[2] !== undefined) return coord[2];
+        return 50 + Math.sin(i * 0.1) * 30 + Math.sin(i * 0.05) * 20;
+      });
+
+      distances = [0];
+      let totalDist = 0;
+      for (let i = 1; i < coordinates.length; i++) {
+        const [lng1, lat1] = coordinates[i - 1];
+        const [lng2, lat2] = coordinates[i];
+        const R = 6371;
+        const dLat = ((lat2 - lat1) * Math.PI) / 180;
+        const dLng = ((lng2 - lng1) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos((lat1 * Math.PI) / 180) *
+            Math.cos((lat2 * Math.PI) / 180) *
+            Math.sin(dLng / 2) ** 2;
+        totalDist += R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        distances.push(totalDist);
+      }
+
+      totalAscent = 0;
+      totalDescent = 0;
+      for (let i = 1; i < elevations.length; i++) {
+        const diff = elevations[i] - elevations[i - 1];
+        if (diff > 0) totalAscent += diff;
+        else totalDescent += Math.abs(diff);
+      }
+    } else {
+      return null;
+    }
 
     const minElevation = Math.min(...elevations);
     const maxElevation = Math.max(...elevations);
     const range = maxElevation - minElevation || 1;
-
-    // Calculate cumulative distances
-    const distances: number[] = [0];
-    let totalDist = 0;
-    for (let i = 1; i < coordinates.length; i++) {
-      const [lng1, lat1] = coordinates[i - 1];
-      const [lng2, lat2] = coordinates[i];
-      const R = 6371;
-      const dLat = ((lat2 - lat1) * Math.PI) / 180;
-      const dLng = ((lng2 - lng1) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos((lat1 * Math.PI) / 180) *
-          Math.cos((lat2 * Math.PI) / 180) *
-          Math.sin(dLng / 2) *
-          Math.sin(dLng / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      totalDist += R * c;
-      distances.push(totalDist);
-    }
-
-    // Calculate total ascent/descent
-    let totalAscent = 0;
-    let totalDescent = 0;
-    for (let i = 1; i < elevations.length; i++) {
-      const diff = elevations[i] - elevations[i - 1];
-      if (diff > 0) totalAscent += diff;
-      else totalDescent += Math.abs(diff);
-    }
+    const totalDistance = distances[distances.length - 1] || 1;
 
     return {
       elevations,
       distances,
-      totalDistance: totalDist,
+      totalDistance,
       minElevation,
       maxElevation,
       range,
       totalAscent,
       totalDescent,
     };
-  }, [coordinates]);
+  }, [preElevations, preDistances, preTotalAscent, preTotalDescent, coordinates]);
 
   // Generate SVG path
   const svgPath = useMemo(() => {
-    if (elevationData.elevations.length < 2) return "";
+    if (!elevationData || elevationData.elevations.length < 2) return "";
 
     const points = elevationData.elevations.map((elev, i) => {
       const x = (elevationData.distances[i] / elevationData.totalDistance) * 100;
@@ -89,18 +108,21 @@ export function ElevationProfile({
     return `M${points[0]} L${points.join(" L")} L100,100 L0,100 Z`;
   }, [elevationData]);
 
+  if (!elevationData) return null;
+
+  const pointCount = elevationData.elevations.length;
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
-    
+
     const rect = containerRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
-    const idx = Math.min(
-      Math.floor(x * coordinates.length),
-      coordinates.length - 1
-    );
-    
+    const idx = Math.min(Math.floor(x * pointCount), pointCount - 1);
+
     setHoverIndex(idx);
-    onHover?.(idx, { lat: coordinates[idx][1], lng: coordinates[idx][0] });
+    if (coordinates && coordinates[idx]) {
+      onHover?.(idx, { lat: coordinates[idx][1], lng: coordinates[idx][0] });
+    }
   };
 
   const handleMouseLeave = () => {
@@ -112,15 +134,20 @@ export function ElevationProfile({
   const activeElevation = activeIndex !== null ? elevationData.elevations[activeIndex] : null;
   const activeDistance = activeIndex !== null ? elevationData.distances[activeIndex] : null;
 
+  // Y-axis tick values
+  const yMin = elevationData.minElevation;
+  const yMax = elevationData.maxElevation;
+  const yMid = Math.round((yMin + yMax) / 2);
+
   return (
     <div className={cn("bg-white rounded-lg border p-4", className)}>
       {/* Stats header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Mountain className="h-4 w-4 text-gray-500" />
-          <span className="text-sm font-medium">Elevation Profile</span>
+          <Mountain className="h-4 w-4 text-slate-500" />
+          <span className="text-sm font-medium">Elevation</span>
         </div>
-        <div className="flex items-center gap-4 text-xs text-gray-600">
+        <div className="flex items-center gap-4 text-xs text-slate-600">
           <span className="flex items-center gap-1">
             <TrendingUp className="h-3 w-3 text-green-600" />
             {Math.round(elevationData.totalAscent)}m
@@ -132,89 +159,92 @@ export function ElevationProfile({
         </div>
       </div>
 
-      {/* Chart */}
-      <div
-        ref={containerRef}
-        className="relative h-32 cursor-crosshair"
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-      >
-        {/* SVG chart */}
-        <svg
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          className="w-full h-full"
+      {/* Chart with Y-axis labels */}
+      <div className="flex gap-1">
+        {/* Y-axis */}
+        <div className="flex flex-col justify-between text-[10px] text-slate-400 pr-1 py-0.5 w-10 text-right flex-shrink-0">
+          <span>{Math.round(yMax)}m</span>
+          <span>{yMid}m</span>
+          <span>{Math.round(yMin)}m</span>
+        </div>
+
+        {/* Chart area */}
+        <div
+          ref={containerRef}
+          className="relative h-28 flex-1 cursor-crosshair"
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
         >
-          {/* Gradient fill */}
-          <defs>
-            <linearGradient id="elevationGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.1" />
-            </linearGradient>
-          </defs>
-
-          {/* Area fill */}
-          <path
-            d={svgPath}
-            fill="url(#elevationGradient)"
-            stroke="#3B82F6"
-            strokeWidth="0.5"
-          />
-
-          {/* Hover line */}
-          {activeIndex !== null && (
-            <line
-              x1={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}
-              y1="0"
-              x2={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}
-              y2="100"
-              stroke="#3B82F6"
-              strokeWidth="0.5"
-              strokeDasharray="2,2"
-            />
-          )}
-
-          {/* Hover point */}
-          {activeIndex !== null && (
-            <circle
-              cx={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}
-              cy={100 - ((elevationData.elevations[activeIndex] - elevationData.minElevation) / elevationData.range) * 80}
-              r="2"
-              fill="#3B82F6"
-              stroke="white"
-              strokeWidth="1"
-            />
-          )}
-        </svg>
-
-        {/* Hover tooltip */}
-        {activeIndex !== null && activeElevation !== null && activeDistance !== null && (
-          <div
-            className="absolute top-0 bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg pointer-events-none z-10"
-            style={{
-              left: `${(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}%`,
-              transform: "translateX(-50%)",
-            }}
+          <svg
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            className="w-full h-full"
           >
-            <div>{Math.round(activeElevation)}m</div>
-            <div className="text-gray-400">{activeDistance.toFixed(1)} km</div>
-          </div>
-        )}
+            <defs>
+              <linearGradient id="elevGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#D946EF" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#D946EF" stopOpacity="0.05" />
+              </linearGradient>
+            </defs>
+
+            {/* Area fill */}
+            <path
+              d={svgPath}
+              fill="url(#elevGrad)"
+              stroke="#D946EF"
+              strokeWidth="0.8"
+            />
+
+            {/* Hover line */}
+            {activeIndex !== null && (
+              <line
+                x1={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}
+                y1="0"
+                x2={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}
+                y2="100"
+                stroke="#D946EF"
+                strokeWidth="0.5"
+                strokeDasharray="2,2"
+              />
+            )}
+
+            {/* Hover point */}
+            {activeIndex !== null && (
+              <circle
+                cx={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}
+                cy={100 - ((elevationData.elevations[activeIndex] - elevationData.minElevation) / elevationData.range) * 80}
+                r="2"
+                fill="#D946EF"
+                stroke="white"
+                strokeWidth="1"
+              />
+            )}
+          </svg>
+
+          {/* Hover tooltip */}
+          {activeIndex !== null && activeElevation !== null && activeDistance !== null && (
+            <div
+              className="absolute top-0 bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg pointer-events-none z-10"
+              style={{
+                left: `${Math.min(Math.max((elevationData.distances[activeIndex] / elevationData.totalDistance) * 100, 10), 90)}%`,
+                transform: "translateX(-50%)",
+              }}
+            >
+              <div>{Math.round(activeElevation)}m</div>
+              <div className="text-gray-400">{activeDistance.toFixed(2)} km</div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* X-axis labels */}
-      <div className="flex justify-between text-xs text-gray-500 mt-2">
-        <span>0 km</span>
-        <span>{(distanceKm / 2).toFixed(1)} km</span>
+      <div className="flex justify-between text-[10px] text-slate-400 mt-1 ml-11">
+        <span>0</span>
+        <span>{(distanceKm / 4).toFixed(1)}</span>
+        <span>{(distanceKm / 2).toFixed(1)}</span>
+        <span>{((distanceKm * 3) / 4).toFixed(1)}</span>
         <span>{distanceKm.toFixed(1)} km</span>
-      </div>
-
-      {/* Y-axis labels */}
-      <div className="absolute right-6 top-12 bottom-20 flex flex-col justify-between text-xs text-gray-400">
-        <span>{Math.round(elevationData.maxElevation)}m</span>
-        <span>{Math.round(elevationData.minElevation)}m</span>
       </div>
     </div>
   );
 }
-

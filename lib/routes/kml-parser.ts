@@ -6,7 +6,7 @@
 export interface ParsedKMLRoute {
   name: string;
   description: string;
-  coordinates: [number, number][]; // [lng, lat]
+  coordinates: [number, number, number?][]; // [lng, lat, altitude?]
 }
 
 /**
@@ -54,18 +54,22 @@ export function parseKML(kmlString: string): ParsedKMLRoute[] {
 }
 
 /**
- * Parse KML coordinate string to array of [lng, lat] pairs
+ * Parse KML coordinate string to array of [lng, lat, altitude?] tuples
  * KML format: "lng,lat,alt lng,lat,alt ..."
  */
-function parseCoordinates(coordString: string): [number, number][] {
+function parseCoordinates(coordString: string): [number, number, number?][] {
   return coordString
     .trim()
     .split(/\s+/)
     .map((coord) => {
-      const [lng, lat] = coord.split(",").map(parseFloat);
+      const parts = coord.split(",").map(parseFloat);
+      const [lng, lat, alt] = parts;
+      if (alt !== undefined && !isNaN(alt)) {
+        return [lng, lat, alt] as [number, number, number];
+      }
       return [lng, lat] as [number, number];
     })
-    .filter(([lng, lat]) => !isNaN(lng) && !isNaN(lat));
+    .filter((c) => !isNaN(c[0]) && !isNaN(c[1]));
 }
 
 /**

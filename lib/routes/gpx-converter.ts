@@ -7,7 +7,7 @@ import { calculateDistanceKm } from "./distance-calculator";
 
 export interface GeoJSONLineString {
   type: "LineString";
-  coordinates: [number, number][]; // [lng, lat]
+  coordinates: [number, number, number?][]; // [lng, lat, elevation?]
 }
 
 export interface Waypoint {
@@ -62,9 +62,14 @@ export function convertToGPX(route: RouteData): string {
 
   // Add track points from GeoJSON coordinates
   geometry.coordinates.forEach((coord) => {
-    const [lng, lat] = coord;
-    gpx += `      <trkpt lat="${lat}" lon="${lng}"></trkpt>
+    const [lng, lat, ele] = coord;
+    if (ele !== undefined && ele !== null) {
+      gpx += `      <trkpt lat="${lat}" lon="${lng}"><ele>${ele}</ele></trkpt>
 `;
+    } else {
+      gpx += `      <trkpt lat="${lat}" lon="${lng}"></trkpt>
+`;
+    }
   });
 
   gpx += `    </trkseg>
@@ -113,15 +118,21 @@ export function parseGPX(gpxString: string): {
   });
 
   // Extract track points (prefer track over route)
-  const coordinates: [number, number][] = [];
-  
+  const coordinates: [number, number, number?][] = [];
+
   // Try track points first
   const trkpts = xmlDoc.querySelectorAll("trkpt");
   if (trkpts.length > 0) {
     trkpts.forEach((trkpt) => {
       const lat = parseFloat(trkpt.getAttribute("lat") || "0");
       const lng = parseFloat(trkpt.getAttribute("lon") || "0");
-      coordinates.push([lng, lat]); // GeoJSON is [lng, lat]
+      const eleEl = trkpt.querySelector("ele");
+      const ele = eleEl ? parseFloat(eleEl.textContent || "") : undefined;
+      if (ele !== undefined && !isNaN(ele)) {
+        coordinates.push([lng, lat, ele]);
+      } else {
+        coordinates.push([lng, lat]);
+      }
     });
   } else {
     // Fall back to route points
@@ -129,7 +140,13 @@ export function parseGPX(gpxString: string): {
     rtepts.forEach((rtept) => {
       const lat = parseFloat(rtept.getAttribute("lat") || "0");
       const lng = parseFloat(rtept.getAttribute("lon") || "0");
-      coordinates.push([lng, lat]);
+      const eleEl = rtept.querySelector("ele");
+      const ele = eleEl ? parseFloat(eleEl.textContent || "") : undefined;
+      if (ele !== undefined && !isNaN(ele)) {
+        coordinates.push([lng, lat, ele]);
+      } else {
+        coordinates.push([lng, lat]);
+      }
     });
   }
 
@@ -172,7 +189,7 @@ export function validateGeometry(geometry: any): geometry is GeoJSONLineString {
     geometry.coordinates.every(
       (coord: any) =>
         Array.isArray(coord) &&
-        coord.length === 2 &&
+        (coord.length === 2 || coord.length === 3) &&
         typeof coord[0] === "number" &&
         typeof coord[1] === "number" &&
         coord[0] >= -180 &&

@@ -53,7 +53,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { WaypointCard } from "./waypoint-card";
@@ -67,6 +67,8 @@ import { getMapboxThumbnailUrl } from "@/lib/routes/route-thumbnail";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { validateRoutePhotoUpload } from "@/lib/file-validation";
+import { ElevationProfile } from "./elevation-profile";
+import { latLngToOSGridRef } from "@/lib/routes/os-grid-ref";
 
 interface RouteDetailDrawerProps {
   routeId: string | null;
@@ -75,6 +77,7 @@ interface RouteDetailDrawerProps {
   onDismiss?: () => void; // Close modal but keep route on map + restore quick card
   onShowPropertyOnMap?: (propertyId: string, lat: number, lng: number) => void;
   onEditRoute?: (routeId: string, routeData: any) => void;
+  onFlyToLocation?: (lat: number, lng: number) => void;
   // Mobile panel control
   mobileShowDetails?: boolean;
   onMobileToggleDetails?: (show: boolean) => void;
@@ -285,6 +288,7 @@ export function RouteDetailDrawer({
   onDismiss,
   onShowPropertyOnMap,
   onEditRoute,
+  onFlyToLocation,
   mobileShowDetails = true,
   onMobileToggleDetails,
 }: RouteDetailDrawerProps) {
@@ -349,6 +353,21 @@ export function RouteDetailDrawer({
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [routeCompletions, setRouteCompletions] = useState<any[]>([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
+
+  // Elevation state
+  const [elevationData, setElevationData] = useState<{
+    elevations: number[];
+    distances: number[];
+    totalAscent: number;
+    totalDescent: number;
+    minElevation: number;
+    maxElevation: number;
+    waypointElevations: number[];
+  } | null>(null);
+  const [loadingElevation, setLoadingElevation] = useState(false);
+
+  // Waypoint expansion state
+  const [expandedWaypoints, setExpandedWaypoints] = useState<Set<string>>(new Set());
 
   const [deleteHazardDialogOpen, setDeleteHazardDialogOpen] = useState(false);
   const [hazardToDelete, setHazardToDelete] = useState<any>(null);
@@ -529,6 +548,13 @@ export function RouteDetailDrawer({
     fetchPhotos();
     fetchCompletions();
   }, [routeId, open, userId]);
+
+  // Fetch elevation after route and waypoints are loaded
+  useEffect(() => {
+    if (routeId && open && route && !loadingWaypoints) {
+      fetchElevation();
+    }
+  }, [routeId, open, route, loadingWaypoints]);
 
   // Update isOwner when userId changes
   useEffect(() => {
@@ -1156,6 +1182,25 @@ export function RouteDetailDrawer({
     }
   };
 
+  const fetchElevation = async () => {
+    if (!routeId) return;
+    setLoadingElevation(true);
+    try {
+      // Build waypoint coords query param
+      const wpCoords = waypoints.map((w: any) => ({ lat: w.lat, lng: w.lng }));
+      const wpParam = wpCoords.length > 0 ? `?waypoints=${encodeURIComponent(JSON.stringify(wpCoords))}` : "";
+      const res = await fetch(`/api/routes/${routeId}/elevation${wpParam}`);
+      if (res.ok) {
+        const data = await res.json();
+        setElevationData(data);
+      }
+    } catch {
+      // Non-critical - elevation is optional
+    } finally {
+      setLoadingElevation(false);
+    }
+  };
+
   const handleDeleteWaypoint = async (waypointId: string) => {
     if (!confirm("Delete this waypoint?")) return;
     
@@ -1314,45 +1359,212 @@ export function RouteDetailDrawer({
     </div>
   );
 
+  // Build full waypoint list with Start/Finish from route geometry
+  const fullWaypointList = useMemo(() => {
+    const geo = route?.geometry || route?.route_geometry;
+    const coords = geo?.coordinates || [];
+    const sorted = [...waypoints].sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0));
+
+    const list: any[] = [];
+
+    // Start point
+    if (coords.length > 0) {
+      list.push({
+        id: "__start",
+        type: "start",
+        name: "Start",
+        lat: coords[0][1],
+        lng: coords[0][0],
+        order_index: -1,
+      });
+    }
+
+    // Named waypoints
+    sorted.forEach((wp: any, idx: number) => {
+      list.push({ ...wp, type: "waypoint", listIndex: idx });
+    });
+
+    // Finish point
+    if (coords.length > 1) {
+      const last = coords[coords.length - 1];
+      list.push({
+        id: "__finish",
+        type: "finish",
+        name: "Finish",
+        lat: last[1],
+        lng: last[0],
+        order_index: 9999,
+      });
+    }
+
+    // Calculate distance from previous and cumulative distance from start
+    for (let i = 1; i < list.length; i++) {
+      const prev = list[i - 1];
+      const curr = list[i];
+      const R = 6371;
+      const dLat = ((curr.lat - prev.lat) * Math.PI) / 180;
+      const dLng = ((curr.lng - prev.lng) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((prev.lat * Math.PI) / 180) *
+          Math.cos((curr.lat * Math.PI) / 180) *
+          Math.sin(dLng / 2) ** 2;
+      const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      curr._distFromPrev = dist;
+      curr._distFromStart = (prev._distFromStart || 0) + dist;
+    }
+
+    return list;
+  }, [route, waypoints]);
+
+  // Per-waypoint elevation data (aligned with fullWaypointList waypoints only)
+  const waypointElevationMap = useMemo(() => {
+    if (!elevationData?.waypointElevations || waypoints.length === 0) return {};
+    const sorted = [...waypoints].sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0));
+    const map: Record<string, number> = {};
+    sorted.forEach((wp: any, i: number) => {
+      if (elevationData.waypointElevations[i] !== undefined) {
+        map[wp.id] = elevationData.waypointElevations[i];
+      }
+    });
+    return map;
+  }, [elevationData, waypoints]);
+
   // Full Waypoints Panel Content
   const fullWaypointsPanel = (
     <div className="flex flex-col h-full">
       {/* Header with Back Button */}
       <div className="flex items-center gap-3 p-4 border-b bg-white sticky top-0 z-10">
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => setActiveFullPanel(null)}
           className="h-8 w-8 p-0"
         >
           <ChevronDown className="h-5 w-5 rotate-90" />
         </Button>
         <h2 className="font-semibold text-lg">Waypoints</h2>
-        <Badge variant="outline" className="ml-auto">{waypoints.length}</Badge>
+        <Badge variant="outline" className="ml-auto">{fullWaypointList.length}</Badge>
       </div>
 
       {/* Waypoints Content */}
       <ScrollArea className="flex-1 p-4">
-        <div className="space-y-3">
-          {waypoints.length > 0 ? (
-            waypoints.map((waypoint: any, index: number) => (
-              <div key={waypoint.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-medium text-sm">
-                  {index + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium">{waypoint.name || `Waypoint ${index + 1}`}</p>
-                  {waypoint.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-1">{waypoint.description}</p>
+        <div className="space-y-2">
+          {fullWaypointList.length > 0 ? (
+            fullWaypointList.map((wp: any, index: number) => {
+              const isExpanded = expandedWaypoints.has(wp.id);
+              const isStart = wp.type === "start";
+              const isFinish = wp.type === "finish";
+              const circleColor = isStart
+                ? "bg-green-500 text-white"
+                : isFinish
+                ? "bg-red-500 text-white"
+                : "bg-slate-200 text-slate-700";
+              const circleLabel = isStart ? "S" : isFinish ? "F" : `${index}`;
+              const wpElevation = waypointElevationMap[wp.id];
+              const gridRef = latLngToOSGridRef(wp.lat, wp.lng);
+
+              // Calculate ascent/descent from previous using elevation data
+              const prevWp = index > 0 ? fullWaypointList[index - 1] : null;
+              const prevElevation = prevWp ? waypointElevationMap[prevWp.id] : undefined;
+              let ascentFromPrev: number | undefined;
+              let descentFromPrev: number | undefined;
+              if (wpElevation !== undefined && prevElevation !== undefined) {
+                const diff = wpElevation - prevElevation;
+                ascentFromPrev = diff > 0 ? diff : 0;
+                descentFromPrev = diff < 0 ? Math.abs(diff) : 0;
+              }
+
+              return (
+                <div key={wp.id} className="border rounded-lg overflow-hidden">
+                  {/* Collapsed row */}
+                  <button
+                    onClick={() => {
+                      const next = new Set(expandedWaypoints);
+                      if (next.has(wp.id)) next.delete(wp.id);
+                      else next.add(wp.id);
+                      setExpandedWaypoints(next);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 transition-colors text-left"
+                  >
+                    <div className={cn(
+                      "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs",
+                      circleColor
+                    )}>
+                      {circleLabel}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {wp.name || `Waypoint ${index}`}
+                      </p>
+                    </div>
+                    {wp._distFromStart > 0 && (
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
+                        {wp._distFromStart.toFixed(2)} km
+                      </span>
+                    )}
+                    <ChevronDown className={cn(
+                      "h-4 w-4 text-muted-foreground transition-transform flex-shrink-0",
+                      isExpanded && "rotate-180"
+                    )} />
+                  </button>
+
+                  {/* Expanded details */}
+                  {isExpanded && (
+                    <div className="px-3 pb-3 pt-1 border-t bg-slate-50/50 space-y-2">
+                      {wp.description && (
+                        <p className="text-sm text-slate-600">{wp.description}</p>
+                      )}
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                        {wp._distFromPrev > 0 && (
+                          <>
+                            <span className="text-slate-500">Distance from previous:</span>
+                            <span className="font-medium">{wp._distFromPrev.toFixed(2)} km</span>
+                          </>
+                        )}
+                        {ascentFromPrev !== undefined && ascentFromPrev > 0 && (
+                          <>
+                            <span className="text-slate-500">Ascent from previous:</span>
+                            <span className="font-medium">{Math.round(ascentFromPrev)} m</span>
+                          </>
+                        )}
+                        {descentFromPrev !== undefined && descentFromPrev > 0 && (
+                          <>
+                            <span className="text-slate-500">Descent from previous:</span>
+                            <span className="font-medium">{Math.round(descentFromPrev)} m</span>
+                          </>
+                        )}
+                        {gridRef && (
+                          <>
+                            <span className="text-slate-500">OS Grid Ref:</span>
+                            <span className="font-medium font-mono">{gridRef}</span>
+                          </>
+                        )}
+                        <span className="text-slate-500">Lat, long:</span>
+                        <span className="font-medium font-mono">{wp.lat.toFixed(5)}, {wp.lng.toFixed(5)}</span>
+                        {wpElevation !== undefined && (
+                          <>
+                            <span className="text-slate-500">Elevation:</span>
+                            <span className="font-medium">{wpElevation} m</span>
+                          </>
+                        )}
+                      </div>
+                      {onFlyToLocation && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full mt-2 text-xs"
+                          onClick={() => onFlyToLocation(wp.lat, wp.lng)}
+                        >
+                          <MapPin className="h-3 w-3 mr-1" />
+                          Show on map
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
-                {waypoint.distance_from_start && (
-                  <span className="text-sm text-muted-foreground">
-                    {(waypoint.distance_from_start / 1000).toFixed(2)} km
-                  </span>
-                )}
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="text-center py-8">
               <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -1841,17 +2053,28 @@ export function RouteDetailDrawer({
                 </div>
                 <div className="text-center border-l border-slate-200">
                   <p className="text-lg font-bold text-slate-900">
-                    {route.elevation_gain ? `${Math.round(route.elevation_gain)}` : "—"}
+                    {elevationData?.totalAscent ? `${elevationData.totalAscent}` : route.elevation_gain ? `${Math.round(route.elevation_gain)}` : loadingElevation ? "..." : "—"}
                   </p>
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">Ascent (m)</p>
                 </div>
                 <div className="text-center border-l border-slate-200">
                   <p className="text-lg font-bold text-slate-900">
-                    {route.elevation_loss ? `${Math.round(route.elevation_loss)}` : "—"}
+                    {elevationData?.totalDescent ? `${elevationData.totalDescent}` : route.elevation_loss ? `${Math.round(route.elevation_loss)}` : loadingElevation ? "..." : "—"}
                   </p>
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">Descent (m)</p>
                 </div>
               </div>
+
+              {/* ELEVATION PROFILE */}
+              {elevationData && elevationData.elevations.length > 1 && (
+                <ElevationProfile
+                  elevations={elevationData.elevations}
+                  distances={elevationData.distances}
+                  totalAscent={elevationData.totalAscent}
+                  totalDescent={elevationData.totalDescent}
+                  distanceKm={Number(route.distance_km || 0)}
+                />
+              )}
 
               {/* DESCRIPTION with Read More */}
               {route.description && (
@@ -2003,7 +2226,7 @@ export function RouteDetailDrawer({
 
             {/* WAYPOINTS & HAZARDS ROW */}
             <div className="grid grid-cols-2 gap-3">
-              <div 
+              <div
                 className="border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors"
                 onClick={() => setActiveFullPanel("waypoints")}
               >
@@ -2012,8 +2235,15 @@ export function RouteDetailDrawer({
                     <MapPin className="h-4 w-4" />
                     Waypoints
                   </span>
-                  <Badge variant="outline" className="text-xs">{waypoints.length}</Badge>
+                  <Badge variant="outline" className="text-xs">{fullWaypointList.length}</Badge>
                 </div>
+                {fullWaypointList.length > 0 && (
+                  <div className="flex items-center gap-1 mt-1.5 text-[11px] text-slate-500">
+                    <span className="inline-flex items-center gap-0.5"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Start</span>
+                    {waypoints.length > 0 && <span>→ {waypoints.length} point{waypoints.length > 1 ? "s" : ""}</span>}
+                    <span className="inline-flex items-center gap-0.5">→ <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Finish</span>
+                  </div>
+                )}
               </div>
               <div 
                 className="border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors relative"

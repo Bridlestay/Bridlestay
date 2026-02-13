@@ -224,7 +224,7 @@ export function MapLayerControls({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-blue-500" />
-                      <span className="text-sm">Waymarkers</span>
+                      <span className="text-sm">Waypoints</span>
                     </div>
                     <Switch
                       checked={settings.showWaymarkers}

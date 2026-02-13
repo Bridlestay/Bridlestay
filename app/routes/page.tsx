@@ -46,6 +46,7 @@ export default function RoutesPage() {
   const [exploreRoutes, setExploreRoutes] = useState<any[]>([]);
   const [nearbyProperties, setNearbyProperties] = useState<any[]>([]);
   const [selectedRouteData, setSelectedRouteData] = useState<any | null>(null);
+  const [selectedRouteWaypoints, setSelectedRouteWaypoints] = useState<any[]>([]);
 
   // Route preview (quick card at bottom)
   const [previewRoute, setPreviewRoute] = useState<any | null>(null);
@@ -332,6 +333,18 @@ export default function RoutesPage() {
     return null;
   };
 
+  const fetchRouteWaypoints = async (routeId: string) => {
+    try {
+      const res = await fetch(`/api/routes/${routeId}/waypoints`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedRouteWaypoints(data.waypoints || []);
+      }
+    } catch {
+      setSelectedRouteWaypoints([]);
+    }
+  };
+
   // State for which route's polyline is drawn on the map
   const [drawnRouteId, setDrawnRouteId] = useState<string | null>(null);
 
@@ -377,10 +390,11 @@ export default function RoutesPage() {
     setMobilePanelOpen(false);
     setMobileRouteDetailOpen(true);
     
-    // Fetch full route data
+    // Fetch full route data and waypoints
     const fullRoute = await fetchRouteData(routeId);
     setSelectedRouteData(fullRoute);
-    
+    fetchRouteWaypoints(routeId);
+
     // Zoom to fit the route (with slight delay to ensure map is ready)
     if (fullRoute?.geometry?.coordinates?.length > 0) {
       setTimeout(() => {
@@ -396,6 +410,7 @@ export default function RoutesPage() {
     setSelectedRouteId(null);
     setSelectedRouteData(null);
     setHighlightedRouteId(null);
+    setSelectedRouteWaypoints([]);
   };
 
   // Handle cluster click
@@ -1059,6 +1074,8 @@ export default function RoutesPage() {
             followUser={isNavigating}
             recordedPath={recordedPath}
             pois={showPOIs ? pois : []}
+            routeWaypoints={layerSettings.showWaymarkers ? selectedRouteWaypoints : []}
+            showWaypoints={layerSettings.showWaymarkers}
           />
         </div>
 
@@ -1260,6 +1277,9 @@ export default function RoutesPage() {
           }}
           onEditRoute={(routeId, routeData) => {
             startEditing(routeId, routeData);
+          }}
+          onFlyToLocation={(lat, lng) => {
+            mapRef.current?.flyTo(lat, lng, 16);
           }}
           mobileShowDetails={mobileRouteDetailOpen}
           onMobileToggleDetails={setMobileRouteDetailOpen}
