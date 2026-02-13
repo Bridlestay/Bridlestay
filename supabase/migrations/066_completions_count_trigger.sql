@@ -1,6 +1,10 @@
 -- Auto-update completions_count on routes when route_completions are inserted/deleted
 -- This ensures the count stays accurate without manual incrementing
 
+-- Drop existing function and trigger first (handles previous versions with different signatures)
+DROP TRIGGER IF EXISTS route_completions_count_trigger ON route_completions;
+DROP FUNCTION IF EXISTS update_route_completions_count();
+
 CREATE OR REPLACE FUNCTION update_route_completions_count()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -12,9 +16,6 @@ BEGIN
   RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
-
--- Drop if exists to make migration re-runnable
-DROP TRIGGER IF EXISTS route_completions_count_trigger ON route_completions;
 
 CREATE TRIGGER route_completions_count_trigger
 AFTER INSERT OR DELETE ON route_completions
