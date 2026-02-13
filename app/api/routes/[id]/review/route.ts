@@ -78,6 +78,18 @@ export async function POST(
         completed_at: new Date().toISOString(),
       });
 
+    // Update completions count on route
+    if (!completionError) {
+      const { count } = await supabase
+        .from("route_completions")
+        .select("*", { count: "exact", head: true })
+        .eq("route_id", params.id);
+      await supabase
+        .from("routes")
+        .update({ completions_count: count || 0 })
+        .eq("id", params.id);
+    }
+
     // Update route average rating
     const { data: reviews } = await supabase
       .from("route_reviews")

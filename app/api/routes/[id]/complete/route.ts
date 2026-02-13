@@ -39,6 +39,16 @@ export async function POST(
       throw error;
     }
 
+    // Update completions count on route
+    const { count } = await supabase
+      .from('route_completions')
+      .select('*', { count: 'exact', head: true })
+      .eq('route_id', id);
+    await supabase
+      .from('routes')
+      .update({ completions_count: count || 0 })
+      .eq('id', id);
+
     return NextResponse.json({ success: true, completion: data });
   } catch (error) {
     console.error('Error marking route as complete:', error);

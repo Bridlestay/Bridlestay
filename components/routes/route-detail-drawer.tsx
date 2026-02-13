@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -65,6 +66,7 @@ import { Progress } from "@/components/ui/progress";
 import { getMapboxThumbnailUrl } from "@/lib/routes/route-thumbnail";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
+import { validateRoutePhotoUpload } from "@/lib/file-validation";
 
 interface RouteDetailDrawerProps {
   routeId: string | null;
@@ -112,6 +114,15 @@ const REVIEW_TAGS = [
   { id: "gates_to_open", label: "Gates to open", emoji: "🚪" },
   { id: "steep_sections", label: "Steep sections", emoji: "⛰️" },
   { id: "good_surface", label: "Good surface throughout", emoji: "✅" },
+];
+
+const PHOTO_CATEGORIES = [
+  { id: "view", label: "View", emoji: "🏞️" },
+  { id: "feature", label: "Feature", emoji: "🌿" },
+  { id: "seasonal", label: "Seasonal", emoji: "🍂" },
+  { id: "horse", label: "Horse", emoji: "🐴" },
+  { id: "hazard", label: "Hazard", emoji: "⚠️" },
+  { id: "parking", label: "Parking", emoji: "🅿️" },
 ];
 
 // Photo Card Component
@@ -322,6 +333,7 @@ export function RouteDetailDrawer({
   // Photo carousel state
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [showFullDescription, setShowFullDescription] = useState(false);
   
   // Review flow state
@@ -331,7 +343,13 @@ export function RouteDetailDrawer({
   const [reviewShortNote, setReviewShortNote] = useState("");
   const [reviewLongNote, setReviewLongNote] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
-  
+  const [reviewPhotoCategory, setReviewPhotoCategory] = useState<string | null>(null);
+  const [reviewPhotoFile, setReviewPhotoFile] = useState<File | null>(null);
+  const [reviewPhotoPreview, setReviewPhotoPreview] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [routeCompletions, setRouteCompletions] = useState<any[]>([]);
+  const [showAllReviews, setShowAllReviews] = useState(false);
+
   const [deleteHazardDialogOpen, setDeleteHazardDialogOpen] = useState(false);
   const [hazardToDelete, setHazardToDelete] = useState<any>(null);
   
@@ -509,6 +527,7 @@ export function RouteDetailDrawer({
     fetchLikeStatus();
     fetchFavoriteStatus();
     fetchPhotos();
+    fetchCompletions();
   }, [routeId, open, userId]);
 
   // Update isOwner when userId changes
@@ -1070,12 +1089,71 @@ export function RouteDetailDrawer({
     setReviewTags([]);
     setReviewShortNote("");
     setReviewLongNote("");
+    setReviewPhotoCategory(null);
+    setReviewPhotoFile(null);
+    setReviewPhotoPreview(null);
   };
 
   const toggleReviewTag = (tagId: string) => {
     setReviewTags((prev) =>
       prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]
     );
+  };
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const validation = validateRoutePhotoUpload(file);
+    if (!validation.valid) {
+      toast.error(validation.error || "Invalid file");
+      return;
+    }
+    setReviewPhotoFile(file);
+    setReviewPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const handleUploadReviewPhoto = async () => {
+    if (!reviewPhotoFile || !routeId || !reviewPhotoCategory) return;
+    setUploadingPhoto(true);
+    try {
+      const category = PHOTO_CATEGORIES.find((c) => c.id === reviewPhotoCategory);
+      const formData = new FormData();
+      formData.append("file", reviewPhotoFile);
+      formData.append("caption", category ? `${category.emoji} ${category.label}` : "");
+      const res = await fetch(`/api/routes/${routeId}/photos`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      toast.success("Photo uploaded!");
+      // Refresh photos
+      const photosRes = await fetch(`/api/routes/${routeId}/photos`);
+      if (photosRes.ok) {
+        const photosData = await photosRes.json();
+        setPhotos(photosData.photos || []);
+        setCoverPhoto(photosData.coverPhoto || null);
+        setApiDisplayPhotos(photosData.displayPhotos || []);
+        setAuthorPhotos(photosData.authorPhotos || []);
+        setUserPhotos(photosData.userPhotos || []);
+      }
+    } catch {
+      toast.error("Failed to upload photo");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const fetchCompletions = async () => {
+    if (!routeId) return;
+    try {
+      const res = await fetch(`/api/routes/${routeId}/completions`);
+      if (res.ok) {
+        const data = await res.json();
+        setRouteCompletions(data.completions || []);
+      }
+    } catch {
+      // Non-critical
+    }
   };
 
   const handleDeleteWaypoint = async (waypointId: string) => {
@@ -1357,26 +1435,103 @@ export function RouteDetailDrawer({
           </div>
 
           <div className="flex gap-2 flex-wrap">
-            {["🏞️ View", "🌿 Feature", "🍂 Seasonal moment"].map((cat) => (
-              <Badge key={cat} variant="outline" className="cursor-pointer hover:bg-green-50 transition-colors px-3 py-1">
-                {cat}
+            {PHOTO_CATEGORIES.map((cat) => (
+              <Badge
+                key={cat.id}
+                variant={reviewPhotoCategory === cat.id ? "default" : "outline"}
+                className={cn(
+                  "cursor-pointer transition-colors px-3 py-1",
+                  reviewPhotoCategory === cat.id
+                    ? "bg-green-600 hover:bg-green-700 text-white"
+                    : "hover:bg-green-50"
+                )}
+                onClick={() => setReviewPhotoCategory(cat.id)}
+              >
+                {cat.emoji} {cat.label}
               </Badge>
             ))}
           </div>
 
-          <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-green-300 transition-colors cursor-pointer">
-            <ImageIcon className="h-10 w-10 mx-auto text-gray-300 mb-3" />
-            <p className="text-sm text-gray-500">Tap to add a photo</p>
-            <p className="text-xs text-gray-400 mt-1">Coming soon</p>
-          </div>
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhotoSelect}
+          />
+
+          {reviewPhotoPreview ? (
+            <div className="relative rounded-xl overflow-hidden">
+              <div className="relative h-48">
+                <Image
+                  src={reviewPhotoPreview}
+                  alt="Photo preview"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              {reviewPhotoCategory && (
+                <div className="absolute top-2 left-2">
+                  <Badge className="bg-black/60 text-white text-xs backdrop-blur-sm">
+                    {PHOTO_CATEGORIES.find((c) => c.id === reviewPhotoCategory)?.emoji}{" "}
+                    {PHOTO_CATEGORIES.find((c) => c.id === reviewPhotoCategory)?.label}
+                  </Badge>
+                </div>
+              )}
+              <button
+                onClick={() => {
+                  setReviewPhotoFile(null);
+                  setReviewPhotoPreview(null);
+                  if (photoInputRef.current) photoInputRef.current.value = "";
+                }}
+                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center"
+              >
+                <X className="h-3.5 w-3.5 text-white" />
+              </button>
+            </div>
+          ) : (
+            <div
+              className={cn(
+                "border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer",
+                reviewPhotoCategory
+                  ? "border-green-300 hover:border-green-400 bg-green-50/30"
+                  : "border-gray-200 hover:border-gray-300"
+              )}
+              onClick={() => {
+                if (!reviewPhotoCategory) {
+                  toast.error("Select a category first");
+                  return;
+                }
+                photoInputRef.current?.click();
+              }}
+            >
+              <ImageIcon className="h-10 w-10 mx-auto text-gray-300 mb-3" />
+              <p className="text-sm text-gray-500">
+                {reviewPhotoCategory ? "Tap to add a photo" : "Select a category above, then tap here"}
+              </p>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <Button variant="outline" className="flex-1 rounded-full" onClick={() => setReviewStep(1)}>
               Back
             </Button>
-            <Button className="flex-1 rounded-full bg-green-600 hover:bg-green-700" onClick={() => setReviewStep(3)}>
-              Skip / Next
-            </Button>
+            {reviewPhotoFile && reviewPhotoCategory ? (
+              <Button
+                className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
+                onClick={async () => {
+                  await handleUploadReviewPhoto();
+                  setReviewStep(3);
+                }}
+                disabled={uploadingPhoto}
+              >
+                {uploadingPhoto ? "Uploading..." : "Upload & Next"}
+              </Button>
+            ) : (
+              <Button className="flex-1 rounded-full bg-green-600 hover:bg-green-700" onClick={() => setReviewStep(3)}>
+                {reviewPhotoFile ? "Next" : "Skip / Next"}
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -1562,6 +1717,14 @@ export function RouteDetailDrawer({
                     <ImageIcon className="h-3 w-3" />
                     {currentPhotoIndex + 1} / {displayPhotosForCarousel.length}
                   </div>
+
+                  {/* Photo category tag badge */}
+                  {displayPhotosForCarousel[currentPhotoIndex]?.caption &&
+                    PHOTO_CATEGORIES.some((c) => displayPhotosForCarousel[currentPhotoIndex].caption?.includes(c.label)) && (
+                    <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full">
+                      {displayPhotosForCarousel[currentPhotoIndex].caption}
+                    </div>
+                  )}
 
                   {/* Navigation arrows - visible on hover */}
                   {displayPhotosForCarousel.length > 1 && (
@@ -1869,6 +2032,66 @@ export function RouteDetailDrawer({
                 </div>
               </div>
             </div>
+
+            {/* RIDER REVIEWS */}
+            {routeCompletions.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <Star className="h-4 w-4 text-green-600" />
+                    Rider Reviews
+                  </h3>
+                  <Badge variant="outline" className="text-xs">
+                    {routeCompletions.length}
+                  </Badge>
+                </div>
+                <div className="space-y-3">
+                  {(showAllReviews ? routeCompletions : routeCompletions.slice(0, 3)).map((completion: any) => (
+                    <div key={completion.id} className="border rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={completion.user?.avatar_url || undefined} />
+                            <AvatarFallback className="text-[10px] bg-green-100 text-green-800">
+                              {completion.user?.name?.[0] || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm font-medium">{completion.user?.name || "Rider"}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(completion.completed_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                      {completion.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {completion.tags.map((tagId: string) => {
+                            const tag = REVIEW_TAGS.find((t) => t.id === tagId);
+                            return tag ? (
+                              <Badge key={tagId} variant="secondary" className="text-xs px-2 py-0.5">
+                                {tag.emoji} {tag.label}
+                              </Badge>
+                            ) : null;
+                          })}
+                        </div>
+                      )}
+                      {completion.short_note && (
+                        <p className="text-sm text-gray-600">{completion.short_note}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {routeCompletions.length > 3 && !showAllReviews && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-green-700 hover:text-green-800 hover:bg-green-50"
+                    onClick={() => setShowAllReviews(true)}
+                  >
+                    Show all {routeCompletions.length} reviews
+                  </Button>
+                )}
+              </div>
+            )}
 
             {/* ROUTE STATS - Engagement */}
             <div className="grid grid-cols-3 gap-4 p-3 bg-slate-50 rounded-lg">
