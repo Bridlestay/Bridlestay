@@ -78,6 +78,8 @@ interface RouteDetailDrawerProps {
   onShowPropertyOnMap?: (propertyId: string, lat: number, lng: number) => void;
   onEditRoute?: (routeId: string, routeData: any) => void;
   onFlyToLocation?: (lat: number, lng: number) => void;
+  initialWaypointId?: string | null;
+  onWaypointFocused?: () => void;
   // Mobile panel control
   mobileShowDetails?: boolean;
   onMobileToggleDetails?: (show: boolean) => void;
@@ -289,6 +291,8 @@ export function RouteDetailDrawer({
   onShowPropertyOnMap,
   onEditRoute,
   onFlyToLocation,
+  initialWaypointId,
+  onWaypointFocused,
   mobileShowDetails = true,
   onMobileToggleDetails,
 }: RouteDetailDrawerProps) {
@@ -353,6 +357,7 @@ export function RouteDetailDrawer({
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [routeCompletions, setRouteCompletions] = useState<any[]>([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
+  const [maxVisitedStep, setMaxVisitedStep] = useState(0);
 
   // Elevation state
   const [elevationData, setElevationData] = useState<{
@@ -555,6 +560,23 @@ export function RouteDetailDrawer({
       fetchElevation();
     }
   }, [routeId, open, route, loadingWaypoints]);
+
+  // Handle waypoint focus from map marker click
+  useEffect(() => {
+    if (initialWaypointId) {
+      setActiveFullPanel("waypoints");
+      setExpandedWaypoints((prev) => {
+        const next = new Set(prev);
+        next.add(initialWaypointId);
+        return next;
+      });
+      onWaypointFocused?.();
+      setTimeout(() => {
+        const el = document.getElementById(`waypoint-${initialWaypointId}`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 300);
+    }
+  }, [initialWaypointId]);
 
   // Update isOwner when userId changes
   useEffect(() => {
@@ -1075,6 +1097,8 @@ export function RouteDetailDrawer({
       });
 
       setReviewStep(5); // Go to "thank you" / optional long note step
+      setMaxVisitedStep(5);
+      fetchCompletions(); // Refresh reviews to include the new one
       toast.success("Review submitted! Thank you 🐴");
     } catch (error) {
       console.error("Failed to submit review:", error);
@@ -1118,6 +1142,7 @@ export function RouteDetailDrawer({
     setReviewPhotoCategory(null);
     setReviewPhotoFile(null);
     setReviewPhotoPreview(null);
+    setMaxVisitedStep(0);
   };
 
   const toggleReviewTag = (tagId: string) => {
@@ -1290,6 +1315,12 @@ export function RouteDetailDrawer({
     });
     return map;
   }, [elevationData, waypoints]);
+
+  // Check if user already has a completion/review
+  const userHasCompletion = useMemo(() => {
+    if (!userId) return false;
+    return routeCompletions.some((c: any) => c.user?.id === userId);
+  }, [routeCompletions, userId]);
 
   if (!route && !loading) {
     return null;
@@ -1476,7 +1507,7 @@ export function RouteDetailDrawer({
               }
 
               return (
-                <div key={wp.id} className="border rounded-lg overflow-hidden">
+                <div key={wp.id} id={`waypoint-${wp.id}`} className="border rounded-lg overflow-hidden">
                   {/* Collapsed row */}
                   <button
                     onClick={() => {
@@ -1580,7 +1611,7 @@ export function RouteDetailDrawer({
   const reviewFlowContent = (
     <div className="p-6">
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-medium text-gray-700">
             {reviewStep === 5 ? "Complete!" : `Step ${reviewStep} of 4`}
           </span>
@@ -1591,7 +1622,33 @@ export function RouteDetailDrawer({
             Cancel
           </button>
         </div>
-        <Progress value={reviewStep === 5 ? 100 : ((reviewStep || 0) / 4) * 100} className="h-1.5" />
+        {/* Clickable step dots */}
+        <div className="flex items-center justify-center gap-2">
+          {[1, 2, 3, 4].map((step) => {
+            const isActive = reviewStep === step;
+            const isCompleted = (reviewStep || 0) > step || reviewStep === 5;
+            const isClickable = step <= maxVisitedStep && reviewStep !== 5;
+            return (
+              <button
+                key={step}
+                disabled={!isClickable}
+                onClick={() => { if (isClickable) setReviewStep(step); }}
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all",
+                  isActive
+                    ? "bg-green-600 text-white ring-2 ring-green-200"
+                    : isCompleted
+                    ? "bg-green-100 text-green-700 hover:bg-green-200 cursor-pointer"
+                    : isClickable
+                    ? "bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer"
+                    : "bg-gray-100 text-gray-300 cursor-not-allowed"
+                )}
+              >
+                {isCompleted && !isActive ? "✓" : step}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Step 1: Overall Feel - Star Rating */}
@@ -1629,7 +1686,7 @@ export function RouteDetailDrawer({
             </Button>
             <Button
               className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
-              onClick={() => setReviewStep(2)}
+              onClick={() => { setReviewStep(2); setMaxVisitedStep((p) => Math.max(p, 2)); }}
               disabled={reviewRating === 0}
             >
               Next
@@ -1734,13 +1791,14 @@ export function RouteDetailDrawer({
                 onClick={async () => {
                   await handleUploadReviewPhoto();
                   setReviewStep(3);
+                  setMaxVisitedStep((p) => Math.max(p, 3));
                 }}
                 disabled={uploadingPhoto}
               >
                 {uploadingPhoto ? "Uploading..." : "Upload & Next"}
               </Button>
             ) : (
-              <Button className="flex-1 rounded-full bg-green-600 hover:bg-green-700" onClick={() => setReviewStep(3)}>
+              <Button className="flex-1 rounded-full bg-green-600 hover:bg-green-700" onClick={() => { setReviewStep(3); setMaxVisitedStep((p) => Math.max(p, 3)); }}>
                 {reviewPhotoFile ? "Next" : "Skip / Next"}
               </Button>
             )}
@@ -1782,7 +1840,7 @@ export function RouteDetailDrawer({
             <Button variant="outline" className="flex-1 rounded-full" onClick={() => setReviewStep(2)}>
               Back
             </Button>
-            <Button className="flex-1 rounded-full bg-green-600 hover:bg-green-700" onClick={() => setReviewStep(4)}>
+            <Button className="flex-1 rounded-full bg-green-600 hover:bg-green-700" onClick={() => { setReviewStep(4); setMaxVisitedStep((p) => Math.max(p, 4)); }}>
               Next
             </Button>
           </div>
@@ -2115,10 +2173,16 @@ export function RouteDetailDrawer({
               {/* I'VE RIDDEN THIS ROUTE! button */}
               {userId && !isOwner && (
                 <Button
-                  onClick={() => setReviewStep(1)}
-                  className="w-full rounded-xl h-12 bg-green-600 hover:bg-green-700 text-white font-semibold text-base shadow-sm"
+                  onClick={() => { setReviewStep(1); setMaxVisitedStep((p) => Math.max(p, 1)); }}
+                  variant={userHasCompletion ? "outline" : "default"}
+                  className={cn(
+                    "w-full rounded-xl h-12 font-semibold text-base shadow-sm",
+                    userHasCompletion
+                      ? "border-green-600 text-green-700 hover:bg-green-50"
+                      : "bg-green-600 hover:bg-green-700 text-white"
+                  )}
                 >
-                  🐴 I&apos;ve ridden this route!
+                  {userHasCompletion ? "✏️ Update my review" : "🐴 I've ridden this route!"}
                 </Button>
               )}
 
@@ -2276,39 +2340,104 @@ export function RouteDetailDrawer({
                   </Badge>
                 </div>
                 <div className="space-y-3">
-                  {(showAllReviews ? routeCompletions : routeCompletions.slice(0, 3)).map((completion: any) => (
-                    <div key={completion.id} className="border rounded-lg p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={completion.user?.avatar_url || undefined} />
-                            <AvatarFallback className="text-[10px] bg-green-100 text-green-800">
-                              {completion.user?.name?.[0] || "?"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm font-medium">{completion.user?.name || "Rider"}</span>
+                  {(showAllReviews ? routeCompletions : routeCompletions.slice(0, 3)).map((completion: any) => {
+                    const reviewPhotos = userPhotos.filter(
+                      (p: any) => p.user_id === completion.user?.id
+                    );
+                    return (
+                      <div key={completion.id} className="border rounded-lg overflow-hidden">
+                        <div className="p-4 space-y-3">
+                          {/* Header: avatar, name, time */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={completion.user?.avatar_url || undefined} />
+                                <AvatarFallback className="text-xs bg-green-100 text-green-800">
+                                  {completion.user?.name?.[0] || "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <span className="text-sm font-semibold block">{completion.user?.name || "Rider"}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatDistanceToNow(new Date(completion.completed_at), { addSuffix: true })}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Short note */}
+                          {completion.short_note && (
+                            <p className="text-sm text-gray-700 leading-relaxed italic">
+                              &ldquo;{completion.short_note}&rdquo;
+                            </p>
+                          )}
+
+                          {/* Tags */}
+                          {completion.tags?.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {completion.tags.map((tagId: string) => {
+                                const tag = REVIEW_TAGS.find((t) => t.id === tagId);
+                                return tag ? (
+                                  <Badge key={tagId} variant="secondary" className="text-xs px-2 py-0.5">
+                                    {tag.emoji} {tag.label}
+                                  </Badge>
+                                ) : null;
+                              })}
+                            </div>
+                          )}
+
+                          {/* User photos from this reviewer */}
+                          {reviewPhotos.length > 0 && (
+                            <div className="flex gap-2 overflow-x-auto pb-1">
+                              {reviewPhotos.map((photo: any) => (
+                                <div key={photo.id} className="relative h-20 w-20 rounded-lg overflow-hidden flex-shrink-0 group">
+                                  <Image src={photo.url} alt={photo.caption || "Review photo"} fill className="object-cover" />
+                                  {isOwner && (
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                                      <button
+                                        onClick={async () => {
+                                          try {
+                                            const res = await fetch(`/api/routes/${routeId}/photos`, {
+                                              method: "POST",
+                                              headers: { "Content-Type": "application/json" },
+                                              body: JSON.stringify({ url: photo.url, caption: photo.caption || "" }),
+                                            });
+                                            if (!res.ok) throw new Error();
+                                            const data = await res.json();
+                                            await fetch(`/api/routes/${routeId}/photos`, {
+                                              method: "PATCH",
+                                              headers: { "Content-Type": "application/json" },
+                                              body: JSON.stringify({ photoId: data.photo.id, is_display: true }),
+                                            });
+                                            const photosRes = await fetch(`/api/routes/${routeId}/photos`);
+                                            if (photosRes.ok) {
+                                              const pd = await photosRes.json();
+                                              setPhotos(pd.photos || []);
+                                              setCoverPhoto(pd.coverPhoto || null);
+                                              setApiDisplayPhotos(pd.displayPhotos || []);
+                                              setAuthorPhotos(pd.authorPhotos || []);
+                                              setUserPhotos(pd.userPhotos || []);
+                                            }
+                                            toast.success("Added to display photos!");
+                                          } catch {
+                                            toast.error("Failed to add photo");
+                                          }
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-white/90 flex items-center justify-center transition-opacity"
+                                        title="Add to display photos"
+                                      >
+                                        <Plus className="h-4 w-4 text-gray-700" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(completion.completed_at), { addSuffix: true })}
-                        </span>
                       </div>
-                      {completion.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {completion.tags.map((tagId: string) => {
-                            const tag = REVIEW_TAGS.find((t) => t.id === tagId);
-                            return tag ? (
-                              <Badge key={tagId} variant="secondary" className="text-xs px-2 py-0.5">
-                                {tag.emoji} {tag.label}
-                              </Badge>
-                            ) : null;
-                          })}
-                        </div>
-                      )}
-                      {completion.short_note && (
-                        <p className="text-sm text-gray-600">{completion.short_note}</p>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 {routeCompletions.length > 3 && !showAllReviews && (
                   <Button

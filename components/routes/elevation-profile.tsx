@@ -113,11 +113,25 @@ export function ElevationProfile({
   const pointCount = elevationData.elevations.length;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !elevationData) return;
 
     const rect = containerRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
-    const idx = Math.min(Math.floor(x * pointCount), pointCount - 1);
+    const targetDist = x * elevationData.totalDistance;
+
+    // Binary search for closest distance point (matches SVG x-mapping)
+    const dists = elevationData.distances;
+    let lo = 0;
+    let hi = dists.length - 1;
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      if (dists[mid] < targetDist) lo = mid + 1;
+      else hi = mid;
+    }
+    let idx = lo;
+    if (idx > 0 && Math.abs(dists[idx - 1] - targetDist) < Math.abs(dists[idx] - targetDist)) {
+      idx = idx - 1;
+    }
 
     setHoverIndex(idx);
     if (coordinates && coordinates[idx]) {
@@ -182,8 +196,8 @@ export function ElevationProfile({
           >
             <defs>
               <linearGradient id="elevGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#D946EF" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#D946EF" stopOpacity="0.05" />
+                <stop offset="0%" stopColor="#16A34A" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#16A34A" stopOpacity="0.05" />
               </linearGradient>
             </defs>
 
@@ -191,7 +205,7 @@ export function ElevationProfile({
             <path
               d={svgPath}
               fill="url(#elevGrad)"
-              stroke="#D946EF"
+              stroke="#16A34A"
               strokeWidth="0.8"
             />
 
@@ -202,7 +216,7 @@ export function ElevationProfile({
                 y1="0"
                 x2={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}
                 y2="100"
-                stroke="#D946EF"
+                stroke="#16A34A"
                 strokeWidth="0.5"
                 strokeDasharray="2,2"
               />
@@ -214,7 +228,7 @@ export function ElevationProfile({
                 cx={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}
                 cy={100 - ((elevationData.elevations[activeIndex] - elevationData.minElevation) / elevationData.range) * 80}
                 r="2"
-                fill="#D946EF"
+                fill="#16A34A"
                 stroke="white"
                 strokeWidth="1"
               />

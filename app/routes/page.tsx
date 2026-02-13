@@ -47,6 +47,7 @@ export default function RoutesPage() {
   const [nearbyProperties, setNearbyProperties] = useState<any[]>([]);
   const [selectedRouteData, setSelectedRouteData] = useState<any | null>(null);
   const [selectedRouteWaypoints, setSelectedRouteWaypoints] = useState<any[]>([]);
+  const [initialWaypointId, setInitialWaypointId] = useState<string | null>(null);
 
   // Route preview (quick card at bottom)
   const [previewRoute, setPreviewRoute] = useState<any | null>(null);
@@ -58,7 +59,7 @@ export default function RoutesPage() {
     showFootpaths: false,
     showByways: false,
     showRestrictedByways: false,
-    showWaymarkers: true,
+    showWaymarkers: false,
     showHazards: true,
     showProperties: true,
     routeLineWidth: 4,
@@ -425,6 +426,15 @@ export default function RoutesPage() {
     setIsCluster(true);
     setClusterCount(count);
     if (routes[0]) setHighlightedRouteId(routes[0].id);
+  };
+
+  // Handle waypoint marker click on map — open drawer to waypoints panel
+  const handleWaypointClick = (waypointId: string) => {
+    if (!drawerOpen && selectedRouteId) {
+      setDrawerOpen(true);
+      setMobileRouteDetailOpen(true);
+    }
+    setInitialWaypointId(waypointId);
   };
 
   // Open full route details (from panels/bottom sheet)
@@ -1079,6 +1089,7 @@ export default function RoutesPage() {
             pois={showPOIs ? pois : []}
             routeWaypoints={layerSettings.showWaymarkers ? selectedRouteWaypoints : []}
             showWaypoints={layerSettings.showWaymarkers}
+            onWaypointClick={handleWaypointClick}
           />
         </div>
 
@@ -1284,6 +1295,8 @@ export default function RoutesPage() {
           onFlyToLocation={(lat, lng) => {
             mapRef.current?.flyTo(lat, lng, 16);
           }}
+          initialWaypointId={initialWaypointId}
+          onWaypointFocused={() => setInitialWaypointId(null)}
           mobileShowDetails={mobileRouteDetailOpen}
           onMobileToggleDetails={setMobileRouteDetailOpen}
         />

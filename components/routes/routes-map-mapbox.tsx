@@ -107,6 +107,7 @@ export interface RoutesMapMapboxProps {
     order_index: number;
   }>;
   showWaypoints?: boolean;
+  onWaypointClick?: (waypointId: string) => void;
 }
 
 export interface RoutesMapMapboxHandle {
@@ -171,6 +172,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       onPoiClick,
       routeWaypoints = [],
       showWaypoints = false,
+      onWaypointClick,
     },
     ref
   ) => {
@@ -761,20 +763,13 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           .setLngLat([wp.lng, wp.lat])
           .addTo(mapRef.current!);
 
-        // Add popup on click
-        if (wp.name || wp.description) {
-          const popup = new mapboxgl.Popup({
-            offset: 20,
-            closeButton: true,
-            maxWidth: "200px",
-          }).setHTML(`
-            <div style="padding: 4px;">
-              <strong style="font-size: 13px;">${wp.name || `Waypoint ${index + 1}`}</strong>
-              ${wp.description ? `<p style="font-size: 12px; margin-top: 4px; color: #666;">${wp.description}</p>` : ""}
-            </div>
-          `);
-          marker.setPopup(popup);
-        }
+        // Click handler — open drawer waypoints panel or fallback to popup
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (onWaypointClick) {
+            onWaypointClick(wp.id);
+          }
+        });
 
         routeWaypointMarkersRef.current.push(marker);
       });
@@ -783,7 +778,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         routeWaypointMarkersRef.current.forEach((m) => m.remove());
         routeWaypointMarkersRef.current = [];
       };
-    }, [routeWaypoints, showWaypoints, mapLoaded]);
+    }, [routeWaypoints, showWaypoints, mapLoaded, onWaypointClick]);
 
     // Draw selected route polyline with start/end markers
     useEffect(() => {
