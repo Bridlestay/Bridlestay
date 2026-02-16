@@ -230,30 +230,6 @@ export function ElevationProfile({
               strokeLinejoin="round"
             />
 
-            {/* Key-point markers */}
-            {keyPoints.map((pt, i) => (
-              <g key={`kp-${i}`}>
-                <circle
-                  cx={pt.x}
-                  cy={pt.y}
-                  r="2"
-                  fill="white"
-                  stroke="#16A34A"
-                  strokeWidth="1.2"
-                />
-                <text
-                  x={pt.x}
-                  y={pt.labelPosition === "below" ? pt.y + 9 : pt.y - 4}
-                  textAnchor="middle"
-                  fontSize="5"
-                  fill="#374151"
-                  fontWeight="600"
-                >
-                  {pt.elevation}m
-                </text>
-              </g>
-            ))}
-
             {/* Hover line */}
             {activeIndex !== null && (
               <line
@@ -266,19 +242,46 @@ export function ElevationProfile({
                 strokeDasharray="2,2"
               />
             )}
-
-            {/* Hover point */}
-            {activeIndex !== null && (
-              <circle
-                cx={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}
-                cy={100 - ((elevationData.elevations[activeIndex] - elevationData.minElevation) / elevationData.range) * 80}
-                r="2"
-                fill="#16A34A"
-                stroke="white"
-                strokeWidth="1"
-              />
-            )}
           </svg>
+
+          {/* Key-point markers (HTML overlay — SVG preserveAspectRatio:none distorts circles/text) */}
+          {keyPoints.map((pt, i) => (
+            <div
+              key={`kp-${i}`}
+              className="absolute pointer-events-none"
+              style={{
+                left: `${pt.x}%`,
+                top: `${pt.y}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <div className="w-2.5 h-2.5 rounded-full bg-white border-2 border-green-600" />
+              <div
+                className="absolute left-1/2 -translate-x-1/2 text-[10px] font-semibold text-gray-700 whitespace-nowrap"
+                style={{
+                  [pt.labelPosition === "below" ? "top" : "bottom"]: "100%",
+                  marginTop: pt.labelPosition === "below" ? "2px" : undefined,
+                  marginBottom: pt.labelPosition === "above" ? "2px" : undefined,
+                }}
+              >
+                {pt.elevation}m
+              </div>
+            </div>
+          ))}
+
+          {/* Hover point (HTML overlay) */}
+          {activeIndex !== null && (
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                left: `${(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}%`,
+                top: `${100 - ((elevationData.elevations[activeIndex] - elevationData.minElevation) / elevationData.range) * 80}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <div className="w-3 h-3 rounded-full bg-green-600 border-2 border-white shadow" />
+            </div>
+          )}
 
           {/* Hover tooltip */}
           {activeIndex !== null && activeElevation !== null && activeDistance !== null && (

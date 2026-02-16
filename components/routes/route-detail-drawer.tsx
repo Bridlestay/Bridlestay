@@ -1590,7 +1590,10 @@ export function RouteDetailDrawer({
                           variant="outline"
                           size="sm"
                           className="w-full mt-2 text-xs"
-                          onClick={() => onFlyToLocation(wp.lat, wp.lng)}
+                          onClick={() => {
+                            onFlyToLocation(wp.lat, wp.lng);
+                            onDismiss?.();
+                          }}
                         >
                           <MapPin className="h-3 w-3 mr-1" />
                           Show on map

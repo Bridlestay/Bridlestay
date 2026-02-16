@@ -198,7 +198,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const popupRef = useRef<mapboxgl.Popup | null>(null);
     const waypointMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
     const routeWaypointMarkersRef = useRef<mapboxgl.Marker[]>([]);
+    const routeWaypointPopupsRef = useRef<mapboxgl.Popup[]>([]);
     const hazardMarkersRef = useRef<mapboxgl.Marker[]>([]);
+    const hazardPopupsRef = useRef<mapboxgl.Popup[]>([]);
     const startEndMarkersRef = useRef<mapboxgl.Marker[]>([]);
     
     const { isLoaded, loadError } = useMapbox();
@@ -744,7 +746,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
 
-      // Clean up existing markers
+      // Clean up existing markers and popups
+      routeWaypointPopupsRef.current.forEach((p) => p.remove());
+      routeWaypointPopupsRef.current = [];
       routeWaypointMarkersRef.current.forEach((m) => m.remove());
       routeWaypointMarkersRef.current = [];
 
@@ -806,9 +810,12 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         });
 
         routeWaypointMarkersRef.current.push(marker);
+        routeWaypointPopupsRef.current.push(popup);
       });
 
       return () => {
+        routeWaypointPopupsRef.current.forEach((p) => p.remove());
+        routeWaypointPopupsRef.current = [];
         routeWaypointMarkersRef.current.forEach((m) => m.remove());
         routeWaypointMarkersRef.current = [];
       };
@@ -818,6 +825,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
 
+      hazardPopupsRef.current.forEach((p) => p.remove());
+      hazardPopupsRef.current = [];
       hazardMarkersRef.current.forEach((m) => m.remove());
       hazardMarkersRef.current = [];
 
@@ -880,9 +889,12 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         });
 
         hazardMarkersRef.current.push(marker);
+        hazardPopupsRef.current.push(popup);
       });
 
       return () => {
+        hazardPopupsRef.current.forEach((p) => p.remove());
+        hazardPopupsRef.current = [];
         hazardMarkersRef.current.forEach((m) => m.remove());
         hazardMarkersRef.current = [];
       };
