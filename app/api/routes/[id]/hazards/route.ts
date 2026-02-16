@@ -23,6 +23,15 @@ export async function GET(
       query = query.eq("status", status);
     }
 
+    // Filter by is_warning
+    const isWarning = searchParams.get("is_warning");
+    if (isWarning === "true") {
+      query = query.eq("is_warning", true);
+    } else {
+      // Default: only hazards (not warnings)
+      query = query.or("is_warning.is.null,is_warning.eq.false");
+    }
+
     const { data: hazards, error } = await query;
 
     if (error) throw error;
@@ -66,10 +75,18 @@ export async function POST(
 
     const body = await request.json();
     const { hazard_type, title, description, severity, lat, lng, photo_url, expires_at } = body;
+    const isWarning = body.is_warning === true;
 
     if (!hazard_type || !title || !severity) {
       return NextResponse.json(
         { error: "Hazard type, title, and severity are required" },
+        { status: 400 }
+      );
+    }
+
+    if (isWarning && !expires_at) {
+      return NextResponse.json(
+        { error: "Warnings must have an expiry time" },
         { status: 400 }
       );
     }
@@ -83,10 +100,11 @@ export async function POST(
         title,
         description,
         severity,
-        lat,
-        lng,
+        lat: isWarning ? null : lat,
+        lng: isWarning ? null : lng,
         photo_url,
         expires_at,
+        is_warning: isWarning,
         status: "active",
       })
       .select()

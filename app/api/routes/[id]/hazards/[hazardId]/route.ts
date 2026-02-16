@@ -16,33 +16,41 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user is owner or admin
-    const { data: hazard } = await supabase
-      .from("route_hazards")
-      .select("reported_by_user_id")
-      .eq("id", hazardId)
-      .single();
+    const body = await request.json();
 
-    const { data: userData } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    // Resolve-only requests are allowed for any authenticated user
+    const isResolveOnly = body.status === "resolved" &&
+      Object.keys(body).filter((k) => k !== "status").length === 0;
 
-    const isOwner = hazard?.reported_by_user_id === user.id;
-    const isAdmin = userData?.role === "admin";
+    if (!isResolveOnly) {
+      // For non-resolve updates, check if user is reporter or admin
+      const { data: hazard } = await supabase
+        .from("route_hazards")
+        .select("reported_by_user_id")
+        .eq("id", hazardId)
+        .single();
 
-    if (!isOwner && !isAdmin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      const { data: userData } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      const isOwner = hazard?.reported_by_user_id === user.id;
+      const isAdmin = userData?.role === "admin";
+
+      if (!isOwner && !isAdmin) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
     }
 
-    const body = await request.json();
     const updates: any = {};
 
     if (body.status) {
       updates.status = body.status;
       if (body.status === "resolved") {
         updates.resolved_at = new Date().toISOString();
+        updates.resolved_by_user_id = user.id;
       }
     }
     if (body.description !== undefined) updates.description = body.description;

@@ -82,6 +82,7 @@ interface RouteDetailDrawerProps {
   onWaypointFocused?: () => void;
   onEnterViewMode?: (mode: "waypoints" | "hazards") => void;
   onHazardsLoaded?: (hazards: any[]) => void;
+  onHazardResolved?: (hazardId: string) => void;
   // Mobile panel control
   mobileShowDetails?: boolean;
   onMobileToggleDetails?: (show: boolean) => void;
@@ -100,6 +101,26 @@ const HAZARD_TYPES = [
   { value: "dangerous_crossing", label: "Dangerous Crossing" },
   { value: "other", label: "Other" },
 ];
+
+const WARNING_TYPES = [
+  { value: "slippery", label: "Slippery Conditions" },
+  { value: "muddy", label: "Muddy/Waterlogged" },
+  { value: "weather_warning", label: "Weather Warning" },
+  { value: "restricted_access", label: "Restricted Access" },
+  { value: "other_warning", label: "Other Warning" },
+];
+
+const getTimeRemaining = (expiresAt: string): string => {
+  const now = new Date();
+  const expiry = new Date(expiresAt);
+  const diffMs = expiry.getTime() - now.getTime();
+  if (diffMs <= 0) return "Expired";
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  if (hours > 24) return `${Math.floor(hours / 24)}d ${hours % 24}h left`;
+  if (hours > 0) return `${hours}h ${mins}m left`;
+  return `${mins}m left`;
+};
 
 const SEVERITY_COLORS = {
   low: "bg-blue-100 text-blue-800 border-blue-300",
@@ -297,6 +318,7 @@ export function RouteDetailDrawer({
   onWaypointFocused,
   onEnterViewMode,
   onHazardsLoaded,
+  onHazardResolved,
   mobileShowDetails = true,
   onMobileToggleDetails,
 }: RouteDetailDrawerProps) {
@@ -392,7 +414,18 @@ export function RouteDetailDrawer({
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "checking" | "near" | "far" | "error">("idle");
   const [locationError, setLocationError] = useState<string | null>(null);
-  
+
+  // Warning state
+  const [warnings, setWarnings] = useState<any[]>([]);
+  const [warningDialogOpen, setWarningDialogOpen] = useState(false);
+  const [newWarning, setNewWarning] = useState({
+    hazard_type: "",
+    title: "",
+    description: "",
+    duration: "4",
+  });
+  const [submittingWarning, setSubmittingWarning] = useState(false);
+
   const [waypointDialogOpen, setWaypointDialogOpen] = useState(false);
   const [newWaypoint, setNewWaypoint] = useState({
     name: "",
@@ -492,6 +525,18 @@ export function RouteDetailDrawer({
       }
     };
 
+    const fetchWarnings = async () => {
+      try {
+        const res = await fetch(`/api/routes/${routeId}/hazards?is_warning=true`);
+        if (res.ok) {
+          const data = await res.json();
+          setWarnings(data.hazards || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch warnings:", error);
+      }
+    };
+
     const fetchComments = async () => {
       setLoadingComments(true);
       try {
@@ -552,6 +597,7 @@ export function RouteDetailDrawer({
     fetchWaypoints();
     fetchNearbyProperties();
     fetchHazards();
+    fetchWarnings();
     fetchComments();
     fetchLikeStatus();
     fetchFavoriteStatus();
@@ -861,6 +907,50 @@ export function RouteDetailDrawer({
     }
   };
 
+  const handleSubmitWarning = async () => {
+    if (!userId) {
+      toast.error("Please sign in to post warnings");
+      return;
+    }
+    if (!newWarning.hazard_type || !newWarning.title) {
+      toast.error("Please select a warning type and add a title");
+      return;
+    }
+
+    setSubmittingWarning(true);
+    try {
+      const hoursFromNow = parseInt(newWarning.duration) || 4;
+      const expiresAt = new Date(Date.now() + hoursFromNow * 60 * 60 * 1000).toISOString();
+
+      const res = await fetch(`/api/routes/${routeId}/hazards`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          hazard_type: newWarning.hazard_type,
+          title: newWarning.title,
+          description: newWarning.description,
+          severity: "medium",
+          is_warning: true,
+          expires_at: expiresAt,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setWarnings((prev) => [data.hazard, ...prev]);
+        setNewWarning({ hazard_type: "", title: "", description: "", duration: "4" });
+        setWarningDialogOpen(false);
+        toast.success("Warning posted! Other riders will see this alert.");
+      } else {
+        toast.error("Failed to post warning");
+      }
+    } catch (error) {
+      toast.error("Failed to post warning");
+    } finally {
+      setSubmittingWarning(false);
+    }
+  };
+
   const handleResolveHazard = async (hazardId: string) => {
     try {
       const res = await fetch(`/api/routes/${routeId}/hazards/${hazardId}`, {
@@ -873,7 +963,11 @@ export function RouteDetailDrawer({
         setHazards((prev) =>
           prev.map((h) => (h.id === hazardId ? { ...h, status: "resolved" } : h))
         );
-        toast.success("Hazard marked as resolved");
+        setWarnings((prev) =>
+          prev.map((w) => (w.id === hazardId ? { ...w, status: "resolved" } : w))
+        );
+        onHazardResolved?.(hazardId);
+        toast.success("Marked as cleared");
       }
     } catch (error) {
       toast.error("Failed to update hazard");
@@ -1361,6 +1455,7 @@ export function RouteDetailDrawer({
   })();
 
   const activeHazards = hazards.filter((h) => h.status === "active");
+  const activeWarnings = warnings.filter((w) => w.status === "active");
 
   if (!open) return null;
 
@@ -2078,6 +2173,12 @@ export function RouteDetailDrawer({
                       {activeHazards.length} Hazard{activeHazards.length > 1 ? "s" : ""}
                     </Badge>
                   )}
+                  {activeWarnings.length > 0 && (
+                    <Badge className="gap-1 text-xs bg-amber-500">
+                      <AlertTriangle className="h-3 w-3" />
+                      {activeWarnings.length} Warning{activeWarnings.length > 1 ? "s" : ""}
+                    </Badge>
+                  )}
                 </div>
               </div>
 
@@ -2297,8 +2398,49 @@ export function RouteDetailDrawer({
               )}
             </div>
 
-            {/* WAYPOINTS & HAZARDS ROW */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* ACTIVE WARNINGS */}
+            {activeWarnings.length > 0 && (
+              <div className="space-y-2">
+                {activeWarnings.map((warning: any) => (
+                  <div key={warning.id} className="p-3 bg-amber-50 border border-amber-300 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                        <span className="font-medium text-sm text-amber-900 truncate">
+                          {warning.title}
+                        </span>
+                      </div>
+                      {warning.expires_at && (
+                        <span className="text-xs text-amber-600 whitespace-nowrap ml-2">
+                          {getTimeRemaining(warning.expires_at)}
+                        </span>
+                      )}
+                    </div>
+                    {warning.description && (
+                      <p className="text-xs text-amber-700 mt-1">{warning.description}</p>
+                    )}
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-amber-500">
+                        Reported {formatDistanceToNow(new Date(warning.created_at), { addSuffix: true })}
+                      </span>
+                      {userId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs text-green-700 hover:text-green-800 px-2"
+                          onClick={() => handleResolveHazard(warning.id)}
+                        >
+                          <Check className="h-3 w-3 mr-1" /> Cleared
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* WAYPOINTS, HAZARDS & WARNINGS ROW */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div
                 className="border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors"
                 onClick={() => onEnterViewMode ? onEnterViewMode("waypoints") : setActiveFullPanel("waypoints")}
@@ -2337,6 +2479,22 @@ export function RouteDetailDrawer({
                     <Badge variant="destructive" className="text-xs">{activeHazards.length}</Badge>
                   ) : (
                     <Badge variant="outline" className="text-xs">Report</Badge>
+                  )}
+                </div>
+              </div>
+              <div
+                className="border rounded-lg p-3 cursor-pointer hover:bg-amber-50 transition-colors relative"
+                onClick={() => setWarningDialogOpen(true)}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-sm flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    Warnings
+                  </span>
+                  {activeWarnings.length > 0 ? (
+                    <Badge className="text-xs bg-amber-500">{activeWarnings.length}</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs">Post</Badge>
                   )}
                 </div>
               </div>
@@ -2622,11 +2780,93 @@ export function RouteDetailDrawer({
               </DialogContent>
             </Dialog>
 
+            {/* Warning Dialog */}
+            <Dialog open={warningDialogOpen} onOpenChange={setWarningDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Post a Route Warning</DialogTitle>
+                  <DialogDescription>
+                    Alert other riders about current conditions on this route.
+                    Warnings expire automatically after the selected duration.
+                  </DialogDescription>
+                </DialogHeader>
+                {!userId ? (
+                  <p className="text-sm text-muted-foreground">Please sign in to post warnings.</p>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Warning Type *</Label>
+                      <Select
+                        value={newWarning.hazard_type}
+                        onValueChange={(v) => setNewWarning((prev) => ({ ...prev, hazard_type: v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {WARNING_TYPES.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Title *</Label>
+                      <Input
+                        placeholder="Brief description of conditions..."
+                        value={newWarning.title}
+                        onChange={(e) => setNewWarning((prev) => ({ ...prev, title: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <Label>Details (optional)</Label>
+                      <Textarea
+                        placeholder="Additional details..."
+                        value={newWarning.description}
+                        onChange={(e) => setNewWarning((prev) => ({ ...prev, description: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <Label>Duration</Label>
+                      <Select
+                        value={newWarning.duration}
+                        onValueChange={(v) => setNewWarning((prev) => ({ ...prev, duration: v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="2">2 hours</SelectItem>
+                          <SelectItem value="4">4 hours</SelectItem>
+                          <SelectItem value="8">8 hours</SelectItem>
+                          <SelectItem value="24">24 hours</SelectItem>
+                          <SelectItem value="48">2 days</SelectItem>
+                          <SelectItem value="72">3 days</SelectItem>
+                          <SelectItem value="168">1 week</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+                <DialogFooter>
+                  <Button
+                    onClick={handleSubmitWarning}
+                    disabled={submittingWarning || !userId}
+                    className="bg-amber-600 hover:bg-amber-700"
+                  >
+                    {submittingWarning ? "Posting..." : "Post Warning"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             </div>
           </div>
         ) : null}
 
-        
+
         {/* Report Comment Dialog */}
         <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
           <DialogContent>

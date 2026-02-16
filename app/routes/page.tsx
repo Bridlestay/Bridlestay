@@ -25,9 +25,19 @@ import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Map, Settings, ChevronLeft } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function RoutesPage() {
   const mapRef = useRef<RoutesMapV2Handle>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Fetch current user on mount
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id || null);
+    });
+  }, []);
 
   // Navigation tab state
   const [activeTab, setActiveTab] = useState<RouteTab>("map");
@@ -461,6 +471,24 @@ export default function RoutesPage() {
           right: 20,
         });
       }, 200);
+    }
+  };
+
+  const handleResolveHazardFromMap = async (hazardId: string) => {
+    try {
+      const res = await fetch(`/api/routes/${selectedRouteId}/hazards/${hazardId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "resolved" }),
+      });
+      if (res.ok) {
+        setSelectedRouteHazards((prev: any[]) =>
+          prev.map((h: any) => (h.id === hazardId ? { ...h, status: "resolved" } : h))
+        );
+        toast.success("Hazard marked as cleared!");
+      }
+    } catch {
+      toast.error("Failed to update hazard");
     }
   };
 
@@ -1138,6 +1166,8 @@ export default function RoutesPage() {
                 : []
             }
             showHazards={mapViewMode === "hazards"}
+            onHazardResolve={handleResolveHazardFromMap}
+            isAuthenticated={!!userId}
           />
         </div>
 
@@ -1366,6 +1396,11 @@ export default function RoutesPage() {
           onWaypointFocused={() => setInitialWaypointId(null)}
           onEnterViewMode={handleEnterViewMode}
           onHazardsLoaded={(hazards: any[]) => setSelectedRouteHazards(hazards)}
+          onHazardResolved={(hazardId: string) => {
+            setSelectedRouteHazards((prev: any[]) =>
+              prev.map((h: any) => (h.id === hazardId ? { ...h, status: "resolved" } : h))
+            );
+          }}
           mobileShowDetails={mobileRouteDetailOpen}
           onMobileToggleDetails={setMobileRouteDetailOpen}
         />

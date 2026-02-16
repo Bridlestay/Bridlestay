@@ -120,6 +120,8 @@ export interface RoutesMapMapboxProps {
     status: string;
   }>;
   showHazards?: boolean;
+  onHazardResolve?: (hazardId: string) => void;
+  isAuthenticated?: boolean;
 }
 
 export interface RoutesMapMapboxHandle {
@@ -187,6 +189,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       onWaypointClick,
       routeHazards = [],
       showHazards = false,
+      onHazardResolve,
+      isAuthenticated = false,
     },
     ref
   ) => {
@@ -859,19 +863,39 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           ">&#9888;</div>
         `;
 
+        const resolveButtonHtml = isAuthenticated && hazard.status === "active"
+          ? `<button id="resolve-hazard-${hazard.id}" style="
+              margin-top: 8px; padding: 4px 12px; font-size: 12px;
+              background: #16a34a; color: white; border: none; border-radius: 6px;
+              cursor: pointer; width: 100%;
+            ">&#10003; Mark as Cleared</button>`
+          : "";
+
         const popup = new mapboxgl.Popup({
-          closeButton: false,
+          closeButton: true,
           closeOnClick: false,
           offset: 15,
         }).setHTML(`
-          <div style="padding: 8px; max-width: 220px;">
+          <div style="padding: 8px; max-width: 240px;">
             <strong>${hazard.title}</strong>
             <div style="font-size: 12px; color: #666; margin-top: 4px;">
               ${hazard.hazard_type.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
               ${hazard.description ? "<br/>" + hazard.description : ""}
             </div>
+            ${resolveButtonHtml}
           </div>
         `);
+
+        const attachResolveListener = () => {
+          if (!isAuthenticated || hazard.status !== "active") return;
+          const btn = document.getElementById(`resolve-hazard-${hazard.id}`);
+          if (btn) {
+            btn.addEventListener("click", () => {
+              onHazardResolve?.(hazard.id);
+              popup.remove();
+            });
+          }
+        };
 
         const marker = new mapboxgl.Marker({ element: el })
           .setLngLat([hazard.lng, hazard.lat])
@@ -879,6 +903,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
         el.addEventListener("mouseenter", () => {
           popup.setLngLat([hazard.lng, hazard.lat]).addTo(mapRef.current!);
+          setTimeout(attachResolveListener, 50);
         });
         el.addEventListener("mouseleave", () => popup.remove());
 
@@ -886,6 +911,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         el.addEventListener("click", (e) => {
           e.stopPropagation();
           popup.setLngLat([hazard.lng, hazard.lat]).addTo(mapRef.current!);
+          setTimeout(attachResolveListener, 50);
         });
 
         hazardMarkersRef.current.push(marker);
@@ -898,7 +924,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         hazardMarkersRef.current.forEach((m) => m.remove());
         hazardMarkersRef.current = [];
       };
-    }, [routeHazards, showHazards, mapLoaded]);
+    }, [routeHazards, showHazards, mapLoaded, onHazardResolve, isAuthenticated]);
 
     // Draw selected route polyline with start/end markers
     useEffect(() => {
