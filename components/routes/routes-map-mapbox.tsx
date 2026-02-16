@@ -108,6 +108,18 @@ export interface RoutesMapMapboxProps {
   }>;
   showWaypoints?: boolean;
   onWaypointClick?: (waypointId: string) => void;
+  // Hazard markers for selected route
+  routeHazards?: Array<{
+    id: string;
+    lat: number;
+    lng: number;
+    title: string;
+    hazard_type: string;
+    severity: string;
+    description?: string;
+    status: string;
+  }>;
+  showHazards?: boolean;
 }
 
 export interface RoutesMapMapboxHandle {
@@ -173,6 +185,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       routeWaypoints = [],
       showWaypoints = false,
       onWaypointClick,
+      routeHazards = [],
+      showHazards = false,
     },
     ref
   ) => {
@@ -184,6 +198,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const popupRef = useRef<mapboxgl.Popup | null>(null);
     const waypointMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
     const routeWaypointMarkersRef = useRef<mapboxgl.Marker[]>([]);
+    const hazardMarkersRef = useRef<mapboxgl.Marker[]>([]);
     const startEndMarkersRef = useRef<mapboxgl.Marker[]>([]);
     
     const { isLoaded, loadError } = useMapbox();
@@ -763,6 +778,25 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           .setLngLat([wp.lng, wp.lat])
           .addTo(mapRef.current!);
 
+        // Hover popup with name/description
+        const popup = new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          offset: 15,
+        }).setHTML(`
+          <div style="padding: 8px; max-width: 200px;">
+            <strong>${wp.name || "Waypoint " + (index + 1)}</strong>
+            ${wp.description ? '<div style="font-size: 12px; color: #666; margin-top: 4px;">' + wp.description + "</div>" : ""}
+          </div>
+        `);
+
+        el.addEventListener("mouseenter", () => {
+          popup.setLngLat([wp.lng, wp.lat]).addTo(mapRef.current!);
+        });
+        el.addEventListener("mouseleave", () => {
+          popup.remove();
+        });
+
         // Click handler — open drawer waypoints panel or fallback to popup
         el.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -779,6 +813,80 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         routeWaypointMarkersRef.current = [];
       };
     }, [routeWaypoints, showWaypoints, mapLoaded, onWaypointClick]);
+
+    // Hazard markers for selected route
+    useEffect(() => {
+      if (!mapRef.current || !mapLoaded) return;
+
+      hazardMarkersRef.current.forEach((m) => m.remove());
+      hazardMarkersRef.current = [];
+
+      if (!showHazards || routeHazards.length === 0) return;
+
+      const severityColor: Record<string, string> = {
+        low: "#3B82F6",
+        medium: "#F59E0B",
+        high: "#F97316",
+        critical: "#EF4444",
+      };
+
+      routeHazards.forEach((hazard) => {
+        if (!hazard.lat || !hazard.lng) return;
+
+        const el = document.createElement("div");
+        el.innerHTML = `
+          <div style="
+            width: 28px;
+            height: 28px;
+            background: ${severityColor[hazard.severity] || "#F59E0B"};
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+          ">&#9888;</div>
+        `;
+
+        const popup = new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          offset: 15,
+        }).setHTML(`
+          <div style="padding: 8px; max-width: 220px;">
+            <strong>${hazard.title}</strong>
+            <div style="font-size: 12px; color: #666; margin-top: 4px;">
+              ${hazard.hazard_type.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+              ${hazard.description ? "<br/>" + hazard.description : ""}
+            </div>
+          </div>
+        `);
+
+        const marker = new mapboxgl.Marker({ element: el })
+          .setLngLat([hazard.lng, hazard.lat])
+          .addTo(mapRef.current!);
+
+        el.addEventListener("mouseenter", () => {
+          popup.setLngLat([hazard.lng, hazard.lat]).addTo(mapRef.current!);
+        });
+        el.addEventListener("mouseleave", () => popup.remove());
+
+        // Click also shows popup (for mobile touch)
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          popup.setLngLat([hazard.lng, hazard.lat]).addTo(mapRef.current!);
+        });
+
+        hazardMarkersRef.current.push(marker);
+      });
+
+      return () => {
+        hazardMarkersRef.current.forEach((m) => m.remove());
+        hazardMarkersRef.current = [];
+      };
+    }, [routeHazards, showHazards, mapLoaded]);
 
     // Draw selected route polyline with start/end markers
     useEffect(() => {

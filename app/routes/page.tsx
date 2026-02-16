@@ -24,7 +24,7 @@ import { MobilePanelToggle } from "@/components/routes/mobile-panel-toggle";
 import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Map, Settings } from "lucide-react";
+import { Map, Settings, ChevronLeft } from "lucide-react";
 
 export default function RoutesPage() {
   const mapRef = useRef<RoutesMapV2Handle>(null);
@@ -47,7 +47,9 @@ export default function RoutesPage() {
   const [nearbyProperties, setNearbyProperties] = useState<any[]>([]);
   const [selectedRouteData, setSelectedRouteData] = useState<any | null>(null);
   const [selectedRouteWaypoints, setSelectedRouteWaypoints] = useState<any[]>([]);
+  const [selectedRouteHazards, setSelectedRouteHazards] = useState<any[]>([]);
   const [initialWaypointId, setInitialWaypointId] = useState<string | null>(null);
+  const [mapViewMode, setMapViewMode] = useState<"waypoints" | "hazards" | null>(null);
 
   // Route preview (quick card at bottom)
   const [previewRoute, setPreviewRoute] = useState<any | null>(null);
@@ -430,11 +432,35 @@ export default function RoutesPage() {
 
   // Handle waypoint marker click on map — open drawer to waypoints panel
   const handleWaypointClick = (waypointId: string) => {
+    if (mapViewMode === "waypoints") {
+      // In view mode, hover popup already shows info
+      return;
+    }
     if (!drawerOpen && selectedRouteId) {
       setDrawerOpen(true);
       setMobileRouteDetailOpen(true);
     }
     setInitialWaypointId(waypointId);
+  };
+
+  // Enter map view mode — hide drawer, show markers on map
+  const handleEnterViewMode = (mode: "waypoints" | "hazards") => {
+    setMapViewMode(mode);
+    setDrawerOpen(false);
+    setMobileRouteDetailOpen(false);
+    // Route stays drawn on map (selectedRouteId, selectedRouteData, drawnRouteId preserved)
+
+    // Zoom map to fit route
+    if (selectedRouteData?.geometry?.coordinates?.length > 0) {
+      setTimeout(() => {
+        mapRef.current?.fitBounds(selectedRouteData.geometry.coordinates, {
+          top: 60,
+          bottom: 80,
+          left: 20,
+          right: 20,
+        });
+      }, 200);
+    }
   };
 
   // Open full route details (from panels/bottom sheet)
@@ -1087,11 +1113,40 @@ export default function RoutesPage() {
             followUser={isNavigating}
             recordedPath={recordedPath}
             pois={showPOIs ? pois : []}
-            routeWaypoints={layerSettings.showWaymarkers ? selectedRouteWaypoints : []}
-            showWaypoints={layerSettings.showWaymarkers}
+            routeWaypoints={
+              (mapViewMode === "waypoints" || layerSettings.showWaymarkers)
+                ? selectedRouteWaypoints
+                : []
+            }
+            showWaypoints={mapViewMode === "waypoints" || layerSettings.showWaymarkers}
             onWaypointClick={handleWaypointClick}
+            routeHazards={
+              mapViewMode === "hazards"
+                ? selectedRouteHazards.filter((h: any) => h.status === "active" && h.lat && h.lng)
+                : []
+            }
+            showHazards={mapViewMode === "hazards"}
           />
         </div>
+
+        {/* View mode back button (when waypoints/hazards view is active) */}
+        {mapViewMode && (
+          <div className="fixed top-20 left-4 z-30 md:top-4 md:left-4">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full shadow-lg bg-white text-gray-800 hover:bg-gray-100 border gap-2 px-4"
+              onClick={() => {
+                setMapViewMode(null);
+                setDrawerOpen(true);
+                setMobileRouteDetailOpen(true);
+              }}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back to route details
+            </Button>
+          </div>
+        )}
 
         {/* Mobile Top Header (hamburger, search, profile) - visible on mobile */}
         <MobileTopHeader />
@@ -1297,6 +1352,8 @@ export default function RoutesPage() {
           }}
           initialWaypointId={initialWaypointId}
           onWaypointFocused={() => setInitialWaypointId(null)}
+          onEnterViewMode={handleEnterViewMode}
+          onHazardsLoaded={(hazards: any[]) => setSelectedRouteHazards(hazards)}
           mobileShowDetails={mobileRouteDetailOpen}
           onMobileToggleDetails={setMobileRouteDetailOpen}
         />

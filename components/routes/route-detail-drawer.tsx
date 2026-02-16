@@ -80,6 +80,8 @@ interface RouteDetailDrawerProps {
   onFlyToLocation?: (lat: number, lng: number) => void;
   initialWaypointId?: string | null;
   onWaypointFocused?: () => void;
+  onEnterViewMode?: (mode: "waypoints" | "hazards") => void;
+  onHazardsLoaded?: (hazards: any[]) => void;
   // Mobile panel control
   mobileShowDetails?: boolean;
   onMobileToggleDetails?: (show: boolean) => void;
@@ -293,6 +295,8 @@ export function RouteDetailDrawer({
   onFlyToLocation,
   initialWaypointId,
   onWaypointFocused,
+  onEnterViewMode,
+  onHazardsLoaded,
   mobileShowDetails = true,
   onMobileToggleDetails,
 }: RouteDetailDrawerProps) {
@@ -479,6 +483,7 @@ export function RouteDetailDrawer({
         if (res.ok) {
           const data = await res.json();
           setHazards(data.hazards || []);
+          onHazardsLoaded?.(data.hazards || []);
         }
       } catch (error) {
         console.error("Failed to fetch hazards:", error);
@@ -2126,6 +2131,7 @@ export function RouteDetailDrawer({
               {/* ELEVATION PROFILE */}
               {elevationData && elevationData.elevations.length > 1 && (
                 <ElevationProfile
+                  className="mt-3"
                   elevations={elevationData.elevations}
                   distances={elevationData.distances}
                   totalAscent={elevationData.totalAscent}
@@ -2292,7 +2298,7 @@ export function RouteDetailDrawer({
             <div className="grid grid-cols-2 gap-3">
               <div
                 className="border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors"
-                onClick={() => setActiveFullPanel("waypoints")}
+                onClick={() => onEnterViewMode ? onEnterViewMode("waypoints") : setActiveFullPanel("waypoints")}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-sm flex items-center gap-2">
@@ -2309,9 +2315,15 @@ export function RouteDetailDrawer({
                   </div>
                 )}
               </div>
-              <div 
+              <div
                 className="border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors relative"
-                onClick={() => setHazardDialogOpen(true)}
+                onClick={() => {
+                  if (onEnterViewMode && activeHazards.length > 0) {
+                    onEnterViewMode("hazards");
+                  } else {
+                    setHazardDialogOpen(true);
+                  }
+                }}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-sm flex items-center gap-2">

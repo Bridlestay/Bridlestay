@@ -2,7 +2,6 @@
 
 import { useState, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Mountain } from "lucide-react";
 
 interface ElevationProfileProps {
   // Pre-computed data from API (preferred)
@@ -95,8 +94,8 @@ export function ElevationProfile({
     };
   }, [preElevations, preDistances, preTotalAscent, preTotalDescent, coordinates]);
 
-  // Generate SVG path
-  const svgPath = useMemo(() => {
+  // Generate SVG line path (no area fill)
+  const svgLinePath = useMemo(() => {
     if (!elevationData || elevationData.elevations.length < 2) return "";
 
     const points = elevationData.elevations.map((elev, i) => {
@@ -105,7 +104,52 @@ export function ElevationProfile({
       return `${x},${y}`;
     });
 
-    return `M${points[0]} L${points.join(" L")} L100,100 L0,100 Z`;
+    return `M${points[0]} L${points.join(" L")}`;
+  }, [elevationData]);
+
+  // Key points: start, end, highest, lowest
+  const keyPoints = useMemo(() => {
+    if (!elevationData || elevationData.elevations.length < 2) return [];
+    const { elevations, distances, totalDistance, minElevation, range } = elevationData;
+
+    const toSvg = (i: number) => ({
+      x: (distances[i] / totalDistance) * 100,
+      y: 100 - ((elevations[i] - minElevation) / range) * 80,
+      elevation: Math.round(elevations[i]),
+    });
+
+    const endIdx = elevations.length - 1;
+    let maxIdx = 0;
+    let minIdx = 0;
+    for (let i = 1; i < elevations.length; i++) {
+      if (elevations[i] > elevations[maxIdx]) maxIdx = i;
+      if (elevations[i] < elevations[minIdx]) minIdx = i;
+    }
+
+    const points: Array<{
+      x: number;
+      y: number;
+      elevation: number;
+      labelPosition: "above" | "below";
+    }> = [];
+
+    // Start
+    points.push({ ...toSvg(0), labelPosition: "above" });
+
+    // Highest (skip if same as start or end)
+    if (maxIdx !== 0 && maxIdx !== endIdx) {
+      points.push({ ...toSvg(maxIdx), labelPosition: "above" });
+    }
+
+    // Lowest (skip if same as start, end, or highest)
+    if (minIdx !== 0 && minIdx !== endIdx && minIdx !== maxIdx) {
+      points.push({ ...toSvg(minIdx), labelPosition: "below" });
+    }
+
+    // End
+    points.push({ ...toSvg(endIdx), labelPosition: "above" });
+
+    return points;
   }, [elevationData]);
 
   if (!elevationData) return null;
@@ -154,25 +198,7 @@ export function ElevationProfile({
   const yMid = Math.round((yMin + yMax) / 2);
 
   return (
-    <div className={cn("bg-white rounded-lg border p-4", className)}>
-      {/* Stats header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Mountain className="h-4 w-4 text-slate-500" />
-          <span className="text-sm font-medium">Elevation</span>
-        </div>
-        <div className="flex items-center gap-4 text-xs text-slate-600">
-          <span className="flex items-center gap-1">
-            <TrendingUp className="h-3 w-3 text-green-600" />
-            {Math.round(elevationData.totalAscent)}m
-          </span>
-          <span className="flex items-center gap-1">
-            <TrendingDown className="h-3 w-3 text-red-600" />
-            {Math.round(elevationData.totalDescent)}m
-          </span>
-        </div>
-      </div>
-
+    <div className={cn("bg-white rounded-lg border p-3", className)}>
       {/* Chart with Y-axis labels */}
       <div className="flex gap-1">
         {/* Y-axis */}
@@ -194,20 +220,39 @@ export function ElevationProfile({
             preserveAspectRatio="none"
             className="w-full h-full"
           >
-            <defs>
-              <linearGradient id="elevGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#16A34A" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#16A34A" stopOpacity="0.05" />
-              </linearGradient>
-            </defs>
-
-            {/* Area fill */}
+            {/* Line path (no fill) */}
             <path
-              d={svgPath}
-              fill="url(#elevGrad)"
+              d={svgLinePath}
+              fill="none"
               stroke="#16A34A"
-              strokeWidth="0.8"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
+
+            {/* Key-point markers */}
+            {keyPoints.map((pt, i) => (
+              <g key={`kp-${i}`}>
+                <circle
+                  cx={pt.x}
+                  cy={pt.y}
+                  r="2"
+                  fill="white"
+                  stroke="#16A34A"
+                  strokeWidth="1.2"
+                />
+                <text
+                  x={pt.x}
+                  y={pt.labelPosition === "below" ? pt.y + 9 : pt.y - 4}
+                  textAnchor="middle"
+                  fontSize="5"
+                  fill="#374151"
+                  fontWeight="600"
+                >
+                  {pt.elevation}m
+                </text>
+              </g>
+            ))}
 
             {/* Hover line */}
             {activeIndex !== null && (
