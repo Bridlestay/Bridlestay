@@ -16,6 +16,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   Pencil,
   Magnet,
@@ -32,6 +33,7 @@ import {
   Palette,
   Eraser,
   PlusCircle,
+  Map,
 } from "lucide-react";
 import { RoutesPanelHeader } from "./routes-panel-header";
 
@@ -524,6 +526,8 @@ export function RouteCreatorToolbar({
   routeStyle,
   onStyleChange,
   isMobile = false,
+  containerClassName,
+  onSwitchBar,
 }: {
   isPlotting: boolean;
   setIsPlotting: (v: boolean) => void;
@@ -537,6 +541,8 @@ export function RouteCreatorToolbar({
   routeStyle?: RouteStyle;
   onStyleChange?: (style: RouteStyle) => void;
   isMobile?: boolean;
+  containerClassName?: string;
+  onSwitchBar?: () => void;
 }) {
   const [showStylePopup, setShowStylePopup] = useState(false);
   const [localStyle, setLocalStyle] = useState<RouteStyle>(
@@ -684,7 +690,7 @@ export function RouteCreatorToolbar({
 
   // Desktop layout
   return (
-    <div className="absolute top-20 right-4 z-30">
+    <div className={cn("absolute top-20 right-4 z-30", containerClassName)}>
       <Card className="p-1.5 bg-white shadow-lg border-0 rounded-lg">
         <div className="flex items-center gap-0.5">
           {/* Plot */}
@@ -917,6 +923,27 @@ export function RouteCreatorToolbar({
               </div>
             )}
           </div>
+
+          {/* Switch to navigation bar */}
+          {onSwitchBar && (
+            <>
+              <div className="w-px h-12 bg-gray-200 mx-1" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={onSwitchBar}
+                    className="flex flex-col items-center justify-center px-3 py-2 rounded-md transition-all hover:bg-gray-100 text-gray-600"
+                  >
+                    <Map className="h-5 w-5" />
+                    <span className="text-[11px] mt-1 font-semibold tracking-wide">Nav</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>Switch to navigation tabs</p>
+                </TooltipContent>
+              </Tooltip>
+            </>
+          )}
         </div>
       </Card>
     </div>

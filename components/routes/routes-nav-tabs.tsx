@@ -10,6 +10,7 @@ interface RoutesNavTabsProps {
   onTabChange: (tab: RouteTab) => void;
   className?: string;
   hideInCreateMode?: boolean;
+  onSwitchToToolbar?: () => void;
 }
 
 // Tab order: Map, Find Routes, Saved Routes, Create Route
@@ -20,7 +21,7 @@ const tabs: { id: RouteTab; label: string; icon: typeof Map }[] = [
   { id: "create", label: "Create Route", icon: Pencil },
 ];
 
-export function RoutesNavTabs({ activeTab, onTabChange, className, hideInCreateMode }: RoutesNavTabsProps) {
+export function RoutesNavTabs({ activeTab, onTabChange, className, hideInCreateMode, onSwitchToToolbar }: RoutesNavTabsProps) {
   // Hide tabs when in create mode (only show header in sidebar)
   if (hideInCreateMode) return null;
 
@@ -32,7 +33,7 @@ export function RoutesNavTabs({ activeTab, onTabChange, className, hideInCreateM
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
-        
+
         return (
           <button
             key={tab.id}
@@ -40,8 +41,8 @@ export function RoutesNavTabs({ activeTab, onTabChange, className, hideInCreateM
             className={cn(
               "flex flex-col items-center justify-center px-4 py-2 min-w-[80px] transition-all",
               "hover:bg-gray-50 border-b-2",
-              isActive 
-                ? "border-b-primary text-primary bg-primary/5" 
+              isActive
+                ? "border-b-primary text-primary bg-primary/5"
                 : "border-b-transparent text-gray-600"
             )}
           >
@@ -58,6 +59,16 @@ export function RoutesNavTabs({ activeTab, onTabChange, className, hideInCreateM
           </button>
         );
       })}
+      {onSwitchToToolbar && (
+        <button
+          onClick={onSwitchToToolbar}
+          className="flex flex-col items-center justify-center px-4 py-2 min-w-[80px] transition-all hover:bg-gray-50 border-b-2 border-b-transparent text-gray-600 border-l"
+          title="Switch to creation tools"
+        >
+          <Pencil className="h-5 w-5 mb-1 text-gray-500" />
+          <span className="text-xs font-medium whitespace-nowrap">Tools</span>
+        </button>
+      )}
     </div>
   );
 }

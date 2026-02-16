@@ -79,6 +79,7 @@ export default function RoutesPage() {
   const [routeType, setRouteType] = useState<"circular" | "linear">("linear");
   const [history, setHistory] = useState<Waypoint[][]>([]);
   const [toolMode, setToolMode] = useState<ToolMode>("plot");
+  const [showToolbarInCreate, setShowToolbarInCreate] = useState(true);
 
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -758,6 +759,7 @@ export default function RoutesPage() {
     setEditingRouteId(null);
     setEditingRouteData(null);
     setIsPlotting(true);
+    setShowToolbarInCreate(true);
     setToolMode("plot");
     setShowBottomSheet(false);
   };
@@ -839,10 +841,16 @@ export default function RoutesPage() {
             />
           </div>
 
-          {/* Desktop Navigation tabs - hidden on mobile */}
-          <div className="hidden md:block">
-            <RoutesNavTabs activeTab={activeTab} onTabChange={setActiveTab} />
-          </div>
+          {/* Desktop: Show either nav tabs or creation toolbar (one at a time) */}
+          {!showToolbarInCreate && (
+            <div className="hidden md:block">
+              <RoutesNavTabs
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                onSwitchToToolbar={() => setShowToolbarInCreate(true)}
+              />
+            </div>
+          )}
 
           {/* DESKTOP: Route creation sidebar (left panel) */}
           <div className="hidden md:flex absolute top-0 left-0 bottom-0 w-96 bg-white shadow-2xl z-20 flex-col overflow-hidden">
@@ -1034,22 +1042,26 @@ export default function RoutesPage() {
             />
           </div>
 
-          {/* Desktop Route creation toolbar */}
-          <div className="hidden md:block">
-            <RouteCreatorToolbar
-              isPlotting={isPlotting}
-              setIsPlotting={setIsPlotting}
-              snapEnabled={snapEnabled}
-              setSnapEnabled={setSnapEnabled}
-              toolMode={toolMode}
-              setToolMode={setToolMode}
-              onUndo={handleUndo}
-              onClear={handleClear}
-              canUndo={history.length > 0}
-              routeStyle={routeStyle}
-              onStyleChange={setRouteStyle}
-            />
-          </div>
+          {/* Desktop Route creation toolbar (replaces nav tabs position) */}
+          {showToolbarInCreate && (
+            <div className="hidden md:block">
+              <RouteCreatorToolbar
+                isPlotting={isPlotting}
+                setIsPlotting={setIsPlotting}
+                snapEnabled={snapEnabled}
+                setSnapEnabled={setSnapEnabled}
+                toolMode={toolMode}
+                setToolMode={setToolMode}
+                onUndo={handleUndo}
+                onClear={handleClear}
+                canUndo={history.length > 0}
+                routeStyle={routeStyle}
+                onStyleChange={setRouteStyle}
+                containerClassName="top-4"
+                onSwitchBar={() => setShowToolbarInCreate(false)}
+              />
+            </div>
+          )}
 
           {/* Map controls - desktop only, mobile uses FAB */}
           <div className="hidden md:block">
@@ -1348,7 +1360,7 @@ export default function RoutesPage() {
             startEditing(routeId, routeData);
           }}
           onFlyToLocation={(lat, lng) => {
-            mapRef.current?.flyTo(lat, lng, 16);
+            mapRef.current?.flyTo(lat, lng, 18);
           }}
           initialWaypointId={initialWaypointId}
           onWaypointFocused={() => setInitialWaypointId(null)}
