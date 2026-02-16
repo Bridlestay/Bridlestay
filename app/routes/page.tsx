@@ -24,8 +24,40 @@ import { MobilePanelToggle } from "@/components/routes/mobile-panel-toggle";
 import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Map, Settings, ChevronLeft } from "lucide-react";
+import { Map, Settings, ChevronLeft, AlertTriangle, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+
+const HAZARD_TYPES = [
+  { value: "tree_fall", label: "Fallen Tree" },
+  { value: "flooding", label: "Flooding" },
+  { value: "erosion", label: "Path Erosion" },
+  { value: "livestock", label: "Livestock Warning" },
+  { value: "closure", label: "Path Closed" },
+  { value: "poor_visibility", label: "Poor Visibility" },
+  { value: "ice_snow", label: "Ice/Snow" },
+  { value: "overgrown", label: "Overgrown Path" },
+  { value: "damaged_path", label: "Damaged Surface" },
+  { value: "dangerous_crossing", label: "Dangerous Crossing" },
+  { value: "other", label: "Other" },
+];
 
 export default function RoutesPage() {
   const mapRef = useRef<RoutesMapV2Handle>(null);
@@ -60,6 +92,18 @@ export default function RoutesPage() {
   const [selectedRouteHazards, setSelectedRouteHazards] = useState<any[]>([]);
   const [initialWaypointId, setInitialWaypointId] = useState<string | null>(null);
   const [mapViewMode, setMapViewMode] = useState<"waypoints" | "hazards" | null>(null);
+
+  // Hazard placement state
+  const [placingHazard, setPlacingHazard] = useState(false);
+  const [pendingHazardLocation, setPendingHazardLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [hazardCreateDialogOpen, setHazardCreateDialogOpen] = useState(false);
+  const [newHazardData, setNewHazardData] = useState({
+    hazard_type: "",
+    title: "",
+    description: "",
+    severity: "medium",
+  });
+  const [submittingNewHazard, setSubmittingNewHazard] = useState(false);
 
   // Route preview (quick card at bottom)
   const [previewRoute, setPreviewRoute] = useState<any | null>(null);
@@ -489,6 +533,82 @@ export default function RoutesPage() {
       }
     } catch {
       toast.error("Failed to update hazard");
+    }
+  };
+
+  // Hazard placement: enter placement mode
+  const handleStartPlacingHazard = () => {
+    if (!userId) {
+      toast.error("Please sign in to report hazards");
+      return;
+    }
+    setPlacingHazard(true);
+    setDrawerOpen(false);
+    setMobileRouteDetailOpen(false);
+    setMapViewMode(null);
+    // Zoom to fit route so user can see where to click
+    if (selectedRouteData?.geometry?.coordinates?.length > 0) {
+      setTimeout(() => {
+        mapRef.current?.fitBounds(selectedRouteData.geometry.coordinates, {
+          top: 80,
+          bottom: 80,
+          left: 20,
+          right: 20,
+        });
+      }, 200);
+    }
+  };
+
+  // Hazard placement: user clicked on valid location
+  const handleHazardPlaced = (lat: number, lng: number) => {
+    setPendingHazardLocation({ lat, lng });
+    setPlacingHazard(false);
+    setHazardCreateDialogOpen(true);
+  };
+
+  // Hazard placement: cancel
+  const handleCancelPlacingHazard = () => {
+    setPlacingHazard(false);
+    setDrawerOpen(true);
+    setMobileRouteDetailOpen(true);
+  };
+
+  // Hazard placement: submit
+  const handleSubmitNewHazard = async () => {
+    if (!newHazardData.hazard_type || !newHazardData.title) {
+      toast.error("Please select a hazard type and add a title");
+      return;
+    }
+    if (!pendingHazardLocation) return;
+
+    setSubmittingNewHazard(true);
+    try {
+      const res = await fetch(`/api/routes/${selectedRouteId}/hazards`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...newHazardData,
+          lat: pendingHazardLocation.lat,
+          lng: pendingHazardLocation.lng,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedRouteHazards((prev) => [data.hazard, ...prev]);
+        setHazardCreateDialogOpen(false);
+        setPendingHazardLocation(null);
+        setNewHazardData({ hazard_type: "", title: "", description: "", severity: "medium" });
+        toast.success("Hazard reported! Thank you for helping keep others safe.");
+        // Return to drawer
+        setDrawerOpen(true);
+        setMobileRouteDetailOpen(true);
+      } else {
+        toast.error("Failed to report hazard");
+      }
+    } catch {
+      toast.error("Failed to report hazard");
+    } finally {
+      setSubmittingNewHazard(false);
     }
   };
 
@@ -1168,8 +1288,28 @@ export default function RoutesPage() {
             showHazards={mapViewMode === "hazards"}
             onHazardResolve={handleResolveHazardFromMap}
             isAuthenticated={!!userId}
+            placingHazard={placingHazard}
+            onHazardPlaced={handleHazardPlaced}
           />
         </div>
+
+        {/* Hazard placement instruction bar */}
+        {placingHazard && (
+          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-30 md:top-4">
+            <div className="flex items-center gap-3 bg-white rounded-full shadow-lg border px-5 py-2.5">
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+              <span className="text-sm font-medium">Click on the route to place a hazard</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 rounded-full"
+                onClick={handleCancelPlacingHazard}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* View mode back button (when waypoints/hazards view is active) */}
         {mapViewMode && (
@@ -1401,10 +1541,95 @@ export default function RoutesPage() {
               prev.map((h: any) => (h.id === hazardId ? { ...h, status: "resolved" } : h))
             );
           }}
+          onPlaceHazard={handleStartPlacingHazard}
           mobileShowDetails={mobileRouteDetailOpen}
           onMobileToggleDetails={setMobileRouteDetailOpen}
         />
         )}
+
+        {/* Hazard Creation Dialog (page-level, after map placement) */}
+        <Dialog
+          open={hazardCreateDialogOpen}
+          onOpenChange={(open) => {
+            setHazardCreateDialogOpen(open);
+            if (!open) {
+              setPendingHazardLocation(null);
+              setDrawerOpen(true);
+              setMobileRouteDetailOpen(true);
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Report a Hazard</DialogTitle>
+              <DialogDescription>
+                Help other riders by reporting hazards on this route.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Hazard Type *</Label>
+                <Select
+                  value={newHazardData.hazard_type}
+                  onValueChange={(v) => setNewHazardData((prev) => ({ ...prev, hazard_type: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HAZARD_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Title *</Label>
+                <Input
+                  placeholder="Brief description..."
+                  value={newHazardData.title}
+                  onChange={(e) => setNewHazardData((prev) => ({ ...prev, title: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Details</Label>
+                <Textarea
+                  placeholder="Additional details..."
+                  value={newHazardData.description}
+                  onChange={(e) => setNewHazardData((prev) => ({ ...prev, description: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Severity</Label>
+                <Select
+                  value={newHazardData.severity}
+                  onValueChange={(v) => setNewHazardData((prev) => ({ ...prev, severity: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low - Minor inconvenience</SelectItem>
+                    <SelectItem value="medium">Medium - Use caution</SelectItem>
+                    <SelectItem value="high">High - Significant danger</SelectItem>
+                    <SelectItem value="critical">Critical - Do not proceed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={handleSubmitNewHazard}
+                disabled={submittingNewHazard}
+                variant="destructive"
+              >
+                {submittingNewHazard ? "Submitting..." : "Report Hazard"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Elevation Profile moved inside the route detail panel */}
       </div>

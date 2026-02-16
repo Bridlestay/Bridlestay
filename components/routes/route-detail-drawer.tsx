@@ -83,6 +83,7 @@ interface RouteDetailDrawerProps {
   onEnterViewMode?: (mode: "waypoints" | "hazards") => void;
   onHazardsLoaded?: (hazards: any[]) => void;
   onHazardResolved?: (hazardId: string) => void;
+  onPlaceHazard?: () => void;
   // Mobile panel control
   mobileShowDetails?: boolean;
   onMobileToggleDetails?: (show: boolean) => void;
@@ -319,6 +320,7 @@ export function RouteDetailDrawer({
   onEnterViewMode,
   onHazardsLoaded,
   onHazardResolved,
+  onPlaceHazard,
   mobileShowDetails = true,
   onMobileToggleDetails,
 }: RouteDetailDrawerProps) {
@@ -418,6 +420,7 @@ export function RouteDetailDrawer({
   // Warning state
   const [warnings, setWarnings] = useState<any[]>([]);
   const [warningDialogOpen, setWarningDialogOpen] = useState(false);
+  const [showAllWarnings, setShowAllWarnings] = useState(false);
   const [newWarning, setNewWarning] = useState({
     hazard_type: "",
     title: "",
@@ -912,8 +915,8 @@ export function RouteDetailDrawer({
       toast.error("Please sign in to post warnings");
       return;
     }
-    if (!newWarning.hazard_type || !newWarning.title) {
-      toast.error("Please select a warning type and add a title");
+    if (!newWarning.hazard_type) {
+      toast.error("Please select a warning type");
       return;
     }
 
@@ -921,13 +924,14 @@ export function RouteDetailDrawer({
     try {
       const hoursFromNow = parseInt(newWarning.duration) || 4;
       const expiresAt = new Date(Date.now() + hoursFromNow * 60 * 60 * 1000).toISOString();
+      const warningTitle = WARNING_TYPES.find((t) => t.value === newWarning.hazard_type)?.label || newWarning.hazard_type;
 
       const res = await fetch(`/api/routes/${routeId}/hazards`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           hazard_type: newWarning.hazard_type,
-          title: newWarning.title,
+          title: warningTitle,
           description: newWarning.description,
           severity: "medium",
           is_warning: true,
@@ -2174,7 +2178,10 @@ export function RouteDetailDrawer({
                     </Badge>
                   )}
                   {activeWarnings.length > 0 && (
-                    <Badge className="gap-1 text-xs bg-amber-500">
+                    <Badge
+                      className="gap-1 text-xs bg-amber-500 cursor-pointer"
+                      onClick={() => document.getElementById("active-warnings")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                    >
                       <AlertTriangle className="h-3 w-3" />
                       {activeWarnings.length} Warning{activeWarnings.length > 1 ? "s" : ""}
                     </Badge>
@@ -2400,14 +2407,14 @@ export function RouteDetailDrawer({
 
             {/* ACTIVE WARNINGS */}
             {activeWarnings.length > 0 && (
-              <div className="space-y-2">
-                {activeWarnings.map((warning: any) => (
+              <div id="active-warnings" className="space-y-2">
+                {(showAllWarnings ? activeWarnings : activeWarnings.slice(0, 1)).map((warning: any) => (
                   <div key={warning.id} className="p-3 bg-amber-50 border border-amber-300 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 min-w-0">
                         <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
                         <span className="font-medium text-sm text-amber-900 truncate">
-                          {warning.title}
+                          {WARNING_TYPES.find((t) => t.value === warning.hazard_type)?.label || warning.hazard_type}
                         </span>
                       </div>
                       {warning.expires_at && (
@@ -2425,17 +2432,27 @@ export function RouteDetailDrawer({
                       </span>
                       {userId && (
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="h-6 text-xs text-green-700 hover:text-green-800 px-2"
+                          className="h-6 text-xs border-amber-300 text-amber-700 hover:bg-amber-100 px-2"
                           onClick={() => handleResolveHazard(warning.id)}
                         >
-                          <Check className="h-3 w-3 mr-1" /> Cleared
+                          Cleared?
                         </Button>
                       )}
                     </div>
                   </div>
                 ))}
+                {activeWarnings.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs text-amber-700 hover:text-amber-800"
+                    onClick={() => setShowAllWarnings(!showAllWarnings)}
+                  >
+                    {showAllWarnings ? "Show less" : `Show ${activeWarnings.length - 1} more warning${activeWarnings.length - 1 > 1 ? "s" : ""}`}
+                  </Button>
+                )}
               </div>
             )}
 
@@ -2465,8 +2482,8 @@ export function RouteDetailDrawer({
                 onClick={() => {
                   if (onEnterViewMode && activeHazards.length > 0) {
                     onEnterViewMode("hazards");
-                  } else {
-                    setHazardDialogOpen(true);
+                  } else if (onPlaceHazard) {
+                    onPlaceHazard();
                   }
                 }}
               >
@@ -2475,11 +2492,21 @@ export function RouteDetailDrawer({
                     <AlertTriangle className="h-4 w-4" />
                     Hazards
                   </span>
-                  {activeHazards.length > 0 ? (
-                    <Badge variant="destructive" className="text-xs">{activeHazards.length}</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-xs">Report</Badge>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {activeHazards.length > 0 && (
+                      <Badge variant="destructive" className="text-xs">{activeHazards.length}</Badge>
+                    )}
+                    <Badge
+                      variant="outline"
+                      className="text-xs cursor-pointer hover:bg-red-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPlaceHazard?.();
+                      }}
+                    >
+                      + Report
+                    </Badge>
+                  </div>
                 </div>
               </div>
               <div
@@ -2811,14 +2838,6 @@ export function RouteDetailDrawer({
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div>
-                      <Label>Title *</Label>
-                      <Input
-                        placeholder="Brief description of conditions..."
-                        value={newWarning.title}
-                        onChange={(e) => setNewWarning((prev) => ({ ...prev, title: e.target.value }))}
-                      />
                     </div>
                     <div>
                       <Label>Details (optional)</Label>

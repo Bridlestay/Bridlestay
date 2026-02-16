@@ -122,6 +122,9 @@ export interface RoutesMapMapboxProps {
   showHazards?: boolean;
   onHazardResolve?: (hazardId: string) => void;
   isAuthenticated?: boolean;
+  // Hazard placement mode
+  placingHazard?: boolean;
+  onHazardPlaced?: (lat: number, lng: number) => void;
 }
 
 export interface RoutesMapMapboxHandle {
@@ -191,6 +194,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       showHazards = false,
       onHazardResolve,
       isAuthenticated = false,
+      placingHazard = false,
+      onHazardPlaced,
     },
     ref
   ) => {
@@ -205,8 +210,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const routeWaypointPopupsRef = useRef<mapboxgl.Popup[]>([]);
     const hazardMarkersRef = useRef<mapboxgl.Marker[]>([]);
     const hazardPopupsRef = useRef<mapboxgl.Popup[]>([]);
+    const placementMarkerRef = useRef<mapboxgl.Marker | null>(null);
     const startEndMarkersRef = useRef<mapboxgl.Marker[]>([]);
-    
+
     const { isLoaded, loadError } = useMapbox();
     const [mapLoaded, setMapLoaded] = useState(false);
 
@@ -925,6 +931,96 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         hazardMarkersRef.current = [];
       };
     }, [routeHazards, showHazards, mapLoaded, onHazardResolve, isAuthenticated]);
+
+    // Hazard placement mode — click on/near route to place hazard
+    useEffect(() => {
+      if (!mapRef.current || !mapLoaded) return;
+      const map = mapRef.current;
+
+      // Clean up placement marker when exiting placement mode
+      if (!placingHazard) {
+        placementMarkerRef.current?.remove();
+        placementMarkerRef.current = null;
+        map.getCanvas().style.cursor = "";
+        return;
+      }
+
+      // Set crosshair cursor
+      map.getCanvas().style.cursor = "crosshair";
+
+      // Point-to-line-segment distance in meters (flat earth approx, fine at 10m scale)
+      const distToSegment = (
+        pLat: number, pLng: number,
+        aLat: number, aLng: number,
+        bLat: number, bLng: number
+      ): number => {
+        const latF = 111320;
+        const lngF = 111320 * Math.cos((pLat * Math.PI) / 180);
+        const px = pLat * latF, py = pLng * lngF;
+        const ax = aLat * latF, ay = aLng * lngF;
+        const bx = bLat * latF, by = bLng * lngF;
+        const dx = bx - ax, dy = by - ay;
+        if (dx === 0 && dy === 0) return Math.sqrt((px - ax) ** 2 + (py - ay) ** 2);
+        const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+        return Math.sqrt((px - (ax + t * dx)) ** 2 + (py - (ay + t * dy)) ** 2);
+      };
+
+      const distToPolyline = (lat: number, lng: number, coords: [number, number][]): number => {
+        let min = Infinity;
+        for (let i = 0; i < coords.length - 1; i++) {
+          const d = distToSegment(lat, lng, coords[i][1], coords[i][0], coords[i + 1][1], coords[i + 1][0]);
+          if (d < min) min = d;
+        }
+        return min;
+      };
+
+      const handleClick = (e: mapboxgl.MapMouseEvent) => {
+        const { lat, lng } = e.lngLat;
+
+        // Get route coordinates from the selected route
+        const route = routes.find((r) => r.id === selectedRouteId) || selectedRouteData;
+        const coords: [number, number][] = route?.geometry?.coordinates;
+
+        if (!coords || coords.length < 2) {
+          toast.error("No route geometry found");
+          return;
+        }
+
+        const dist = distToPolyline(lat, lng, coords);
+        if (dist > 10) {
+          toast.error(`Too far from the route (${Math.round(dist)}m away). Click within 10m of the route line.`);
+          return;
+        }
+
+        // Place a temporary marker
+        placementMarkerRef.current?.remove();
+        const el = document.createElement("div");
+        el.innerHTML = `
+          <div style="
+            width: 32px; height: 32px; background: #EF4444;
+            border: 3px solid white; border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; color: white; animation: pulse 1s infinite;
+          ">&#9888;</div>
+        `;
+        placementMarkerRef.current = new mapboxgl.Marker({ element: el })
+          .setLngLat([lng, lat])
+          .addTo(map);
+
+        // Callback to parent
+        onHazardPlaced?.(lat, lng);
+      };
+
+      map.on("click", handleClick);
+
+      return () => {
+        map.off("click", handleClick);
+        map.getCanvas().style.cursor = "";
+        placementMarkerRef.current?.remove();
+        placementMarkerRef.current = null;
+      };
+    }, [placingHazard, mapLoaded, selectedRouteId, selectedRouteData, routes, onHazardPlaced]);
 
     // Draw selected route polyline with start/end markers
     useEffect(() => {
