@@ -116,7 +116,7 @@ export default function RoutesPage() {
     showByways: false,
     showRestrictedByways: false,
     showWaymarkers: false,
-    showHazards: true,
+    showHazards: false,
     showProperties: true,
     routeLineWidth: 4,
     monochrome: false,
@@ -1313,11 +1313,11 @@ export default function RoutesPage() {
             showWaypoints={mapViewMode === "waypoints" || layerSettings.showWaymarkers}
             onWaypointClick={handleWaypointClick}
             routeHazards={
-              mapViewMode === "hazards"
+              (mapViewMode === "hazards" || layerSettings.showHazards)
                 ? selectedRouteHazards.filter((h: any) => h.status === "active" && h.lat && h.lng)
                 : []
             }
-            showHazards={mapViewMode === "hazards"}
+            showHazards={mapViewMode === "hazards" || layerSettings.showHazards}
             onHazardResolve={handleResolveHazardFromMap}
             isAuthenticated={!!userId}
             placingHazard={placingHazard}
@@ -1345,7 +1345,7 @@ export default function RoutesPage() {
 
         {/* View mode back button (when waypoints/hazards view is active) */}
         {mapViewMode && (
-          <div className="fixed top-20 left-4 z-30 md:top-4 md:left-4">
+          <div className="fixed top-14 left-4 z-[60] md:top-4 md:left-4">
             <Button
               variant="outline"
               size="sm"
