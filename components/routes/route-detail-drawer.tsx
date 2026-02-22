@@ -2348,7 +2348,17 @@ export function RouteDetailDrawer({
                   {route.featured && <Badge className="text-xs bg-amber-500">Featured</Badge>}
                   {isOwner && <Badge variant="outline" className="text-xs">Your Route</Badge>}
                   {activeHazards.length > 0 && (
-                    <Badge variant="destructive" className="gap-1 text-xs">
+                    <Badge
+                      variant="destructive"
+                      className="gap-1 text-xs cursor-pointer"
+                      onClick={() => {
+                        if (onEnterViewMode) {
+                          onEnterViewMode("hazards");
+                        } else {
+                          document.getElementById("hazards-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                        }
+                      }}
+                    >
                       <AlertTriangle className="h-3 w-3" />
                       {activeHazards.length} Hazard{activeHazards.length > 1 ? "s" : ""}
                     </Badge>
@@ -2667,6 +2677,7 @@ export function RouteDetailDrawer({
                 )}
               </div>
               <div
+                id="hazards-section"
                 className="border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors relative"
                 onClick={() => {
                   if (onEnterViewMode && activeHazards.length > 0) {

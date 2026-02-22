@@ -916,17 +916,34 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           .setLngLat([hazard.lng, hazard.lat])
           .addTo(mapRef.current!);
 
-        el.addEventListener("mouseenter", () => {
+        let popupCloseTimer: ReturnType<typeof setTimeout> | null = null;
+        const showPopup = () => {
+          if (popupCloseTimer) { clearTimeout(popupCloseTimer); popupCloseTimer = null; }
           popup.setLngLat([hazard.lng, hazard.lat]).addTo(mapRef.current!);
-          setTimeout(attachResolveListener, 50);
+          setTimeout(() => {
+            attachResolveListener();
+            // Keep popup open while hovering over it
+            const popupEl = popup.getElement();
+            if (popupEl) {
+              popupEl.addEventListener("mouseenter", () => {
+                if (popupCloseTimer) { clearTimeout(popupCloseTimer); popupCloseTimer = null; }
+              });
+              popupEl.addEventListener("mouseleave", () => {
+                popupCloseTimer = setTimeout(() => popup.remove(), 200);
+              });
+            }
+          }, 50);
+        };
+
+        el.addEventListener("mouseenter", showPopup);
+        el.addEventListener("mouseleave", () => {
+          popupCloseTimer = setTimeout(() => popup.remove(), 200);
         });
-        el.addEventListener("mouseleave", () => popup.remove());
 
         // Click also shows popup (for mobile touch)
         el.addEventListener("click", (e) => {
           e.stopPropagation();
-          popup.setLngLat([hazard.lng, hazard.lat]).addTo(mapRef.current!);
-          setTimeout(attachResolveListener, 50);
+          showPopup();
         });
 
         hazardMarkersRef.current.push(marker);
