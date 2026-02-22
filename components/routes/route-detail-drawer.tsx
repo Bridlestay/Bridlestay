@@ -423,18 +423,22 @@ export function RouteDetailDrawer({
   const [showAllWarnings, setShowAllWarnings] = useState(false);
   const [newWarning, setNewWarning] = useState({
     hazard_type: "",
-    title: "",
     description: "",
-    duration: "4",
   });
   const [submittingWarning, setSubmittingWarning] = useState(false);
+  const [userVotedWarnings, setUserVotedWarnings] = useState<Set<string>>(new Set());
+
+  const [warningCheckDone, setWarningCheckDone] = useState(false);
+  const [warningVotes, setWarningVotes] = useState<Record<string, boolean>>({});
 
   const [waypointDialogOpen, setWaypointDialogOpen] = useState(false);
   const [newWaypoint, setNewWaypoint] = useState({
     name: "",
     description: "",
     icon_type: "other",
+    tag: "note" as string,
   });
+  const [waypointTagFilters, setWaypointTagFilters] = useState<Set<string>>(new Set());
   const [waypointLocation, setWaypointLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [submittingWaypoint, setSubmittingWaypoint] = useState(false);
   
@@ -534,6 +538,12 @@ export function RouteDetailDrawer({
         if (res.ok) {
           const data = await res.json();
           setWarnings(data.hazards || []);
+          // Populate user voted set from server response
+          const voted = new Set<string>();
+          (data.hazards || []).forEach((h: any) => {
+            if (h.user_has_voted) voted.add(h.id);
+          });
+          setUserVotedWarnings(voted);
         }
       } catch (error) {
         console.error("Failed to fetch warnings:", error);
@@ -922,8 +932,7 @@ export function RouteDetailDrawer({
 
     setSubmittingWarning(true);
     try {
-      const hoursFromNow = parseInt(newWarning.duration) || 4;
-      const expiresAt = new Date(Date.now() + hoursFromNow * 60 * 60 * 1000).toISOString();
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
       const warningTitle = WARNING_TYPES.find((t) => t.value === newWarning.hazard_type)?.label || newWarning.hazard_type;
 
       const res = await fetch(`/api/routes/${routeId}/hazards`, {
@@ -942,7 +951,7 @@ export function RouteDetailDrawer({
       if (res.ok) {
         const data = await res.json();
         setWarnings((prev) => [data.hazard, ...prev]);
-        setNewWarning({ hazard_type: "", title: "", description: "", duration: "4" });
+        setNewWarning({ hazard_type: "", description: "" });
         setWarningDialogOpen(false);
         toast.success("Warning posted! Other riders will see this alert.");
       } else {
@@ -957,6 +966,12 @@ export function RouteDetailDrawer({
 
   const handleResolveHazard = async (hazardId: string) => {
     try {
+      // Check if this is a warning — warnings use the vote endpoint
+      const warning = warnings.find((w) => w.id === hazardId);
+      if (warning) {
+        return handleVoteClearWarning(hazardId);
+      }
+
       const res = await fetch(`/api/routes/${routeId}/hazards/${hazardId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -967,14 +982,49 @@ export function RouteDetailDrawer({
         setHazards((prev) =>
           prev.map((h) => (h.id === hazardId ? { ...h, status: "resolved" } : h))
         );
-        setWarnings((prev) =>
-          prev.map((w) => (w.id === hazardId ? { ...w, status: "resolved" } : w))
-        );
         onHazardResolved?.(hazardId);
         toast.success("Marked as cleared");
       }
     } catch (error) {
       toast.error("Failed to update hazard");
+    }
+  };
+
+  const handleVoteClearWarning = async (warningId: string) => {
+    try {
+      const res = await fetch(`/api/routes/${routeId}/hazards/${warningId}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUserVotedWarnings((prev) => new Set([...prev, warningId]));
+
+        if (data.status === "resolved") {
+          setWarnings((prev) =>
+            prev.map((w) => (w.id === warningId ? { ...w, status: "resolved" } : w))
+          );
+          onHazardResolved?.(warningId);
+          toast.success("Warning cleared by community votes!");
+        } else {
+          setWarnings((prev) =>
+            prev.map((w) =>
+              w.id === warningId
+                ? { ...w, clear_votes_count: data.clear_votes_count, clear_votes_needed: data.clear_votes_needed, user_has_voted: true }
+                : w
+            )
+          );
+          toast.success(`${data.clear_votes_count}/${data.clear_votes_needed} say cleared`);
+        }
+      } else if (res.status === 409) {
+        toast("You've already voted on this warning");
+        setUserVotedWarnings((prev) => new Set([...prev, warningId]));
+      } else {
+        toast.error("Failed to vote");
+      }
+    } catch (error) {
+      toast.error("Failed to vote");
     }
   };
 
@@ -1149,6 +1199,7 @@ export function RouteDetailDrawer({
           name: newWaypoint.name,
           description: newWaypoint.description,
           icon_type: newWaypoint.icon_type,
+          tag: newWaypoint.tag,
           lat: waypointLocation.lat,
           lng: waypointLocation.lng,
           order_index: waypoints.length,
@@ -1158,7 +1209,7 @@ export function RouteDetailDrawer({
       if (res.ok) {
         const data = await res.json();
         setWaypoints((prev) => [...prev, data.waypoint]);
-        setNewWaypoint({ name: "", description: "", icon_type: "other" });
+        setNewWaypoint({ name: "", description: "", icon_type: "other", tag: "note" });
         setWaypointLocation(null);
         setWaypointDialogOpen(false);
         toast.success("Waypoint added!");
@@ -1246,6 +1297,8 @@ export function RouteDetailDrawer({
     setReviewPhotoFile(null);
     setReviewPhotoPreview(null);
     setMaxVisitedStep(0);
+    setWarningCheckDone(false);
+    setWarningVotes({});
   };
 
   const toggleReviewTag = (tagId: string) => {
@@ -1582,11 +1635,48 @@ export function RouteDetailDrawer({
         <Badge variant="outline" className="ml-auto">{fullWaypointList.length}</Badge>
       </div>
 
+      {/* Tag Filter Pills */}
+      <div className="flex flex-wrap gap-1.5 px-4 py-2 border-b">
+        {[
+          { value: "instruction", label: "Instruction", color: "bg-blue-100 text-blue-700 border-blue-300" },
+          { value: "poi", label: "POI", color: "bg-purple-100 text-purple-700 border-purple-300" },
+          { value: "note", label: "Note", color: "bg-gray-100 text-gray-700 border-gray-300" },
+          { value: "caution", label: "Caution", color: "bg-amber-100 text-amber-700 border-amber-300" },
+        ].map((tag) => {
+          const isActive = waypointTagFilters.has(tag.value);
+          return (
+            <button
+              key={tag.value}
+              onClick={() => {
+                setWaypointTagFilters((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(tag.value)) next.delete(tag.value);
+                  else next.add(tag.value);
+                  return next;
+                });
+              }}
+              className={cn(
+                "px-2.5 py-1 rounded-full text-xs font-medium border transition-colors",
+                isActive ? tag.color : "bg-white text-gray-400 border-gray-200 hover:bg-gray-50"
+              )}
+            >
+              {tag.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Waypoints Content */}
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-2">
           {fullWaypointList.length > 0 ? (
-            fullWaypointList.map((wp: any, index: number) => {
+            fullWaypointList
+              .filter((wp: any) => {
+                if (waypointTagFilters.size === 0) return true;
+                if (wp.type === "start" || wp.type === "finish") return true;
+                return waypointTagFilters.has(wp.tag || "note");
+              })
+              .map((wp: any, index: number) => {
               const isExpanded = expandedWaypoints.has(wp.id);
               const isStart = wp.type === "start";
               const isFinish = wp.type === "finish";
@@ -1633,6 +1723,18 @@ export function RouteDetailDrawer({
                         {wp.name || `Waypoint ${index}`}
                       </p>
                     </div>
+                    {wp.tag && wp.tag !== "note" && (
+                      <Badge
+                        variant="outline"
+                        className={cn("text-[10px] h-5 px-1.5 flex-shrink-0", {
+                          "bg-blue-50 text-blue-700 border-blue-200": wp.tag === "instruction",
+                          "bg-purple-50 text-purple-700 border-purple-200": wp.tag === "poi",
+                          "bg-amber-50 text-amber-700 border-amber-200": wp.tag === "caution",
+                        })}
+                      >
+                        {wp.tag === "instruction" ? "Instruction" : wp.tag === "poi" ? "POI" : "Caution"}
+                      </Badge>
+                    )}
                     {wp._distFromStart > 0 && (
                       <span className="text-xs text-muted-foreground flex-shrink-0">
                         {wp._distFromStart.toFixed(2)} km
@@ -1994,58 +2096,132 @@ export function RouteDetailDrawer({
         </div>
       )}
 
-      {/* Step 5: Thank You + Optional Long Note */}
+      {/* Step 5: Warning Check (if active warnings) → Thank You + Optional Long Note */}
       {reviewStep === 5 && (
         <div className="space-y-5">
-          <div className="text-center py-4">
-            <div className="text-5xl mb-4">🎉</div>
-            <h2 className="text-xl font-bold text-gray-900">Thank you for your review!</h2>
-            <p className="text-sm text-gray-500 mt-2">
-              Your insights help the riding community explore with confidence
-            </p>
-          </div>
+          {activeWarnings.length > 0 && !warningCheckDone ? (
+            <>
+              <div className="text-center py-2">
+                <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                <h2 className="text-lg font-bold text-gray-900">Active Warnings</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Help other riders by confirming current conditions
+                </p>
+              </div>
 
-          {reviewTags.length > 0 && (
-            <div className="flex flex-wrap gap-2 justify-center">
-              {reviewTags.map((tagId) => {
-                const tag = REVIEW_TAGS.find((t) => t.id === tagId);
-                return tag ? (
-                  <Badge key={tagId} variant="secondary" className="gap-1">
-                    {tag.emoji} {tag.label}
-                  </Badge>
-                ) : null;
-              })}
-            </div>
+              <div className="space-y-3">
+                {activeWarnings.map((warning: any) => (
+                  <div key={warning.id} className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                      <span className="font-medium text-sm text-amber-900">
+                        {WARNING_TYPES.find((t) => t.value === warning.hazard_type)?.label || warning.hazard_type}
+                      </span>
+                    </div>
+                    {warning.description && (
+                      <p className="text-xs text-amber-700 mb-2">{warning.description}</p>
+                    )}
+                    <p className="text-xs text-gray-600 mb-2">Is this still an issue?</p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={`flex-1 h-8 text-xs ${warningVotes[warning.id] === true ? "bg-red-50 border-red-300 text-red-700" : ""}`}
+                        onClick={() => setWarningVotes((prev) => ({ ...prev, [warning.id]: true }))}
+                      >
+                        Yes, still an issue
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={`flex-1 h-8 text-xs ${warningVotes[warning.id] === false ? "bg-green-50 border-green-300 text-green-700" : ""}`}
+                        onClick={() => setWarningVotes((prev) => ({ ...prev, [warning.id]: false }))}
+                      >
+                        No, it&apos;s cleared
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-full"
+                  onClick={() => setWarningCheckDone(true)}
+                >
+                  Skip
+                </Button>
+                <Button
+                  className="flex-1 rounded-full bg-amber-600 hover:bg-amber-700"
+                  onClick={async () => {
+                    // Submit votes for warnings marked as "No, it's cleared"
+                    const clearVotes = Object.entries(warningVotes)
+                      .filter(([, stillIssue]) => !stillIssue)
+                      .map(([id]) => id);
+                    for (const warningId of clearVotes) {
+                      await handleVoteClearWarning(warningId);
+                    }
+                    setWarningCheckDone(true);
+                  }}
+                >
+                  Submit
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-center py-4">
+                <div className="text-5xl mb-4">🎉</div>
+                <h2 className="text-xl font-bold text-gray-900">Thank you for your review!</h2>
+                <p className="text-sm text-gray-500 mt-2">
+                  Your insights help the riding community explore with confidence
+                </p>
+              </div>
+
+              {reviewTags.length > 0 && (
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {reviewTags.map((tagId) => {
+                    const tag = REVIEW_TAGS.find((t) => t.id === tagId);
+                    return tag ? (
+                      <Badge key={tagId} variant="secondary" className="gap-1">
+                        {tag.emoji} {tag.label}
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              )}
+
+              <Separator />
+
+              <div className="space-y-3">
+                <h3 className="font-medium text-gray-900">Anything else you&apos;d like to note?</h3>
+                <p className="text-xs text-gray-500">
+                  Optional — share a longer story about your experience. This helps enthusiasts get the full picture.
+                </p>
+                <Textarea
+                  placeholder="Share more details about your ride..."
+                  value={reviewLongNote}
+                  onChange={(e) => setReviewLongNote(e.target.value)}
+                  className="min-h-[120px]"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" className="flex-1 rounded-full" onClick={resetReviewState}>
+                  Skip
+                </Button>
+                {reviewLongNote.trim() && (
+                  <Button
+                    className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
+                    onClick={handleSubmitLongNote}
+                  >
+                    Save Note
+                  </Button>
+                )}
+              </div>
+            </>
           )}
-
-          <Separator />
-
-          <div className="space-y-3">
-            <h3 className="font-medium text-gray-900">Anything else you&apos;d like to note?</h3>
-            <p className="text-xs text-gray-500">
-              Optional — share a longer story about your experience. This helps enthusiasts get the full picture.
-            </p>
-            <Textarea
-              placeholder="Share more details about your ride..."
-              value={reviewLongNote}
-              onChange={(e) => setReviewLongNote(e.target.value)}
-              className="min-h-[120px]"
-            />
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" className="flex-1 rounded-full" onClick={resetReviewState}>
-              Skip
-            </Button>
-            {reviewLongNote.trim() && (
-              <Button
-                className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
-                onClick={handleSubmitLongNote}
-              >
-                Save Note
-              </Button>
-            )}
-          </div>
         </div>
       )}
     </div>
@@ -2430,16 +2606,29 @@ export function RouteDetailDrawer({
                       <span className="text-xs text-amber-500">
                         Reported {formatDistanceToNow(new Date(warning.created_at), { addSuffix: true })}
                       </span>
-                      {userId && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-6 text-xs border-amber-300 text-amber-700 hover:bg-amber-100 px-2"
-                          onClick={() => handleResolveHazard(warning.id)}
-                        >
-                          Cleared?
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {warning.clear_votes_needed && (
+                          <span className="text-xs text-amber-600">
+                            {warning.clear_votes_count || 0}/{warning.clear_votes_needed} say cleared
+                          </span>
+                        )}
+                        {userId && (
+                          userVotedWarnings.has(warning.id) || warning.user_has_voted ? (
+                            <Badge className="h-6 text-xs bg-green-100 text-green-700 border border-green-300 hover:bg-green-100">
+                              Voted
+                            </Badge>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 text-xs border-amber-300 text-amber-700 hover:bg-amber-100 px-2"
+                              onClick={() => handleVoteClearWarning(warning.id)}
+                            >
+                              Cleared?
+                            </Button>
+                          )
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -2814,7 +3003,6 @@ export function RouteDetailDrawer({
                   <DialogTitle>Post a Route Warning</DialogTitle>
                   <DialogDescription>
                     Alert other riders about current conditions on this route.
-                    Warnings expire automatically after the selected duration.
                   </DialogDescription>
                 </DialogHeader>
                 {!userId ? (
@@ -2847,26 +3035,9 @@ export function RouteDetailDrawer({
                         onChange={(e) => setNewWarning((prev) => ({ ...prev, description: e.target.value }))}
                       />
                     </div>
-                    <div>
-                      <Label>Duration</Label>
-                      <Select
-                        value={newWarning.duration}
-                        onValueChange={(v) => setNewWarning((prev) => ({ ...prev, duration: v }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="2">2 hours</SelectItem>
-                          <SelectItem value="4">4 hours</SelectItem>
-                          <SelectItem value="8">8 hours</SelectItem>
-                          <SelectItem value="24">24 hours</SelectItem>
-                          <SelectItem value="48">2 days</SelectItem>
-                          <SelectItem value="72">3 days</SelectItem>
-                          <SelectItem value="168">1 week</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Warnings expire after 30 days unless cleared by the community.
+                    </p>
                   </div>
                 )}
                 <DialogFooter>

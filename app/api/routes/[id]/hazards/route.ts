@@ -51,6 +51,24 @@ export async function GET(
       })
     );
 
+    // For warnings, check if current user has voted on each
+    if (isWarning === "true") {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && hazardsWithReporter.length > 0) {
+        const warningIds = hazardsWithReporter.map((h) => h.id);
+        const { data: userVotes } = await supabase
+          .from("warning_clear_votes")
+          .select("warning_id")
+          .eq("user_id", user.id)
+          .in("warning_id", warningIds);
+
+        const votedSet = new Set((userVotes || []).map((v: any) => v.warning_id));
+        hazardsWithReporter.forEach((h) => {
+          h.user_has_voted = votedSet.has(h.id);
+        });
+      }
+    }
+
     return NextResponse.json({ hazards: hazardsWithReporter });
   } catch (error: any) {
     console.error("[ROUTE_HAZARDS_GET] Error:", error);
@@ -91,6 +109,19 @@ export async function POST(
       );
     }
 
+    // Calculate clear_votes_needed based on route activity (warnings only)
+    let clearVotesNeeded = 2;
+    if (isWarning) {
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      const { count: recentCompletions } = await supabase
+        .from("route_completions")
+        .select("*", { count: "exact", head: true })
+        .eq("route_id", routeId)
+        .gte("completed_at", ninetyDaysAgo);
+
+      clearVotesNeeded = Math.max(2, Math.ceil((recentCompletions || 0) * 0.1));
+    }
+
     const { data: hazard, error } = await supabase
       .from("route_hazards")
       .insert({
@@ -106,6 +137,7 @@ export async function POST(
         expires_at,
         is_warning: isWarning,
         status: "active",
+        ...(isWarning ? { clear_votes_needed: clearVotesNeeded } : {}),
       })
       .select()
       .single();

@@ -29,11 +29,18 @@ interface WaypointCardProps {
     order_index: number;
     snapped?: boolean;
     snapped_to_path_type?: string | null;
+    tag?: string | null;
   };
   index?: number;
   distanceFromStart?: number; // in km
   onClick?: () => void;
 }
+
+const TAG_CONFIG: Record<string, { label: string; className: string }> = {
+  instruction: { label: "Instruction", className: "bg-blue-100 text-blue-700 border-blue-200" },
+  poi: { label: "POI", className: "bg-purple-100 text-purple-700 border-purple-200" },
+  caution: { label: "Caution", className: "bg-amber-100 text-amber-700 border-amber-200" },
+};
 
 const ICON_MAP: Record<string, { icon: any; color: string; label: string }> = {
   viewpoint: { icon: Eye, color: "text-blue-600", label: "Viewpoint" },
@@ -93,6 +100,11 @@ export function WaypointCard({ waypoint, index, distanceFromStart, onClick }: Wa
             {waypoint.icon_type && (
               <Badge variant="secondary" className="text-xs">
                 {iconConfig.label}
+              </Badge>
+            )}
+            {waypoint.tag && TAG_CONFIG[waypoint.tag] && (
+              <Badge variant="outline" className={`text-xs ${TAG_CONFIG[waypoint.tag].className}`}>
+                {TAG_CONFIG[waypoint.tag].label}
               </Badge>
             )}
             {waypoint.snapped && waypoint.snapped_to_path_type && (

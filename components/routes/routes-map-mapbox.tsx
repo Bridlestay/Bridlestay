@@ -104,6 +104,7 @@ export interface RoutesMapMapboxProps {
     name?: string | null;
     description?: string | null;
     icon_type?: string | null;
+    tag?: string | null;
     order_index: number;
   }>;
   showWaypoints?: boolean;
@@ -768,13 +769,21 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         (a, b) => (a.order_index || 0) - (b.order_index || 0)
       );
 
+      const TAG_COLORS: Record<string, string> = {
+        instruction: "#3B82F6",
+        poi: "#A855F7",
+        caution: "#F59E0B",
+        note: "#6B7280",
+      };
+
       sorted.forEach((wp, index) => {
+        const markerColor = TAG_COLORS[wp.tag || "note"] || TAG_COLORS.note;
         const el = document.createElement("div");
         el.innerHTML = `
           <div style="
             width: 24px;
             height: 24px;
-            background: #3B82F6;
+            background: ${markerColor};
             border: 3px solid white;
             border-radius: 50%;
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);

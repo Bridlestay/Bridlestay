@@ -520,6 +520,38 @@ export default function RoutesPage() {
 
   const handleResolveHazardFromMap = async (hazardId: string) => {
     try {
+      // Check if this hazard is a warning — warnings use the vote endpoint
+      const hazard = selectedRouteHazards.find((h: any) => h.id === hazardId);
+      if (hazard?.is_warning) {
+        const res = await fetch(`/api/routes/${selectedRouteId}/hazards/${hazardId}/vote`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === "resolved") {
+            setSelectedRouteHazards((prev: any[]) =>
+              prev.map((h: any) => (h.id === hazardId ? { ...h, status: "resolved" } : h))
+            );
+            toast.success("Warning cleared by community votes!");
+          } else {
+            setSelectedRouteHazards((prev: any[]) =>
+              prev.map((h: any) =>
+                h.id === hazardId
+                  ? { ...h, clear_votes_count: data.clear_votes_count, user_has_voted: true }
+                  : h
+              )
+            );
+            toast.success(`${data.clear_votes_count}/${data.clear_votes_needed} say cleared`);
+          }
+        } else if (res.status === 409) {
+          toast("You've already voted on this warning");
+        } else {
+          toast.error("Failed to vote");
+        }
+        return;
+      }
+
       const res = await fetch(`/api/routes/${selectedRouteId}/hazards/${hazardId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

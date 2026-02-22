@@ -22,6 +22,22 @@ export async function PATCH(
     const isResolveOnly = body.status === "resolved" &&
       Object.keys(body).filter((k) => k !== "status").length === 0;
 
+    // Warnings cannot be instantly resolved — they require community votes
+    if (isResolveOnly) {
+      const { data: hazardCheck } = await supabase
+        .from("route_hazards")
+        .select("is_warning")
+        .eq("id", hazardId)
+        .single();
+
+      if (hazardCheck?.is_warning) {
+        return NextResponse.json(
+          { error: "Warnings require community votes to clear. Use the vote endpoint." },
+          { status: 400 }
+        );
+      }
+    }
+
     if (!isResolveOnly) {
       // For non-resolve updates, check if user is reporter or admin
       const { data: hazard } = await supabase

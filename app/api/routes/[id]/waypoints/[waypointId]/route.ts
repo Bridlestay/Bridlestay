@@ -36,6 +36,7 @@ export async function PATCH(
     if (body.description !== undefined) updates.description = body.description;
     if (body.icon_type) updates.icon_type = body.icon_type;
     if (body.photo_url !== undefined) updates.photo_url = body.photo_url;
+    if (body.tag) updates.tag = body.tag;
 
     const { data: waypoint, error } = await supabase
       .from("route_waypoints")

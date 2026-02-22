@@ -83,6 +83,7 @@ export async function POST(
     if (photo_url !== undefined) insertData.photo_url = photo_url;
     if (snapped !== undefined) insertData.snapped = snapped;
     if (snapped_to_path_type !== undefined) insertData.snapped_to_path_type = snapped_to_path_type;
+    if (body.tag !== undefined) insertData.tag = body.tag;
 
     const { data: waypoint, error } = await supabase
       .from("route_waypoints")
