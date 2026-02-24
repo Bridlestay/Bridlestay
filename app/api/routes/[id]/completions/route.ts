@@ -27,6 +27,23 @@ export async function GET(
 
     if (error) throw error;
 
+    // Also fetch route_reviews to get full review body text
+    const { data: reviews } = await supabase
+      .from("route_reviews")
+      .select("user_id, review_text, body")
+      .eq("route_id", routeId);
+
+    // Build lookup: user_id → full review text
+    const reviewBodyMap = new Map<string, string>();
+    if (reviews) {
+      for (const r of reviews as any[]) {
+        const text = r.review_text || r.body || "";
+        if (text) {
+          reviewBodyMap.set(r.user_id, text);
+        }
+      }
+    }
+
     // Parse the JSON notes field to extract tags and short_note
     const parsed = (completions || []).map((c: any) => {
       let tags: string[] = [];
@@ -44,10 +61,12 @@ export async function GET(
       return {
         id: c.id,
         user: c.user,
+        user_id: c.user_id,
         completed_at: c.completed_at,
         rating: c.rating,
         tags,
         short_note: shortNote,
+        review_body: reviewBodyMap.get(c.user_id) || "",
       };
     });
 

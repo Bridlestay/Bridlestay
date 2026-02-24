@@ -386,6 +386,10 @@ export function RouteDetailDrawer({
   const [routeCompletions, setRouteCompletions] = useState<any[]>([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [maxVisitedStep, setMaxVisitedStep] = useState(0);
+  const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
+  const [reviewLightboxOpen, setReviewLightboxOpen] = useState(false);
+  const [reviewLightboxPhotos, setReviewLightboxPhotos] = useState<any[]>([]);
+  const [reviewLightboxIndex, setReviewLightboxIndex] = useState(0);
 
   // Elevation state
   const [elevationData, setElevationData] = useState<{
@@ -2069,15 +2073,15 @@ export function RouteDetailDrawer({
               placeholder="e.g. Bring waterproofs if it has been raining, the ford crossing can get deep!"
               value={reviewShortNote}
               onChange={(e) => {
-                if (e.target.value.length <= 200) setReviewShortNote(e.target.value);
+                if (e.target.value.length <= 500) setReviewShortNote(e.target.value);
               }}
               className="min-h-[100px] resize-none"
             />
             <span className={cn(
               "absolute bottom-2 right-3 text-xs",
-              reviewShortNote.length > 180 ? "text-amber-500" : "text-gray-400"
+              reviewShortNote.length > 450 ? "text-amber-500" : "text-gray-400"
             )}>
-              {reviewShortNote.length}/200
+              {reviewShortNote.length}/500
             </span>
           </div>
 
@@ -2195,9 +2199,9 @@ export function RouteDetailDrawer({
               <Separator />
 
               <div className="space-y-3">
-                <h3 className="font-medium text-gray-900">Anything else you&apos;d like to note?</h3>
+                <h3 className="font-medium text-gray-900">Share more with other riders</h3>
                 <p className="text-xs text-gray-500">
-                  Optional — share a longer story about your experience. This helps enthusiasts get the full picture.
+                  Optional — add more detail to your review. This will be shown publicly alongside your review.
                 </p>
                 <Textarea
                   placeholder="Share more details about your ride..."
@@ -2765,12 +2769,41 @@ export function RouteDetailDrawer({
                             </div>
                           </div>
 
-                          {/* Short note */}
-                          {completion.short_note && (
-                            <p className="text-sm text-gray-700 leading-relaxed italic">
-                              &ldquo;{completion.short_note}&rdquo;
-                            </p>
-                          )}
+                          {/* Review text */}
+                          {(() => {
+                            const fullText = completion.review_body || completion.short_note || "";
+                            if (!fullText) return null;
+                            const isLong = fullText.length > 200;
+                            const isExpanded = expandedReviews.has(completion.id);
+                            const displayText = isLong && !isExpanded
+                              ? fullText.substring(0, 200) + "..."
+                              : fullText;
+                            return (
+                              <div>
+                                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                                  {displayText}
+                                </p>
+                                {isLong && (
+                                  <button
+                                    onClick={() => {
+                                      setExpandedReviews((prev) => {
+                                        const next = new Set(prev);
+                                        if (next.has(completion.id)) {
+                                          next.delete(completion.id);
+                                        } else {
+                                          next.add(completion.id);
+                                        }
+                                        return next;
+                                      });
+                                    }}
+                                    className="text-sm font-medium text-green-600 hover:text-green-700 mt-1"
+                                  >
+                                    {isExpanded ? "Show less" : "Read more"}
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
 
                           {/* Tags */}
                           {completion.tags?.length > 0 && (
@@ -2788,14 +2821,28 @@ export function RouteDetailDrawer({
 
                           {/* User photos from this reviewer */}
                           {reviewPhotos.length > 0 && (
-                            <div className="flex gap-2 overflow-x-auto pb-1">
-                              {reviewPhotos.map((photo: any) => (
-                                <div key={photo.id} className="relative h-20 w-20 rounded-lg overflow-hidden flex-shrink-0 group">
-                                  <Image src={photo.url} alt={photo.caption || "Review photo"} fill className="object-cover" />
+                            <div className="grid grid-cols-3 gap-2">
+                              {reviewPhotos.slice(0, 6).map((photo: any, idx: number) => (
+                                <div
+                                  key={photo.id}
+                                  className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
+                                  onClick={() => {
+                                    setReviewLightboxPhotos(reviewPhotos);
+                                    setReviewLightboxIndex(idx);
+                                    setReviewLightboxOpen(true);
+                                  }}
+                                >
+                                  <Image src={photo.url} alt={photo.caption || "Review photo"} fill className="object-cover group-hover:scale-105 transition-transform duration-200" />
+                                  {photo.caption && (
+                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
+                                      <span className="text-[10px] text-white line-clamp-1">{photo.caption}</span>
+                                    </div>
+                                  )}
                                   {isOwner && (
-                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                                       <button
-                                        onClick={async () => {
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
                                           try {
                                             const res = await fetch(`/api/routes/${routeId}/photos`, {
                                               method: "POST",
@@ -2832,6 +2879,18 @@ export function RouteDetailDrawer({
                                   )}
                                 </div>
                               ))}
+                              {reviewPhotos.length > 6 && (
+                                <div
+                                  className="relative aspect-square rounded-lg overflow-hidden cursor-pointer bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                                  onClick={() => {
+                                    setReviewLightboxPhotos(reviewPhotos);
+                                    setReviewLightboxIndex(6);
+                                    setReviewLightboxOpen(true);
+                                  }}
+                                >
+                                  <span className="text-sm font-medium text-gray-600">+{reviewPhotos.length - 6}</span>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -3243,6 +3302,64 @@ export function RouteDetailDrawer({
       </div>
 
       {/* Photo Lightbox */}
+      {/* Review photo lightbox */}
+      {reviewLightboxOpen && reviewLightboxPhotos.length > 0 && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center"
+          onClick={() => setReviewLightboxOpen(false)}
+        >
+          <button
+            onClick={() => setReviewLightboxOpen(false)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors z-10"
+          >
+            <X className="h-5 w-5 text-white" />
+          </button>
+          <div className="absolute top-4 left-4 text-white/80 text-sm font-medium">
+            {reviewLightboxIndex + 1} / {reviewLightboxPhotos.length}
+          </div>
+          <div
+            className="relative w-full h-full max-w-4xl max-h-[85vh] mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Image
+              src={reviewLightboxPhotos[reviewLightboxIndex]?.url}
+              alt={reviewLightboxPhotos[reviewLightboxIndex]?.caption || "Review photo"}
+              fill
+              className="object-contain"
+              sizes="100vw"
+              priority
+            />
+          </div>
+          {reviewLightboxPhotos.length > 1 && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setReviewLightboxIndex((prev) => (prev > 0 ? prev - 1 : reviewLightboxPhotos.length - 1));
+                }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              >
+                <ChevronLeft className="h-5 w-5 text-white" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setReviewLightboxIndex((prev) => (prev < reviewLightboxPhotos.length - 1 ? prev + 1 : 0));
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              >
+                <ChevronRight className="h-5 w-5 text-white" />
+              </button>
+            </>
+          )}
+          {reviewLightboxPhotos[reviewLightboxIndex]?.caption && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/90 text-sm bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full max-w-md text-center">
+              {reviewLightboxPhotos[reviewLightboxIndex].caption}
+            </div>
+          )}
+        </div>
+      )}
+
       {lightboxOpen && displayPhotosForCarousel.length > 0 && (
         <div
           className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center"
