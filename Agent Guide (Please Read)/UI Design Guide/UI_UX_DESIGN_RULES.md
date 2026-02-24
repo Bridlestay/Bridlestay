@@ -4,6 +4,45 @@ This document is the authoritative reference for all UI and UX decisions. Every 
 
 ---
 
+## Brand Visual Identity
+
+**Padoq's visual style is a slightly more elegant, green-accented Airbnb.** Clean, cozy, but refined.
+
+### The DNA
+- **Airbnb-inspired**: Generous whitespace, card-based layouts, one task per screen, rounded corners, warm and inviting
+- **Green as the brand accent**: Our primary action color is green (`green-600` / `green-700`), not blue. Green = nature, riding, the countryside. It runs through CTAs, success states, and brand moments.
+- **White and black foundations**: White/light gray backgrounds, black/dark gray text. No heavy colored backgrounds. Content breathes.
+- **Warmth without clutter**: Soft borders, subtle shadows, rounded-lg corners. Cards feel like objects you want to touch, not sterile data containers.
+- **Countryside premium**: Not corporate, not cutesy. Think upmarket country living — understated, confident, well-made.
+
+### Palette
+- **Primary accent**: `green-600` (CTAs, primary buttons, brand moments, success)
+- **Text**: `gray-900` for headings, `gray-700` for body, `gray-500` for secondary/muted
+- **Backgrounds**: White (`bg-white`), off-white (`bg-slate-50`, `bg-gray-50`) for card fills and sections
+- **Borders**: `border-gray-200` for most cards, `border-gray-100` for subtle dividers
+- **Semantic colors**: Amber for warnings, red for hazards/danger, blue for info/instruction, purple for POI (these are functional, not brand)
+
+### Card Style
+- `rounded-lg` or `rounded-xl` — never sharp corners
+- `border border-gray-200` with optional `shadow-sm` for elevation
+- `p-4` or `p-5` internal padding — generous, never cramped
+- On hover: `hover:shadow-md transition-shadow` for interactive cards
+- Content inside cards should breathe — don't pack every pixel
+
+### Buttons
+- Primary: `bg-green-600 hover:bg-green-700 text-white rounded-full` — pill-shaped for major CTAs
+- Secondary: `variant="outline" rounded-full` — pill-shaped outlines
+- In-card actions: `rounded-lg` or `rounded-md` — squared off, smaller, less prominent
+- Never use blue as a primary button color — that's not our brand
+
+### Typography Feel
+- Clean, modern, no decorative fonts (system font stack via Tailwind)
+- Headings are bold but not oversized — `text-xl font-bold` max for page titles
+- Body text at `text-sm` keeps things compact and scannable
+- Generous line spacing — never let text feel cramped
+
+---
+
 ## The 10 Core Principles
 
 ### 1. Clarity
