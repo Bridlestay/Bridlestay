@@ -503,6 +503,10 @@ export default function RoutesPage() {
     setMapViewMode(mode);
     setDrawerOpen(false);
     setMobileRouteDetailOpen(false);
+    // Sync layer settings so the toggle reflects the active view mode
+    if (mode === "hazards") {
+      setLayerSettings((prev) => ({ ...prev, showHazards: true }));
+    }
     // Route stays drawn on map (selectedRouteId, selectedRouteData, drawnRouteId preserved)
 
     // Zoom map to fit route
