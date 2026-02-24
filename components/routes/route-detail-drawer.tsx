@@ -1233,7 +1233,17 @@ export function RouteDetailDrawer({
     if (!userId || !routeId) return;
     setSubmittingReview(true);
     try {
-      // Submit review with rating (collected but NOT publicly displayed)
+      // Record completion FIRST (with structured tags and notes)
+      await fetch(`/api/routes/${routeId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          notes: JSON.stringify({ tags: reviewTags, short_note: reviewShortNote }),
+          rating: reviewRating,
+        }),
+      });
+
+      // Then save the review record (rating, review_text, difficulty)
       await fetch(`/api/routes/${routeId}/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1241,16 +1251,6 @@ export function RouteDetailDrawer({
           rating: reviewRating,
           difficulty: route?.difficulty || "moderate",
           review_text: reviewShortNote || undefined,
-        }),
-      });
-
-      // Also record as a completion with structured tags
-      await fetch(`/api/routes/${routeId}/complete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          notes: JSON.stringify({ tags: reviewTags, short_note: reviewShortNote }),
-          rating: reviewRating,
         }),
       });
 
@@ -1331,6 +1331,7 @@ export function RouteDetailDrawer({
       const formData = new FormData();
       formData.append("file", reviewPhotoFile);
       formData.append("caption", category ? `${category.emoji} ${category.label}` : "");
+      formData.append("source", "review");
       const res = await fetch(`/api/routes/${routeId}/photos`, {
         method: "POST",
         body: formData,

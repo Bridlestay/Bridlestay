@@ -30,17 +30,14 @@ import {
   HelpCircle,
   AlertTriangle,
   Route,
-  MapPin,
   Map,
 } from "lucide-react";
 
 interface RoutesMapHeaderProps {
   onSearch?: (query: string) => void;
-  showPOIs?: boolean;
-  onTogglePOIs?: (show: boolean) => void;
 }
 
-export function RoutesMapHeader({ onSearch, showPOIs = false, onTogglePOIs }: RoutesMapHeaderProps) {
+export function RoutesMapHeader({ onSearch }: RoutesMapHeaderProps) {
   const [user, setUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
@@ -249,18 +246,6 @@ export function RoutesMapHeader({ onSearch, showPOIs = false, onTogglePOIs }: Ro
           />
         </div>
         
-        {/* POI Toggle */}
-        <Button
-          type="button"
-          variant={showPOIs ? "default" : "outline"}
-          size="sm"
-          onClick={() => onTogglePOIs?.(!showPOIs)}
-          className={`h-10 px-3 shadow-lg ${showPOIs ? 'bg-green-600 hover:bg-green-700' : 'bg-white'}`}
-          title="Show Points of Interest"
-        >
-          <MapPin className="h-4 w-4 mr-1" />
-          POI
-        </Button>
       </form>
 
       {/* Profile Picture */}

@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   Home,
   Palette,
+  Landmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,7 @@ export interface LayerSettings {
   showWaymarkers: boolean;
   showHazards: boolean;
   showProperties: boolean;
+  showPOIs: boolean;
   routeLineWidth: number;
   monochrome?: boolean;
 }
@@ -116,7 +118,7 @@ export function MapLayerControls({
       {/* Layer settings panel - slides up from bottom on mobile, side panel on desktop */}
       {showLayerPanel && (
         <div className="absolute inset-x-0 bottom-0 z-30 lg:inset-auto lg:right-20 lg:bottom-4 lg:w-80">
-          <Card className="rounded-t-2xl lg:rounded-2xl shadow-2xl max-h-[70vh] overflow-y-auto">
+          <Card className="rounded-t-2xl lg:rounded-2xl shadow-2xl max-h-[70vh] overflow-y-auto scrollbar-hidden">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
               <h3 className="font-semibold text-lg">Map Settings</h3>
@@ -249,6 +251,16 @@ export function MapLayerControls({
                     <Switch
                       checked={settings.showProperties}
                       onCheckedChange={(v) => updateSetting("showProperties", v)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Landmark className="h-4 w-4 text-purple-500" />
+                      <span className="text-sm">Points of Interest</span>
+                    </div>
+                    <Switch
+                      checked={settings.showPOIs}
+                      onCheckedChange={(v) => updateSetting("showPOIs", v)}
                     />
                   </div>
                 </div>

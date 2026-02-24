@@ -69,25 +69,34 @@ export async function POST(
 
     if (insertError) throw insertError;
 
-    // Record route completion
-    const { error: completionError } = await supabase
+    // Record route completion (only if one doesn't already exist)
+    const { data: existingCompletion } = await supabase
       .from("route_completions")
-      .insert({
-        route_id: params.id,
-        user_id: user.id,
-        completed_at: new Date().toISOString(),
-      });
+      .select("id")
+      .eq("route_id", params.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    // Update completions count on route
-    if (!completionError) {
-      const { count } = await supabase
+    if (!existingCompletion) {
+      const { error: completionError } = await supabase
         .from("route_completions")
-        .select("*", { count: "exact", head: true })
-        .eq("route_id", params.id);
-      await supabase
-        .from("routes")
-        .update({ completions_count: count || 0 })
-        .eq("id", params.id);
+        .insert({
+          route_id: params.id,
+          user_id: user.id,
+          completed_at: new Date().toISOString(),
+        });
+
+      // Update completions count on route
+      if (!completionError) {
+        const { count } = await supabase
+          .from("route_completions")
+          .select("*", { count: "exact", head: true })
+          .eq("route_id", params.id);
+        await supabase
+          .from("routes")
+          .update({ completions_count: count || 0 })
+          .eq("id", params.id);
+      }
     }
 
     // Update route average rating

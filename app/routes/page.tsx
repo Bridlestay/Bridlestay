@@ -118,6 +118,7 @@ export default function RoutesPage() {
     showWaymarkers: false,
     showHazards: false,
     showProperties: true,
+    showPOIs: false,
     routeLineWidth: 4,
     monochrome: false,
   });
@@ -164,7 +165,6 @@ export default function RoutesPage() {
   const [showLayerPanel, setShowLayerPanel] = useState(false);
   
   // POI state
-  const [showPOIs, setShowPOIs] = useState(false);
   const [pois, setPois] = useState<any[]>([]);
 
   // Route style state
@@ -199,12 +199,12 @@ export default function RoutesPage() {
 
   // Fetch POIs when toggle is activated
   useEffect(() => {
-    if (showPOIs) {
+    if (layerSettings.showPOIs) {
       fetchPOIs();
     } else {
       setPois([]);
     }
-  }, [showPOIs]);
+  }, [layerSettings.showPOIs]);
 
   const fetchPOIs = async () => {
     try {
@@ -1315,7 +1315,7 @@ export default function RoutesPage() {
             userPosition={userPosition}
             followUser={isNavigating}
             recordedPath={recordedPath}
-            pois={showPOIs ? pois : []}
+            pois={layerSettings.showPOIs ? pois : []}
             routeWaypoints={
               (mapViewMode === "waypoints" || layerSettings.showWaymarkers)
                 ? selectedRouteWaypoints
@@ -1362,10 +1362,7 @@ export default function RoutesPage() {
         {/* Desktop Map Header with hamburger menu (only visible when map tab is active) */}
         {activeTab === "map" && (
           <div className="hidden md:block">
-            <RoutesMapHeader 
-              showPOIs={showPOIs}
-              onTogglePOIs={setShowPOIs}
-            />
+            <RoutesMapHeader />
           </div>
         )}
 

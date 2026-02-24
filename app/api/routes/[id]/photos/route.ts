@@ -110,6 +110,8 @@ export async function POST(
         .single();
 
       const isOwnerOrAdmin = route?.owner_user_id === user.id || userData?.role === "admin";
+      const source = formData.get("source") as string || "";
+      const isReviewUpload = source === "review";
 
       // Upload to Supabase Storage
       const fileExt = file.name.split(".").pop();
@@ -129,7 +131,7 @@ export async function POST(
         .from("route-photos")
         .getPublicUrl(fileName);
 
-      if (isOwnerOrAdmin) {
+      if (isOwnerOrAdmin && !isReviewUpload) {
         // Store in route_photos table (official route photos)
         const { data: photo, error } = await supabase
           .from("route_photos")
