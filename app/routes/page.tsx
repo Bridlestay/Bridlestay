@@ -1349,7 +1349,7 @@ export default function RoutesPage() {
 
         {/* View mode back button (when waypoints/hazards view is active) */}
         {mapViewMode && (
-          <div className="fixed top-14 left-4 z-[60] md:top-4 md:left-4">
+          <div className="fixed top-16 left-4 z-[60] md:top-4 md:left-4">
             <Button
               variant="outline"
               size="sm"
