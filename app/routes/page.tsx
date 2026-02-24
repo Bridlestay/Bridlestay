@@ -328,6 +328,13 @@ export default function RoutesPage() {
     }
   }, [isCreating]);
 
+  // Exit hazards view mode when the user toggles hazards off in settings
+  useEffect(() => {
+    if (!layerSettings.showHazards && mapViewMode === "hazards") {
+      setMapViewMode(null);
+    }
+  }, [layerSettings.showHazards, mapViewMode]);
+
   const fetchExploreRoutes = async () => {
     try {
       // Fetch public routes
@@ -1349,7 +1356,7 @@ export default function RoutesPage() {
 
         {/* View mode back button (when waypoints/hazards view is active) */}
         {mapViewMode && (
-          <div className="fixed top-16 left-4 z-[60] md:top-4 md:left-4">
+          <div className="fixed top-16 left-4 z-[60]">
             <Button
               variant="outline"
               size="sm"
