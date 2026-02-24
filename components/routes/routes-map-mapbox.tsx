@@ -16,8 +16,8 @@ const DIFFICULTY_COLORS = {
   severe: "#EF4444",
 };
 
-// Brand colors for pins (dark green like Padoq)
-const PIN_COLOR = "#166534"; // Dark green
+// Brand colors for pins (Padoq green, OS Maps–inspired style)
+const PIN_COLOR = "#16A34A"; // Green-600 — brand accent
 const PIN_BORDER = "#ffffff";
 
 // UK bounds for route creation restriction
@@ -602,12 +602,12 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
           const coords = (feature.geometry as any).coordinates;
           
-          // Create pin marker element (map pin shape)
+          // Create pin marker element (OS Maps–inspired: thick white outline, green fill, white dot)
           const el = document.createElement("div");
           el.innerHTML = `
             <div style="cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
-              <svg width="28" height="36" viewBox="0 0 24 32" fill="${PIN_COLOR}">
-                <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z"/>
+              <svg width="32" height="42" viewBox="-2 -2 28 36" fill="none">
+                <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z" fill="${PIN_COLOR}" stroke="${PIN_BORDER}" stroke-width="3"/>
                 <circle cx="12" cy="11" r="4" fill="${PIN_BORDER}"/>
               </svg>
             </div>

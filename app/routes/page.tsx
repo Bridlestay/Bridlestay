@@ -24,7 +24,7 @@ import { MobilePanelToggle } from "@/components/routes/mobile-panel-toggle";
 import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Map, Settings, ChevronLeft, AlertTriangle, X } from "lucide-react";
+import { Map, Settings, AlertTriangle, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   Dialog,
@@ -1354,24 +1354,7 @@ export default function RoutesPage() {
           </div>
         )}
 
-        {/* View mode back button (when waypoints/hazards view is active) */}
-        {mapViewMode && (
-          <div className="fixed top-16 left-4 z-[60]">
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full shadow-lg bg-white text-gray-800 hover:bg-gray-100 border gap-2 px-4"
-              onClick={() => {
-                setMapViewMode(null);
-                setDrawerOpen(true);
-                setMobileRouteDetailOpen(true);
-              }}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Back to route details
-            </Button>
-          </div>
-        )}
+        {/* View mode: clicking a route pin re-opens the route detail drawer */}
 
         {/* Mobile Top Header (hamburger, search, profile) - visible on mobile */}
         <MobileTopHeader />
