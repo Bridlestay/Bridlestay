@@ -1285,6 +1285,7 @@ export function RouteDetailDrawer({
         }),
       });
       toast.success("Additional notes saved!");
+      fetchCompletions(); // Refresh to show updated review text
     } catch {
       // Non-critical
     }
@@ -2734,176 +2735,144 @@ export function RouteDetailDrawer({
 
             {/* RIDER REVIEWS */}
             {routeCompletions.length > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-sm flex items-center gap-2">
-                    <Star className="h-4 w-4 text-green-600" />
+                  <h3 className="font-semibold text-base flex items-center gap-2">
                     Rider Reviews
                   </h3>
-                  <Badge variant="outline" className="text-xs">
-                    {routeCompletions.length}
-                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {routeCompletions.length} {routeCompletions.length === 1 ? "review" : "reviews"}
+                  </span>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {(showAllReviews ? routeCompletions : routeCompletions.slice(0, 3)).map((completion: any) => {
-                    const reviewPhotos = userPhotos.filter(
-                      (p: any) => p.user_id === completion.user?.id
-                    );
-                    return (
-                      <div key={completion.id} className="border rounded-lg overflow-hidden">
-                        <div className="p-4 space-y-3">
-                          {/* Header: avatar, name, time */}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2.5">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={completion.user?.avatar_url || undefined} />
-                                <AvatarFallback className="text-xs bg-green-100 text-green-800">
-                                  {completion.user?.name?.[0] || "?"}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <span className="text-sm font-semibold block">{completion.user?.name || "Rider"}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {formatDistanceToNow(new Date(completion.completed_at), { addSuffix: true })}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
+                    const reviewPhotos = completion.photos || [];
+                    const fullText = completion.review_body || completion.short_note || "";
+                    const isLong = fullText.length > 200;
+                    const isExpanded = expandedReviews.has(completion.id);
+                    const displayText = isLong && !isExpanded
+                      ? fullText.substring(0, 200) + "..."
+                      : fullText;
 
-                          {/* Review text */}
-                          {(() => {
-                            const fullText = completion.review_body || completion.short_note || "";
-                            if (!fullText) return null;
-                            const isLong = fullText.length > 200;
-                            const isExpanded = expandedReviews.has(completion.id);
-                            const displayText = isLong && !isExpanded
-                              ? fullText.substring(0, 200) + "..."
-                              : fullText;
-                            return (
-                              <div>
-                                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                                  {displayText}
-                                </p>
-                                {isLong && (
-                                  <button
-                                    onClick={() => {
-                                      setExpandedReviews((prev) => {
-                                        const next = new Set(prev);
-                                        if (next.has(completion.id)) {
-                                          next.delete(completion.id);
-                                        } else {
-                                          next.add(completion.id);
-                                        }
-                                        return next;
-                                      });
-                                    }}
-                                    className="text-sm font-medium text-green-600 hover:text-green-700 mt-1"
-                                  >
-                                    {isExpanded ? "Show less" : "Read more"}
-                                  </button>
+                    return (
+                      <div key={completion.id} className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
+                        {/* Header: avatar, name, date */}
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={completion.user?.avatar_url || undefined} />
+                            <AvatarFallback className="text-sm bg-green-50 text-green-700 font-semibold">
+                              {completion.user?.name?.[0] || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <span className="text-sm font-semibold text-gray-900 block">
+                              {completion.user?.name || "Rider"}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {formatDistanceToNow(new Date(completion.completed_at), { addSuffix: true })}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Review text */}
+                        {fullText && (
+                          <div>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                              {displayText}
+                            </p>
+                            {isLong && (
+                              <button
+                                onClick={() => {
+                                  setExpandedReviews((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(completion.id)) {
+                                      next.delete(completion.id);
+                                    } else {
+                                      next.add(completion.id);
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                className="text-sm font-medium text-green-600 hover:text-green-700 mt-1.5 transition-colors"
+                              >
+                                {isExpanded ? "Show less" : "Read more"}
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Tags */}
+                        {completion.tags?.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {completion.tags.map((tagId: string) => {
+                              const tag = REVIEW_TAGS.find((t) => t.id === tagId);
+                              return tag ? (
+                                <span
+                                  key={tagId}
+                                  className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full"
+                                >
+                                  {tag.emoji} {tag.label}
+                                </span>
+                              ) : null;
+                            })}
+                          </div>
+                        )}
+
+                        {/* Photos */}
+                        {reviewPhotos.length > 0 && (
+                          <div className={cn(
+                            "grid gap-2",
+                            reviewPhotos.length === 1 ? "grid-cols-1" : reviewPhotos.length === 2 ? "grid-cols-2" : "grid-cols-3"
+                          )}>
+                            {reviewPhotos.slice(0, 6).map((photo: any, idx: number) => (
+                              <div
+                                key={photo.id}
+                                className={cn(
+                                  "relative overflow-hidden rounded-lg cursor-pointer group",
+                                  reviewPhotos.length === 1 ? "aspect-video" : "aspect-square"
+                                )}
+                                onClick={() => {
+                                  setReviewLightboxPhotos(reviewPhotos);
+                                  setReviewLightboxIndex(idx);
+                                  setReviewLightboxOpen(true);
+                                }}
+                              >
+                                <Image
+                                  src={photo.url}
+                                  alt={photo.caption || "Review photo"}
+                                  fill
+                                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                                {photo.caption && (
+                                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                                    <span className="text-xs text-white line-clamp-1">{photo.caption}</span>
+                                  </div>
                                 )}
                               </div>
-                            );
-                          })()}
-
-                          {/* Tags */}
-                          {completion.tags?.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5">
-                              {completion.tags.map((tagId: string) => {
-                                const tag = REVIEW_TAGS.find((t) => t.id === tagId);
-                                return tag ? (
-                                  <Badge key={tagId} variant="secondary" className="text-xs px-2 py-0.5">
-                                    {tag.emoji} {tag.label}
-                                  </Badge>
-                                ) : null;
-                              })}
-                            </div>
-                          )}
-
-                          {/* User photos from this reviewer */}
-                          {reviewPhotos.length > 0 && (
-                            <div className="grid grid-cols-3 gap-2">
-                              {reviewPhotos.slice(0, 6).map((photo: any, idx: number) => (
-                                <div
-                                  key={photo.id}
-                                  className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
-                                  onClick={() => {
-                                    setReviewLightboxPhotos(reviewPhotos);
-                                    setReviewLightboxIndex(idx);
-                                    setReviewLightboxOpen(true);
-                                  }}
-                                >
-                                  <Image src={photo.url} alt={photo.caption || "Review photo"} fill className="object-cover group-hover:scale-105 transition-transform duration-200" />
-                                  {photo.caption && (
-                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
-                                      <span className="text-[10px] text-white line-clamp-1">{photo.caption}</span>
-                                    </div>
-                                  )}
-                                  {isOwner && (
-                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                                      <button
-                                        onClick={async (e) => {
-                                          e.stopPropagation();
-                                          try {
-                                            const res = await fetch(`/api/routes/${routeId}/photos`, {
-                                              method: "POST",
-                                              headers: { "Content-Type": "application/json" },
-                                              body: JSON.stringify({ url: photo.url, caption: photo.caption || "" }),
-                                            });
-                                            if (!res.ok) throw new Error();
-                                            const data = await res.json();
-                                            await fetch(`/api/routes/${routeId}/photos`, {
-                                              method: "PATCH",
-                                              headers: { "Content-Type": "application/json" },
-                                              body: JSON.stringify({ photoId: data.photo.id, is_display: true }),
-                                            });
-                                            const photosRes = await fetch(`/api/routes/${routeId}/photos`);
-                                            if (photosRes.ok) {
-                                              const pd = await photosRes.json();
-                                              setPhotos(pd.photos || []);
-                                              setCoverPhoto(pd.coverPhoto || null);
-                                              setApiDisplayPhotos(pd.displayPhotos || []);
-                                              setAuthorPhotos(pd.authorPhotos || []);
-                                              setUserPhotos(pd.userPhotos || []);
-                                            }
-                                            toast.success("Added to display photos!");
-                                          } catch {
-                                            toast.error("Failed to add photo");
-                                          }
-                                        }}
-                                        className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-white/90 flex items-center justify-center transition-opacity"
-                                        title="Add to display photos"
-                                      >
-                                        <Plus className="h-4 w-4 text-gray-700" />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                              {reviewPhotos.length > 6 && (
-                                <div
-                                  className="relative aspect-square rounded-lg overflow-hidden cursor-pointer bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
-                                  onClick={() => {
-                                    setReviewLightboxPhotos(reviewPhotos);
-                                    setReviewLightboxIndex(6);
-                                    setReviewLightboxOpen(true);
-                                  }}
-                                >
-                                  <span className="text-sm font-medium text-gray-600">+{reviewPhotos.length - 6}</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                            ))}
+                            {reviewPhotos.length > 6 && (
+                              <div
+                                className="relative aspect-square rounded-lg overflow-hidden cursor-pointer bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                                onClick={() => {
+                                  setReviewLightboxPhotos(reviewPhotos);
+                                  setReviewLightboxIndex(6);
+                                  setReviewLightboxOpen(true);
+                                }}
+                              >
+                                <span className="text-sm font-medium text-gray-600">+{reviewPhotos.length - 6}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
                 {routeCompletions.length > 3 && !showAllReviews && (
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="w-full text-green-700 hover:text-green-800 hover:bg-green-50"
+                    className="w-full rounded-full text-gray-700 hover:bg-gray-50"
                     onClick={() => setShowAllReviews(true)}
                   >
                     Show all {routeCompletions.length} reviews

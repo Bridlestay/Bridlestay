@@ -27,21 +27,56 @@ export async function GET(
 
     if (error) throw error;
 
-    // Also fetch route_reviews to get full review body text
-    const { data: reviews } = await supabase
+    // Fetch route_reviews — try with review_text first, fall back to body only
+    let reviewRows: any[] = [];
+    const { data: reviewsWithText, error: reviewsError } = await supabase
       .from("route_reviews")
       .select("user_id, review_text, body")
       .eq("route_id", routeId);
 
+    if (reviewsError) {
+      // review_text column may not exist yet — fall back to body only
+      const { data: reviewsFallback } = await supabase
+        .from("route_reviews")
+        .select("user_id, body")
+        .eq("route_id", routeId);
+      reviewRows = reviewsFallback || [];
+    } else {
+      reviewRows = reviewsWithText || [];
+    }
+
     // Build lookup: user_id → full review text
     const reviewBodyMap = new Map<string, string>();
-    if (reviews) {
-      for (const r of reviews as any[]) {
-        const text = r.review_text || r.body || "";
-        if (text) {
-          reviewBodyMap.set(r.user_id, text);
-        }
+    for (const r of reviewRows) {
+      const text = r.review_text || r.body || "";
+      if (text) {
+        reviewBodyMap.set(r.user_id, text);
       }
+    }
+
+    // Fetch user photos from route_user_photos (community uploads)
+    let userPhotoRows: any[] = [];
+    try {
+      const { data } = await supabase
+        .from("route_user_photos")
+        .select("id, user_id, url, caption, created_at")
+        .eq("route_id", routeId)
+        .order("created_at", { ascending: false });
+      userPhotoRows = data || [];
+    } catch {
+      // Table may not exist
+    }
+
+    // Also fetch route_photos uploaded by users (covers owner review photos)
+    let routePhotoRows: any[] = [];
+    try {
+      const { data } = await supabase
+        .from("route_photos")
+        .select("id, uploaded_by_user_id, url, caption, created_at")
+        .eq("route_id", routeId);
+      routePhotoRows = data || [];
+    } catch {
+      // ignore
     }
 
     // Parse the JSON notes field to extract tags and short_note
@@ -58,6 +93,15 @@ export async function GET(
         // notes might be plain text
         shortNote = c.notes || "";
       }
+
+      // Collect photos for this user from both tables
+      const photos = [
+        ...userPhotoRows.filter((p) => p.user_id === c.user_id),
+        ...routePhotoRows.filter(
+          (p) => p.uploaded_by_user_id === c.user_id
+        ),
+      ];
+
       return {
         id: c.id,
         user: c.user,
@@ -67,6 +111,7 @@ export async function GET(
         tags,
         short_note: shortNote,
         review_body: reviewBodyMap.get(c.user_id) || "",
+        photos,
       };
     });
 
