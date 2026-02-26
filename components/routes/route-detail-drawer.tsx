@@ -2910,9 +2910,16 @@ export function RouteDetailDrawer({
                           </div>
                         </div>
 
-                        {/* Expanded detail */}
-                        {isExpanded && (
-                          <div className="p-3 pt-2 space-y-3 bg-gray-50/30">
+                        {/* Expanded detail — animated with grid row transition */}
+                        <div
+                          className="grid transition-[grid-template-rows] duration-300 ease-in-out"
+                          style={{ gridTemplateRows: isExpanded ? "1fr" : "0fr" }}
+                        >
+                          <div className="overflow-hidden">
+                            <div className={cn(
+                              "p-3 pt-2 space-y-3 bg-gray-50/30 transition-opacity duration-300",
+                              isExpanded ? "opacity-100" : "opacity-0"
+                            )}>
                             {/* Short review text */}
                             {shortText && (
                               <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
@@ -3007,8 +3014,9 @@ export function RouteDetailDrawer({
                             >
                               Show less
                             </button>
+                            </div>
                           </div>
-                        )}
+                        </div>
                       </div>
                     );
                   })}

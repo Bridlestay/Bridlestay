@@ -227,14 +227,26 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Delete from user photos (users can only delete their own)
-    const { error } = await supabase
+    // Try deleting from route_user_photos first (community/review photos)
+    const { data: userPhotoDeleted, error: userPhotoError } = await supabase
       .from("route_user_photos")
       .delete()
       .eq("id", photoId)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .select();
 
-    if (error) throw error;
+    if (userPhotoError) throw userPhotoError;
+
+    // If nothing was deleted, try route_photos (owner/admin photos)
+    if (!userPhotoDeleted || userPhotoDeleted.length === 0) {
+      const { error: routePhotoError } = await supabase
+        .from("route_photos")
+        .delete()
+        .eq("id", photoId)
+        .eq("uploaded_by_user_id", user.id);
+
+      if (routePhotoError) throw routePhotoError;
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
