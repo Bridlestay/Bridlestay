@@ -83,15 +83,17 @@ export async function GET(
       // ignore
     }
 
-    // Parse the JSON notes field to extract tags and short_note
+    // Parse the JSON notes field to extract tags, short_note, and long_note
     const parsed = (completions || []).map((c: any) => {
       let tags: string[] = [];
       let shortNote = "";
+      let longNote = "";
       try {
         if (c.notes) {
           const notesObj = JSON.parse(c.notes);
           tags = notesObj.tags || [];
           shortNote = notesObj.short_note || "";
+          longNote = notesObj.long_note || "";
         }
       } catch {
         // notes might be plain text
@@ -114,6 +116,7 @@ export async function GET(
         rating: c.rating || reviewRatingMap.get(c.user_id) || 0,
         tags,
         short_note: shortNote,
+        long_note: longNote,
         review_body: reviewBodyMap.get(c.user_id) || "",
         photos,
       };
