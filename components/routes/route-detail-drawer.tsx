@@ -1234,7 +1234,7 @@ export function RouteDetailDrawer({
     setSubmittingReview(true);
     try {
       // Record completion FIRST (with structured tags and notes)
-      await fetch(`/api/routes/${routeId}/complete`, {
+      const completeRes = await fetch(`/api/routes/${routeId}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1242,13 +1242,17 @@ export function RouteDetailDrawer({
           rating: reviewRating,
         }),
       });
+      if (!completeRes.ok) {
+        const err = await completeRes.json().catch(() => ({}));
+        console.error("[REVIEW] /complete failed:", completeRes.status, err);
+      }
 
       // Then save the review record (rating, review_text, difficulty)
       // Preserve existing long note if pre-populated from a previous review
       const reviewText = reviewLongNote.trim()
         ? `${reviewShortNote}\n\n---\n\n${reviewLongNote}`
         : reviewShortNote || undefined;
-      await fetch(`/api/routes/${routeId}/review`, {
+      const reviewRes = await fetch(`/api/routes/${routeId}/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1257,6 +1261,11 @@ export function RouteDetailDrawer({
           review_text: reviewText,
         }),
       });
+      if (!reviewRes.ok) {
+        const err = await reviewRes.json().catch(() => ({}));
+        console.error("[REVIEW] /review failed:", reviewRes.status, err);
+        throw new Error(err.error || "Failed to save review");
+      }
 
       setReviewStep(5); // Go to "thank you" / optional long note step
       setMaxVisitedStep(5);
@@ -1279,7 +1288,7 @@ export function RouteDetailDrawer({
       const combinedText = reviewShortNote
         ? `${reviewShortNote}\n\n---\n\n${reviewLongNote}`
         : reviewLongNote;
-      await fetch(`/api/routes/${routeId}/review`, {
+      const res = await fetch(`/api/routes/${routeId}/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1288,10 +1297,17 @@ export function RouteDetailDrawer({
           difficulty: route?.difficulty || "moderate",
         }),
       });
-      toast.success("Additional notes saved!");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error("[LONG_NOTE] /review failed:", res.status, err);
+        toast.error("Failed to save additional notes");
+      } else {
+        toast.success("Additional notes saved!");
+      }
       fetchCompletions(); // Refresh to show updated review text
-    } catch {
-      // Non-critical
+    } catch (err) {
+      console.error("[LONG_NOTE] Error:", err);
+      toast.error("Failed to save additional notes");
     }
     resetReviewState();
   };
@@ -1922,6 +1938,26 @@ export function RouteDetailDrawer({
             <p className="text-sm text-gray-500 mt-1">Add a photo to help others know what to expect (optional)</p>
           </div>
 
+          {/* Show existing photos when editing */}
+          {(() => {
+            const existingPhotos = userHasCompletion
+              ? (routeCompletions.find((c: any) => c.user?.id === userId)?.photos || [])
+              : [];
+            if (existingPhotos.length === 0) return null;
+            return (
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-2">Your existing photos</p>
+                <div className="flex gap-2 flex-wrap">
+                  {existingPhotos.map((photo: any) => (
+                    <div key={photo.id} className="relative h-16 w-20 rounded-lg overflow-hidden border border-gray-200">
+                      <Image src={photo.url} alt={photo.caption || ""} fill className="object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="flex gap-2 flex-wrap">
             {PHOTO_CATEGORIES.map((cat) => (
               <Badge
@@ -2219,7 +2255,7 @@ export function RouteDetailDrawer({
 
               <div className="flex gap-3 pt-2">
                 <Button variant="outline" className="flex-1 rounded-full" onClick={resetReviewState}>
-                  Skip
+                  {reviewLongNote.trim() ? "Cancel" : "Done"}
                 </Button>
                 {reviewLongNote.trim() && (
                   <Button
@@ -2776,9 +2812,14 @@ export function RouteDetailDrawer({
                 <div className="space-y-2">
                   {(showAllReviews ? routeCompletions : routeCompletions.slice(0, 5)).map((completion: any) => {
                     const reviewPhotos = completion.photos || [];
-                    const fullText = completion.review_body || completion.short_note || "";
+                    const rawText = completion.review_body || completion.short_note || "";
+                    // Split combined text on separator to display cleanly
+                    const sepIdx = rawText.indexOf("\n\n---\n\n");
+                    const shortText = sepIdx >= 0 ? rawText.substring(0, sepIdx) : rawText;
+                    const longText = sepIdx >= 0 ? rawText.substring(sepIdx + 7) : "";
+                    const fullText = shortText;
                     const isExpanded = expandedReviews.has(completion.id);
-                    const hasMore = fullText.length > 120 || reviewPhotos.length > 0 || (completion.tags?.length || 0) > 0;
+                    const hasMore = shortText.length > 120 || longText.length > 0 || reviewPhotos.length > 0 || (completion.tags?.length || 0) > 0;
 
                     return (
                       <div
@@ -2830,7 +2871,7 @@ export function RouteDetailDrawer({
                                   {formatDistanceToNow(new Date(completion.completed_at), { addSuffix: true })}
                                 </span>
                               </div>
-                              {fullText && (
+                              {fullText && !isExpanded && (
                                 <p className="text-sm text-gray-600 leading-snug line-clamp-2">
                                   {fullText}
                                 </p>
@@ -2866,11 +2907,19 @@ export function RouteDetailDrawer({
                         {/* Expanded detail */}
                         {isExpanded && (
                           <div className="p-3 pt-2 space-y-3 bg-gray-50/30">
-                            {/* Full review text */}
-                            {fullText && (
+                            {/* Short review text */}
+                            {shortText && (
                               <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                                {fullText}
+                                {shortText}
                               </p>
+                            )}
+                            {/* Extended notes (from step 5 long note) */}
+                            {longText && (
+                              <div className="border-l-2 border-green-200 pl-3">
+                                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                                  {longText}
+                                </p>
+                              </div>
                             )}
 
                             {/* Tags */}
