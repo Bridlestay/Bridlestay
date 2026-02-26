@@ -63,9 +63,9 @@ export async function GET(
     try {
       const { data } = await supabase
         .from("route_user_photos")
-        .select("id, user_id, url, caption, created_at")
+        .select("id, user_id, url, caption, uploaded_at")
         .eq("route_id", routeId)
-        .order("created_at", { ascending: false });
+        .order("uploaded_at", { ascending: false });
       userPhotoRows = data || [];
     } catch {
       // Table may not exist

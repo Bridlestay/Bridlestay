@@ -41,7 +41,7 @@ export async function GET(
           user:users!route_user_photos_user_id_fkey(id, name, avatar_url)
         `)
         .eq("route_id", routeId)
-        .order("created_at", { ascending: false });
+        .order("uploaded_at", { ascending: false });
       completionPhotos = data || [];
     } catch {
       // Table may not exist, ignore
