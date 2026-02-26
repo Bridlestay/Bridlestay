@@ -127,6 +127,7 @@ export const CACHE_TTL = {
   short: 1 * 60 * 1000, // 1 minute
   medium: 5 * 60 * 1000, // 5 minutes
   long: 15 * 60 * 1000, // 15 minutes
+  weather: 30 * 60 * 1000, // 30 minutes
   hour: 60 * 60 * 1000, // 1 hour
 };
 
