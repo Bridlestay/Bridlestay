@@ -2489,7 +2489,7 @@ export function RouteDetailDrawer({
                       if (existing) {
                         setReviewRating(existing.rating || 0);
                         setReviewTags(existing.tags || []);
-                        setReviewShortNote(existing.short_note || "");
+                        setReviewShortNote(existing.short_note || existing.review_body || "");
                       }
                     }
                     setReviewStep(1);

@@ -31,26 +31,30 @@ export async function GET(
     let reviewRows: any[] = [];
     const { data: reviewsWithText, error: reviewsError } = await supabase
       .from("route_reviews")
-      .select("user_id, review_text, body")
+      .select("user_id, review_text, body, rating")
       .eq("route_id", routeId);
 
     if (reviewsError) {
       // review_text column may not exist yet — fall back to body only
       const { data: reviewsFallback } = await supabase
         .from("route_reviews")
-        .select("user_id, body")
+        .select("user_id, body, rating")
         .eq("route_id", routeId);
       reviewRows = reviewsFallback || [];
     } else {
       reviewRows = reviewsWithText || [];
     }
 
-    // Build lookup: user_id → full review text
+    // Build lookups: user_id → review text, user_id → rating
     const reviewBodyMap = new Map<string, string>();
+    const reviewRatingMap = new Map<string, number>();
     for (const r of reviewRows) {
       const text = r.review_text || r.body || "";
       if (text) {
         reviewBodyMap.set(r.user_id, text);
+      }
+      if (r.rating) {
+        reviewRatingMap.set(r.user_id, r.rating);
       }
     }
 
@@ -107,7 +111,7 @@ export async function GET(
         user: c.user,
         user_id: c.user_id,
         completed_at: c.completed_at,
-        rating: c.rating,
+        rating: c.rating || reviewRatingMap.get(c.user_id) || 0,
         tags,
         short_note: shortNote,
         review_body: reviewBodyMap.get(c.user_id) || "",
