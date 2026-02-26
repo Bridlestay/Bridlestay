@@ -1962,13 +1962,15 @@ export function RouteDetailDrawer({
                               toast.success("Photo removed");
                               fetchCompletions();
                             } else {
-                              toast.error("Failed to remove photo");
+                              const err = await res.json().catch(() => ({}));
+                              console.error("[PHOTO_DELETE] Failed:", res.status, err);
+                              toast.error(err.error || "Failed to remove photo");
                             }
                           } catch {
                             toast.error("Failed to remove photo");
                           }
                         }}
-                        className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 hover:bg-red-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 hover:bg-red-600 flex items-center justify-center transition-colors"
                       >
                         <X className="h-3 w-3 text-white" />
                       </button>

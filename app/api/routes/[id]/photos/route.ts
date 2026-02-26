@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET - Get photos for a route
@@ -227,8 +228,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Use service client to bypass RLS for deletion
+    const serviceClient = createServiceClient();
+
     // Try deleting from route_user_photos first (community/review photos)
-    const { data: userPhotoDeleted, error: userPhotoError } = await supabase
+    const { data: userPhotoDeleted, error: userPhotoError } = await serviceClient
       .from("route_user_photos")
       .delete()
       .eq("id", photoId)
@@ -239,13 +243,18 @@ export async function DELETE(
 
     // If nothing was deleted, try route_photos (owner/admin photos)
     if (!userPhotoDeleted || userPhotoDeleted.length === 0) {
-      const { error: routePhotoError } = await supabase
+      const { data: routePhotoDeleted, error: routePhotoError } = await serviceClient
         .from("route_photos")
         .delete()
         .eq("id", photoId)
-        .eq("uploaded_by_user_id", user.id);
+        .eq("uploaded_by_user_id", user.id)
+        .select();
 
       if (routePhotoError) throw routePhotoError;
+
+      if (!routePhotoDeleted || routePhotoDeleted.length === 0) {
+        return NextResponse.json({ error: "Photo not found or not yours" }, { status: 404 });
+      }
     }
 
     return NextResponse.json({ success: true });
