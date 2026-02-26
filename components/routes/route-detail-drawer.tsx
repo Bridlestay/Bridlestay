@@ -2068,7 +2068,7 @@ export function RouteDetailDrawer({
                 className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
                 onClick={async () => {
                   await handleUploadReviewPhoto();
-                  fetchCompletions(); // Refresh so new photo appears in existing photos
+                  await fetchCompletions(); // Refresh so new photo appears in existing photos
                   setReviewStep(3);
                   setMaxVisitedStep((p) => Math.max(p, 3));
                 }}

@@ -114,11 +114,12 @@ export async function POST(
       const source = formData.get("source") as string || "";
       const isReviewUpload = source === "review";
 
-      // Upload to Supabase Storage
+      // Upload to Supabase Storage using service client to bypass storage policies
       const fileExt = file.name.split(".").pop();
       const fileName = `${routeId}/${user.id}/${Date.now()}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
+
+      const storageClient = createServiceClient();
+      const { data: uploadData, error: uploadError } = await storageClient.storage
         .from("route-photos")
         .upload(fileName, file);
 
@@ -128,13 +129,16 @@ export async function POST(
       }
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = storageClient.storage
         .from("route-photos")
         .getPublicUrl(fileName);
 
+      // Use service client for DB inserts to bypass RLS policies
+      const serviceClient = createServiceClient();
+
       if (isOwnerOrAdmin && !isReviewUpload) {
         // Store in route_photos table (official route photos)
-        const { data: photo, error } = await supabase
+        const { data: photo, error } = await serviceClient
           .from("route_photos")
           .insert({
             route_id: routeId,
@@ -151,7 +155,7 @@ export async function POST(
         return NextResponse.json({ photo }, { status: 201 });
       } else {
         // Store in user photos table (for community photos)
-        const { data: photo, error } = await supabase
+        const { data: photo, error } = await serviceClient
           .from("route_user_photos")
           .insert({
             route_id: routeId,
