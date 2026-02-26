@@ -16,27 +16,39 @@ export async function POST(
 
     const { notes, rating } = await request.json();
 
-    // Mark route as complete
-    const { data, error } = await supabase
+    // Check if user already has a completion for this route
+    const { data: existing } = await supabase
       .from('route_completions')
-      .insert({
-        route_id: id,
-        user_id: user.id,
-        notes,
-        rating
-      })
-      .select()
-      .single();
+      .select('id')
+      .eq('route_id', id)
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-    if (error) {
-      // Handle duplicate completion
-      if (error.code === '23505') {
-        return NextResponse.json(
-          { error: 'Route already marked as complete' },
-          { status: 409 }
-        );
-      }
-      throw error;
+    let data;
+    if (existing) {
+      // Update existing completion (preserves completed_at, updates notes/rating)
+      const { data: updated, error: updateError } = await supabase
+        .from('route_completions')
+        .update({ notes, rating })
+        .eq('id', existing.id)
+        .select()
+        .single();
+      if (updateError) throw updateError;
+      data = updated;
+    } else {
+      // Insert new completion
+      const { data: inserted, error: insertError } = await supabase
+        .from('route_completions')
+        .insert({
+          route_id: id,
+          user_id: user.id,
+          notes,
+          rating
+        })
+        .select()
+        .single();
+      if (insertError) throw insertError;
+      data = inserted;
     }
 
     // Update completions count on route

@@ -1244,13 +1244,17 @@ export function RouteDetailDrawer({
       });
 
       // Then save the review record (rating, review_text, difficulty)
+      // Preserve existing long note if pre-populated from a previous review
+      const reviewText = reviewLongNote.trim()
+        ? `${reviewShortNote}\n\n---\n\n${reviewLongNote}`
+        : reviewShortNote || undefined;
       await fetch(`/api/routes/${routeId}/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           rating: reviewRating,
           difficulty: route?.difficulty || "moderate",
-          review_text: reviewShortNote || undefined,
+          review_text: reviewText,
         }),
       });
 
@@ -2489,11 +2493,24 @@ export function RouteDetailDrawer({
                       if (existing) {
                         setReviewRating(existing.rating || 0);
                         setReviewTags(existing.tags || []);
-                        setReviewShortNote(existing.short_note || existing.review_body || "");
+                        // Extract short note and long note from existing data
+                        const shortNote = existing.short_note || "";
+                        const body = existing.review_body || "";
+                        if (shortNote) {
+                          setReviewShortNote(shortNote);
+                        } else if (body) {
+                          // If no short_note but review_body exists, use it as short note
+                          const sepIdx = body.indexOf("\n\n---\n\n");
+                          setReviewShortNote(sepIdx >= 0 ? body.substring(0, sepIdx) : body);
+                        }
+                        // Extract long note from review_body if it contains separator
+                        if (body && body.includes("\n\n---\n\n")) {
+                          setReviewLongNote(body.substring(body.indexOf("\n\n---\n\n") + 7));
+                        }
                       }
                     }
                     setReviewStep(1);
-                    setMaxVisitedStep(4);
+                    setMaxVisitedStep(5);
                   }}
                   variant={userHasCompletion ? "outline" : "default"}
                   className={cn(
@@ -2788,17 +2805,27 @@ export function RouteDetailDrawer({
                           }}
                         >
                           <div className="flex items-start gap-3">
-                            <Avatar className="h-8 w-8 flex-shrink-0 mt-0.5">
-                              <AvatarImage src={completion.user?.avatar_url || undefined} />
-                              <AvatarFallback className="text-xs bg-green-50 text-green-700 font-semibold">
-                                {completion.user?.name?.[0] || "?"}
-                              </AvatarFallback>
-                            </Avatar>
+                            <Link
+                              href={`/profile/${completion.user?.id || completion.user_id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex-shrink-0 mt-0.5"
+                            >
+                              <Avatar className="h-8 w-8 hover:ring-2 hover:ring-green-300 transition-all">
+                                <AvatarImage src={completion.user?.avatar_url || undefined} />
+                                <AvatarFallback className="text-xs bg-green-50 text-green-700 font-semibold">
+                                  {completion.user?.name?.[0] || "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                            </Link>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-sm font-semibold text-gray-900">
+                                <Link
+                                  href={`/profile/${completion.user?.id || completion.user_id}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-sm font-semibold text-gray-900 hover:text-green-700 transition-colors"
+                                >
                                   {completion.user?.name || "Rider"}
-                                </span>
+                                </Link>
                                 <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
                                   {formatDistanceToNow(new Date(completion.completed_at), { addSuffix: true })}
                                 </span>
