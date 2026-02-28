@@ -338,8 +338,8 @@ export function ElevationProfile({
   const yMid = Math.round((yMin + yMax) / 2);
 
   return (
-    <div className={cn("bg-white rounded-lg border p-3", className)}>
-      <div className="flex gap-1">
+    <div className={cn("bg-white rounded-lg border p-3 flex flex-col overflow-hidden", className)}>
+      <div className="flex gap-1 flex-1 min-h-0">
         {/* Y-axis */}
         <div className={cn(
           "flex flex-col justify-end text-[10px] text-slate-400 pr-1 w-10 text-right flex-shrink-0",
@@ -354,7 +354,7 @@ export function ElevationProfile({
         </div>
 
         {/* Chart + markers column */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Floating markers gutter */}
           {isFloating && (
             <div className="relative h-10 flex-shrink-0">
@@ -398,8 +398,8 @@ export function ElevationProfile({
           <div
             ref={containerRef}
             className={cn(
-              "relative flex-1 cursor-crosshair",
-              isFloating ? "h-40" : "h-28"
+              "relative cursor-crosshair overflow-hidden",
+              isFloating ? "flex-1 min-h-0" : "h-28"
             )}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
@@ -555,7 +555,7 @@ export function ElevationProfile({
       </div>
 
       {/* X-axis labels */}
-      <div className="flex justify-between text-[10px] text-slate-400 mt-1 ml-11">
+      <div className="flex justify-between text-[10px] text-slate-400 mt-1 ml-11 flex-shrink-0">
         <span>0</span>
         <span>{(distanceKm / 4).toFixed(1)}</span>
         <span>{(distanceKm / 2).toFixed(1)}</span>
