@@ -26,6 +26,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Navigation,
 } from "lucide-react";
 import {
   getRouteCentroid,
@@ -39,7 +40,6 @@ import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { ElevationProfile } from "./elevation-profile";
 import {
-  PHOTO_CATEGORIES,
   WARNING_TYPES,
   getDifficultyInfo,
   getTimeRemaining,
@@ -120,6 +120,7 @@ export function RouteDetailDrawer({
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [locationName, setLocationName] = useState<string | null>(null);
 
   // --- Review flow ---
   const [reviewStep, setReviewStep] = useState<number | null>(null);
@@ -365,6 +366,38 @@ export function RouteDetailDrawer({
       .finally(() => { if (!cancelled) setLoadingWeather(false); });
 
     return () => { cancelled = true; };
+  }, [route, open]);
+
+  // Reverse geocode for location name
+  useEffect(() => {
+    if (!route || !open) {
+      setLocationName(null);
+      return;
+    }
+    const geometry = route.geometry || route.route_geometry;
+    const coords = geometry?.coordinates as [number, number][] | undefined;
+    const centroid = getRouteCentroid(coords || []);
+    if (!centroid) return;
+
+    let cancelled = false;
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!token) return;
+
+    fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${centroid.lng},${centroid.lat}.json?access_token=${token}&types=place,locality&limit=1`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.features?.[0]) {
+          const parts = data.features[0].place_name?.split(", ") || [];
+          setLocationName(parts.slice(0, 2).join(", "));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, [route, open]);
 
   // ===================== HANDLERS =====================
@@ -625,14 +658,19 @@ export function RouteDetailDrawer({
         />
       ) : route ? (
         <div>
-          {/* PHOTO CAROUSEL */}
-          {displayPhotosForCarousel.length > 0 && (
-            <div className="relative group">
-              <div
-                className="relative h-52 overflow-hidden cursor-pointer"
-                onClick={() => setLightboxOpen(true)}
-              >
-                {displayPhotosForCarousel.map((photo: any, idx: number) => (
+          {/* PHOTO HERO */}
+          <div className="relative group">
+            <div
+              className={cn(
+                "relative overflow-hidden",
+                displayPhotosForCarousel.length > 0
+                  ? "h-64 md:h-72 cursor-pointer"
+                  : "h-48 md:h-56"
+              )}
+              onClick={displayPhotosForCarousel.length > 0 ? () => setLightboxOpen(true) : undefined}
+            >
+              {displayPhotosForCarousel.length > 0 ? (
+                displayPhotosForCarousel.map((photo: any, idx: number) => (
                   <div
                     key={photo.id || idx}
                     className={cn(
@@ -642,65 +680,127 @@ export function RouteDetailDrawer({
                   >
                     <Image src={photo.url} alt={photo.caption || `Route photo ${idx + 1}`} fill className="object-cover" />
                   </div>
-                ))}
+                ))
+              ) : (
+                <div className="flex items-center justify-center h-full bg-gradient-to-br from-green-50 to-green-100">
+                  <div className="text-center">
+                    <ImageIcon className="h-12 w-12 text-green-300 mx-auto" />
+                    <p className="text-sm text-green-400 mt-2">No photos yet</p>
+                  </div>
+                </div>
+              )}
 
-                <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5">
+              {/* Bottom gradient */}
+              {displayPhotosForCarousel.length > 0 && (
+                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+              )}
+
+              {/* Like button overlay */}
+              <button
+                onClick={(e) => { e.stopPropagation(); handleLike(); }}
+                className={cn(
+                  "absolute bottom-3 right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg",
+                  liked
+                    ? "bg-red-500 text-white"
+                    : "bg-black/40 backdrop-blur-sm text-white hover:bg-black/60"
+                )}
+              >
+                <Heart className={cn("h-5 w-5", liked && "fill-current")} />
+              </button>
+
+              {/* Likes count */}
+              {likesCount > 0 && (
+                <span className="absolute bottom-5 right-14 z-10 text-white text-sm font-medium drop-shadow-lg">
+                  {likesCount}
+                </span>
+              )}
+
+              {/* Photo count badge */}
+              {displayPhotosForCarousel.length > 0 && (
+                <div className="absolute bottom-3 left-3 z-10 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5">
                   <ImageIcon className="h-3 w-3" />
                   {currentPhotoIndex + 1} / {displayPhotosForCarousel.length}
                 </div>
+              )}
 
-                {displayPhotosForCarousel[currentPhotoIndex]?.caption &&
-                  PHOTO_CATEGORIES.some((c) => displayPhotosForCarousel[currentPhotoIndex].caption?.includes(c.label)) && (
-                  <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full">
-                    {displayPhotosForCarousel[currentPhotoIndex].caption}
-                  </div>
-                )}
+              {/* Terrain tags on photo */}
+              {displayPhotosForCarousel.length > 0 && (route.terrain_tags?.length > 0 || route.surface) && (
+                <div className="absolute bottom-14 left-3 z-10 flex flex-wrap gap-1.5 max-w-[70%]">
+                  {route.terrain_tags?.slice(0, 3).map((tag: string) => (
+                    <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm text-white font-medium">
+                      {tag}
+                    </span>
+                  ))}
+                  {route.surface && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm text-white font-medium">
+                      {route.surface}
+                    </span>
+                  )}
+                </div>
+              )}
 
-                {displayPhotosForCarousel.length > 1 && (
-                  <>
+              {/* Prev/Next arrows */}
+              {displayPhotosForCarousel.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex((prev) => (prev > 0 ? prev - 1 : displayPhotosForCarousel.length - 1)); }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-10"
+                  >
+                    <ChevronLeft className="h-4 w-4 text-gray-700" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex((prev) => (prev < displayPhotosForCarousel.length - 1 ? prev + 1 : 0)); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-10"
+                  >
+                    <ChevronRight className="h-4 w-4 text-gray-700" />
+                  </button>
+                </>
+              )}
+
+              {/* Dot indicators */}
+              {displayPhotosForCarousel.length > 1 && displayPhotosForCarousel.length <= 8 && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                  {displayPhotosForCarousel.map((_: any, idx: number) => (
                     <button
-                      onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex((prev) => (prev > 0 ? prev - 1 : displayPhotosForCarousel.length - 1)); }}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                    >
-                      <ChevronLeft className="h-4 w-4 text-gray-700" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex((prev) => (prev < displayPhotosForCarousel.length - 1 ? prev + 1 : 0)); }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                    >
-                      <ChevronRight className="h-4 w-4 text-gray-700" />
-                    </button>
-                  </>
-                )}
-
-                {displayPhotosForCarousel.length > 1 && (
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                    {displayPhotosForCarousel.map((_: any, idx: number) => (
-                      <button
-                        key={idx}
-                        onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex(idx); }}
-                        className={cn("h-2 rounded-full transition-all", idx === currentPhotoIndex ? "bg-white w-4" : "bg-white/50 w-2")}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+                      key={idx}
+                      onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex(idx); }}
+                      className={cn("h-2 rounded-full transition-all", idx === currentPhotoIndex ? "bg-white w-4" : "bg-white/50 w-2")}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           <div className="p-4 space-y-4">
-            {/* AUTHOR */}
+            {/* AUTHOR + META */}
             {route?.owner && (
-              <Link href={`/profile/${route.owner.id}`} className="flex items-center gap-2.5 group">
-                <Avatar className="h-8 w-8">
+              <Link href={`/profile/${route.owner.id}`} className="flex items-center gap-3 group">
+                <Avatar className="h-10 w-10">
                   <AvatarImage src={route.owner.avatar_url || undefined} />
-                  <AvatarFallback className="text-xs bg-green-100 text-green-800">
+                  <AvatarFallback className="text-sm bg-green-100 text-green-800">
                     {route.owner.name?.[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium text-gray-600 group-hover:text-green-700 transition-colors">
-                  {route.owner.name}
-                </span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
+                    {route.owner.name}
+                  </span>
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    {(route.updated_at || route.created_at) && (
+                      <span>{formatDistanceToNow(new Date(route.updated_at || route.created_at), { addSuffix: true })}</span>
+                    )}
+                    {locationName && (
+                      <>
+                        <span>·</span>
+                        <span className="flex items-center gap-0.5">
+                          <MapPin className="h-3 w-3" />
+                          {locationName}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
               </Link>
             )}
 
@@ -747,6 +847,20 @@ export function RouteDetailDrawer({
               )}
             </div>
 
+            {/* DESCRIPTION */}
+            {route.description && (
+              <div className="bg-slate-50 rounded-lg p-3">
+                <p className={cn("text-sm text-slate-600", !showFullDescription && "line-clamp-3")}>
+                  {route.description}
+                </p>
+                {route.description.length > 150 && (
+                  <button onClick={() => setShowFullDescription(!showFullDescription)} className="text-xs text-green-600 hover:text-green-700 font-medium mt-1">
+                    {showFullDescription ? "Show less" : "Read more"}
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* STATS */}
             <div className="grid grid-cols-4 gap-2 py-3 border-y bg-slate-50/50 rounded-lg px-2">
               <div className="text-center">
@@ -787,20 +901,6 @@ export function RouteDetailDrawer({
               />
             )}
 
-            {/* DESCRIPTION */}
-            {route.description && (
-              <div className="bg-slate-50 rounded-lg p-3">
-                <p className={cn("text-sm text-slate-600", !showFullDescription && "line-clamp-3")}>
-                  {route.description}
-                </p>
-                {route.description.length > 150 && (
-                  <button onClick={() => setShowFullDescription(!showFullDescription)} className="text-xs text-green-600 hover:text-green-700 font-medium mt-1">
-                    {showFullDescription ? "Show less" : "Read more"}
-                  </button>
-                )}
-              </div>
-            )}
-
             {/* ROUTE MAP SNAPSHOT */}
             {(() => {
               const geo = route.geometry || route.route_geometry;
@@ -831,8 +931,8 @@ export function RouteDetailDrawer({
               </Button>
             )}
 
-            {/* Terrain Tags */}
-            {(route.terrain_tags?.length > 0 || route.surface) && (
+            {/* Terrain Tags (fallback when no photos — tags shown on photo hero otherwise) */}
+            {displayPhotosForCarousel.length === 0 && (route.terrain_tags?.length > 0 || route.surface) && (
               <div className="flex flex-wrap gap-2">
                 {route.terrain_tags?.map((tag: string) => (
                   <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
@@ -846,6 +946,10 @@ export function RouteDetailDrawer({
               <button onClick={handleDownloadGPX} className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors">
                 <Download className="h-5 w-5 text-slate-600" />
                 <span className="text-xs text-slate-500">Export GPX</span>
+              </button>
+              <button onClick={handleShare} className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors">
+                <Share2 className="h-5 w-5 text-slate-600" />
+                <span className="text-xs text-slate-500">Share</span>
               </button>
               {(isOwner || isAdmin) && onEditRoute && (
                 <button onClick={() => onEditRoute(routeId!, route)} className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors">
@@ -1015,22 +1119,6 @@ export function RouteDetailDrawer({
               onShowAllReviews={setShowAllReviews}
             />
 
-            {/* ENGAGEMENT STATS */}
-            <div className="grid grid-cols-3 gap-4 p-3 bg-slate-50 rounded-lg">
-              <div className="text-center">
-                <p className="text-xl font-bold">{likesCount}</p>
-                <p className="text-xs text-muted-foreground">Likes</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xl font-bold">{route.completions_count || 0}</p>
-                <p className="text-xs text-muted-foreground">Completions</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xl font-bold">{route.shares_count || 0}</p>
-                <p className="text-xs text-muted-foreground">Shares</p>
-              </div>
-            </div>
-
             {/* Safety Notice */}
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-sm text-amber-900">
@@ -1084,48 +1172,50 @@ export function RouteDetailDrawer({
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div
           className={cn(
-            "pointer-events-auto bg-white rounded-2xl shadow-2xl border border-gray-100",
+            "pointer-events-auto bg-white rounded-2xl shadow-2xl border border-gray-100 relative",
             "w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden",
             "animate-in zoom-in-95 slide-in-from-bottom-4 fade-in duration-300",
             "md:max-h-[80vh]",
           )}
         >
-          {/* Modal Header */}
-          <div className="flex items-center justify-between px-5 py-3 border-b bg-gradient-to-r from-green-50 to-white shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-6 bg-green-600 rounded-full" />
-              <h2 className="font-semibold text-gray-900 truncate">{route?.title || "Route Details"}</h2>
-            </div>
-            <button
-              onClick={onDismiss || onClose}
-              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-            >
-              <X className="h-4 w-4 text-gray-600" />
-            </button>
-          </div>
+          {/* Floating close button (always visible over scroll content) */}
+          <button
+            onClick={onDismiss || onClose}
+            className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 flex items-center justify-center transition-colors"
+          >
+            <X className="h-4 w-4 text-white" />
+          </button>
 
           {/* Scrollable Content */}
-          <div className="flex-1 min-h-0 scrollbar-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
             {drawerContent}
           </div>
 
-          {/* Bottom Action Bar */}
-          <div className="shrink-0 border-t bg-white px-5 py-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Button variant={liked ? "default" : "outline"} size="sm" onClick={handleLike} className="gap-1.5 rounded-full">
-                <Heart className={cn("h-4 w-4", liked && "fill-current")} />
-                {likesCount > 0 ? likesCount : "Like"}
-              </Button>
-              <Button variant={favorited ? "default" : "outline"} size="sm" onClick={handleFavorite} className="gap-1.5 rounded-full">
+          {/* Bottom Action Bar — Save + Navigate (only on main route view) */}
+          {!loading && reviewStep === null && activeFullPanel === null && route && (
+            <div className="shrink-0 border-t bg-white px-5 py-3 flex items-center justify-between gap-3">
+              <Button
+                variant={favorited ? "default" : "outline"}
+                size="sm"
+                onClick={handleFavorite}
+                className={cn(
+                  "gap-1.5 rounded-full",
+                  favorited && "bg-green-600 hover:bg-green-700"
+                )}
+              >
                 <Bookmark className={cn("h-4 w-4", favorited && "fill-current")} />
                 {favorited ? "Saved" : "Save"}
               </Button>
+              <Button
+                size="sm"
+                disabled
+                className="gap-1.5 rounded-full bg-green-600 text-white opacity-50 cursor-not-allowed"
+              >
+                <Navigation className="h-4 w-4" />
+                Navigate
+              </Button>
             </div>
-            <Button variant="outline" size="sm" onClick={handleShare} className="gap-1.5 rounded-full">
-              <Share2 className="h-4 w-4" />
-              Share
-            </Button>
-          </div>
+          )}
         </div>
       </div>
 
