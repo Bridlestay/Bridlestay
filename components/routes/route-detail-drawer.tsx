@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
@@ -23,10 +30,13 @@ import {
   Pencil,
   Image as ImageIcon,
   X,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Navigation,
+  TrendingUp,
+  Plus,
+  Cloud,
+  MoreHorizontal,
 } from "lucide-react";
 import {
   getRouteCentroid,
@@ -37,7 +47,13 @@ import { cache, CACHE_TTL } from "@/lib/cache";
 import { NearbyPropertyCard } from "./nearby-property-card";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
-import { getDifficultyInfo } from "./route-detail-constants";
+import {
+  getDifficultyInfo,
+  HAZARD_TYPES,
+  SEVERITY_COLORS,
+  WARNING_TYPES,
+  getTimeRemaining,
+} from "./route-detail-constants";
 
 // Sub-components
 import { PhotoLightbox } from "./route-photo-lightbox";
@@ -49,9 +65,9 @@ import {
   ReportCommentDialog,
 } from "./route-hazard-dialogs";
 import { RouteReviewFlow } from "./route-review-flow";
-import { RouteReviewCards } from "./route-review-cards";
 import { RoutePhotoGallery } from "./route-photo-gallery";
-import { RouteDetailTabs } from "./route-detail-tabs";
+import { ElevationProfile } from "./elevation-profile";
+import { RouteWeatherSection } from "./route-weather-section";
 
 // --- Main Component ---
 
@@ -121,7 +137,6 @@ export function RouteDetailDrawer({
   // --- Review flow ---
   const [reviewStep, setReviewStep] = useState<number | null>(null);
   const [routeCompletions, setRouteCompletions] = useState<any[]>([]);
-  const [showAllReviews, setShowAllReviews] = useState(false);
 
   // --- Elevation ---
   const [elevationData, setElevationData] = useState<{
@@ -556,7 +571,6 @@ export function RouteDetailDrawer({
         body: JSON.stringify({ photoId, is_cover: true }),
       });
       if (res.ok) {
-        // Re-fetch photos to update cover state
         const photosRes = await fetch(`/api/routes/${routeId}/photos`);
         if (photosRes.ok) {
           const data = await photosRes.json();
@@ -669,6 +683,49 @@ export function RouteDetailDrawer({
   const activeHazards = hazards.filter((h) => h.status === "active");
   const activeWarnings = warnings.filter((w) => w.status === "active");
 
+  // Compute hazard positions on the elevation chart
+  const hazardsWithDistance = useMemo(() => {
+    const geo = route?.geometry || route?.route_geometry;
+    const coords = geo?.coordinates || [];
+    if (coords.length === 0 || !elevationData) return [];
+
+    return activeHazards
+      .filter((h: any) => h.lat && h.lng)
+      .map((hazard: any) => {
+        let minDist = Infinity;
+        let nearestIdx = 0;
+        for (let i = 0; i < coords.length; i++) {
+          const d = Math.abs(coords[i][1] - hazard.lat) + Math.abs(coords[i][0] - hazard.lng);
+          if (d < minDist) { minDist = d; nearestIdx = i; }
+        }
+
+        let dist = 0;
+        for (let i = 1; i <= nearestIdx && i < coords.length; i++) {
+          const R = 6371;
+          const dLat = ((coords[i][1] - coords[i - 1][1]) * Math.PI) / 180;
+          const dLng = ((coords[i][0] - coords[i - 1][0]) * Math.PI) / 180;
+          const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos((coords[i - 1][1] * Math.PI) / 180) *
+            Math.cos((coords[i][1] * Math.PI) / 180) *
+            Math.sin(dLng / 2) ** 2;
+          dist += R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        let elevation: number | undefined;
+        if (elevationData.distances.length > 0) {
+          let bestIdx = 0;
+          let bestDiff = Math.abs(elevationData.distances[0] - dist);
+          for (let i = 1; i < elevationData.distances.length; i++) {
+            const diff = Math.abs(elevationData.distances[i] - dist);
+            if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
+          }
+          elevation = elevationData.elevations[bestIdx];
+        }
+
+        return { type: hazard.hazard_type, distanceFromStart: dist, elevation };
+      });
+  }, [route, activeHazards, elevationData]);
+
   // ===================== EARLY RETURNS =====================
 
   if (!route && !loading) return null;
@@ -738,7 +795,7 @@ export function RouteDetailDrawer({
         />
       ) : route ? (
         <div>
-          {/* PHOTO HERO */}
+          {/* ==================== PHOTO HERO ==================== */}
           <div className="relative group">
             <div
               className={cn(
@@ -775,25 +832,65 @@ export function RouteDetailDrawer({
                 <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
               )}
 
-              {/* Like button overlay */}
+              {/* Close button — top-left */}
               <button
-                onClick={(e) => { e.stopPropagation(); handleLike(); }}
-                className={cn(
-                  "absolute bottom-3 right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg",
-                  liked
-                    ? "bg-red-500 text-white"
-                    : "bg-black/40 backdrop-blur-sm text-white hover:bg-black/60"
-                )}
+                onClick={(e) => { e.stopPropagation(); (onDismiss || onClose)(); }}
+                className="absolute top-3 left-3 z-20 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 flex items-center justify-center transition-colors"
               >
-                <Heart className={cn("h-5 w-5", liked && "fill-current")} />
+                <X className="h-4 w-4 text-white" />
               </button>
 
-              {/* Likes count */}
-              {likesCount > 0 && (
-                <span className="absolute bottom-5 right-14 z-10 text-white text-sm font-medium drop-shadow-lg">
-                  {likesCount}
-                </span>
-              )}
+              {/* Share + Like + More — top-right */}
+              <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 flex items-center justify-center transition-all shadow-lg"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem onClick={handleDownloadGPX}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Export GPX
+                    </DropdownMenuItem>
+                    {(isOwner || isAdmin) && onEditRoute && (
+                      <DropdownMenuItem onClick={() => onEditRoute(routeId!, route)}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Copy & Edit
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={() => setReportDialogOpen(true)}>
+                      <Flag className="h-4 w-4 mr-2" />
+                      Report
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                  className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 flex items-center justify-center transition-all shadow-lg"
+                >
+                  <Share2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleLike(); }}
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-lg",
+                    liked
+                      ? "bg-red-500 text-white"
+                      : "bg-black/40 backdrop-blur-sm text-white hover:bg-black/60"
+                  )}
+                >
+                  <Heart className={cn("h-4 w-4", liked && "fill-current")} />
+                </button>
+                {likesCount > 0 && (
+                  <span className="text-white text-xs font-medium drop-shadow-lg -ml-1">
+                    {likesCount}
+                  </span>
+                )}
+              </div>
 
               {/* Photo count badge */}
               {totalPhotoCount > 0 && (
@@ -858,303 +955,501 @@ export function RouteDetailDrawer({
             </div>
           </div>
 
-          <div className="p-4 space-y-4">
-            {/* AUTHOR + META */}
-            {route?.owner && (
-              <Link href={`/profile/${route.owner.id}`} className="flex items-center gap-3 group">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={route.owner.avatar_url || undefined} />
-                  <AvatarFallback className="text-sm bg-green-100 text-green-800">
-                    {route.owner.name?.[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
-                    {route.owner.name}
-                  </span>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    {(route.updated_at || route.created_at) && (
-                      <span>{formatDistanceToNow(new Date(route.updated_at || route.created_at), { addSuffix: true })}</span>
-                    )}
-                    {locationName && (
-                      <>
-                        <span>·</span>
-                        <span className="flex items-center gap-0.5">
-                          <MapPin className="h-3 w-3" />
-                          {locationName}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            )}
-
-            {/* TITLE + BADGES */}
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 leading-tight">{route.title}</h1>
-              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                {route.featured && <Badge className="text-xs bg-amber-500">Featured</Badge>}
-                {isOwner && <Badge variant="outline" className="text-xs">Your Route</Badge>}
-                {activeHazards.length > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="gap-1 text-xs cursor-pointer"
-                    onClick={() => {
-                      if (onEnterViewMode) onEnterViewMode("hazards");
-                      else document.getElementById("hazards-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
-                    }}
-                  >
-                    <AlertTriangle className="h-3 w-3" />
-                    {activeHazards.length} Hazard{activeHazards.length > 1 ? "s" : ""}
-                  </Badge>
-                )}
-                {activeWarnings.length > 0 && (
-                  <Badge
-                    className="gap-1 text-xs bg-amber-500 cursor-pointer"
-                    onClick={() => document.getElementById("active-warnings")?.scrollIntoView({ behavior: "smooth", block: "center" })}
-                  >
-                    <AlertTriangle className="h-3 w-3" />
-                    {activeWarnings.length} Warning{activeWarnings.length > 1 ? "s" : ""}
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            {/* DIFFICULTY + TIMES RIDDEN */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <Badge className={cn("text-sm px-3 py-1", getDifficultyInfo(route.difficulty).color)}>
-                {getDifficultyInfo(route.difficulty).label}
-              </Badge>
-              {(route.completions_count > 0) && (
-                <span className="text-sm text-gray-500">
-                  🐴 {route.completions_count} {route.completions_count === 1 ? "person has" : "people have"} ridden this
-                </span>
-              )}
-            </div>
-
-            {/* DESCRIPTION */}
-            {route.description && (
-              <div className="bg-slate-50 rounded-lg p-3">
-                <p className={cn("text-sm text-slate-600", !showFullDescription && "line-clamp-3")}>
-                  {route.description}
-                </p>
-                {route.description.length > 150 && (
-                  <button onClick={() => setShowFullDescription(!showFullDescription)} className="text-xs text-green-600 hover:text-green-700 font-medium mt-1">
-                    {showFullDescription ? "Show less" : "Read more"}
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* STATS */}
-            <div className="grid grid-cols-4 gap-2 py-3 border-y bg-slate-50/50 rounded-lg px-2">
-              <div className="text-center">
-                <p className="text-lg font-bold text-slate-900">{Number(route.distance_km || 0).toFixed(1)}</p>
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide">Distance (km)</p>
-              </div>
-              <div className="text-center border-l border-slate-200">
-                <p className="text-lg font-bold text-slate-900">
-                  {route.distance_km
-                    ? (() => { const mins = Math.floor((Number(route.distance_km) / 8) * 60); return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60 > 0 ? `${mins % 60}m` : ""}` : `${mins}m`; })()
-                    : "—"}
-                </p>
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide">🐴 Ride</p>
-              </div>
-              <div className="text-center border-l border-slate-200">
-                <p className="text-lg font-bold text-slate-900">
-                  {elevationData?.totalAscent ? `${elevationData.totalAscent}` : route.elevation_gain ? `${Math.round(route.elevation_gain)}` : loadingElevation ? "..." : "—"}
-                </p>
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide">Ascent (m)</p>
-              </div>
-              <div className="text-center border-l border-slate-200">
-                <p className="text-lg font-bold text-slate-900">
-                  {elevationData?.totalDescent ? `${elevationData.totalDescent}` : route.elevation_loss ? `${Math.round(route.elevation_loss)}` : loadingElevation ? "..." : "—"}
-                </p>
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide">Descent (m)</p>
-              </div>
-            </div>
-
-            {/* TABBED SECTION: Elevation / Map / Waypoints / Hazards / Warnings / Weather */}
-            <RouteDetailTabs
-              route={route}
-              elevationData={elevationData}
-              loadingElevation={loadingElevation}
-              weatherData={weatherData}
-              loadingWeather={loadingWeather}
-              fullWaypointList={fullWaypointList}
-              waypointElevationMap={waypointElevationMap}
-              waypoints={waypoints}
-              activeHazards={activeHazards}
-              activeWarnings={activeWarnings}
-              showAllWarnings={showAllWarnings}
-              onShowAllWarningsChange={setShowAllWarnings}
-              userVotedWarnings={userVotedWarnings}
-              userId={userId}
-              onVoteClearWarning={handleVoteClearWarning}
-              onViewAllWaypoints={() => onEnterViewMode ? onEnterViewMode("waypoints") : setActiveFullPanel("waypoints")}
-              onEnterViewMode={onEnterViewMode}
-              onPlaceHazard={onPlaceHazard}
-              onPostWarning={() => setWarningDialogOpen(true)}
-              onFlyToLocation={onFlyToLocation}
-              onDismiss={onDismiss}
-            />
-
-            {/* I'VE RIDDEN THIS ROUTE! */}
-            {userId && !isOwner && (
-              <Button
-                onClick={() => setReviewStep(1)}
-                variant={userHasCompletion ? "outline" : "default"}
-                className={cn(
-                  "w-full rounded-xl h-12 font-semibold text-base shadow-sm",
-                  userHasCompletion
-                    ? "border-green-600 text-green-700 hover:bg-green-50"
-                    : "bg-green-600 hover:bg-green-700 text-white"
-                )}
-              >
-                {userHasCompletion ? "✏️ Update my review" : "🐴 I've ridden this route!"}
-              </Button>
-            )}
-
-            {/* Terrain Tags (fallback when no photos — tags shown on photo hero otherwise) */}
-            {displayPhotosForCarousel.length === 0 && (route.terrain_tags?.length > 0 || route.surface) && (
-              <div className="flex flex-wrap gap-2">
-                {route.terrain_tags?.map((tag: string) => (
-                  <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
-                ))}
-                {route.surface && <Badge variant="outline" className="text-xs">{route.surface}</Badge>}
-              </div>
-            )}
-
-            {/* Secondary Actions */}
-            <div className="flex items-center justify-around py-2 border rounded-lg bg-slate-50">
-              <button onClick={handleDownloadGPX} className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors">
-                <Download className="h-5 w-5 text-slate-600" />
-                <span className="text-xs text-slate-500">Export GPX</span>
-              </button>
-              <button onClick={handleShare} className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors">
-                <Share2 className="h-5 w-5 text-slate-600" />
-                <span className="text-xs text-slate-500">Share</span>
-              </button>
-              {(isOwner || isAdmin) && onEditRoute && (
-                <button onClick={() => onEditRoute(routeId!, route)} className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors">
-                  <Pencil className="h-5 w-5 text-slate-600" />
-                  <span className="text-xs text-slate-500">Copy & Edit</span>
-                </button>
-              )}
-              <button onClick={() => setReportDialogOpen(true)} className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors">
-                <Flag className="h-5 w-5 text-slate-600" />
-                <span className="text-xs text-slate-500">Report</span>
-              </button>
-            </div>
-
-            <Separator />
-
-            {/* NEARBY STAYS */}
-            {nearbyProperties.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <Home className="h-4 w-4" />
-                  Nearby Stays
-                  <Badge variant="secondary" className="text-xs">{nearbyProperties.length}</Badge>
-                </h3>
-                <ScrollArea className="w-full" type="scroll">
-                  <div className="flex gap-3 pb-2">
-                    {nearbyProperties.map((property) => (
-                      <div key={property.id} className="flex-shrink-0 w-64">
-                        <NearbyPropertyCard property={property} onShowOnMap={onShowPropertyOnMap} />
-                      </div>
-                    ))}
-                  </div>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-              </div>
-            )}
-
-            {/* DISCUSSION PREVIEW */}
-            <div className="border rounded-lg overflow-hidden">
-              <div
-                className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors"
-                onClick={() => setActiveFullPanel("discussion")}
-              >
-                <h3 className="font-semibold flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4" />
-                  Discussion
-                </h3>
-                <Badge variant="outline" className="text-xs">
-                  {comments.length} {comments.length === 1 ? "comment" : "comments"}
-                </Badge>
-              </div>
-              {comments.length > 0 ? (
-                <div className="px-4 pb-3 space-y-3">
-                  {comments.slice(0, 3).map((comment: any) => (
-                    <div key={comment.id} className="flex items-start gap-2.5">
-                      <Avatar className="h-6 w-6 flex-shrink-0 mt-0.5">
-                        <AvatarImage src={comment.user?.avatar_url} />
-                        <AvatarFallback className="text-[10px]">
-                          {comment.user?.name?.[0]?.toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <p className="text-sm flex-1 min-w-0">
-                        <span className="font-medium">{comment.user?.name}</span>{" "}
-                        <span className="text-muted-foreground line-clamp-1">
-                          {comment.body}
-                        </span>
-                      </p>
+          {/* ==================== CONTENT AREA ==================== */}
+          <div className={cn(
+            "relative z-10 bg-white",
+            displayPhotosForCarousel.length > 0 && "rounded-t-2xl -mt-4"
+          )}>
+            <div className={cn("p-4 space-y-4", displayPhotosForCarousel.length > 0 && "pt-5")}>
+              {/* AUTHOR + META */}
+              {route?.owner && (
+                <Link href={`/profile/${route.owner.id}`} className="flex items-center gap-3 group">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={route.owner.avatar_url || undefined} />
+                    <AvatarFallback className="text-sm bg-green-100 text-green-800">
+                      {route.owner.name?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
+                      {route.owner.name}
+                    </span>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      {(route.updated_at || route.created_at) && (
+                        <span>{formatDistanceToNow(new Date(route.updated_at || route.created_at), { addSuffix: true })}</span>
+                      )}
+                      {locationName && (
+                        <>
+                          <span>&middot;</span>
+                          <span className="flex items-center gap-0.5">
+                            <MapPin className="h-3 w-3" />
+                            {locationName}
+                          </span>
+                        </>
+                      )}
                     </div>
-                  ))}
-                  {comments.length > 3 && (
-                    <button
-                      onClick={() => setActiveFullPanel("discussion")}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  </div>
+                </Link>
+              )}
+
+              {/* TITLE + BADGES */}
+              <div>
+                <h1 className="text-xl font-bold text-gray-900 leading-tight">{route.title}</h1>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  {route.featured && <Badge className="text-xs bg-amber-500">Featured</Badge>}
+                  {isOwner && <Badge variant="outline" className="text-xs">Your Route</Badge>}
+                  {activeHazards.length > 0 && (
+                    <Badge
+                      variant="destructive"
+                      className="gap-1 text-xs cursor-pointer"
+                      onClick={() => {
+                        if (onEnterViewMode) onEnterViewMode("hazards");
+                        else document.getElementById("hazards-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      }}
                     >
-                      View all {comments.length} comments
+                      <AlertTriangle className="h-3 w-3" />
+                      {activeHazards.length} Hazard{activeHazards.length > 1 ? "s" : ""}
+                    </Badge>
+                  )}
+                  {activeWarnings.length > 0 && (
+                    <Badge
+                      className="gap-1 text-xs bg-amber-500 cursor-pointer"
+                      onClick={() => document.getElementById("active-warnings")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                    >
+                      <AlertTriangle className="h-3 w-3" />
+                      {activeWarnings.length} Warning{activeWarnings.length > 1 ? "s" : ""}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* DIFFICULTY + TIMES RIDDEN */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <Badge className={cn("text-sm px-3 py-1", getDifficultyInfo(route.difficulty).color)}>
+                  {getDifficultyInfo(route.difficulty).label}
+                </Badge>
+                {(route.completions_count > 0) && (
+                  <span className="text-sm text-gray-500">
+                    {route.completions_count} {route.completions_count === 1 ? "rider has" : "riders have"} completed this
+                  </span>
+                )}
+              </div>
+
+              {/* STATS — 2x2 Komoot-style grid */}
+              <div className="grid grid-cols-2 gap-4 py-4">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-slate-900">
+                    {Number(route.distance_km || 0).toFixed(1)}
+                    <span className="text-sm font-normal text-slate-500 ml-1">km</span>
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">Distance</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-slate-900">
+                    {route.distance_km
+                      ? (() => {
+                          const mins = Math.floor((Number(route.distance_km) / 8) * 60);
+                          return mins >= 60
+                            ? `${Math.floor(mins / 60)}h ${mins % 60 > 0 ? `${mins % 60}m` : ""}`
+                            : `${mins}m`;
+                        })()
+                      : "---"}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">Est. Ride Time</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-slate-900">
+                    {elevationData?.totalAscent
+                      ? `${elevationData.totalAscent}`
+                      : route.elevation_gain
+                        ? `${Math.round(route.elevation_gain)}`
+                        : loadingElevation ? "..." : "---"}
+                    <span className="text-sm font-normal text-slate-500 ml-1">m</span>
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">Ascent</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-slate-900">
+                    {elevationData?.totalDescent
+                      ? `${elevationData.totalDescent}`
+                      : route.elevation_loss
+                        ? `${Math.round(route.elevation_loss)}`
+                        : loadingElevation ? "..." : "---"}
+                    <span className="text-sm font-normal text-slate-500 ml-1">m</span>
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">Descent</p>
+                </div>
+              </div>
+
+              {/* DESCRIPTION — plain text */}
+              {route.description && (
+                <div>
+                  <p className={cn(
+                    "text-sm text-slate-600 leading-relaxed",
+                    !showFullDescription && "line-clamp-3"
+                  )}>
+                    {route.description}
+                  </p>
+                  {route.description.length > 150 && (
+                    <button
+                      onClick={() => setShowFullDescription(!showFullDescription)}
+                      className="text-sm text-green-600 hover:text-green-700 font-medium mt-1"
+                    >
+                      {showFullDescription ? "Show less" : "Show more"}
                     </button>
                   )}
                 </div>
-              ) : (
-                <div className="px-4 pb-4">
+              )}
+
+              {/* DISCUSSION — inline Komoot-style comments */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4" />
+                    Comments
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
+                    {comments.length} {comments.length === 1 ? "comment" : "comments"}
+                  </span>
+                </div>
+
+                {comments.length > 0 ? (
+                  <div className="space-y-3">
+                    {comments.slice(0, 3).map((comment: any) => (
+                      <div key={comment.id} className="flex items-start gap-2.5">
+                        <Avatar className="h-7 w-7 flex-shrink-0 mt-0.5">
+                          <AvatarImage src={comment.user?.avatar_url} />
+                          <AvatarFallback className="text-[10px]">
+                            {comment.user?.name?.[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{comment.user?.name}</span>
+                            {comment.created_at && (
+                              <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">
+                            {comment.body}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    {comments.length > 3 && (
+                      <button
+                        onClick={() => setActiveFullPanel("discussion")}
+                        className="text-sm text-green-600 hover:text-green-700 font-medium"
+                      >
+                        View all {comments.length} comments
+                      </button>
+                    )}
+                  </div>
+                ) : (
                   <p className="text-sm text-muted-foreground">
-                    Be the first to start the discussion!
+                    No comments yet. Be the first!
                   </p>
+                )}
+
+                <button
+                  onClick={() => setActiveFullPanel("discussion")}
+                  className="text-sm text-green-600 hover:text-green-700 font-medium"
+                >
+                  {comments.length > 0 ? "Add a comment" : "Start the discussion"}
+                </button>
+              </div>
+
+              <Separator />
+
+              {/* ELEVATION CHART — always visible */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Elevation Profile
+                </h3>
+                {loadingElevation ? (
+                  <Skeleton className="h-48 w-full rounded-lg" />
+                ) : elevationData && elevationData.elevations.length > 1 ? (
+                  <ElevationProfile
+                    className="h-48"
+                    elevations={elevationData.elevations}
+                    distances={elevationData.distances}
+                    totalAscent={elevationData.totalAscent}
+                    totalDescent={elevationData.totalDescent}
+                    distanceKm={Number(route?.distance_km || 0)}
+                    waypoints={fullWaypointList
+                      .filter((wp: any) => wp.type === "waypoint" && waypointElevationMap[wp.id] !== undefined)
+                      .map((wp: any) => ({
+                        name: wp.name || "Waypoint",
+                        distanceFromStart: wp._distFromStart || 0,
+                        elevation: waypointElevationMap[wp.id],
+                      }))}
+                    hazards={hazardsWithDistance}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-48 bg-slate-50 rounded-lg border text-sm text-muted-foreground">
+                    No elevation data available
+                  </div>
+                )}
+              </div>
+
+              {/* WAYPOINT LIST — permanent, below elevation chart */}
+              {fullWaypointList.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-sm flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Waypoints
+                      <Badge variant="secondary" className="text-xs">{fullWaypointList.length}</Badge>
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-green-600 hover:text-green-700 h-7"
+                      onClick={() => onEnterViewMode ? onEnterViewMode("waypoints") : setActiveFullPanel("waypoints")}
+                    >
+                      View all
+                      <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
+                    </Button>
+                  </div>
+                  {fullWaypointList.slice(0, 6).map((wp: any) => {
+                    const dotColor =
+                      wp.type === "start" ? "bg-green-500"
+                        : wp.type === "finish" ? "bg-red-500"
+                        : "bg-blue-500";
+                    const elevation = waypointElevationMap[wp.id];
+                    return (
+                      <button
+                        key={wp.id}
+                        className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors text-left"
+                        onClick={() => { if (wp.lat && wp.lng && onFlyToLocation) onFlyToLocation(wp.lat, wp.lng); }}
+                      >
+                        <span className={`w-2.5 h-2.5 rounded-full ${dotColor} flex-shrink-0`} />
+                        <span className="text-sm font-medium truncate flex-1">{wp.name || `Waypoint ${(wp.listIndex || 0) + 1}`}</span>
+                        {elevation !== undefined && <span className="text-xs text-muted-foreground">{Math.round(elevation)}m</span>}
+                        {wp._distFromStart !== undefined && wp._distFromStart > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {wp._distFromStart < 1 ? `${Math.round(wp._distFromStart * 1000)}m` : `${wp._distFromStart.toFixed(1)}km`}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {fullWaypointList.length > 6 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => onEnterViewMode ? onEnterViewMode("waypoints") : setActiveFullPanel("waypoints")}
+                    >
+                      View all {fullWaypointList.length} waypoints
+                      <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                  )}
                 </div>
               )}
+
+              {/* HAZARD LIST — permanent, with report button */}
+              <div id="hazards-section" className="space-y-2">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Hazards
+                  {activeHazards.length > 0 && (
+                    <Badge variant="destructive" className="text-xs">{activeHazards.length}</Badge>
+                  )}
+                </h3>
+                {activeHazards.length > 0 ? (
+                  <>
+                    {activeHazards.map((hazard: any) => (
+                      <div key={hazard.id} className={`p-3 rounded-lg border ${SEVERITY_COLORS[hazard.severity] || SEVERITY_COLORS.medium}`}>
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-sm">
+                            {HAZARD_TYPES.find((t) => t.value === hazard.hazard_type)?.label || hazard.hazard_type}
+                          </span>
+                          <Badge variant="outline" className="text-[10px] capitalize">{hazard.severity}</Badge>
+                        </div>
+                        {hazard.description && <p className="text-xs mt-1 opacity-80">{hazard.description}</p>}
+                        <span className="text-[10px] opacity-60 mt-1 block">
+                          {formatDistanceToNow(new Date(hazard.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                    ))}
+                    {onEnterViewMode && (
+                      <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => onEnterViewMode("hazards")}>
+                        View on map <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No active hazards reported</p>
+                )}
+                {onPlaceHazard && (
+                  <Button variant="outline" size="sm" className="w-full text-xs border-red-200 text-red-700 hover:bg-red-50" onClick={onPlaceHazard}>
+                    <Plus className="h-3.5 w-3.5 mr-1.5" /> Report a hazard
+                  </Button>
+                )}
+              </div>
+
+              {/* WARNINGS — inline section */}
+              <div id="active-warnings" className="space-y-2">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  Warnings
+                  {activeWarnings.length > 0 && (
+                    <Badge className="text-xs bg-amber-100 text-amber-700 border border-amber-300">{activeWarnings.length}</Badge>
+                  )}
+                </h3>
+                {activeWarnings.length > 0 ? (
+                  <>
+                    {(showAllWarnings ? activeWarnings : activeWarnings.slice(0, 3)).map((warning: any) => (
+                      <div key={warning.id} className="p-3 bg-amber-50 border border-amber-300 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                            <span className="font-medium text-sm text-amber-900 truncate">
+                              {WARNING_TYPES.find((t) => t.value === warning.hazard_type)?.label || warning.hazard_type}
+                            </span>
+                          </div>
+                          {warning.expires_at && (
+                            <span className="text-xs text-amber-600 whitespace-nowrap ml-2">
+                              {getTimeRemaining(warning.expires_at)}
+                            </span>
+                          )}
+                        </div>
+                        {warning.description && <p className="text-xs text-amber-700 mt-1">{warning.description}</p>}
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-xs text-amber-500">
+                            Reported {formatDistanceToNow(new Date(warning.created_at), { addSuffix: true })}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {warning.clear_votes_needed && (
+                              <span className="text-xs text-amber-600">
+                                {warning.clear_votes_count || 0}/{warning.clear_votes_needed} say cleared
+                              </span>
+                            )}
+                            {userId && (
+                              userVotedWarnings.has(warning.id) || warning.user_has_voted ? (
+                                <Badge className="h-6 text-xs bg-green-100 text-green-700 border border-green-300 hover:bg-green-100">
+                                  Voted
+                                </Badge>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-6 text-xs border-amber-300 text-amber-700 hover:bg-amber-100 px-2"
+                                  onClick={() => handleVoteClearWarning(warning.id)}
+                                >
+                                  Cleared?
+                                </Button>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {activeWarnings.length > 3 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs text-amber-700 hover:text-amber-800"
+                        onClick={() => setShowAllWarnings(!showAllWarnings)}
+                      >
+                        {showAllWarnings ? "Show less" : `Show ${activeWarnings.length - 3} more warning${activeWarnings.length - 3 > 1 ? "s" : ""}`}
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No active warnings</p>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs border-amber-200 text-amber-700 hover:bg-amber-50"
+                  onClick={() => setWarningDialogOpen(true)}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Post a warning
+                </Button>
+              </div>
+
+              {/* WEATHER — inline section */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <Cloud className="h-4 w-4" />
+                  Weather
+                </h3>
+                <RouteWeatherSection weatherData={weatherData} loading={loadingWeather} />
+              </div>
+
+              {/* I'VE RIDDEN THIS ROUTE! */}
+              {userId && !isOwner && (
+                <Button
+                  onClick={() => setReviewStep(1)}
+                  variant={userHasCompletion ? "outline" : "default"}
+                  className={cn(
+                    "w-full rounded-xl h-12 font-semibold text-base shadow-sm",
+                    userHasCompletion
+                      ? "border-green-600 text-green-700 hover:bg-green-50"
+                      : "bg-green-600 hover:bg-green-700 text-white"
+                  )}
+                >
+                  {userHasCompletion ? "Update my review" : "I've ridden this route!"}
+                </Button>
+              )}
+
+              {/* Terrain Tags (fallback when no photos — tags shown on photo hero otherwise) */}
+              {displayPhotosForCarousel.length === 0 && (route.terrain_tags?.length > 0 || route.surface) && (
+                <div className="flex flex-wrap gap-2">
+                  {route.terrain_tags?.map((tag: string) => (
+                    <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                  ))}
+                  {route.surface && <Badge variant="outline" className="text-xs">{route.surface}</Badge>}
+                </div>
+              )}
+
+              {/* NEARBY STAYS */}
+              {nearbyProperties.length > 0 && (
+                <div className="space-y-3">
+                  <Separator />
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <Home className="h-4 w-4" />
+                    Nearby Stays
+                    <Badge variant="secondary" className="text-xs">{nearbyProperties.length}</Badge>
+                  </h3>
+                  <ScrollArea className="w-full" type="scroll">
+                    <div className="flex gap-3 pb-2">
+                      {nearbyProperties.map((property) => (
+                        <div key={property.id} className="flex-shrink-0 w-64">
+                          <NearbyPropertyCard property={property} onShowOnMap={onShowPropertyOnMap} />
+                        </div>
+                      ))}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                </div>
+              )}
+
+              {/* DIALOGS */}
+              <HazardReportDialog
+                open={hazardDialogOpen}
+                onOpenChange={setHazardDialogOpen}
+                routeId={routeId!}
+                route={route}
+                isAdmin={isAdmin}
+                isOwner={isOwner}
+                userId={userId}
+                onHazardAdded={(hazard) => setHazards((prev) => [hazard, ...prev])}
+              />
+
+              <WarningPostDialog
+                open={warningDialogOpen}
+                onOpenChange={setWarningDialogOpen}
+                routeId={routeId!}
+                userId={userId}
+                onWarningAdded={(warning) => setWarnings((prev) => [warning, ...prev])}
+              />
             </div>
-
-
-            {/* RIDER REVIEWS */}
-            <RouteReviewCards
-              routeCompletions={routeCompletions}
-              showAllReviews={showAllReviews}
-              onShowAllReviews={setShowAllReviews}
-            />
-
-            {/* Safety Notice */}
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-900">
-                ⚠️ Always respect land access rules, closures, and local regulations. Check conditions before setting out.
-              </p>
-            </div>
-
-            {/* DIALOGS */}
-            <HazardReportDialog
-              open={hazardDialogOpen}
-              onOpenChange={setHazardDialogOpen}
-              routeId={routeId!}
-              route={route}
-              isAdmin={isAdmin}
-              isOwner={isOwner}
-              userId={userId}
-              onHazardAdded={(hazard) => setHazards((prev) => [hazard, ...prev])}
-            />
-
-            <WarningPostDialog
-              open={warningDialogOpen}
-              onOpenChange={setWarningDialogOpen}
-              routeId={routeId!}
-              userId={userId}
-              onWarningAdded={(warning) => setWarnings((prev) => [warning, ...prev])}
-            />
           </div>
         </div>
       ) : null}
@@ -1182,20 +1477,12 @@ export function RouteDetailDrawer({
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div
           className={cn(
-            "pointer-events-auto bg-white rounded-2xl shadow-2xl border border-gray-100 relative",
+            "pointer-events-auto bg-white rounded-2xl shadow-2xl relative",
             "w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden",
             "animate-in zoom-in-95 slide-in-from-bottom-4 fade-in duration-300",
             "md:max-h-[80vh]",
           )}
         >
-          {/* Floating close button (always visible over scroll content) */}
-          <button
-            onClick={onDismiss || onClose}
-            className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 flex items-center justify-center transition-colors"
-          >
-            <X className="h-4 w-4 text-white" />
-          </button>
-
           {/* Scrollable Content */}
           <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
             {drawerContent}

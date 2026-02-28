@@ -15,6 +15,16 @@ interface ElevationProfileProps {
   className?: string;
   onHover?: (index: number | null, position: { lat: number; lng: number } | null) => void;
   highlightIndex?: number | null;
+  waypoints?: Array<{
+    name: string;
+    distanceFromStart: number;
+    elevation?: number;
+  }>;
+  hazards?: Array<{
+    type: string;
+    distanceFromStart: number;
+    elevation?: number;
+  }>;
 }
 
 export function ElevationProfile({
@@ -27,6 +37,8 @@ export function ElevationProfile({
   className,
   onHover,
   highlightIndex,
+  waypoints,
+  hazards,
 }: ElevationProfileProps) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -152,6 +164,32 @@ export function ElevationProfile({
     return points;
   }, [elevationData]);
 
+  const waypointMarkers = useMemo(() => {
+    if (!elevationData || !waypoints || waypoints.length === 0) return [];
+    const { totalDistance, minElevation, range } = elevationData;
+
+    return waypoints
+      .filter((wp) => wp.elevation !== undefined)
+      .map((wp) => {
+        const x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 100, 1), 99);
+        const y = 100 - ((wp.elevation! - minElevation) / range) * 80;
+        return { ...wp, x, y };
+      });
+  }, [elevationData, waypoints]);
+
+  const hazardMarkers = useMemo(() => {
+    if (!elevationData || !hazards || hazards.length === 0) return [];
+    const { totalDistance, minElevation, range } = elevationData;
+
+    return hazards
+      .filter((h) => h.elevation !== undefined)
+      .map((h) => {
+        const x = Math.min(Math.max((h.distanceFromStart / totalDistance) * 100, 1), 99);
+        const y = 100 - ((h.elevation! - minElevation) / range) * 80;
+        return { ...h, x, y };
+      });
+  }, [elevationData, hazards]);
+
   if (!elevationData) return null;
 
   const pointCount = elevationData.elevations.length;
@@ -265,6 +303,44 @@ export function ElevationProfile({
                 }}
               >
                 {pt.elevation}m
+              </div>
+            </div>
+          ))}
+
+          {/* Waypoint markers */}
+          {waypointMarkers.map((wp, i) => (
+            <div
+              key={`wp-${i}`}
+              className="absolute pointer-events-none"
+              style={{
+                left: `${wp.x}%`,
+                top: `${wp.y}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow-sm" />
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 text-[9px] font-medium text-blue-700 whitespace-nowrap bg-white/90 px-1 rounded">
+                {wp.name}
+              </div>
+            </div>
+          ))}
+
+          {/* Hazard markers */}
+          {hazardMarkers.map((h, i) => (
+            <div
+              key={`hz-${i}`}
+              className="absolute pointer-events-none"
+              style={{
+                left: `${h.x}%`,
+                top: `${h.y}%`,
+                transform: "translate(-50%, -100%)",
+              }}
+            >
+              <div className="w-4 h-4 text-amber-500 drop-shadow">
+                <svg viewBox="0 0 20 20" className="w-full h-full">
+                  <path d="M10 2L1 18h18L10 2z" fill="currentColor" stroke="white" strokeWidth="1.5" />
+                  <text x="10" y="15" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">!</text>
+                </svg>
               </div>
             </div>
           ))}
