@@ -1,41 +1,16 @@
 "use client";
 
-import { useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState, useMemo } from "react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
-  getRouteCentroid,
-  weatherCacheKey,
-  type WeatherData,
-} from "@/lib/weather";
-import { cache, CACHE_TTL } from "@/lib/cache";
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, X, Check } from "lucide-react";
-// Modal-based layout - no longer uses panel header or mobile toggle
-import {
-  Star,
   MapPin,
   Download,
   Share2,
@@ -45,43 +20,51 @@ import {
   Bookmark,
   AlertTriangle,
   MessageCircle,
-  Send,
-  Plus,
-  Trash2,
-  Image as ImageIcon,
-  MoreHorizontal,
   Pencil,
+  Image as ImageIcon,
+  X,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import Image from "next/image";
-import Link from "next/link";
-import { useEffect, useState, useMemo } from "react";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { WaypointCard } from "./waypoint-card";
+  getRouteCentroid,
+  weatherCacheKey,
+  type WeatherData,
+} from "@/lib/weather";
+import { cache, CACHE_TTL } from "@/lib/cache";
 import { NearbyPropertyCard } from "./nearby-property-card";
-import { RouteCompletion } from "./route-completion";
-import { WaypointMapPicker } from "./waypoint-map-picker";
-import { calculateDistanceKm } from "@/lib/routes/distance-calculator";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
 import { getMapboxThumbnailUrl } from "@/lib/routes/route-thumbnail";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
-import { validateRoutePhotoUpload } from "@/lib/file-validation";
 import { ElevationProfile } from "./elevation-profile";
-import { latLngToOSGridRef } from "@/lib/routes/os-grid-ref";
+import {
+  PHOTO_CATEGORIES,
+  WARNING_TYPES,
+  getDifficultyInfo,
+  getTimeRemaining,
+} from "./route-detail-constants";
+
+// Sub-components
+import { PhotoLightbox } from "./route-photo-lightbox";
+import { RouteWeatherSection } from "./route-weather-section";
+import { RouteDiscussionPanel } from "./route-discussion-panel";
+import { RouteWaypointsPanel } from "./route-waypoints-panel";
+import {
+  HazardReportDialog,
+  WarningPostDialog,
+  ReportCommentDialog,
+} from "./route-hazard-dialogs";
+import { RouteReviewFlow } from "./route-review-flow";
+import { RouteReviewCards } from "./route-review-cards";
+
+// --- Main Component ---
 
 interface RouteDetailDrawerProps {
   routeId: string | null;
   open: boolean;
   onClose: () => void;
-  onDismiss?: () => void; // Close modal but keep route on map + restore quick card
+  onDismiss?: () => void;
   onShowPropertyOnMap?: (propertyId: string, lat: number, lng: number) => void;
   onEditRoute?: (routeId: string, routeData: any) => void;
   onFlyToLocation?: (lat: number, lng: number) => void;
@@ -91,227 +74,6 @@ interface RouteDetailDrawerProps {
   onHazardsLoaded?: (hazards: any[]) => void;
   onHazardResolved?: (hazardId: string) => void;
   onPlaceHazard?: () => void;
-  // Mobile panel control
-  mobileShowDetails?: boolean;
-  onMobileToggleDetails?: (show: boolean) => void;
-}
-
-const HAZARD_TYPES = [
-  { value: "tree_fall", label: "Fallen Tree" },
-  { value: "flooding", label: "Flooding" },
-  { value: "erosion", label: "Path Erosion" },
-  { value: "livestock", label: "Livestock Warning" },
-  { value: "closure", label: "Path Closed" },
-  { value: "poor_visibility", label: "Poor Visibility" },
-  { value: "ice_snow", label: "Ice/Snow" },
-  { value: "overgrown", label: "Overgrown Path" },
-  { value: "damaged_path", label: "Damaged Surface" },
-  { value: "dangerous_crossing", label: "Dangerous Crossing" },
-  { value: "other", label: "Other" },
-];
-
-const WARNING_TYPES = [
-  { value: "slippery", label: "Slippery Conditions" },
-  { value: "muddy", label: "Muddy/Waterlogged" },
-  { value: "weather_warning", label: "Weather Warning" },
-  { value: "restricted_access", label: "Restricted Access" },
-  { value: "other_warning", label: "Other Warning" },
-];
-
-const getTimeRemaining = (expiresAt: string): string => {
-  const now = new Date();
-  const expiry = new Date(expiresAt);
-  const diffMs = expiry.getTime() - now.getTime();
-  if (diffMs <= 0) return "Expired";
-  const hours = Math.floor(diffMs / (1000 * 60 * 60));
-  const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-  if (hours > 24) return `${Math.floor(hours / 24)}d ${hours % 24}h left`;
-  if (hours > 0) return `${hours}h ${mins}m left`;
-  return `${mins}m left`;
-};
-
-const SEVERITY_COLORS = {
-  low: "bg-blue-100 text-blue-800 border-blue-300",
-  medium: "bg-yellow-100 text-yellow-800 border-yellow-300",
-  high: "bg-orange-100 text-orange-800 border-orange-300",
-  critical: "bg-red-100 text-red-800 border-red-300",
-};
-
-const REVIEW_TAGS = [
-  { id: "muddy_after_rain", label: "Muddy after rain", emoji: "🌧️" },
-  { id: "road_crossings", label: "Road crossings", emoji: "🚗" },
-  { id: "steady_horses", label: "Suitable for steady horses", emoji: "🐴" },
-  { id: "experienced_horses", label: "Better for experienced horses", emoji: "⚡" },
-  { id: "water_available", label: "Water available for horses", emoji: "💧" },
-  { id: "group_friendly", label: "Group friendly", emoji: "👥" },
-  { id: "parking_available", label: "Parking available", emoji: "🅿️" },
-  { id: "good_waymarking", label: "Good waymarking", emoji: "🪧" },
-  { id: "stunning_views", label: "Stunning views", emoji: "🏞️" },
-  { id: "gates_to_open", label: "Gates to open", emoji: "🚪" },
-  { id: "steep_sections", label: "Steep sections", emoji: "⛰️" },
-  { id: "good_surface", label: "Good surface throughout", emoji: "✅" },
-];
-
-const PHOTO_CATEGORIES = [
-  { id: "view", label: "View", emoji: "🏞️" },
-  { id: "feature", label: "Feature", emoji: "🌿" },
-  { id: "seasonal", label: "Seasonal", emoji: "🍂" },
-  { id: "horse", label: "Horse", emoji: "🐴" },
-  { id: "hazard", label: "Hazard", emoji: "⚠️" },
-  { id: "parking", label: "Parking", emoji: "🅿️" },
-];
-
-// Photo Card Component
-function PhotoCard({
-  photo,
-  routeId,
-  isOwnerOrAdmin,
-  onUpdate,
-  onDelete,
-  showActions = false,
-}: {
-  photo: any;
-  routeId: string;
-  isOwnerOrAdmin: boolean;
-  onUpdate: () => void;
-  onDelete: () => void;
-  showActions?: boolean;
-}) {
-  const [showMenu, setShowMenu] = useState(false);
-
-  const handleSetCover = async () => {
-    try {
-      const res = await fetch(`/api/routes/${routeId}/photos`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photoId: photo.id, is_cover: true }),
-      });
-      const data = await res.json();
-      
-      if (!res.ok || !data.success) {
-        // Check if migration is needed
-        if (data.requiresMigration) {
-          toast.error("Migration required: Run 057_route_photos_categorization.sql in Supabase SQL Editor");
-        } else {
-          toast.error(data.error || "Failed to set cover");
-        }
-        return;
-      }
-      
-      onUpdate();
-      toast.success("Set as cover photo");
-    } catch (error) {
-      console.error("Set cover error:", error);
-      toast.error("Failed to update");
-    }
-  };
-
-  const handleToggleDisplay = async () => {
-    try {
-      const res = await fetch(`/api/routes/${routeId}/photos`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photoId: photo.id, is_display: !photo.is_display }),
-      });
-      const data = await res.json();
-      
-      if (!res.ok || !data.success) {
-        // Check if migration is needed
-        if (data.requiresMigration) {
-          toast.error("Migration required: Run 057_route_photos_categorization.sql in Supabase SQL Editor");
-        } else {
-          toast.error(data.error || "Failed to update display");
-        }
-        return;
-      }
-      
-      onUpdate();
-      toast.success(photo.is_display ? "Removed from display" : "Added to display");
-    } catch (error) {
-      console.error("Toggle display error:", error);
-      toast.error("Failed to update");
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!confirm("Delete this photo?")) return;
-    try {
-      const res = await fetch(`/api/routes/${routeId}/photos/${photo.id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        onDelete();
-        toast.success("Photo deleted");
-      }
-    } catch {
-      toast.error("Failed to delete photo");
-    }
-  };
-
-  return (
-    <div className="relative h-36 rounded-lg overflow-hidden group">
-      <Image
-        src={photo.url}
-        alt={photo.caption || "Route photo"}
-        fill
-        className="object-cover"
-      />
-      
-      {/* Badges */}
-      <div className="absolute top-1 left-1 flex gap-1">
-        {photo.is_cover && (
-          <Badge className="text-[10px] h-5 bg-amber-500">Cover</Badge>
-        )}
-        {photo.is_display && !photo.is_cover && (
-          <Badge className="text-[10px] h-5 bg-blue-500">Display</Badge>
-        )}
-      </div>
-
-      {/* Uploader info */}
-      {photo.uploader && (
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-          <div className="flex items-center gap-1">
-            <Avatar className="h-5 w-5">
-              <AvatarImage src={photo.uploader.avatar_url} />
-              <AvatarFallback className="text-[8px]">
-                {photo.uploader.name?.[0]}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-white text-xs truncate">{photo.uploader.name}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Actions for owner/admin */}
-      {isOwnerOrAdmin && showActions && (
-        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <DropdownMenu open={showMenu} onOpenChange={setShowMenu}>
-            <DropdownMenuTrigger asChild>
-              <Button size="icon" variant="secondary" className="h-7 w-7">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {!photo.is_cover && (
-                <DropdownMenuItem onClick={handleSetCover}>
-                  <Star className="h-4 w-4 mr-2" />
-                  Set as Cover
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={handleToggleDisplay}>
-                <ImageIcon className="h-4 w-4 mr-2" />
-                {photo.is_display ? "Remove from Display" : "Add to Display"}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDelete} className="text-red-600">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      )}
-    </div>
-  );
 }
 
 export function RouteDetailDrawer({
@@ -328,9 +90,8 @@ export function RouteDetailDrawer({
   onHazardsLoaded,
   onHazardResolved,
   onPlaceHazard,
-  mobileShowDetails = true,
-  onMobileToggleDetails,
 }: RouteDetailDrawerProps) {
+  // --- Route data ---
   const [route, setRoute] = useState<any>(null);
   const [waypoints, setWaypoints] = useState<any[]>([]);
   const [nearbyProperties, setNearbyProperties] = useState<any[]>([]);
@@ -339,66 +100,33 @@ export function RouteDetailDrawer({
   const [photos, setPhotos] = useState<any[]>([]);
   const [coverPhoto, setCoverPhoto] = useState<any>(null);
   const [apiDisplayPhotos, setApiDisplayPhotos] = useState<any[]>([]);
-  const [authorPhotos, setAuthorPhotos] = useState<any[]>([]);
-  const [userPhotos, setUserPhotos] = useState<any[]>([]);
-  
+
+  // --- Loading ---
   const [loading, setLoading] = useState(false);
   const [loadingWaypoints, setLoadingWaypoints] = useState(false);
-  const [loadingProperties, setLoadingProperties] = useState(false);
-  const [loadingHazards, setLoadingHazards] = useState(false);
-  const [loadingComments, setLoadingComments] = useState(false);
-  
+
+  // --- User ---
   const [userId, setUserId] = useState<string | undefined>();
   const [isOwner, setIsOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [favorited, setFavorited] = useState(false);
-  
-  const [reportDialogOpen, setReportDialogOpen] = useState(false);
-  const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
-  const [reportReason, setReportReason] = useState("");
-  const [submittingReport, setSubmittingReport] = useState(false);
-  
-  const [newComment, setNewComment] = useState("");
-  const [submittingComment, setSubmittingComment] = useState(false);
-  // For nested replies: { parentCommentId, replyToId, replyToName }
-  const [replyingTo, setReplyingTo] = useState<{ parentCommentId: string; replyToId?: string; replyToName?: string } | null>(null);
-  const [replyText, setReplyText] = useState("");
-  const [submittingReply, setSubmittingReply] = useState(false);
-  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
-  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
-  const [discussionExpanded, setDiscussionExpanded] = useState(false);
-  
-  // Full panel view states (for Discussion, Reviews, Waypoints)
+
+  // --- Panel view ---
   const [activeFullPanel, setActiveFullPanel] = useState<"discussion" | "reviews" | "waypoints" | null>(null);
-  
-  // Photo carousel state
+
+  // --- Photo carousel ---
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const photoInputRef = useRef<HTMLInputElement>(null);
   const [showFullDescription, setShowFullDescription] = useState(false);
-  
-  // Review flow state
+
+  // --- Review flow ---
   const [reviewStep, setReviewStep] = useState<number | null>(null);
-  const [reviewRating, setReviewRating] = useState(0);
-  const [reviewTags, setReviewTags] = useState<string[]>([]);
-  const [reviewShortNote, setReviewShortNote] = useState("");
-  const [reviewLongNote, setReviewLongNote] = useState("");
-  const [submittingReview, setSubmittingReview] = useState(false);
-  const [reviewPhotoCategory, setReviewPhotoCategory] = useState<string | null>(null);
-  const [reviewPhotoFile, setReviewPhotoFile] = useState<File | null>(null);
-  const [reviewPhotoPreview, setReviewPhotoPreview] = useState<string | null>(null);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [routeCompletions, setRouteCompletions] = useState<any[]>([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
-  const [maxVisitedStep, setMaxVisitedStep] = useState(0);
-  const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
-  const [reviewLightboxOpen, setReviewLightboxOpen] = useState(false);
-  const [reviewLightboxPhotos, setReviewLightboxPhotos] = useState<any[]>([]);
-  const [reviewLightboxIndex, setReviewLightboxIndex] = useState(0);
 
-  // Elevation state
+  // --- Elevation ---
   const [elevationData, setElevationData] = useState<{
     elevations: number[];
     distances: number[];
@@ -410,61 +138,28 @@ export function RouteDetailDrawer({
   } | null>(null);
   const [loadingElevation, setLoadingElevation] = useState(false);
 
-  // Weather state
+  // --- Weather ---
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loadingWeather, setLoadingWeather] = useState(false);
 
-  // Waypoint expansion state
-  const [expandedWaypoints, setExpandedWaypoints] = useState<Set<string>>(new Set());
-
-  const [deleteHazardDialogOpen, setDeleteHazardDialogOpen] = useState(false);
-  const [hazardToDelete, setHazardToDelete] = useState<any>(null);
-  
-  const [hazardDialogOpen, setHazardDialogOpen] = useState(false);
-  const [newHazard, setNewHazard] = useState({
-    hazard_type: "",
-    title: "",
-    description: "",
-    severity: "medium",
-  });
-  const [submittingHazard, setSubmittingHazard] = useState(false);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationStatus, setLocationStatus] = useState<"idle" | "checking" | "near" | "far" | "error">("idle");
-  const [locationError, setLocationError] = useState<string | null>(null);
-
-  // Warning state
+  // --- Warnings ---
   const [warnings, setWarnings] = useState<any[]>([]);
-  const [warningDialogOpen, setWarningDialogOpen] = useState(false);
   const [showAllWarnings, setShowAllWarnings] = useState(false);
-  const [newWarning, setNewWarning] = useState({
-    hazard_type: "",
-    description: "",
-  });
-  const [submittingWarning, setSubmittingWarning] = useState(false);
   const [userVotedWarnings, setUserVotedWarnings] = useState<Set<string>>(new Set());
 
-  const [warningCheckDone, setWarningCheckDone] = useState(false);
-  const [warningVotes, setWarningVotes] = useState<Record<string, boolean>>({});
+  // --- Dialogs ---
+  const [hazardDialogOpen, setHazardDialogOpen] = useState(false);
+  const [warningDialogOpen, setWarningDialogOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
-  const [waypointDialogOpen, setWaypointDialogOpen] = useState(false);
-  const [newWaypoint, setNewWaypoint] = useState({
-    name: "",
-    description: "",
-    icon_type: "other",
-    tag: "note" as string,
-  });
-  const [waypointTagFilters, setWaypointTagFilters] = useState<Set<string>>(new Set());
-  const [waypointLocation, setWaypointLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [submittingWaypoint, setSubmittingWaypoint] = useState(false);
-  
   const supabase = createClient();
+
+  // ===================== DATA FETCHING =====================
 
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUserId(user?.id);
-      
-      // Check if admin
       if (user) {
         const { data: userData } = await supabase
           .from("users")
@@ -486,10 +181,6 @@ export function RouteDetailDrawer({
         const res = await fetch(`/api/routes/${routeId}`);
         if (res.ok) {
           const data = await res.json();
-          console.log("[RouteDetailDrawer] Route data received:", data.route?.id, "geometry:", data.route?.geometry ? "present" : "missing");
-          if (data.route?.geometry) {
-            console.log("[RouteDetailDrawer] Geometry type:", typeof data.route.geometry, data.route.geometry?.type);
-          }
           setRoute(data.route);
           setIsOwner(data.route?.owner_user_id === userId);
         }
@@ -517,7 +208,6 @@ export function RouteDetailDrawer({
     };
 
     const fetchNearbyProperties = async () => {
-      setLoadingProperties(true);
       try {
         const res = await fetch(`/api/routes/${routeId}/nearby-properties`);
         if (res.ok) {
@@ -526,13 +216,10 @@ export function RouteDetailDrawer({
         }
       } catch (error) {
         console.error("Failed to fetch nearby properties:", error);
-      } finally {
-        setLoadingProperties(false);
       }
     };
 
     const fetchHazards = async () => {
-      setLoadingHazards(true);
       try {
         const res = await fetch(`/api/routes/${routeId}/hazards`);
         if (res.ok) {
@@ -542,8 +229,6 @@ export function RouteDetailDrawer({
         }
       } catch (error) {
         console.error("Failed to fetch hazards:", error);
-      } finally {
-        setLoadingHazards(false);
       }
     };
 
@@ -553,7 +238,6 @@ export function RouteDetailDrawer({
         if (res.ok) {
           const data = await res.json();
           setWarnings(data.hazards || []);
-          // Populate user voted set from server response
           const voted = new Set<string>();
           (data.hazards || []).forEach((h: any) => {
             if (h.user_has_voted) voted.add(h.id);
@@ -566,7 +250,6 @@ export function RouteDetailDrawer({
     };
 
     const fetchComments = async () => {
-      setLoadingComments(true);
       try {
         const res = await fetch(`/api/routes/${routeId}/comments`);
         if (res.ok) {
@@ -575,8 +258,6 @@ export function RouteDetailDrawer({
         }
       } catch (error) {
         console.error("Failed to fetch comments:", error);
-      } finally {
-        setLoadingComments(false);
       }
     };
 
@@ -613,8 +294,6 @@ export function RouteDetailDrawer({
           setPhotos(data.photos || []);
           setCoverPhoto(data.coverPhoto || null);
           setApiDisplayPhotos(data.displayPhotos || []);
-          setAuthorPhotos(data.authorPhotos || []);
-          setUserPhotos(data.userPhotos || []);
         }
       } catch (error) {
         console.error("Failed to fetch photos:", error);
@@ -633,22 +312,15 @@ export function RouteDetailDrawer({
     fetchCompletions();
   }, [routeId, open, userId]);
 
-  // Fetch elevation after route and waypoints are loaded
   useEffect(() => {
     if (routeId && open && route && !loadingWaypoints) {
       fetchElevation();
     }
   }, [routeId, open, route, loadingWaypoints]);
 
-  // Handle waypoint focus from map marker click
   useEffect(() => {
     if (initialWaypointId) {
       setActiveFullPanel("waypoints");
-      setExpandedWaypoints((prev) => {
-        const next = new Set(prev);
-        next.add(initialWaypointId);
-        return next;
-      });
       onWaypointFocused?.();
       setTimeout(() => {
         const el = document.getElementById(`waypoint-${initialWaypointId}`);
@@ -657,735 +329,45 @@ export function RouteDetailDrawer({
     }
   }, [initialWaypointId]);
 
-  // Update isOwner when userId changes
   useEffect(() => {
     if (route && userId) {
       setIsOwner(route.owner_user_id === userId);
     }
   }, [route, userId]);
 
-  const handleDownloadGPX = async () => {
-    if (!routeId) return;
-
-    try {
-      const res = await fetch(`/api/routes/${routeId}/gpx`);
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${route?.title || "route"}.gpx`;
-        a.click();
-        
-        // Record the share/download
-        fetch(`/api/routes/${routeId}/share`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ share_method: "gpx_download" }),
-        });
-        
-        toast.success("GPX file downloaded!");
-      }
-    } catch (error) {
-      toast.error("Failed to download GPX");
-    }
-  };
-
-  const handleShare = async () => {
-    const url = `${window.location.origin}/routes?routeId=${routeId}`;
-    
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: route?.title,
-          text: route?.description,
-          url,
-        });
-        // Record share
-        fetch(`/api/routes/${routeId}/share`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ share_method: "social" }),
-        });
-      } else {
-        await navigator.clipboard.writeText(url);
-        // Record share
-        fetch(`/api/routes/${routeId}/share`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ share_method: "link" }),
-        });
-    toast.success("Link copied to clipboard!");
-      }
-    } catch (error) {
-      // User cancelled share - that's fine
-    }
-  };
-
-  const handleLike = async () => {
-    if (!userId) {
-      toast.error("Please sign in to like routes");
-      return;
-    }
-
-    const newLiked = !liked;
-    setLiked(newLiked);
-    setLikesCount((prev) => prev + (newLiked ? 1 : -1));
-
-    try {
-      const res = await fetch(`/api/routes/${routeId}/like`, {
-        method: newLiked ? "POST" : "DELETE",
-      });
-      
-      if (!res.ok) {
-        // Revert on error
-        setLiked(!newLiked);
-        setLikesCount((prev) => prev + (newLiked ? -1 : 1));
-        toast.error("Failed to update like");
-      }
-    } catch (error) {
-      setLiked(!newLiked);
-      setLikesCount((prev) => prev + (newLiked ? -1 : 1));
-      toast.error("Failed to update like");
-    }
-  };
-
-  const handleFavorite = async () => {
-    if (!userId) {
-      toast.error("Please sign in to save routes");
-      return;
-    }
-
-    const newFavorited = !favorited;
-    setFavorited(newFavorited);
-
-    try {
-      const res = await fetch(`/api/routes/${routeId}/favorite`, {
-        method: newFavorited ? "POST" : "DELETE",
-      });
-      
-      if (!res.ok) {
-        setFavorited(!newFavorited);
-        toast.error("Failed to update favorites");
-      } else {
-        toast.success(newFavorited ? "Saved to favorites!" : "Removed from favorites");
-      }
-    } catch (error) {
-      setFavorited(!newFavorited);
-      toast.error("Failed to update favorites");
-    }
-  };
-
-  const handleSubmitComment = async () => {
-    if (!userId) {
-      toast.error("Please sign in to comment");
-      return;
-    }
-
-    if (!newComment.trim()) {
-      toast.error("Please enter a comment");
-      return;
-    }
-
-    setSubmittingComment(true);
-    try {
-      const res = await fetch(`/api/routes/${routeId}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: newComment }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setComments((prev) => [data.comment, ...prev]);
-        setNewComment("");
-        toast.success("Comment posted!");
-      } else {
-        toast.error("Failed to post comment");
-      }
-    } catch (error) {
-      toast.error("Failed to post comment");
-    } finally {
-      setSubmittingComment(false);
-    }
-  };
-
-  const handleSubmitReply = async () => {
-    if (!userId) {
-      toast.error("Please sign in to reply");
-      return;
-    }
-
-    if (!replyText.trim() || !replyingTo) {
-      toast.error("Please enter a reply");
-      return;
-    }
-
-    const parentCommentId = replyingTo.parentCommentId;
-    // Build the reply text with @mention if replying to a nested reply
-    let finalBody = replyText;
-    if (replyingTo.replyToId && replyingTo.replyToName) {
-      finalBody = `@${replyingTo.replyToName} ${replyText}`;
-    }
-
-    setSubmittingReply(true);
-    try {
-      const res = await fetch(`/api/routes/${routeId}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: finalBody, parent_comment_id: parentCommentId }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setComments((prev) =>
-          prev.map((c) =>
-            c.id === parentCommentId
-              ? { ...c, replies: [...(c.replies || []), data.comment] }
-              : c
-          )
-        );
-        setReplyText("");
-        setReplyingTo(null);
-        setExpandedComments((prev) => new Set([...prev, parentCommentId]));
-        toast.success("Reply posted!");
-      } else {
-        toast.error("Failed to post reply");
-      }
-    } catch (error) {
-      toast.error("Failed to post reply");
-    } finally {
-      setSubmittingReply(false);
-    }
-  };
-
-  const handleDeleteComment = async (commentId: string, isReply = false, parentId?: string) => {
-    try {
-      const res = await fetch(`/api/routes/${routeId}/comments/${commentId}`, {
-        method: "DELETE",
-      });
-
-      if (res.ok) {
-        if (isReply && parentId) {
-          setComments((prev) =>
-            prev.map((c) =>
-              c.id === parentId
-                ? { ...c, replies: c.replies?.filter((r: any) => r.id !== commentId) || [] }
-                : c
-            )
-          );
-        } else {
-          setComments((prev) => prev.filter((c) => c.id !== commentId));
-        }
-        toast.success("Comment deleted");
-      } else {
-        toast.error("Failed to delete comment");
-      }
-    } catch (error) {
-      toast.error("Failed to delete comment");
-    } finally {
-      setDeletingCommentId(null);
-    }
-  };
-
-  const toggleExpandComment = (commentId: string) => {
-    setExpandedComments((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(commentId)) {
-        newSet.delete(commentId);
-      } else {
-        newSet.add(commentId);
-      }
-      return newSet;
-    });
-  };
-
-  const handleSubmitHazard = async () => {
-    if (!userId) {
-      toast.error("Please sign in to report hazards");
-      return;
-    }
-
-    if (!newHazard.hazard_type || !newHazard.title) {
-      toast.error("Please select a hazard type and add a title");
-      return;
-    }
-
-    setSubmittingHazard(true);
-    try {
-      const res = await fetch(`/api/routes/${routeId}/hazards`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newHazard),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setHazards((prev) => [data.hazard, ...prev]);
-        setNewHazard({ hazard_type: "", title: "", description: "", severity: "medium" });
-        setHazardDialogOpen(false);
-        toast.success("Hazard reported! Thank you for helping keep others safe.");
-      } else {
-        toast.error("Failed to report hazard");
-      }
-    } catch (error) {
-      toast.error("Failed to report hazard");
-    } finally {
-      setSubmittingHazard(false);
-    }
-  };
-
-  const handleSubmitWarning = async () => {
-    if (!userId) {
-      toast.error("Please sign in to post warnings");
-      return;
-    }
-    if (!newWarning.hazard_type) {
-      toast.error("Please select a warning type");
-      return;
-    }
-
-    setSubmittingWarning(true);
-    try {
-      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-      const warningTitle = WARNING_TYPES.find((t) => t.value === newWarning.hazard_type)?.label || newWarning.hazard_type;
-
-      const res = await fetch(`/api/routes/${routeId}/hazards`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          hazard_type: newWarning.hazard_type,
-          title: warningTitle,
-          description: newWarning.description,
-          severity: "medium",
-          is_warning: true,
-          expires_at: expiresAt,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setWarnings((prev) => [data.hazard, ...prev]);
-        setNewWarning({ hazard_type: "", description: "" });
-        setWarningDialogOpen(false);
-        toast.success("Warning posted! Other riders will see this alert.");
-      } else {
-        toast.error("Failed to post warning");
-      }
-    } catch (error) {
-      toast.error("Failed to post warning");
-    } finally {
-      setSubmittingWarning(false);
-    }
-  };
-
-  const handleResolveHazard = async (hazardId: string) => {
-    try {
-      // Check if this is a warning — warnings use the vote endpoint
-      const warning = warnings.find((w) => w.id === hazardId);
-      if (warning) {
-        return handleVoteClearWarning(hazardId);
-      }
-
-      const res = await fetch(`/api/routes/${routeId}/hazards/${hazardId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "resolved" }),
-      });
-
-      if (res.ok) {
-        setHazards((prev) =>
-          prev.map((h) => (h.id === hazardId ? { ...h, status: "resolved" } : h))
-        );
-        onHazardResolved?.(hazardId);
-        toast.success("Marked as cleared");
-      }
-    } catch (error) {
-      toast.error("Failed to update hazard");
-    }
-  };
-
-  const handleVoteClearWarning = async (warningId: string) => {
-    try {
-      const res = await fetch(`/api/routes/${routeId}/hazards/${warningId}/vote`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setUserVotedWarnings((prev) => new Set([...prev, warningId]));
-
-        if (data.status === "resolved") {
-          setWarnings((prev) =>
-            prev.map((w) => (w.id === warningId ? { ...w, status: "resolved" } : w))
-          );
-          onHazardResolved?.(warningId);
-          toast.success("Warning cleared by community votes!");
-        } else {
-          setWarnings((prev) =>
-            prev.map((w) =>
-              w.id === warningId
-                ? { ...w, clear_votes_count: data.clear_votes_count, clear_votes_needed: data.clear_votes_needed, user_has_voted: true }
-                : w
-            )
-          );
-          toast.success(`${data.clear_votes_count}/${data.clear_votes_needed} say cleared`);
-        }
-      } else if (res.status === 409) {
-        toast("You've already voted on this warning");
-        setUserVotedWarnings((prev) => new Set([...prev, warningId]));
-      } else {
-        toast.error("Failed to vote");
-      }
-    } catch (error) {
-      toast.error("Failed to vote");
-    }
-  };
-
-  const handleDeleteHazard = async () => {
-    if (!hazardToDelete) return;
-    
-    try {
-      const res = await fetch(`/api/routes/${routeId}/hazards/${hazardToDelete.id}`, {
-        method: "DELETE",
-      });
-
-      if (res.ok) {
-        setHazards((prev) => prev.filter((h) => h.id !== hazardToDelete.id));
-        toast.success("Hazard deleted");
-        setDeleteHazardDialogOpen(false);
-        setHazardToDelete(null);
-      } else {
-        toast.error("Failed to delete hazard");
-      }
-    } catch (error) {
-      toast.error("Failed to delete hazard");
-    }
-  };
-
-  const openDeleteHazardDialog = (hazard: any) => {
-    setHazardToDelete(hazard);
-    setDeleteHazardDialogOpen(true);
-  };
-
-  const handleReportComment = async () => {
-    if (!userId || !reportingCommentId || !reportReason.trim()) {
-      toast.error("Please provide a reason for reporting");
-      return;
-    }
-
-    setSubmittingReport(true);
-    try {
-      const res = await fetch(`/api/routes/${routeId}/comments/${reportingCommentId}/report`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: reportReason }),
-      });
-
-      if (res.ok) {
-        toast.success("Comment reported. Thank you for helping keep our community safe.");
-        setReportDialogOpen(false);
-        setReportingCommentId(null);
-        setReportReason("");
-      } else {
-        const data = await res.json();
-        toast.error(data.error || "Failed to report comment");
-      }
-    } catch (error) {
-      toast.error("Failed to report comment");
-    } finally {
-      setSubmittingReport(false);
-    }
-  };
-
-  const canDeleteHazard = (hazard: any) => {
-    return isAdmin || isOwner || hazard.reported_by_user_id === userId;
-  };
-
-  // Calculate distance between two points in meters using Haversine formula
-  const getDistanceMeters = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-    const R = 6371000; // Earth's radius in meters
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLng = ((lng2 - lng1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLng / 2) *
-        Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  // Check if user is near the route
-  const checkUserLocation = () => {
-    setLocationStatus("checking");
-    setLocationError(null);
-
-    if (!navigator.geolocation) {
-      setLocationStatus("error");
-      setLocationError("Geolocation is not supported by your browser");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userLat = position.coords.latitude;
-        const userLng = position.coords.longitude;
-        setUserLocation({ lat: userLat, lng: userLng });
-
-        // Get route geometry
-        const geometry = route?.geometry || route?.route_geometry;
-        if (!geometry?.coordinates) {
-          // No route geometry, allow hazard report
-          setLocationStatus("near");
-          return;
-        }
-
-        // Find minimum distance to any point on the route
-        let minDistance = Infinity;
-        const coords = geometry.coordinates as [number, number][];
-        
-        for (const coord of coords) {
-          const distance = getDistanceMeters(userLat, userLng, coord[1], coord[0]);
-          if (distance < minDistance) {
-            minDistance = distance;
-          }
-        }
-
-        // Allow if within 500m of the route
-        const MAX_DISTANCE_METERS = 500;
-        if (minDistance <= MAX_DISTANCE_METERS) {
-          setLocationStatus("near");
-        } else {
-          setLocationStatus("far");
-          setLocationError(`You appear to be ${Math.round(minDistance / 1000)}km from this route. Hazard reports must be made while near the route.`);
-        }
-      },
-      (error) => {
-        setLocationStatus("error");
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            setLocationError("Location access denied. Please enable location services to report hazards.");
-            break;
-          case error.POSITION_UNAVAILABLE:
-            setLocationError("Location unavailable. Please try again.");
-            break;
-          case error.TIMEOUT:
-            setLocationError("Location request timed out. Please try again.");
-            break;
-          default:
-            setLocationError("Unable to get your location. Please try again.");
-        }
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
-
-  // Check location when hazard dialog opens
+  // Weather fetch
   useEffect(() => {
-    if (hazardDialogOpen && locationStatus === "idle") {
-      checkUserLocation();
-    }
-    if (!hazardDialogOpen) {
-      setLocationStatus("idle");
-      setLocationError(null);
-    }
-  }, [hazardDialogOpen]);
-
-  const handleAddWaypoint = async () => {
-    if (!newWaypoint.name.trim()) {
-      toast.error("Please provide a name");
+    if (!route || !open) {
+      setWeatherData(null);
       return;
     }
+    const geometry = route.geometry || route.route_geometry;
+    const coords = geometry?.coordinates as [number, number][] | undefined;
+    const centroid = getRouteCentroid(coords || []);
+    if (!centroid) return;
 
-    if (!waypointLocation) {
-      toast.error("Please select a location on the map");
-      return;
-    }
+    let cancelled = false;
+    setLoadingWeather(true);
 
-    setSubmittingWaypoint(true);
-    try {
-      const res = await fetch(`/api/routes/${routeId}/waypoints`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newWaypoint.name,
-          description: newWaypoint.description,
-          icon_type: newWaypoint.icon_type,
-          tag: newWaypoint.tag,
-          lat: waypointLocation.lat,
-          lng: waypointLocation.lng,
-          order_index: waypoints.length,
-        }),
-      });
+    const key = weatherCacheKey(centroid.lat, centroid.lng);
+    cache
+      .getOrFetch<WeatherData>(
+        key,
+        async () => {
+          const res = await fetch(`/api/weather?lat=${centroid.lat}&lng=${centroid.lng}`);
+          if (!res.ok) throw new Error("Weather fetch failed");
+          return res.json();
+        },
+        CACHE_TTL.weather
+      )
+      .then((data) => { if (!cancelled) setWeatherData(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoadingWeather(false); });
 
-      if (res.ok) {
-        const data = await res.json();
-        setWaypoints((prev) => [...prev, data.waypoint]);
-        setNewWaypoint({ name: "", description: "", icon_type: "other", tag: "note" });
-        setWaypointLocation(null);
-        setWaypointDialogOpen(false);
-        toast.success("Waypoint added!");
-      } else {
-        const data = await res.json();
-        toast.error(data.error || "Failed to add waypoint");
-      }
-    } catch (error) {
-      toast.error("Failed to add waypoint");
-    } finally {
-      setSubmittingWaypoint(false);
-    }
-  };
+    return () => { cancelled = true; };
+  }, [route, open]);
 
-  // Submit the ride review (card-based flow)
-  const handleSubmitRideReview = async () => {
-    if (!userId || !routeId) return;
-    setSubmittingReview(true);
-    try {
-      // Record completion (with structured tags, short_note, and long_note)
-      const completeRes = await fetch(`/api/routes/${routeId}/complete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          notes: JSON.stringify({
-            tags: reviewTags,
-            short_note: reviewShortNote,
-            long_note: reviewLongNote || "",
-          }),
-          rating: reviewRating,
-        }),
-      });
-      if (!completeRes.ok) {
-        const err = await completeRes.json().catch(() => ({}));
-        console.error("[REVIEW] /complete failed:", completeRes.status, err);
-      }
-
-      // Save the review record (rating + difficulty for route averages)
-      const reviewRes = await fetch(`/api/routes/${routeId}/review`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          rating: reviewRating,
-          difficulty: route?.difficulty || "moderate",
-          review_text: reviewShortNote || undefined,
-        }),
-      });
-      if (!reviewRes.ok) {
-        const err = await reviewRes.json().catch(() => ({}));
-        console.error("[REVIEW] /review failed:", reviewRes.status, err);
-      }
-
-      setReviewStep(5); // Go to "thank you" / optional long note step
-      setMaxVisitedStep(5);
-      fetchCompletions(); // Refresh reviews to include the new one
-      toast.success("Review submitted! Thank you 🐴");
-    } catch (error) {
-      console.error("Failed to submit review:", error);
-      toast.error("Failed to submit review. Please try again.");
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
-
-  const handleSubmitLongNote = async () => {
-    if (!routeId || !reviewLongNote.trim()) {
-      resetReviewState();
-      return;
-    }
-    try {
-      // Save long note into completion notes (same endpoint as tags/short_note)
-      const res = await fetch(`/api/routes/${routeId}/complete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          notes: JSON.stringify({
-            tags: reviewTags,
-            short_note: reviewShortNote,
-            long_note: reviewLongNote,
-          }),
-          rating: reviewRating,
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        console.error("[LONG_NOTE] /complete failed:", res.status, err);
-        toast.error("Failed to save additional notes");
-      } else {
-        toast.success("Additional notes saved!");
-      }
-      fetchCompletions(); // Refresh to show updated review text
-    } catch (err) {
-      console.error("[LONG_NOTE] Error:", err);
-      toast.error("Failed to save additional notes");
-    }
-    resetReviewState();
-  };
-
-  const resetReviewState = () => {
-    setReviewStep(null);
-    setReviewRating(0);
-    setReviewTags([]);
-    setReviewShortNote("");
-    setReviewLongNote("");
-    setReviewPhotoCategory(null);
-    setReviewPhotoFile(null);
-    setReviewPhotoPreview(null);
-    setMaxVisitedStep(0);
-    setWarningCheckDone(false);
-    setWarningVotes({});
-  };
-
-  const toggleReviewTag = (tagId: string) => {
-    setReviewTags((prev) =>
-      prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]
-    );
-  };
-
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const validation = validateRoutePhotoUpload(file);
-    if (!validation.valid) {
-      toast.error(validation.error || "Invalid file");
-      return;
-    }
-    setReviewPhotoFile(file);
-    setReviewPhotoPreview(URL.createObjectURL(file));
-  };
-
-  const handleUploadReviewPhoto = async () => {
-    if (!reviewPhotoFile || !routeId || !reviewPhotoCategory) return;
-    setUploadingPhoto(true);
-    try {
-      const category = PHOTO_CATEGORIES.find((c) => c.id === reviewPhotoCategory);
-      const formData = new FormData();
-      formData.append("file", reviewPhotoFile);
-      formData.append("caption", category ? `${category.emoji} ${category.label}` : "");
-      formData.append("source", "review");
-      const res = await fetch(`/api/routes/${routeId}/photos`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Upload failed");
-      toast.success("Photo uploaded!");
-      // Refresh photos
-      const photosRes = await fetch(`/api/routes/${routeId}/photos`);
-      if (photosRes.ok) {
-        const photosData = await photosRes.json();
-        setPhotos(photosData.photos || []);
-        setCoverPhoto(photosData.coverPhoto || null);
-        setApiDisplayPhotos(photosData.displayPhotos || []);
-        setAuthorPhotos(photosData.authorPhotos || []);
-        setUserPhotos(photosData.userPhotos || []);
-      }
-    } catch {
-      toast.error("Failed to upload photo");
-    } finally {
-      setUploadingPhoto(false);
-    }
-  };
+  // ===================== HANDLERS =====================
 
   const fetchCompletions = async () => {
     if (!routeId) return;
@@ -1404,7 +386,6 @@ export function RouteDetailDrawer({
     if (!routeId) return;
     setLoadingElevation(true);
     try {
-      // Build waypoint coords query param
       const wpCoords = waypoints.map((w: any) => ({ lat: w.lat, lng: w.lng }));
       const wpParam = wpCoords.length > 0 ? `?waypoints=${encodeURIComponent(JSON.stringify(wpCoords))}` : "";
       const res = await fetch(`/api/routes/${routeId}/elevation${wpParam}`);
@@ -1413,124 +394,156 @@ export function RouteDetailDrawer({
         setElevationData(data);
       }
     } catch {
-      // Non-critical - elevation is optional
+      // Non-critical
     } finally {
       setLoadingElevation(false);
     }
   };
 
-  // Fetch weather when route is loaded and drawer is open
-  useEffect(() => {
-    if (!route || !open) {
-      setWeatherData(null);
-      return;
-    }
-
-    const geometry = route.geometry || route.route_geometry;
-    const coords = geometry?.coordinates as [number, number][] | undefined;
-    const centroid = getRouteCentroid(coords || []);
-    if (!centroid) return;
-
-    let cancelled = false;
-    setLoadingWeather(true);
-
-    const key = weatherCacheKey(centroid.lat, centroid.lng);
-    cache
-      .getOrFetch<WeatherData>(
-        key,
-        async () => {
-          const res = await fetch(
-            `/api/weather?lat=${centroid.lat}&lng=${centroid.lng}`
-          );
-          if (!res.ok) throw new Error("Weather fetch failed");
-          return res.json();
-        },
-        CACHE_TTL.weather
-      )
-      .then((data) => {
-        if (!cancelled) setWeatherData(data);
-      })
-      .catch(() => {
-        // Silently fail - weather is non-critical
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingWeather(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [route, open]);
-
-  const handleDeleteWaypoint = async (waypointId: string) => {
-    if (!confirm("Delete this waypoint?")) return;
-    
+  const handleDownloadGPX = async () => {
+    if (!routeId) return;
     try {
-      const res = await fetch(`/api/routes/${routeId}/waypoints/${waypointId}`, {
-        method: "DELETE",
-      });
-
+      const res = await fetch(`/api/routes/${routeId}/gpx`);
       if (res.ok) {
-        setWaypoints((prev) => prev.filter((w) => w.id !== waypointId));
-        toast.success("Waypoint deleted");
-      } else {
-        toast.error("Failed to delete waypoint");
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${route?.title || "route"}.gpx`;
+        a.click();
+        fetch(`/api/routes/${routeId}/share`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ share_method: "gpx_download" }),
+        });
+        toast.success("GPX file downloaded!");
       }
-    } catch (error) {
-      toast.error("Failed to delete waypoint");
+    } catch {
+      toast.error("Failed to download GPX");
     }
   };
 
-  // Build full waypoint list with Start/Finish from route geometry
+  const handleShare = async () => {
+    const url = `${window.location.origin}/routes?routeId=${routeId}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: route?.title, text: route?.description, url });
+        fetch(`/api/routes/${routeId}/share`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ share_method: "social" }),
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
+        fetch(`/api/routes/${routeId}/share`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ share_method: "link" }),
+        });
+        toast.success("Link copied to clipboard!");
+      }
+    } catch {
+      // User cancelled share
+    }
+  };
+
+  const handleLike = async () => {
+    if (!userId) { toast.error("Please sign in to like routes"); return; }
+    const newLiked = !liked;
+    setLiked(newLiked);
+    setLikesCount((prev) => prev + (newLiked ? 1 : -1));
+    try {
+      const res = await fetch(`/api/routes/${routeId}/like`, { method: newLiked ? "POST" : "DELETE" });
+      if (!res.ok) {
+        setLiked(!newLiked);
+        setLikesCount((prev) => prev + (newLiked ? -1 : 1));
+        toast.error("Failed to update like");
+      }
+    } catch {
+      setLiked(!newLiked);
+      setLikesCount((prev) => prev + (newLiked ? -1 : 1));
+      toast.error("Failed to update like");
+    }
+  };
+
+  const handleFavorite = async () => {
+    if (!userId) { toast.error("Please sign in to save routes"); return; }
+    const newFavorited = !favorited;
+    setFavorited(newFavorited);
+    try {
+      const res = await fetch(`/api/routes/${routeId}/favorite`, { method: newFavorited ? "POST" : "DELETE" });
+      if (!res.ok) {
+        setFavorited(!newFavorited);
+        toast.error("Failed to update favorites");
+      } else {
+        toast.success(newFavorited ? "Saved to favorites!" : "Removed from favorites");
+      }
+    } catch {
+      setFavorited(!newFavorited);
+      toast.error("Failed to update favorites");
+    }
+  };
+
+  const handleVoteClearWarning = async (warningId: string) => {
+    try {
+      const res = await fetch(`/api/routes/${routeId}/hazards/${warningId}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserVotedWarnings((prev) => new Set([...prev, warningId]));
+        if (data.status === "resolved") {
+          setWarnings((prev) => prev.map((w) => (w.id === warningId ? { ...w, status: "resolved" } : w)));
+          onHazardResolved?.(warningId);
+          toast.success("Warning cleared by community votes!");
+        } else {
+          setWarnings((prev) =>
+            prev.map((w) =>
+              w.id === warningId
+                ? { ...w, clear_votes_count: data.clear_votes_count, clear_votes_needed: data.clear_votes_needed, user_has_voted: true }
+                : w
+            )
+          );
+          toast.success(`${data.clear_votes_count}/${data.clear_votes_needed} say cleared`);
+        }
+      } else if (res.status === 409) {
+        toast("You've already voted on this warning");
+        setUserVotedWarnings((prev) => new Set([...prev, warningId]));
+      } else {
+        toast.error("Failed to vote");
+      }
+    } catch {
+      toast.error("Failed to vote");
+    }
+  };
+
+  // ===================== COMPUTED VALUES =====================
+
   const fullWaypointList = useMemo(() => {
     const geo = route?.geometry || route?.route_geometry;
     const coords = geo?.coordinates || [];
     const sorted = [...(waypoints || [])].sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0));
-
     const list: any[] = [];
 
-    // Start point
     if (coords.length > 0) {
-      list.push({
-        id: "__start",
-        type: "start",
-        name: "Start",
-        lat: coords[0][1],
-        lng: coords[0][0],
-        order_index: -1,
-      });
+      list.push({ id: "__start", type: "start", name: "Start", lat: coords[0][1], lng: coords[0][0], order_index: -1 });
     }
-
-    // Named waypoints
     sorted.forEach((wp: any, idx: number) => {
       list.push({ ...wp, type: "waypoint", listIndex: idx });
     });
-
-    // Finish point
     if (coords.length > 1) {
       const last = coords[coords.length - 1];
-      list.push({
-        id: "__finish",
-        type: "finish",
-        name: "Finish",
-        lat: last[1],
-        lng: last[0],
-        order_index: 9999,
-      });
+      list.push({ id: "__finish", type: "finish", name: "Finish", lat: last[1], lng: last[0], order_index: 9999 });
     }
 
-    // Calculate distance from previous and cumulative distance from start
     for (let i = 1; i < list.length; i++) {
       const prev = list[i - 1];
       const curr = list[i];
       const R = 6371;
       const dLat = ((curr.lat - prev.lat) * Math.PI) / 180;
       const dLng = ((curr.lng - prev.lng) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos((prev.lat * Math.PI) / 180) *
-          Math.cos((curr.lat * Math.PI) / 180) *
-          Math.sin(dLng / 2) ** 2;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos((prev.lat * Math.PI) / 180) * Math.cos((curr.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
       const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       curr._distFromPrev = dist;
       curr._distFromStart = (prev._distFromStart || 0) + dist;
@@ -1539,7 +552,6 @@ export function RouteDetailDrawer({
     return list;
   }, [route, waypoints]);
 
-  // Per-waypoint elevation data (aligned with fullWaypointList waypoints only)
   const waypointElevationMap = useMemo(() => {
     if (!elevationData?.waypointElevations || !waypoints || waypoints.length === 0) return {};
     const sorted = [...waypoints].sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0));
@@ -1552,1221 +564,296 @@ export function RouteDetailDrawer({
     return map;
   }, [elevationData, waypoints]);
 
-  // Check if user already has a completion/review
   const userHasCompletion = useMemo(() => {
     if (!userId) return false;
     return routeCompletions.some((c: any) => c.user?.id === userId);
   }, [routeCompletions, userId]);
 
-  if (!route && !loading) {
-    return null;
-  }
-
-  // Map all difficulty values to colors and display names
-  const difficultyConfig: Record<string, { color: string; label: string }> = {
-    unrated: { color: "bg-gray-100 text-gray-800 border-gray-300", label: "Unrated" },
-    easy: { color: "bg-green-100 text-green-800 border-green-300", label: "Easy" },
-    moderate: { color: "bg-amber-100 text-amber-800 border-amber-300", label: "Moderate" },
-    medium: { color: "bg-amber-100 text-amber-800 border-amber-300", label: "Medium" },
-    difficult: { color: "bg-orange-100 text-orange-800 border-orange-300", label: "Difficult" },
-    hard: { color: "bg-red-100 text-red-800 border-red-300", label: "Hard" },
-    severe: { color: "bg-red-200 text-red-900 border-red-400", label: "Severe" },
-  };
-  
-  const getDifficultyInfo = (difficulty: string | undefined) => {
-    if (!difficulty) return difficultyConfig.moderate;
-    return difficultyConfig[difficulty.toLowerCase()] || difficultyConfig.moderate;
-  };
-  
-  // Get display photos for carousel (cover first, then display photos)
-  const displayPhotosForCarousel = (() => {
-    // Use API response data if available, otherwise fall back to filtering
+  const displayPhotosForCarousel = useMemo(() => {
     if (coverPhoto || apiDisplayPhotos.length > 0) {
       return coverPhoto ? [coverPhoto, ...apiDisplayPhotos] : apiDisplayPhotos;
     }
-    // Fallback: filter from all photos
     const allPhotos = [...photos, ...(route?.route_photos || [])];
     const cover = allPhotos.find((p: any) => p.is_cover);
     const display = allPhotos.filter((p: any) => p.is_display && !p.is_cover);
     return cover ? [cover, ...display] : display;
-  })();
+  }, [coverPhoto, apiDisplayPhotos, photos, route]);
 
   const activeHazards = hazards.filter((h) => h.status === "active");
   const activeWarnings = warnings.filter((w) => w.status === "active");
 
+  // ===================== EARLY RETURNS =====================
+
+  if (!route && !loading) return null;
   if (!open) return null;
 
-  // Full Discussion Panel Content
-  const fullDiscussionPanel = (
-    <div className="flex flex-col h-full">
-      {/* Header with Back Button */}
-      <div className="flex items-center gap-3 p-4 border-b bg-white sticky top-0 z-10">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => setActiveFullPanel(null)}
-          className="h-8 w-8 p-0"
-        >
-          <ChevronDown className="h-5 w-5 rotate-90" />
-        </Button>
-        <h2 className="font-semibold text-lg">Discussion</h2>
-        <Badge variant="outline" className="ml-auto">
-          {comments.length} {comments.length === 1 ? "comment" : "comments"}
-        </Badge>
-      </div>
-
-      {/* Discussion Content */}
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
-          {/* Add Comment Form */}
-          <div className="space-y-2">
-            <Textarea
-              placeholder="Share your thoughts about this route..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              className="min-h-[80px]"
-            />
-            <Button
-              onClick={async () => {
-                if (!newComment.trim() || submittingComment) return;
-                setSubmittingComment(true);
-                try {
-                  const res = await fetch(`/api/routes/${routeId}/comments`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ content: newComment }),
-                  });
-                  if (res.ok) {
-                    toast.success("Comment posted!");
-                    setNewComment("");
-                    // Refresh comments
-                    const commentsRes = await fetch(`/api/routes/${routeId}/comments`);
-                    if (commentsRes.ok) {
-                      const data = await commentsRes.json();
-                      setComments(data.comments || []);
-                    }
-                  }
-                } catch {
-                  toast.error("Failed to post comment");
-                } finally {
-                  setSubmittingComment(false);
-                }
-              }}
-              disabled={!newComment.trim() || submittingComment}
-              className="w-full"
-            >
-              <Send className="h-4 w-4 mr-2" />
-              Post Comment
-            </Button>
-          </div>
-
-          <Separator />
-
-          {/* Comments List */}
-          {comments.length > 0 ? (
-            <div className="space-y-4">
-              {comments.map((comment: any) => (
-                <div key={comment.id} className="bg-slate-50 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={comment.user?.avatar_url} />
-                      <AvatarFallback>
-                        {comment.user?.name?.[0]?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium">{comment.user?.name}</p>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-600 mt-1">{comment.content}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No comments yet. Be the first to share your thoughts!</p>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-    </div>
-  );
-
-  // Full Waypoints Panel Content
-  const fullWaypointsPanel = (
-    <div className="flex flex-col h-full">
-      {/* Header with Back Button */}
-      <div className="flex items-center gap-3 p-4 border-b bg-white sticky top-0 z-10">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setActiveFullPanel(null)}
-          className="h-8 w-8 p-0"
-        >
-          <ChevronDown className="h-5 w-5 rotate-90" />
-        </Button>
-        <h2 className="font-semibold text-lg">Waypoints</h2>
-        <Badge variant="outline" className="ml-auto">{fullWaypointList.length}</Badge>
-      </div>
-
-      {/* Tag Filter Pills */}
-      <div className="flex flex-wrap gap-1.5 px-4 py-2 border-b">
-        {[
-          { value: "instruction", label: "Instruction", color: "bg-blue-100 text-blue-700 border-blue-300" },
-          { value: "poi", label: "POI", color: "bg-purple-100 text-purple-700 border-purple-300" },
-          { value: "note", label: "Note", color: "bg-gray-100 text-gray-700 border-gray-300" },
-          { value: "caution", label: "Caution", color: "bg-amber-100 text-amber-700 border-amber-300" },
-        ].map((tag) => {
-          const isActive = waypointTagFilters.has(tag.value);
-          return (
-            <button
-              key={tag.value}
-              onClick={() => {
-                setWaypointTagFilters((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(tag.value)) next.delete(tag.value);
-                  else next.add(tag.value);
-                  return next;
-                });
-              }}
-              className={cn(
-                "px-2.5 py-1 rounded-full text-xs font-medium border transition-colors",
-                isActive ? tag.color : "bg-white text-gray-400 border-gray-200 hover:bg-gray-50"
-              )}
-            >
-              {tag.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Waypoints Content */}
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-2">
-          {fullWaypointList.length > 0 ? (
-            fullWaypointList
-              .filter((wp: any) => {
-                if (waypointTagFilters.size === 0) return true;
-                if (wp.type === "start" || wp.type === "finish") return true;
-                return waypointTagFilters.has(wp.tag || "note");
-              })
-              .map((wp: any, index: number) => {
-              const isExpanded = expandedWaypoints.has(wp.id);
-              const isStart = wp.type === "start";
-              const isFinish = wp.type === "finish";
-              const circleColor = isStart
-                ? "bg-green-500 text-white"
-                : isFinish
-                ? "bg-red-500 text-white"
-                : "bg-slate-200 text-slate-700";
-              const circleLabel = isStart ? "S" : isFinish ? "F" : `${index}`;
-              const wpElevation = waypointElevationMap[wp.id];
-              const gridRef = latLngToOSGridRef(wp.lat, wp.lng);
-
-              // Calculate ascent/descent from previous using elevation data
-              const prevWp = index > 0 ? fullWaypointList[index - 1] : null;
-              const prevElevation = prevWp ? waypointElevationMap[prevWp.id] : undefined;
-              let ascentFromPrev: number | undefined;
-              let descentFromPrev: number | undefined;
-              if (wpElevation !== undefined && prevElevation !== undefined) {
-                const diff = wpElevation - prevElevation;
-                ascentFromPrev = diff > 0 ? diff : 0;
-                descentFromPrev = diff < 0 ? Math.abs(diff) : 0;
-              }
-
-              return (
-                <div key={wp.id} id={`waypoint-${wp.id}`} className="border rounded-lg overflow-hidden">
-                  {/* Collapsed row */}
-                  <button
-                    onClick={() => {
-                      const next = new Set(expandedWaypoints);
-                      if (next.has(wp.id)) next.delete(wp.id);
-                      else next.add(wp.id);
-                      setExpandedWaypoints(next);
-                    }}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 transition-colors text-left"
-                  >
-                    <div className={cn(
-                      "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs",
-                      circleColor
-                    )}>
-                      {circleLabel}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {wp.name || `Waypoint ${index}`}
-                      </p>
-                    </div>
-                    {wp.tag && wp.tag !== "note" && (
-                      <Badge
-                        variant="outline"
-                        className={cn("text-[10px] h-5 px-1.5 flex-shrink-0", {
-                          "bg-blue-50 text-blue-700 border-blue-200": wp.tag === "instruction",
-                          "bg-purple-50 text-purple-700 border-purple-200": wp.tag === "poi",
-                          "bg-amber-50 text-amber-700 border-amber-200": wp.tag === "caution",
-                        })}
-                      >
-                        {wp.tag === "instruction" ? "Instruction" : wp.tag === "poi" ? "POI" : "Caution"}
-                      </Badge>
-                    )}
-                    {wp._distFromStart > 0 && (
-                      <span className="text-xs text-muted-foreground flex-shrink-0">
-                        {wp._distFromStart.toFixed(2)} km
-                      </span>
-                    )}
-                    <ChevronDown className={cn(
-                      "h-4 w-4 text-muted-foreground transition-transform flex-shrink-0",
-                      isExpanded && "rotate-180"
-                    )} />
-                  </button>
-
-                  {/* Expanded details */}
-                  {isExpanded && (
-                    <div className="px-3 pb-3 pt-1 border-t bg-slate-50/50 space-y-2">
-                      {wp.description && (
-                        <p className="text-sm text-slate-600">{wp.description}</p>
-                      )}
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                        {wp._distFromPrev > 0 && (
-                          <>
-                            <span className="text-slate-500">Distance from previous:</span>
-                            <span className="font-medium">{wp._distFromPrev.toFixed(2)} km</span>
-                          </>
-                        )}
-                        {ascentFromPrev !== undefined && ascentFromPrev > 0 && (
-                          <>
-                            <span className="text-slate-500">Ascent from previous:</span>
-                            <span className="font-medium">{Math.round(ascentFromPrev)} m</span>
-                          </>
-                        )}
-                        {descentFromPrev !== undefined && descentFromPrev > 0 && (
-                          <>
-                            <span className="text-slate-500">Descent from previous:</span>
-                            <span className="font-medium">{Math.round(descentFromPrev)} m</span>
-                          </>
-                        )}
-                        {gridRef && (
-                          <>
-                            <span className="text-slate-500">OS Grid Ref:</span>
-                            <span className="font-medium font-mono">{gridRef}</span>
-                          </>
-                        )}
-                        <span className="text-slate-500">Lat, long:</span>
-                        <span className="font-medium font-mono">{wp.lat.toFixed(5)}, {wp.lng.toFixed(5)}</span>
-                        {wpElevation !== undefined && (
-                          <>
-                            <span className="text-slate-500">Elevation:</span>
-                            <span className="font-medium">{wpElevation} m</span>
-                          </>
-                        )}
-                      </div>
-                      {onFlyToLocation && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full mt-2 text-xs"
-                          onClick={() => {
-                            onFlyToLocation(wp.lat, wp.lng);
-                            onDismiss?.();
-                          }}
-                        >
-                          <MapPin className="h-3 w-3 mr-1" />
-                          Show on map
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          ) : (
-            <div className="text-center py-8">
-              <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No waypoints added to this route yet.</p>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-    </div>
-  );
-
-  // Review Flow Content - card-based, linear, intentionally short
-  const reviewFlowContent = (
-    <div className="p-6">
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-gray-700">
-            {reviewStep === 5 ? "Complete!" : `Step ${reviewStep} of 4`}
-          </span>
-          <button
-            onClick={resetReviewState}
-            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
-        {/* Clickable step dots */}
-        <div className="flex items-center justify-center gap-2">
-          {[1, 2, 3, 4].map((step) => {
-            const isActive = reviewStep === step;
-            const isCompleted = (reviewStep || 0) > step || reviewStep === 5;
-            const isClickable = step <= maxVisitedStep && reviewStep !== 5;
-            return (
-              <button
-                key={step}
-                disabled={!isClickable}
-                onClick={() => { if (isClickable) setReviewStep(step); }}
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all",
-                  isActive
-                    ? "bg-green-600 text-white ring-2 ring-green-200"
-                    : isCompleted
-                    ? "bg-green-100 text-green-700 hover:bg-green-200 cursor-pointer"
-                    : isClickable
-                    ? "bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer"
-                    : "bg-gray-100 text-gray-300 cursor-not-allowed"
-                )}
-              >
-                {isCompleted && !isActive ? "✓" : step}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Step 1: Overall Feel - Star Rating */}
-      {reviewStep === 1 && (
-        <div className="text-center space-y-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">How did this route ride overall?</h2>
-            <p className="text-sm text-gray-500 mt-1">Your honest rating helps us improve</p>
-          </div>
-
-          <div className="flex justify-center gap-3">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                onClick={() => setReviewRating(n)}
-                className="transition-transform hover:scale-110"
-              >
-                <Star
-                  className={cn(
-                    "h-10 w-10 transition-colors",
-                    n <= reviewRating ? "fill-amber-400 text-amber-400" : "text-gray-300"
-                  )}
-                />
-              </button>
-            ))}
-          </div>
-
-          <p className="text-xs text-gray-400 italic">
-            This rating is collected for internal improvement only and won&apos;t be shown publicly
-          </p>
-
-          <div className="flex gap-3 pt-4">
-            <Button variant="outline" className="flex-1 rounded-full" onClick={resetReviewState}>
-              Cancel
-            </Button>
-            <Button
-              className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
-              onClick={() => { setReviewStep(2); setMaxVisitedStep((p) => Math.max(p, 2)); }}
-              disabled={reviewRating === 0}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Step 2: Add a Moment (Optional Photo) */}
-      {reviewStep === 2 && (
-        <div className="space-y-5">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Share a moment from your ride</h2>
-            <p className="text-sm text-gray-500 mt-1">Add a photo to help others know what to expect (optional)</p>
-          </div>
-
-          {/* Show existing photos when editing */}
-          {(() => {
-            const existingPhotos = userHasCompletion
-              ? (routeCompletions.find((c: any) => c.user?.id === userId)?.photos || [])
-              : [];
-            if (existingPhotos.length === 0) return null;
-            return (
-              <div>
-                <p className="text-xs font-medium text-gray-500 mb-2">Your photos ({existingPhotos.length})</p>
-                <div className="flex gap-2 flex-wrap">
-                  {existingPhotos.map((photo: any) => (
-                    <div key={photo.id} className="relative h-16 w-20 rounded-lg overflow-hidden border border-gray-200 group">
-                      <Image src={photo.url} alt={photo.caption || ""} fill className="object-cover" />
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            const res = await fetch(`/api/routes/${routeId}/photos?photoId=${photo.id}`, {
-                              method: "DELETE",
-                            });
-                            if (res.ok) {
-                              toast.success("Photo removed");
-                              fetchCompletions();
-                            } else {
-                              const err = await res.json().catch(() => ({}));
-                              console.error("[PHOTO_DELETE] Failed:", res.status, err);
-                              toast.error(err.error || "Failed to remove photo");
-                            }
-                          } catch {
-                            toast.error("Failed to remove photo");
-                          }
-                        }}
-                        className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 hover:bg-red-600 flex items-center justify-center transition-colors"
-                      >
-                        <X className="h-3 w-3 text-white" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-
-          <div className="flex gap-2 flex-wrap">
-            {PHOTO_CATEGORIES.map((cat) => (
-              <Badge
-                key={cat.id}
-                variant={reviewPhotoCategory === cat.id ? "default" : "outline"}
-                className={cn(
-                  "cursor-pointer transition-colors px-3 py-1",
-                  reviewPhotoCategory === cat.id
-                    ? "bg-green-600 hover:bg-green-700 text-white"
-                    : "hover:bg-green-50"
-                )}
-                onClick={() => setReviewPhotoCategory(cat.id)}
-              >
-                {cat.emoji} {cat.label}
-              </Badge>
-            ))}
-          </div>
-
-          <input
-            ref={photoInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handlePhotoSelect}
-          />
-
-          {reviewPhotoPreview ? (
-            <div className="relative rounded-xl overflow-hidden">
-              <div className="relative h-48">
-                <Image
-                  src={reviewPhotoPreview}
-                  alt="Photo preview"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              {reviewPhotoCategory && (
-                <div className="absolute top-2 left-2">
-                  <Badge className="bg-black/60 text-white text-xs backdrop-blur-sm">
-                    {PHOTO_CATEGORIES.find((c) => c.id === reviewPhotoCategory)?.emoji}{" "}
-                    {PHOTO_CATEGORIES.find((c) => c.id === reviewPhotoCategory)?.label}
-                  </Badge>
-                </div>
-              )}
-              <button
-                onClick={() => {
-                  setReviewPhotoFile(null);
-                  setReviewPhotoPreview(null);
-                  if (photoInputRef.current) photoInputRef.current.value = "";
-                }}
-                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center"
-              >
-                <X className="h-3.5 w-3.5 text-white" />
-              </button>
-            </div>
-          ) : (
-            <div
-              className={cn(
-                "border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer",
-                reviewPhotoCategory
-                  ? "border-green-300 hover:border-green-400 bg-green-50/30"
-                  : "border-gray-200 hover:border-gray-300"
-              )}
-              onClick={() => {
-                if (!reviewPhotoCategory) {
-                  toast.error("Select a category first");
-                  return;
-                }
-                photoInputRef.current?.click();
-              }}
-            >
-              <ImageIcon className="h-10 w-10 mx-auto text-gray-300 mb-3" />
-              <p className="text-sm text-gray-500">
-                {reviewPhotoCategory ? "Tap to add a photo" : "Select a category above, then tap here"}
-              </p>
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" className="flex-1 rounded-full" onClick={() => setReviewStep(1)}>
-              Back
-            </Button>
-            {reviewPhotoFile && reviewPhotoCategory ? (
-              <Button
-                className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
-                onClick={async () => {
-                  await handleUploadReviewPhoto();
-                  await fetchCompletions(); // Refresh so new photo appears in existing photos
-                  setReviewStep(3);
-                  setMaxVisitedStep((p) => Math.max(p, 3));
-                }}
-                disabled={uploadingPhoto}
-              >
-                {uploadingPhoto ? "Uploading..." : "Upload & Next"}
-              </Button>
-            ) : (
-              <Button className="flex-1 rounded-full bg-green-600 hover:bg-green-700" onClick={() => { setReviewStep(3); setMaxVisitedStep((p) => Math.max(p, 3)); }}>
-                {reviewPhotoFile ? "Next" : "Skip / Next"}
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Step 3: Things Worth Knowing (Checkboxes) */}
-      {reviewStep === 3 && (
-        <div className="space-y-5">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Things worth knowing</h2>
-            <p className="text-sm text-gray-500 mt-1">Help others by sharing what you noticed — tick all that apply</p>
-          </div>
-
-          <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
-            {REVIEW_TAGS.map((tag) => (
-              <label
-                key={tag.id}
-                className={cn(
-                  "flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors",
-                  reviewTags.includes(tag.id)
-                    ? "bg-green-50 border-green-300"
-                    : "hover:bg-gray-50 border-gray-200"
-                )}
-              >
-                <Checkbox
-                  checked={reviewTags.includes(tag.id)}
-                  onCheckedChange={() => toggleReviewTag(tag.id)}
-                  className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
-                />
-                <span className="text-lg">{tag.emoji}</span>
-                <span className="text-sm font-medium text-gray-700">{tag.label}</span>
-              </label>
-            ))}
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" className="flex-1 rounded-full" onClick={() => setReviewStep(2)}>
-              Back
-            </Button>
-            <Button className="flex-1 rounded-full bg-green-600 hover:bg-green-700" onClick={() => { setReviewStep(4); setMaxVisitedStep((p) => Math.max(p, 4)); }}>
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Step 4: Short Note */}
-      {reviewStep === 4 && (
-        <div className="space-y-5">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Anything you&apos;d tell a friend before riding this?</h2>
-            <p className="text-sm text-gray-500 mt-1">Keep it short and helpful</p>
-          </div>
-
-          <div className="relative">
-            <Textarea
-              placeholder="e.g. Bring waterproofs if it has been raining, the ford crossing can get deep!"
-              value={reviewShortNote}
-              onChange={(e) => {
-                if (e.target.value.length <= 500) setReviewShortNote(e.target.value);
-              }}
-              className="min-h-[100px] resize-none"
-            />
-            <span className={cn(
-              "absolute bottom-2 right-3 text-xs",
-              reviewShortNote.length > 450 ? "text-amber-500" : "text-gray-400"
-            )}>
-              {reviewShortNote.length}/500
-            </span>
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" className="flex-1 rounded-full" onClick={() => setReviewStep(3)}>
-              Back
-            </Button>
-            <Button
-              className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
-              onClick={handleSubmitRideReview}
-              disabled={submittingReview}
-            >
-              {submittingReview ? "Submitting..." : "Submit Review"}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Step 5: Warning Check (if active warnings) → Thank You + Optional Long Note */}
-      {reviewStep === 5 && (
-        <div className="space-y-5">
-          {activeWarnings.length > 0 && !warningCheckDone ? (
-            <>
-              <div className="text-center py-2">
-                <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
-                <h2 className="text-lg font-bold text-gray-900">Active Warnings</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Help other riders by confirming current conditions
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                {activeWarnings.map((warning: any) => (
-                  <div key={warning.id} className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                      <span className="font-medium text-sm text-amber-900">
-                        {WARNING_TYPES.find((t) => t.value === warning.hazard_type)?.label || warning.hazard_type}
-                      </span>
-                    </div>
-                    {warning.description && (
-                      <p className="text-xs text-amber-700 mb-2">{warning.description}</p>
-                    )}
-                    <p className="text-xs text-gray-600 mb-2">Is this still an issue?</p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className={`flex-1 h-8 text-xs ${warningVotes[warning.id] === true ? "bg-red-50 border-red-300 text-red-700" : ""}`}
-                        onClick={() => setWarningVotes((prev) => ({ ...prev, [warning.id]: true }))}
-                      >
-                        Yes, still an issue
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className={`flex-1 h-8 text-xs ${warningVotes[warning.id] === false ? "bg-green-50 border-green-300 text-green-700" : ""}`}
-                        onClick={() => setWarningVotes((prev) => ({ ...prev, [warning.id]: false }))}
-                      >
-                        No, it&apos;s cleared
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 rounded-full"
-                  onClick={() => setWarningCheckDone(true)}
-                >
-                  Skip
-                </Button>
-                <Button
-                  className="flex-1 rounded-full bg-amber-600 hover:bg-amber-700"
-                  onClick={async () => {
-                    // Submit votes for warnings marked as "No, it's cleared"
-                    const clearVotes = Object.entries(warningVotes)
-                      .filter(([, stillIssue]) => !stillIssue)
-                      .map(([id]) => id);
-                    for (const warningId of clearVotes) {
-                      await handleVoteClearWarning(warningId);
-                    }
-                    setWarningCheckDone(true);
-                  }}
-                >
-                  Submit
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="text-center py-4">
-                <div className="text-5xl mb-4">🎉</div>
-                <h2 className="text-xl font-bold text-gray-900">Thank you for your review!</h2>
-                <p className="text-sm text-gray-500 mt-2">
-                  Your insights help the riding community explore with confidence
-                </p>
-              </div>
-
-              {reviewTags.length > 0 && (
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {reviewTags.map((tagId) => {
-                    const tag = REVIEW_TAGS.find((t) => t.id === tagId);
-                    return tag ? (
-                      <Badge key={tagId} variant="secondary" className="gap-1">
-                        {tag.emoji} {tag.label}
-                      </Badge>
-                    ) : null;
-                  })}
-                </div>
-              )}
-
-              <Separator />
-
-              <div className="space-y-3">
-                <h3 className="font-medium text-gray-900">Share more with other riders</h3>
-                <p className="text-xs text-gray-500">
-                  Optional — add more detail to your review. This will be shown publicly alongside your review.
-                </p>
-                <Textarea
-                  placeholder="Share more details about your ride..."
-                  value={reviewLongNote}
-                  onChange={(e) => setReviewLongNote(e.target.value)}
-                  className="min-h-[120px]"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <Button variant="outline" className="flex-1 rounded-full" onClick={resetReviewState}>
-                  {reviewLongNote.trim() ? "Cancel" : "Done"}
-                </Button>
-                {reviewLongNote.trim() && (
-                  <Button
-                    className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
-                    onClick={handleSubmitLongNote}
-                  >
-                    Save Note
-                  </Button>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
+  // ===================== RENDER =====================
 
   const drawerContent = (
     <div>
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-        ) : reviewStep !== null ? (
-          reviewFlowContent
-        ) : activeFullPanel === "discussion" ? (
-          fullDiscussionPanel
-        ) : activeFullPanel === "waypoints" ? (
-          fullWaypointsPanel
-        ) : route ? (
-          <div>
-            {/* PHOTO CAROUSEL - Full bleed at top of card */}
-            {displayPhotosForCarousel.length > 0 && (
-              <div className="relative group">
-                <div
-                  className="relative h-52 overflow-hidden cursor-pointer"
-                  onClick={() => setLightboxOpen(true)}
-                >
-                  {displayPhotosForCarousel.map((photo: any, idx: number) => (
-                    <div
-                      key={photo.id || idx}
-                      className={cn(
-                        "absolute inset-0 transition-opacity duration-300",
-                        idx === currentPhotoIndex ? "opacity-100" : "opacity-0 pointer-events-none"
-                      )}
-                    >
-                      <Image
-                        src={photo.url}
-                        alt={photo.caption || `Route photo ${idx + 1}`}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  ))}
-
-                  {/* Photo count badge */}
-                  <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                    <ImageIcon className="h-3 w-3" />
-                    {currentPhotoIndex + 1} / {displayPhotosForCarousel.length}
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      ) : reviewStep !== null ? (
+        <RouteReviewFlow
+          routeId={routeId!}
+          route={route}
+          userId={userId}
+          routeCompletions={routeCompletions}
+          activeWarnings={activeWarnings}
+          userHasCompletion={userHasCompletion}
+          onComplete={() => setReviewStep(null)}
+          onCompletionsRefresh={fetchCompletions}
+          onVoteClearWarning={handleVoteClearWarning}
+        />
+      ) : activeFullPanel === "discussion" ? (
+        <RouteDiscussionPanel
+          routeId={routeId!}
+          comments={comments}
+          onCommentsChange={setComments}
+          onBack={() => setActiveFullPanel(null)}
+        />
+      ) : activeFullPanel === "waypoints" ? (
+        <RouteWaypointsPanel
+          fullWaypointList={fullWaypointList}
+          waypointElevationMap={waypointElevationMap}
+          onBack={() => setActiveFullPanel(null)}
+          onFlyToLocation={onFlyToLocation}
+          onDismiss={onDismiss}
+          initialExpandedId={initialWaypointId || undefined}
+        />
+      ) : route ? (
+        <div>
+          {/* PHOTO CAROUSEL */}
+          {displayPhotosForCarousel.length > 0 && (
+            <div className="relative group">
+              <div
+                className="relative h-52 overflow-hidden cursor-pointer"
+                onClick={() => setLightboxOpen(true)}
+              >
+                {displayPhotosForCarousel.map((photo: any, idx: number) => (
+                  <div
+                    key={photo.id || idx}
+                    className={cn(
+                      "absolute inset-0 transition-opacity duration-300",
+                      idx === currentPhotoIndex ? "opacity-100" : "opacity-0 pointer-events-none"
+                    )}
+                  >
+                    <Image src={photo.url} alt={photo.caption || `Route photo ${idx + 1}`} fill className="object-cover" />
                   </div>
+                ))}
 
-                  {/* Photo category tag badge */}
-                  {displayPhotosForCarousel[currentPhotoIndex]?.caption &&
-                    PHOTO_CATEGORIES.some((c) => displayPhotosForCarousel[currentPhotoIndex].caption?.includes(c.label)) && (
-                    <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full">
-                      {displayPhotosForCarousel[currentPhotoIndex].caption}
-                    </div>
-                  )}
-
-                  {/* Navigation arrows - visible on hover */}
-                  {displayPhotosForCarousel.length > 1 && (
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCurrentPhotoIndex((prev) => (prev > 0 ? prev - 1 : displayPhotosForCarousel.length - 1));
-                        }}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                      >
-                        <ChevronLeft className="h-4 w-4 text-gray-700" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCurrentPhotoIndex((prev) => (prev < displayPhotosForCarousel.length - 1 ? prev + 1 : 0));
-                        }}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                      >
-                        <ChevronRight className="h-4 w-4 text-gray-700" />
-                      </button>
-                    </>
-                  )}
-
-                  {/* Dot indicators */}
-                  {displayPhotosForCarousel.length > 1 && (
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                      {displayPhotosForCarousel.map((_: any, idx: number) => (
-                        <button
-                          key={idx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCurrentPhotoIndex(idx);
-                          }}
-                          className={cn(
-                            "h-2 rounded-full transition-all",
-                            idx === currentPhotoIndex ? "bg-white w-4" : "bg-white/50 w-2"
-                          )}
-                        />
-                      ))}
-                    </div>
-                  )}
+                <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                  <ImageIcon className="h-3 w-3" />
+                  {currentPhotoIndex + 1} / {displayPhotosForCarousel.length}
                 </div>
+
+                {displayPhotosForCarousel[currentPhotoIndex]?.caption &&
+                  PHOTO_CATEGORIES.some((c) => displayPhotosForCarousel[currentPhotoIndex].caption?.includes(c.label)) && (
+                  <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full">
+                    {displayPhotosForCarousel[currentPhotoIndex].caption}
+                  </div>
+                )}
+
+                {displayPhotosForCarousel.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex((prev) => (prev > 0 ? prev - 1 : displayPhotosForCarousel.length - 1)); }}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                    >
+                      <ChevronLeft className="h-4 w-4 text-gray-700" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex((prev) => (prev < displayPhotosForCarousel.length - 1 ? prev + 1 : 0)); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                    >
+                      <ChevronRight className="h-4 w-4 text-gray-700" />
+                    </button>
+                  </>
+                )}
+
+                {displayPhotosForCarousel.length > 1 && (
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                    {displayPhotosForCarousel.map((_: any, idx: number) => (
+                      <button
+                        key={idx}
+                        onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex(idx); }}
+                        className={cn("h-2 rounded-full transition-all", idx === currentPhotoIndex ? "bg-white w-4" : "bg-white/50 w-2")}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="p-4 space-y-4">
+            {/* AUTHOR */}
+            {route?.owner && (
+              <Link href={`/profile/${route.owner.id}`} className="flex items-center gap-2.5 group">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={route.owner.avatar_url || undefined} />
+                  <AvatarFallback className="text-xs bg-green-100 text-green-800">
+                    {route.owner.name?.[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium text-gray-600 group-hover:text-green-700 transition-colors">
+                  {route.owner.name}
+                </span>
+              </Link>
+            )}
+
+            {/* TITLE + BADGES */}
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 leading-tight">{route.title}</h1>
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                {route.featured && <Badge className="text-xs bg-amber-500">Featured</Badge>}
+                {isOwner && <Badge variant="outline" className="text-xs">Your Route</Badge>}
+                {activeHazards.length > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="gap-1 text-xs cursor-pointer"
+                    onClick={() => {
+                      if (onEnterViewMode) onEnterViewMode("hazards");
+                      else document.getElementById("hazards-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }}
+                  >
+                    <AlertTriangle className="h-3 w-3" />
+                    {activeHazards.length} Hazard{activeHazards.length > 1 ? "s" : ""}
+                  </Badge>
+                )}
+                {activeWarnings.length > 0 && (
+                  <Badge
+                    className="gap-1 text-xs bg-amber-500 cursor-pointer"
+                    onClick={() => document.getElementById("active-warnings")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                  >
+                    <AlertTriangle className="h-3 w-3" />
+                    {activeWarnings.length} Warning{activeWarnings.length > 1 ? "s" : ""}
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* DIFFICULTY + TIMES RIDDEN */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <Badge className={cn("text-sm px-3 py-1", getDifficultyInfo(route.difficulty).color)}>
+                {getDifficultyInfo(route.difficulty).label}
+              </Badge>
+              {(route.completions_count > 0) && (
+                <span className="text-sm text-gray-500">
+                  🐴 {route.completions_count} {route.completions_count === 1 ? "person has" : "people have"} ridden this
+                </span>
+              )}
+            </div>
+
+            {/* STATS */}
+            <div className="grid grid-cols-4 gap-2 py-3 border-y bg-slate-50/50 rounded-lg px-2">
+              <div className="text-center">
+                <p className="text-lg font-bold text-slate-900">{Number(route.distance_km || 0).toFixed(1)}</p>
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide">Distance (km)</p>
+              </div>
+              <div className="text-center border-l border-slate-200">
+                <p className="text-lg font-bold text-slate-900">
+                  {route.distance_km
+                    ? (() => { const mins = Math.floor((Number(route.distance_km) / 8) * 60); return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60 > 0 ? `${mins % 60}m` : ""}` : `${mins}m`; })()
+                    : "—"}
+                </p>
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide">🐴 Ride</p>
+              </div>
+              <div className="text-center border-l border-slate-200">
+                <p className="text-lg font-bold text-slate-900">
+                  {elevationData?.totalAscent ? `${elevationData.totalAscent}` : route.elevation_gain ? `${Math.round(route.elevation_gain)}` : loadingElevation ? "..." : "—"}
+                </p>
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide">Ascent (m)</p>
+              </div>
+              <div className="text-center border-l border-slate-200">
+                <p className="text-lg font-bold text-slate-900">
+                  {elevationData?.totalDescent ? `${elevationData.totalDescent}` : route.elevation_loss ? `${Math.round(route.elevation_loss)}` : loadingElevation ? "..." : "—"}
+                </p>
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide">Descent (m)</p>
+              </div>
+            </div>
+
+            {/* ELEVATION PROFILE */}
+            {elevationData && elevationData.elevations.length > 1 && (
+              <ElevationProfile
+                className="mt-3"
+                elevations={elevationData.elevations}
+                distances={elevationData.distances}
+                totalAscent={elevationData.totalAscent}
+                totalDescent={elevationData.totalDescent}
+                distanceKm={Number(route.distance_km || 0)}
+              />
+            )}
+
+            {/* DESCRIPTION */}
+            {route.description && (
+              <div className="bg-slate-50 rounded-lg p-3">
+                <p className={cn("text-sm text-slate-600", !showFullDescription && "line-clamp-3")}>
+                  {route.description}
+                </p>
+                {route.description.length > 150 && (
+                  <button onClick={() => setShowFullDescription(!showFullDescription)} className="text-xs text-green-600 hover:text-green-700 font-medium mt-1">
+                    {showFullDescription ? "Show less" : "Read more"}
+                  </button>
+                )}
               </div>
             )}
 
-            <div className="p-4 space-y-4">
-              {/* AUTHOR - above title, like OS Maps */}
-              {route?.owner && (
-                <Link href={`/profile/${route.owner.id}`} className="flex items-center gap-2.5 group">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={route.owner.avatar_url || undefined} />
-                    <AvatarFallback className="text-xs bg-green-100 text-green-800">
-                      {route.owner.name?.[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium text-gray-600 group-hover:text-green-700 transition-colors">
-                    {route.owner.name}
-                  </span>
-                </Link>
-              )}
-
-              {/* TITLE */}
-              <div>
-                <h1 className="text-xl font-bold text-gray-900 leading-tight">{route.title}</h1>
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  {route.featured && <Badge className="text-xs bg-amber-500">Featured</Badge>}
-                  {isOwner && <Badge variant="outline" className="text-xs">Your Route</Badge>}
-                  {activeHazards.length > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="gap-1 text-xs cursor-pointer"
-                      onClick={() => {
-                        if (onEnterViewMode) {
-                          onEnterViewMode("hazards");
-                        } else {
-                          document.getElementById("hazards-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
-                        }
-                      }}
-                    >
-                      <AlertTriangle className="h-3 w-3" />
-                      {activeHazards.length} Hazard{activeHazards.length > 1 ? "s" : ""}
-                    </Badge>
-                  )}
-                  {activeWarnings.length > 0 && (
-                    <Badge
-                      className="gap-1 text-xs bg-amber-500 cursor-pointer"
-                      onClick={() => document.getElementById("active-warnings")?.scrollIntoView({ behavior: "smooth", block: "center" })}
-                    >
-                      <AlertTriangle className="h-3 w-3" />
-                      {activeWarnings.length} Warning{activeWarnings.length > 1 ? "s" : ""}
-                    </Badge>
-                  )}
+            {/* ROUTE MAP SNAPSHOT */}
+            {(() => {
+              const geo = route.geometry || route.route_geometry;
+              const snapshotUrl = getMapboxThumbnailUrl(geo, { width: 600, height: 200, routeColor: "166534", routeWeight: 3 });
+              return snapshotUrl ? (
+                <div className="relative w-full h-40 rounded-lg overflow-hidden bg-gray-100 border">
+                  <img src={snapshotUrl} alt="Route map" className="w-full h-full object-cover" />
                 </div>
-              </div>
+              ) : null;
+            })()}
 
-              {/* DIFFICULTY + TIMES RIDDEN */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <Badge
-                  className={cn(
-                    "text-sm px-3 py-1",
-                    getDifficultyInfo(route.difficulty).color
-                  )}
-                >
-                  {getDifficultyInfo(route.difficulty).label}
-                </Badge>
-                {(route.completions_count > 0) && (
-                  <span className="text-sm text-gray-500">
-                    🐴 {route.completions_count} {route.completions_count === 1 ? "person has" : "people have"} ridden this
-                  </span>
+            {/* WEATHER */}
+            <RouteWeatherSection weatherData={weatherData} loading={loadingWeather} />
+
+            {/* I'VE RIDDEN THIS ROUTE! */}
+            {userId && !isOwner && (
+              <Button
+                onClick={() => setReviewStep(1)}
+                variant={userHasCompletion ? "outline" : "default"}
+                className={cn(
+                  "w-full rounded-xl h-12 font-semibold text-base shadow-sm",
+                  userHasCompletion
+                    ? "border-green-600 text-green-700 hover:bg-green-50"
+                    : "bg-green-600 hover:bg-green-700 text-white"
                 )}
-              </div>
+              >
+                {userHasCompletion ? "✏️ Update my review" : "🐴 I've ridden this route!"}
+              </Button>
+            )}
 
-              {/* STATS - Distance, Time, Total Ascent, Total Descent */}
-              <div className="grid grid-cols-4 gap-2 py-3 border-y bg-slate-50/50 rounded-lg px-2">
-                <div className="text-center">
-                  <p className="text-lg font-bold text-slate-900">
-                    {Number(route.distance_km || 0).toFixed(1)}
-                  </p>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Distance (km)</p>
-                </div>
-                <div className="text-center border-l border-slate-200">
-                  <p className="text-lg font-bold text-slate-900">
-                    {route.distance_km
-                      ? (() => {
-                          const mins = Math.floor((Number(route.distance_km) / 8) * 60);
-                          return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60 > 0 ? `${mins % 60}m` : ""}` : `${mins}m`;
-                        })()
-                      : "—"}
-                  </p>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">🐴 Ride</p>
-                </div>
-                <div className="text-center border-l border-slate-200">
-                  <p className="text-lg font-bold text-slate-900">
-                    {elevationData?.totalAscent ? `${elevationData.totalAscent}` : route.elevation_gain ? `${Math.round(route.elevation_gain)}` : loadingElevation ? "..." : "—"}
-                  </p>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Ascent (m)</p>
-                </div>
-                <div className="text-center border-l border-slate-200">
-                  <p className="text-lg font-bold text-slate-900">
-                    {elevationData?.totalDescent ? `${elevationData.totalDescent}` : route.elevation_loss ? `${Math.round(route.elevation_loss)}` : loadingElevation ? "..." : "—"}
-                  </p>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Descent (m)</p>
-                </div>
-              </div>
-
-              {/* ELEVATION PROFILE */}
-              {elevationData && elevationData.elevations.length > 1 && (
-                <ElevationProfile
-                  className="mt-3"
-                  elevations={elevationData.elevations}
-                  distances={elevationData.distances}
-                  totalAscent={elevationData.totalAscent}
-                  totalDescent={elevationData.totalDescent}
-                  distanceKm={Number(route.distance_km || 0)}
-                />
-              )}
-
-              {/* DESCRIPTION with Read More */}
-              {route.description && (
-                <div className="bg-slate-50 rounded-lg p-3">
-                  <p className={cn(
-                    "text-sm text-slate-600",
-                    !showFullDescription && "line-clamp-3"
-                  )}>
-                    {route.description}
-                  </p>
-                  {route.description.length > 150 && (
-                    <button
-                      onClick={() => setShowFullDescription(!showFullDescription)}
-                      className="text-xs text-green-600 hover:text-green-700 font-medium mt-1"
-                    >
-                      {showFullDescription ? "Show less" : "Read more"}
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* ROUTE MAP SNAPSHOT - full width */}
-              {(() => {
-                const geo = route.geometry || route.route_geometry;
-                const snapshotUrl = getMapboxThumbnailUrl(geo, {
-                  width: 600,
-                  height: 200,
-                  routeColor: "166534",
-                  routeWeight: 3,
-                });
-                return snapshotUrl ? (
-                  <div className="relative w-full h-40 rounded-lg overflow-hidden bg-gray-100 border">
-                    <img src={snapshotUrl} alt="Route map" className="w-full h-full object-cover" />
-                  </div>
-                ) : null;
-              })()}
-
-              {/* WEATHER CONDITIONS */}
-              {loadingWeather && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-5 w-5 rounded-full" />
-                    <Skeleton className="h-5 w-32" />
-                  </div>
-                  <Skeleton className="h-20 w-full rounded-lg" />
-                  <div className="flex gap-2">
-                    <Skeleton className="h-24 flex-1 rounded-lg" />
-                    <Skeleton className="h-24 flex-1 rounded-lg" />
-                    <Skeleton className="h-24 flex-1 rounded-lg" />
-                  </div>
-                </div>
-              )}
-
-              {weatherData && !loadingWeather && (
-                <div className="space-y-3">
-                  {/* Section Header */}
-                  <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                    <span className="text-base">{weatherData.current.icon}</span>
-                    Weather Conditions
-                  </h4>
-
-                  {/* Warning Banner */}
-                  {weatherData.warningMessage && (
-                    <div
-                      className={cn(
-                        "rounded-lg p-3 text-sm font-medium flex items-start gap-2",
-                        weatherData.hasSevere
-                          ? "bg-red-50 border border-red-200 text-red-800"
-                          : "bg-amber-50 border border-amber-200 text-amber-800"
-                      )}
-                    >
-                      <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                      <span>{weatherData.warningMessage}</span>
-                    </div>
-                  )}
-
-                  {/* Current Conditions Grid */}
-                  <div className="grid grid-cols-4 gap-2 py-3 border rounded-lg bg-slate-50/50 px-2">
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-slate-900">
-                        {weatherData.current.temperature}°
-                      </p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide">
-                        Temp
-                      </p>
-                    </div>
-                    <div className="text-center border-l border-slate-200">
-                      <p className="text-lg font-bold text-slate-900">
-                        {weatherData.current.icon}
-                      </p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide truncate px-1">
-                        {weatherData.current.conditionText}
-                      </p>
-                    </div>
-                    <div className="text-center border-l border-slate-200">
-                      <p className="text-lg font-bold text-slate-900">
-                        {weatherData.current.windSpeed}
-                      </p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide">
-                        Wind km/h
-                      </p>
-                    </div>
-                    <div className="text-center border-l border-slate-200">
-                      <p className="text-lg font-bold text-slate-900">
-                        {weatherData.current.precipitation}
-                      </p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide">
-                        Rain mm
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* 3-Day Forecast */}
-                  <div className="flex gap-2">
-                    {weatherData.forecast.map((day) => (
-                      <div
-                        key={day.date}
-                        className={cn(
-                          "flex-1 text-center rounded-lg border p-2",
-                          day.isSevere
-                            ? "bg-red-50 border-red-200"
-                            : day.isWarning
-                              ? "bg-amber-50 border-amber-200"
-                              : "bg-slate-50 border-slate-200"
-                        )}
-                      >
-                        <p className="text-xs font-medium text-slate-600">
-                          {day.dayName}
-                        </p>
-                        <p className="text-xl my-1">{day.icon}</p>
-                        <p className="text-sm font-bold text-slate-900">
-                          {day.tempMax}°
-                        </p>
-                        <p className="text-xs text-slate-500">{day.tempMin}°</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* I'VE RIDDEN THIS ROUTE! button */}
-              {userId && !isOwner && (
-                <Button
-                  onClick={() => {
-                    // Pre-populate review state if editing an existing review
-                    if (userHasCompletion) {
-                      const existing = routeCompletions.find((c: any) => c.user?.id === userId);
-                      if (existing) {
-                        setReviewRating(existing.rating || 0);
-                        setReviewTags(existing.tags || []);
-                        setReviewShortNote(existing.short_note || existing.review_body || "");
-                        setReviewLongNote(existing.long_note || "");
-                      }
-                    }
-                    setReviewStep(1);
-                    setMaxVisitedStep(5);
-                  }}
-                  variant={userHasCompletion ? "outline" : "default"}
-                  className={cn(
-                    "w-full rounded-xl h-12 font-semibold text-base shadow-sm",
-                    userHasCompletion
-                      ? "border-green-600 text-green-700 hover:bg-green-50"
-                      : "bg-green-600 hover:bg-green-700 text-white"
-                  )}
-                >
-                  {userHasCompletion ? "✏️ Update my review" : "🐴 I've ridden this route!"}
-                </Button>
-              )}
-
-            {/* Terrain/Surface Tags */}
+            {/* Terrain Tags */}
             {(route.terrain_tags?.length > 0 || route.surface) && (
               <div className="flex flex-wrap gap-2">
                 {route.terrain_tags?.map((tag: string) => (
-                  <Badge key={tag} variant="secondary" className="text-xs">
-                    {tag}
-                  </Badge>
+                  <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
                 ))}
-                {route.surface && (
-                  <Badge variant="outline" className="text-xs">
-                    {route.surface}
-                  </Badge>
-                )}
+                {route.surface && <Badge variant="outline" className="text-xs">{route.surface}</Badge>}
               </div>
             )}
 
-            {/* Secondary Action Icons Row */}
+            {/* Secondary Actions */}
             <div className="flex items-center justify-around py-2 border rounded-lg bg-slate-50">
-              <button 
-                onClick={handleDownloadGPX}
-                className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
+              <button onClick={handleDownloadGPX} className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors">
                 <Download className="h-5 w-5 text-slate-600" />
                 <span className="text-xs text-slate-500">Export GPX</span>
               </button>
               {(isOwner || isAdmin) && onEditRoute && (
-                <button 
-                  onClick={() => onEditRoute(routeId!, route)}
-                  className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors"
-                >
+                <button onClick={() => onEditRoute(routeId!, route)} className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors">
                   <Pencil className="h-5 w-5 text-slate-600" />
                   <span className="text-xs text-slate-500">Copy & Edit</span>
                 </button>
               )}
-              <button 
-                onClick={() => setReportDialogOpen(true)}
-                className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
+              <button onClick={() => setReportDialogOpen(true)} className="flex flex-col items-center gap-1 px-3 py-2 hover:bg-slate-100 rounded-lg transition-colors">
                 <Flag className="h-5 w-5 text-slate-600" />
                 <span className="text-xs text-slate-500">Report</span>
               </button>
@@ -2774,7 +861,7 @@ export function RouteDetailDrawer({
 
             <Separator />
 
-            {/* NEARBY STAYS - Always Visible Carousel */}
+            {/* NEARBY STAYS */}
             {nearbyProperties.length > 0 && (
               <div className="space-y-3">
                 <h3 className="font-semibold flex items-center gap-2">
@@ -2786,10 +873,7 @@ export function RouteDetailDrawer({
                   <div className="flex gap-3 pb-2">
                     {nearbyProperties.map((property) => (
                       <div key={property.id} className="flex-shrink-0 w-64">
-                        <NearbyPropertyCard 
-                          property={property} 
-                          onShowOnMap={onShowPropertyOnMap}
-                        />
+                        <NearbyPropertyCard property={property} onShowOnMap={onShowPropertyOnMap} />
                       </div>
                     ))}
                   </div>
@@ -2798,8 +882,8 @@ export function RouteDetailDrawer({
               </div>
             )}
 
-            {/* DISCUSSION PREVIEW CARD */}
-            <div 
+            {/* DISCUSSION PREVIEW */}
+            <div
               className="border rounded-lg p-4 cursor-pointer hover:bg-slate-50 transition-colors"
               onClick={() => setActiveFullPanel("discussion")}
             >
@@ -2816,9 +900,7 @@ export function RouteDetailDrawer({
                 <div className="flex items-start gap-3">
                   <Avatar className="h-8 w-8 flex-shrink-0">
                     <AvatarImage src={comments[0]?.user?.avatar_url} />
-                    <AvatarFallback className="text-xs">
-                      {comments[0]?.user?.name?.[0]?.toUpperCase()}
-                    </AvatarFallback>
+                    <AvatarFallback className="text-xs">{comments[0]?.user?.name?.[0]?.toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{comments[0]?.user?.name}</p>
@@ -2844,36 +926,23 @@ export function RouteDetailDrawer({
                         </span>
                       </div>
                       {warning.expires_at && (
-                        <span className="text-xs text-amber-600 whitespace-nowrap ml-2">
-                          {getTimeRemaining(warning.expires_at)}
-                        </span>
+                        <span className="text-xs text-amber-600 whitespace-nowrap ml-2">{getTimeRemaining(warning.expires_at)}</span>
                       )}
                     </div>
-                    {warning.description && (
-                      <p className="text-xs text-amber-700 mt-1">{warning.description}</p>
-                    )}
+                    {warning.description && <p className="text-xs text-amber-700 mt-1">{warning.description}</p>}
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs text-amber-500">
                         Reported {formatDistanceToNow(new Date(warning.created_at), { addSuffix: true })}
                       </span>
                       <div className="flex items-center gap-2">
                         {warning.clear_votes_needed && (
-                          <span className="text-xs text-amber-600">
-                            {warning.clear_votes_count || 0}/{warning.clear_votes_needed} say cleared
-                          </span>
+                          <span className="text-xs text-amber-600">{warning.clear_votes_count || 0}/{warning.clear_votes_needed} say cleared</span>
                         )}
                         {userId && (
                           userVotedWarnings.has(warning.id) || warning.user_has_voted ? (
-                            <Badge className="h-6 text-xs bg-green-100 text-green-700 border border-green-300 hover:bg-green-100">
-                              Voted
-                            </Badge>
+                            <Badge className="h-6 text-xs bg-green-100 text-green-700 border border-green-300 hover:bg-green-100">Voted</Badge>
                           ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-6 text-xs border-amber-300 text-amber-700 hover:bg-amber-100 px-2"
-                              onClick={() => handleVoteClearWarning(warning.id)}
-                            >
+                            <Button variant="outline" size="sm" className="h-6 text-xs border-amber-300 text-amber-700 hover:bg-amber-100 px-2" onClick={() => handleVoteClearWarning(warning.id)}>
                               Cleared?
                             </Button>
                           )
@@ -2883,12 +952,7 @@ export function RouteDetailDrawer({
                   </div>
                 ))}
                 {activeWarnings.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-xs text-amber-700 hover:text-amber-800"
-                    onClick={() => setShowAllWarnings(!showAllWarnings)}
-                  >
+                  <Button variant="ghost" size="sm" className="w-full text-xs text-amber-700 hover:text-amber-800" onClick={() => setShowAllWarnings(!showAllWarnings)}>
                     {showAllWarnings ? "Show less" : `Show ${activeWarnings.length - 1} more warning${activeWarnings.length - 1 > 1 ? "s" : ""}`}
                   </Button>
                 )}
@@ -2902,10 +966,7 @@ export function RouteDetailDrawer({
                 onClick={() => onEnterViewMode ? onEnterViewMode("waypoints") : setActiveFullPanel("waypoints")}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Waypoints
-                  </span>
+                  <span className="font-medium text-sm flex items-center gap-2"><MapPin className="h-4 w-4" />Waypoints</span>
                   <Badge variant="outline" className="text-xs">{fullWaypointList.length}</Badge>
                 </div>
                 {fullWaypointList.length > 0 && (
@@ -2920,32 +981,15 @@ export function RouteDetailDrawer({
                 id="hazards-section"
                 className="border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors relative"
                 onClick={() => {
-                  if (onEnterViewMode && activeHazards.length > 0) {
-                    onEnterViewMode("hazards");
-                  } else if (onPlaceHazard) {
-                    onPlaceHazard();
-                  }
+                  if (onEnterViewMode && activeHazards.length > 0) onEnterViewMode("hazards");
+                  else if (onPlaceHazard) onPlaceHazard();
                 }}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    Hazards
-                  </span>
+                  <span className="font-medium text-sm flex items-center gap-2"><AlertTriangle className="h-4 w-4" />Hazards</span>
                   <div className="flex items-center gap-1.5">
-                    {activeHazards.length > 0 && (
-                      <Badge variant="destructive" className="text-xs">{activeHazards.length}</Badge>
-                    )}
-                    <Badge
-                      variant="outline"
-                      className="text-xs cursor-pointer hover:bg-red-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPlaceHazard?.();
-                      }}
-                    >
-                      + Report
-                    </Badge>
+                    {activeHazards.length > 0 && <Badge variant="destructive" className="text-xs">{activeHazards.length}</Badge>}
+                    <Badge variant="outline" className="text-xs cursor-pointer hover:bg-red-50" onClick={(e) => { e.stopPropagation(); onPlaceHazard?.(); }}>+ Report</Badge>
                   </div>
                 </div>
               </div>
@@ -2954,10 +998,7 @@ export function RouteDetailDrawer({
                 onClick={() => setWarningDialogOpen(true)}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    Warnings
-                  </span>
+                  <span className="font-medium text-sm flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-amber-600" />Warnings</span>
                   {activeWarnings.length > 0 ? (
                     <Badge className="text-xs bg-amber-500">{activeWarnings.length}</Badge>
                   ) : (
@@ -2968,232 +1009,13 @@ export function RouteDetailDrawer({
             </div>
 
             {/* RIDER REVIEWS */}
-            {routeCompletions.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-sm">
-                    Rider Reviews
-                  </h3>
-                  <span className="text-xs text-muted-foreground">
-                    {routeCompletions.length} {routeCompletions.length === 1 ? "review" : "reviews"}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {(showAllReviews ? routeCompletions : routeCompletions.slice(0, 5)).map((completion: any) => {
-                    const reviewPhotos = completion.photos || [];
-                    const shortText = completion.short_note || completion.review_body || "";
-                    const longText = completion.long_note || "";
-                    const isExpanded = expandedReviews.has(completion.id);
-                    const hasMore = shortText.length > 120 || longText.length > 0 || reviewPhotos.length > 0 || (completion.tags?.length || 0) > 0;
+            <RouteReviewCards
+              routeCompletions={routeCompletions}
+              showAllReviews={showAllReviews}
+              onShowAllReviews={setShowAllReviews}
+            />
 
-                    return (
-                      <div
-                        key={completion.id}
-                        className="border border-gray-200 rounded-lg overflow-hidden"
-                      >
-                        {/* Compact view — always visible */}
-                        <div
-                          className={cn(
-                            "p-3 cursor-pointer hover:bg-gray-50/50 transition-colors",
-                            isExpanded && "border-b border-gray-100"
-                          )}
-                          onClick={() => {
-                            if (!hasMore) return;
-                            setExpandedReviews((prev) => {
-                              const next = new Set(prev);
-                              if (next.has(completion.id)) {
-                                next.delete(completion.id);
-                              } else {
-                                next.add(completion.id);
-                              }
-                              return next;
-                            });
-                          }}
-                        >
-                          <div className="flex items-start gap-3">
-                            <Link
-                              href={`/profile/${completion.user?.id || completion.user_id}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex-shrink-0 mt-0.5"
-                            >
-                              <Avatar className="h-8 w-8 hover:ring-2 hover:ring-green-300 transition-all">
-                                <AvatarImage src={completion.user?.avatar_url || undefined} />
-                                <AvatarFallback className="text-xs bg-green-50 text-green-700 font-semibold">
-                                  {completion.user?.name?.[0] || "?"}
-                                </AvatarFallback>
-                              </Avatar>
-                            </Link>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-0.5">
-                                <Link
-                                  href={`/profile/${completion.user?.id || completion.user_id}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="text-sm font-semibold text-gray-900 hover:text-green-700 transition-colors"
-                                >
-                                  {completion.user?.name || "Rider"}
-                                </Link>
-                                <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
-                                  {formatDistanceToNow(new Date(completion.completed_at), { addSuffix: true })}
-                                </span>
-                              </div>
-                              {shortText && !isExpanded && (
-                                <p className="text-sm text-gray-600 leading-snug line-clamp-2">
-                                  {shortText}
-                                </p>
-                              )}
-                              {/* Photo teaser — half-height strip */}
-                              {!isExpanded && reviewPhotos.length > 0 && (
-                                <div className="mt-2 flex gap-1.5">
-                                  {reviewPhotos.slice(0, 3).map((photo: any) => (
-                                    <div key={photo.id} className="relative h-12 w-16 rounded overflow-hidden flex-shrink-0">
-                                      <Image src={photo.url} alt="" fill className="object-cover" />
-                                    </div>
-                                  ))}
-                                  {reviewPhotos.length > 3 && (
-                                    <div className="h-12 w-16 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                      <span className="text-xs font-medium text-gray-500">+{reviewPhotos.length - 3}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              {/* Tag count hint when collapsed */}
-                              {!isExpanded && (completion.tags?.length || 0) > 0 && !shortText && (
-                                <p className="text-xs text-gray-400 mt-1">{completion.tags.length} tag{completion.tags.length !== 1 ? "s" : ""}</p>
-                              )}
-                              {hasMore && !isExpanded && (
-                                <span className="text-xs font-medium text-green-600 mt-1 inline-block">
-                                  Tap to read more
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Expanded detail — animated with grid row transition */}
-                        <div
-                          className="grid transition-[grid-template-rows] duration-300 ease-in-out"
-                          style={{ gridTemplateRows: isExpanded ? "1fr" : "0fr" }}
-                        >
-                          <div className="overflow-hidden">
-                            <div className={cn(
-                              "p-3 pt-2 space-y-3 bg-gray-50/30 transition-opacity duration-300",
-                              isExpanded ? "opacity-100" : "opacity-0"
-                            )}>
-                            {/* Short review text */}
-                            {shortText && (
-                              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                                {shortText}
-                              </p>
-                            )}
-                            {/* Extended notes (from step 5 long note) */}
-                            {longText && (
-                              <div className="border-l-2 border-green-200 pl-3">
-                                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-                                  {longText}
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Tags */}
-                            {completion.tags?.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5">
-                                {completion.tags.map((tagId: string) => {
-                                  const tag = REVIEW_TAGS.find((t) => t.id === tagId);
-                                  return tag ? (
-                                    <span
-                                      key={tagId}
-                                      className="inline-flex items-center gap-1 text-xs bg-white border border-gray-200 text-gray-700 px-2 py-0.5 rounded-full"
-                                    >
-                                      {tag.emoji} {tag.label}
-                                    </span>
-                                  ) : null;
-                                })}
-                              </div>
-                            )}
-
-                            {/* Photos grid */}
-                            {reviewPhotos.length > 0 && (
-                              <div className={cn(
-                                "grid gap-1.5",
-                                reviewPhotos.length === 1 ? "grid-cols-1" : reviewPhotos.length === 2 ? "grid-cols-2" : "grid-cols-3"
-                              )}>
-                                {reviewPhotos.slice(0, 6).map((photo: any, idx: number) => (
-                                  <div
-                                    key={photo.id}
-                                    className={cn(
-                                      "relative overflow-hidden rounded-lg cursor-pointer group",
-                                      reviewPhotos.length === 1 ? "aspect-video" : "aspect-square"
-                                    )}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setReviewLightboxPhotos(reviewPhotos);
-                                      setReviewLightboxIndex(idx);
-                                      setReviewLightboxOpen(true);
-                                    }}
-                                  >
-                                    <Image
-                                      src={photo.url}
-                                      alt={photo.caption || "Review photo"}
-                                      fill
-                                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                    />
-                                    {photo.caption && (
-                                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
-                                        <span className="text-[10px] text-white line-clamp-1">{photo.caption}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                                {reviewPhotos.length > 6 && (
-                                  <div
-                                    className="relative aspect-square rounded-lg overflow-hidden cursor-pointer bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setReviewLightboxPhotos(reviewPhotos);
-                                      setReviewLightboxIndex(6);
-                                      setReviewLightboxOpen(true);
-                                    }}
-                                  >
-                                    <span className="text-sm font-medium text-gray-600">+{reviewPhotos.length - 6}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Collapse button */}
-                            <button
-                              onClick={() => {
-                                setExpandedReviews((prev) => {
-                                  const next = new Set(prev);
-                                  next.delete(completion.id);
-                                  return next;
-                                });
-                              }}
-                              className="text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                              Show less
-                            </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {routeCompletions.length > 5 && !showAllReviews && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full rounded-full text-sm text-gray-600 hover:bg-gray-50"
-                    onClick={() => setShowAllReviews(true)}
-                  >
-                    Show all {routeCompletions.length} reviews
-                  </Button>
-                )}
-              </div>
-            )}
-
-            {/* ROUTE STATS - Engagement */}
+            {/* ENGAGEMENT STATS */}
             <div className="grid grid-cols-3 gap-4 p-3 bg-slate-50 rounded-lg">
               <div className="text-center">
                 <p className="text-xl font-bold">{likesCount}</p>
@@ -3212,307 +1034,49 @@ export function RouteDetailDrawer({
             {/* Safety Notice */}
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-sm text-amber-900">
-                ⚠️ Always respect land access rules, closures, and local
-                regulations. Check conditions before setting out.
+                ⚠️ Always respect land access rules, closures, and local regulations. Check conditions before setting out.
               </p>
             </div>
 
-            {/* Hazard Reporting Dialog - Opens from Hazards card */}
-            <Dialog open={hazardDialogOpen} onOpenChange={setHazardDialogOpen}>
-              <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Report a Hazard</DialogTitle>
-                      <DialogDescription>
-                        Help other riders and walkers by reporting hazards on this route.
-                      </DialogDescription>
-                    </DialogHeader>
+            {/* DIALOGS */}
+            <HazardReportDialog
+              open={hazardDialogOpen}
+              onOpenChange={setHazardDialogOpen}
+              routeId={routeId!}
+              route={route}
+              isAdmin={isAdmin}
+              isOwner={isOwner}
+              userId={userId}
+              onHazardAdded={(hazard) => setHazards((prev) => [hazard, ...prev])}
+            />
 
-                    {/* Location Status Banner */}
-                    {locationStatus === "checking" && (
-                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
-                        <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" />
-                        <span className="text-sm text-blue-700">Checking your location...</span>
-                      </div>
-                    )}
-                    {locationStatus === "near" && (
-                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-green-600" />
-                        <span className="text-sm text-green-700">Location verified - you&apos;re near the route</span>
-                      </div>
-                    )}
-                    {locationStatus === "far" && (
-                      <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <MapPin className="h-4 w-4 text-orange-600" />
-                          <span className="text-sm font-medium text-orange-700">Too far from route</span>
-                        </div>
-                        <p className="text-sm text-orange-600">{locationError}</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-2"
-                          onClick={checkUserLocation}
-                        >
-                          Try Again
-                        </Button>
-                      </div>
-                    )}
-                    {locationStatus === "error" && (
-                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <AlertTriangle className="h-4 w-4 text-red-600" />
-                          <span className="text-sm font-medium text-red-700">Location Error</span>
-                        </div>
-                        <p className="text-sm text-red-600">{locationError}</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-2"
-                          onClick={checkUserLocation}
-                        >
-                          Try Again
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Only show form when location is verified or admin/owner */}
-                    {(locationStatus === "near" || isAdmin || isOwner) && (
-                      <div className="space-y-4">
-                        {(isAdmin || isOwner) && locationStatus !== "near" && (
-                          <p className="text-xs text-muted-foreground italic">
-                            As {isAdmin ? "an admin" : "the route owner"}, you can report hazards without location verification.
-                          </p>
-                        )}
-                        <div>
-                          <Label>Hazard Type *</Label>
-                          <Select
-                            value={newHazard.hazard_type}
-                            onValueChange={(v) => setNewHazard((prev) => ({ ...prev, hazard_type: v }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select type..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {HAZARD_TYPES.map((type) => (
-                                <SelectItem key={type.value} value={type.value}>
-                                  {type.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label>Title *</Label>
-                          <Input
-                            placeholder="Brief description..."
-                            value={newHazard.title}
-                            onChange={(e) => setNewHazard((prev) => ({ ...prev, title: e.target.value }))}
-                          />
-                        </div>
-                        <div>
-                          <Label>Details</Label>
-                          <Textarea
-                            placeholder="Additional details..."
-                            value={newHazard.description}
-                            onChange={(e) => setNewHazard((prev) => ({ ...prev, description: e.target.value }))}
-                          />
-                        </div>
-                        <div>
-                          <Label>Severity</Label>
-                          <Select
-                            value={newHazard.severity}
-                            onValueChange={(v) => setNewHazard((prev) => ({ ...prev, severity: v }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="low">Low - Minor inconvenience</SelectItem>
-                              <SelectItem value="medium">Medium - Use caution</SelectItem>
-                              <SelectItem value="high">High - Significant danger</SelectItem>
-                              <SelectItem value="critical">Critical - Do not proceed</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    )}
-
-                <DialogFooter>
-                  <Button
-                    onClick={handleSubmitHazard}
-                    disabled={submittingHazard || (locationStatus !== "near" && !isAdmin && !isOwner)}
-                  >
-                    {submittingHazard ? "Submitting..." : "Report Hazard"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            {/* Warning Dialog */}
-            <Dialog open={warningDialogOpen} onOpenChange={setWarningDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Post a Route Warning</DialogTitle>
-                  <DialogDescription>
-                    Alert other riders about current conditions on this route.
-                  </DialogDescription>
-                </DialogHeader>
-                {!userId ? (
-                  <p className="text-sm text-muted-foreground">Please sign in to post warnings.</p>
-                ) : (
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Warning Type *</Label>
-                      <Select
-                        value={newWarning.hazard_type}
-                        onValueChange={(v) => setNewWarning((prev) => ({ ...prev, hazard_type: v }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {WARNING_TYPES.map((type) => (
-                            <SelectItem key={type.value} value={type.value}>
-                              {type.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Details (optional)</Label>
-                      <Textarea
-                        placeholder="Additional details..."
-                        value={newWarning.description}
-                        onChange={(e) => setNewWarning((prev) => ({ ...prev, description: e.target.value }))}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Warnings expire after 30 days unless cleared by the community.
-                    </p>
-                  </div>
-                )}
-                <DialogFooter>
-                  <Button
-                    onClick={handleSubmitWarning}
-                    disabled={submittingWarning || !userId}
-                    className="bg-amber-600 hover:bg-amber-700"
-                  >
-                    {submittingWarning ? "Posting..." : "Post Warning"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            </div>
+            <WarningPostDialog
+              open={warningDialogOpen}
+              onOpenChange={setWarningDialogOpen}
+              routeId={routeId!}
+              userId={userId}
+              onWarningAdded={(warning) => setWarnings((prev) => [warning, ...prev])}
+            />
           </div>
-        ) : null}
+        </div>
+      ) : null}
 
-
-        {/* Report Comment Dialog */}
-        <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Report Comment</DialogTitle>
-              <DialogDescription>
-                Please tell us why you&apos;re reporting this comment. Our moderation team will review it.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Reason *</Label>
-                <Select value={reportReason} onValueChange={setReportReason}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a reason..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="spam">Spam</SelectItem>
-                    <SelectItem value="harassment">Harassment or bullying</SelectItem>
-                    <SelectItem value="hate_speech">Hate speech</SelectItem>
-                    <SelectItem value="misinformation">Misinformation</SelectItem>
-                    <SelectItem value="inappropriate">Inappropriate content</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setReportDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleReportComment} 
-                disabled={submittingReport || !reportReason}
-                variant="destructive"
-              >
-                {submittingReport ? "Reporting..." : "Report"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Hazard Confirmation Dialog */}
-        <Dialog open={deleteHazardDialogOpen} onOpenChange={setDeleteHazardDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-red-600">
-                <AlertTriangle className="h-5 w-5" />
-                Delete Hazard Report
-              </DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete this hazard report? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            {hazardToDelete && (
-              <div className="p-4 bg-muted rounded-lg space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className={SEVERITY_COLORS[hazardToDelete.severity as keyof typeof SEVERITY_COLORS]}
-                  >
-                    {hazardToDelete.severity}
-                  </Badge>
-                  <Badge variant="secondary">
-                    {HAZARD_TYPES.find((t) => t.value === hazardToDelete.hazard_type)?.label}
-                  </Badge>
-                </div>
-                <p className="font-medium">{hazardToDelete.title}</p>
-                {hazardToDelete.description && (
-                  <p className="text-sm text-muted-foreground">{hazardToDelete.description}</p>
-                )}
-              </div>
-            )}
-            <DialogFooter>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setDeleteHazardDialogOpen(false);
-                  setHazardToDelete(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button 
-                variant="destructive"
-                onClick={handleDeleteHazard}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Hazard
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+      {/* Report Route Dialog */}
+      <ReportCommentDialog
+        open={reportDialogOpen}
+        onOpenChange={setReportDialogOpen}
+        routeId={routeId!}
+        commentId={null}
+        userId={userId}
+      />
+    </div>
   );
 
   return (
     <>
-      {/* Backdrop - blurred overlay. Click dismisses modal but keeps route */}
+      {/* Backdrop */}
       <div
-        className={cn(
-          "fixed inset-0 z-40 transition-all duration-300",
-          "bg-black/40 backdrop-blur-sm",
-        )}
+        className={cn("fixed inset-0 z-40 transition-all duration-300", "bg-black/40 backdrop-blur-sm")}
         onClick={onDismiss || onClose}
       />
 
@@ -3523,17 +1087,14 @@ export function RouteDetailDrawer({
             "pointer-events-auto bg-white rounded-2xl shadow-2xl border border-gray-100",
             "w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden",
             "animate-in zoom-in-95 slide-in-from-bottom-4 fade-in duration-300",
-            // Mobile: a bit taller
             "md:max-h-[80vh]",
           )}
         >
-          {/* Modal Header - green accent bar + close button */}
+          {/* Modal Header */}
           <div className="flex items-center justify-between px-5 py-3 border-b bg-gradient-to-r from-green-50 to-white shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-1 h-6 bg-green-600 rounded-full" />
-              <h2 className="font-semibold text-gray-900 truncate">
-                {route?.title || "Route Details"}
-              </h2>
+              <h2 className="font-semibold text-gray-900 truncate">{route?.title || "Route Details"}</h2>
             </div>
             <button
               onClick={onDismiss || onClose}
@@ -3551,31 +1112,16 @@ export function RouteDetailDrawer({
           {/* Bottom Action Bar */}
           <div className="shrink-0 border-t bg-white px-5 py-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Button
-                variant={liked ? "default" : "outline"}
-                size="sm"
-                onClick={handleLike}
-                className="gap-1.5 rounded-full"
-              >
+              <Button variant={liked ? "default" : "outline"} size="sm" onClick={handleLike} className="gap-1.5 rounded-full">
                 <Heart className={cn("h-4 w-4", liked && "fill-current")} />
                 {likesCount > 0 ? likesCount : "Like"}
               </Button>
-              <Button
-                variant={favorited ? "default" : "outline"}
-                size="sm"
-                onClick={handleFavorite}
-                className="gap-1.5 rounded-full"
-              >
+              <Button variant={favorited ? "default" : "outline"} size="sm" onClick={handleFavorite} className="gap-1.5 rounded-full">
                 <Bookmark className={cn("h-4 w-4", favorited && "fill-current")} />
                 {favorited ? "Saved" : "Save"}
               </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleShare}
-              className="gap-1.5 rounded-full"
-            >
+            <Button variant="outline" size="sm" onClick={handleShare} className="gap-1.5 rounded-full">
               <Share2 className="h-4 w-4" />
               Share
             </Button>
@@ -3584,129 +1130,13 @@ export function RouteDetailDrawer({
       </div>
 
       {/* Photo Lightbox */}
-      {/* Review photo lightbox */}
-      {reviewLightboxOpen && reviewLightboxPhotos.length > 0 && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center"
-          onClick={() => setReviewLightboxOpen(false)}
-        >
-          <button
-            onClick={() => setReviewLightboxOpen(false)}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors z-10"
-          >
-            <X className="h-5 w-5 text-white" />
-          </button>
-          <div className="absolute top-4 left-4 text-white/80 text-sm font-medium">
-            {reviewLightboxIndex + 1} / {reviewLightboxPhotos.length}
-          </div>
-          <div
-            className="relative w-full h-full max-w-4xl max-h-[85vh] mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Image
-              src={reviewLightboxPhotos[reviewLightboxIndex]?.url}
-              alt={reviewLightboxPhotos[reviewLightboxIndex]?.caption || "Review photo"}
-              fill
-              className="object-contain"
-              sizes="100vw"
-              priority
-            />
-          </div>
-          {reviewLightboxPhotos.length > 1 && (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setReviewLightboxIndex((prev) => (prev > 0 ? prev - 1 : reviewLightboxPhotos.length - 1));
-                }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-              >
-                <ChevronLeft className="h-5 w-5 text-white" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setReviewLightboxIndex((prev) => (prev < reviewLightboxPhotos.length - 1 ? prev + 1 : 0));
-                }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-              >
-                <ChevronRight className="h-5 w-5 text-white" />
-              </button>
-            </>
-          )}
-          {reviewLightboxPhotos[reviewLightboxIndex]?.caption && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/90 text-sm bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full max-w-md text-center">
-              {reviewLightboxPhotos[reviewLightboxIndex].caption}
-            </div>
-          )}
-        </div>
-      )}
-
-      {lightboxOpen && displayPhotosForCarousel.length > 0 && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center"
-          onClick={() => setLightboxOpen(false)}
-        >
-          {/* Close button */}
-          <button
-            onClick={() => setLightboxOpen(false)}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors z-10"
-          >
-            <X className="h-5 w-5 text-white" />
-          </button>
-
-          {/* Photo counter */}
-          <div className="absolute top-4 left-4 text-white/80 text-sm font-medium">
-            {currentPhotoIndex + 1} / {displayPhotosForCarousel.length}
-          </div>
-
-          {/* Main photo */}
-          <div
-            className="relative w-full h-full max-w-4xl max-h-[85vh] mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Image
-              src={displayPhotosForCarousel[currentPhotoIndex]?.url}
-              alt={displayPhotosForCarousel[currentPhotoIndex]?.caption || "Route photo"}
-              fill
-              className="object-contain"
-              sizes="100vw"
-              priority
-            />
-          </div>
-
-          {/* Navigation arrows */}
-          {displayPhotosForCarousel.length > 1 && (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCurrentPhotoIndex((prev) => (prev > 0 ? prev - 1 : displayPhotosForCarousel.length - 1));
-                }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-              >
-                <ChevronLeft className="h-5 w-5 text-white" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCurrentPhotoIndex((prev) => (prev < displayPhotosForCarousel.length - 1 ? prev + 1 : 0));
-                }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-              >
-                <ChevronRight className="h-5 w-5 text-white" />
-              </button>
-            </>
-          )}
-
-          {/* Caption */}
-          {displayPhotosForCarousel[currentPhotoIndex]?.caption && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/90 text-sm bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full max-w-md text-center">
-              {displayPhotosForCarousel[currentPhotoIndex].caption}
-            </div>
-          )}
-        </div>
-      )}
+      <PhotoLightbox
+        open={lightboxOpen}
+        photos={displayPhotosForCarousel}
+        currentIndex={currentPhotoIndex}
+        onClose={() => setLightboxOpen(false)}
+        onIndexChange={setCurrentPhotoIndex}
+      />
     </>
   );
 }

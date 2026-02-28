@@ -1577,8 +1577,6 @@ export default function RoutesPage() {
             );
           }}
           onPlaceHazard={handleStartPlacingHazard}
-          mobileShowDetails={mobileRouteDetailOpen}
-          onMobileToggleDetails={setMobileRouteDetailOpen}
         />
         )}
 
