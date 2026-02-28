@@ -57,6 +57,7 @@ import {
 } from "./route-hazard-dialogs";
 import { RouteReviewFlow } from "./route-review-flow";
 import { RouteReviewCards } from "./route-review-cards";
+import { RoutePhotoGallery } from "./route-photo-gallery";
 
 // --- Main Component ---
 
@@ -100,6 +101,7 @@ export function RouteDetailDrawer({
   const [photos, setPhotos] = useState<any[]>([]);
   const [coverPhoto, setCoverPhoto] = useState<any>(null);
   const [apiDisplayPhotos, setApiDisplayPhotos] = useState<any[]>([]);
+  const [userPhotos, setUserPhotos] = useState<any[]>([]);
 
   // --- Loading ---
   const [loading, setLoading] = useState(false);
@@ -114,7 +116,7 @@ export function RouteDetailDrawer({
   const [favorited, setFavorited] = useState(false);
 
   // --- Panel view ---
-  const [activeFullPanel, setActiveFullPanel] = useState<"discussion" | "reviews" | "waypoints" | null>(null);
+  const [activeFullPanel, setActiveFullPanel] = useState<"discussion" | "reviews" | "waypoints" | "photos" | null>(null);
 
   // --- Photo carousel ---
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
@@ -295,6 +297,7 @@ export function RouteDetailDrawer({
           setPhotos(data.photos || []);
           setCoverPhoto(data.coverPhoto || null);
           setApiDisplayPhotos(data.displayPhotos || []);
+          setUserPhotos(data.userPhotos || []);
         }
       } catch (error) {
         console.error("Failed to fetch photos:", error);
@@ -551,6 +554,32 @@ export function RouteDetailDrawer({
     }
   };
 
+  const handleSetCoverPhoto = async (photoId: string) => {
+    try {
+      const res = await fetch(`/api/routes/${routeId}/photos`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoId, is_cover: true }),
+      });
+      if (res.ok) {
+        // Re-fetch photos to update cover state
+        const photosRes = await fetch(`/api/routes/${routeId}/photos`);
+        if (photosRes.ok) {
+          const data = await photosRes.json();
+          setPhotos(data.photos || []);
+          setCoverPhoto(data.coverPhoto || null);
+          setApiDisplayPhotos(data.displayPhotos || []);
+          setUserPhotos(data.userPhotos || []);
+        }
+        toast.success("Cover photo updated");
+      } else {
+        toast.error("Failed to set cover photo");
+      }
+    } catch {
+      toast.error("Failed to set cover photo");
+    }
+  };
+
   // ===================== COMPUTED VALUES =====================
 
   const fullWaypointList = useMemo(() => {
@@ -612,6 +641,37 @@ export function RouteDetailDrawer({
     return cover ? [cover, ...display] : display;
   }, [coverPhoto, apiDisplayPhotos, photos, route]);
 
+  const allPhotosForGallery = useMemo(() => {
+    const ownerPhotos = (photos || []).map((p: any) => ({
+      id: p.id,
+      url: p.url,
+      caption: p.caption,
+      created_at: p.created_at,
+      source: "owner" as const,
+      user_id: p.uploaded_by_user_id,
+      user_name: p.uploader?.name || null,
+      user_avatar: p.uploader?.avatar_url || null,
+      is_cover: p.is_cover,
+    }));
+    const communityPhotos = (userPhotos || []).map((p: any) => ({
+      id: p.id,
+      url: p.url,
+      caption: p.caption,
+      created_at: p.uploaded_at || p.created_at,
+      source: "community" as const,
+      user_id: p.user_id || p.uploaded_by_user_id,
+      user_name: p.user?.name || null,
+      user_avatar: p.user?.avatar_url || null,
+    }));
+    return [...ownerPhotos, ...communityPhotos].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [photos, userPhotos]);
+
+  const totalPhotoCount =
+    (photos?.length || 0) + (userPhotos?.length || 0);
+
   const activeHazards = hazards.filter((h) => h.status === "active");
   const activeWarnings = warnings.filter((w) => w.status === "active");
 
@@ -655,6 +715,18 @@ export function RouteDetailDrawer({
           onFlyToLocation={onFlyToLocation}
           onDismiss={onDismiss}
           initialExpandedId={initialWaypointId || undefined}
+        />
+      ) : activeFullPanel === "photos" ? (
+        <RoutePhotoGallery
+          photos={allPhotosForGallery}
+          isOwner={isOwner}
+          coverPhotoId={coverPhoto?.id || null}
+          onBack={() => setActiveFullPanel(null)}
+          onSetCover={handleSetCoverPhoto}
+          onOpenLightbox={(index) => {
+            setCurrentPhotoIndex(index);
+            setLightboxOpen(true);
+          }}
         />
       ) : route ? (
         <div>
@@ -716,11 +788,17 @@ export function RouteDetailDrawer({
               )}
 
               {/* Photo count badge */}
-              {displayPhotosForCarousel.length > 0 && (
-                <div className="absolute bottom-3 left-3 z-10 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5">
+              {totalPhotoCount > 0 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveFullPanel("photos");
+                  }}
+                  className="absolute bottom-3 left-3 z-10 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 hover:bg-black/70 transition-colors"
+                >
                   <ImageIcon className="h-3 w-3" />
-                  {currentPhotoIndex + 1} / {displayPhotosForCarousel.length}
-                </div>
+                  See all {totalPhotoCount}
+                </button>
               )}
 
               {/* Terrain tags on photo */}
@@ -1222,7 +1300,7 @@ export function RouteDetailDrawer({
       {/* Photo Lightbox */}
       <PhotoLightbox
         open={lightboxOpen}
-        photos={displayPhotosForCarousel}
+        photos={activeFullPanel === "photos" ? allPhotosForGallery : displayPhotosForCarousel}
         currentIndex={currentPhotoIndex}
         onClose={() => setLightboxOpen(false)}
         onIndexChange={setCurrentPhotoIndex}
