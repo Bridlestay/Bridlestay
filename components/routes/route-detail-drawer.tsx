@@ -706,6 +706,8 @@ export function RouteDetailDrawer({
           comments={comments}
           onCommentsChange={setComments}
           onBack={() => setActiveFullPanel(null)}
+          userId={userId}
+          isAdmin={isAdmin}
         />
       ) : activeFullPanel === "waypoints" ? (
         <RouteWaypointsPanel
@@ -1065,11 +1067,11 @@ export function RouteDetailDrawer({
             )}
 
             {/* DISCUSSION PREVIEW */}
-            <div
-              className="border rounded-lg p-4 cursor-pointer hover:bg-slate-50 transition-colors"
-              onClick={() => setActiveFullPanel("discussion")}
-            >
-              <div className="flex items-center justify-between mb-2">
+            <div className="border rounded-lg overflow-hidden">
+              <div
+                className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                onClick={() => setActiveFullPanel("discussion")}
+              >
                 <h3 className="font-semibold flex items-center gap-2">
                   <MessageCircle className="h-4 w-4" />
                   Discussion
@@ -1079,19 +1081,38 @@ export function RouteDetailDrawer({
                 </Badge>
               </div>
               {comments.length > 0 ? (
-                <div className="flex items-start gap-3">
-                  <Avatar className="h-8 w-8 flex-shrink-0">
-                    <AvatarImage src={comments[0]?.user?.avatar_url} />
-                    <AvatarFallback className="text-xs">{comments[0]?.user?.name?.[0]?.toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{comments[0]?.user?.name}</p>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{comments[0]?.content}</p>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground rotate-[-90deg]" />
+                <div className="px-4 pb-3 space-y-3">
+                  {comments.slice(0, 3).map((comment: any) => (
+                    <div key={comment.id} className="flex items-start gap-2.5">
+                      <Avatar className="h-6 w-6 flex-shrink-0 mt-0.5">
+                        <AvatarImage src={comment.user?.avatar_url} />
+                        <AvatarFallback className="text-[10px]">
+                          {comment.user?.name?.[0]?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <p className="text-sm flex-1 min-w-0">
+                        <span className="font-medium">{comment.user?.name}</span>{" "}
+                        <span className="text-muted-foreground line-clamp-1">
+                          {comment.body}
+                        </span>
+                      </p>
+                    </div>
+                  ))}
+                  {comments.length > 3 && (
+                    <button
+                      onClick={() => setActiveFullPanel("discussion")}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      View all {comments.length} comments
+                    </button>
+                  )}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Be the first to start the discussion!</p>
+                <div className="px-4 pb-4">
+                  <p className="text-sm text-muted-foreground">
+                    Be the first to start the discussion!
+                  </p>
+                </div>
               )}
             </div>
 
