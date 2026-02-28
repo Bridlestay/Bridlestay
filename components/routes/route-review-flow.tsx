@@ -2,8 +2,6 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Star, X, AlertTriangle, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
@@ -20,8 +18,8 @@ interface RouteReviewFlowProps {
   routeCompletions: any[];
   activeWarnings: any[];
   userHasCompletion: boolean;
-  onComplete: () => void;         // called when review flow is done (reset)
-  onCompletionsRefresh: () => void; // called to refresh completions
+  onComplete: () => void;
+  onCompletionsRefresh: () => void;
   onVoteClearWarning: (warningId: string) => Promise<void>;
 }
 
@@ -39,15 +37,13 @@ export function RouteReviewFlow({
   const [reviewStep, setReviewStep] = useState(1);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewTags, setReviewTags] = useState<string[]>([]);
-  const [reviewShortNote, setReviewShortNote] = useState("");
-  const [reviewLongNote, setReviewLongNote] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewPhotoCategory, setReviewPhotoCategory] = useState<string | null>(null);
   const [reviewPhotoFile, setReviewPhotoFile] = useState<File | null>(null);
   const [reviewPhotoPreview, setReviewPhotoPreview] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [maxVisitedStep, setMaxVisitedStep] = useState(
-    userHasCompletion ? 5 : 0
+    userHasCompletion ? 4 : 0
   );
   const [warningCheckDone, setWarningCheckDone] = useState(false);
   const [warningVotes, setWarningVotes] = useState<Record<string, boolean>>({});
@@ -61,8 +57,6 @@ export function RouteReviewFlow({
       if (existing) {
         setReviewRating(existing.rating || 0);
         setReviewTags(existing.tags || []);
-        setReviewShortNote(existing.short_note || existing.review_body || "");
-        setReviewLongNote(existing.long_note || "");
       }
     }
   });
@@ -119,11 +113,7 @@ export function RouteReviewFlow({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          notes: JSON.stringify({
-            tags: reviewTags,
-            short_note: reviewShortNote,
-            long_note: reviewLongNote || "",
-          }),
+          notes: JSON.stringify({ tags: reviewTags }),
           rating: reviewRating,
         }),
       });
@@ -138,7 +128,6 @@ export function RouteReviewFlow({
         body: JSON.stringify({
           rating: reviewRating,
           difficulty: route?.difficulty || "moderate",
-          review_text: reviewShortNote || undefined,
         }),
       });
       if (!reviewRes.ok) {
@@ -146,8 +135,8 @@ export function RouteReviewFlow({
         console.error("[REVIEW] /review failed:", reviewRes.status, err);
       }
 
-      setReviewStep(5);
-      setMaxVisitedStep(5);
+      setReviewStep(4);
+      setMaxVisitedStep(4);
       onCompletionsRefresh();
       toast.success("Review submitted! Thank you 🐴");
     } catch (error) {
@@ -158,45 +147,12 @@ export function RouteReviewFlow({
     }
   };
 
-  const handleSubmitLongNote = async () => {
-    if (!routeId || !reviewLongNote.trim()) {
-      resetReviewState();
-      return;
-    }
-    try {
-      const res = await fetch(`/api/routes/${routeId}/complete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          notes: JSON.stringify({
-            tags: reviewTags,
-            short_note: reviewShortNote,
-            long_note: reviewLongNote,
-          }),
-          rating: reviewRating,
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        console.error("[LONG_NOTE] /complete failed:", res.status, err);
-        toast.error("Failed to save additional notes");
-      } else {
-        toast.success("Additional notes saved!");
-      }
-      onCompletionsRefresh();
-    } catch (err) {
-      console.error("[LONG_NOTE] Error:", err);
-      toast.error("Failed to save additional notes");
-    }
-    resetReviewState();
-  };
-
   return (
     <div className="p-6">
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-medium text-gray-700">
-            {reviewStep === 5 ? "Complete!" : `Step ${reviewStep} of 4`}
+            {reviewStep === 4 ? "Complete!" : `Step ${reviewStep} of 3`}
           </span>
           <button
             onClick={resetReviewState}
@@ -207,10 +163,10 @@ export function RouteReviewFlow({
         </div>
         {/* Clickable step dots */}
         <div className="flex items-center justify-center gap-2">
-          {[1, 2, 3, 4].map((step) => {
+          {[1, 2, 3].map((step) => {
             const isActive = reviewStep === step;
-            const isCompleted = reviewStep > step || reviewStep === 5;
-            const isClickable = step <= maxVisitedStep && reviewStep !== 5;
+            const isCompleted = reviewStep > step || reviewStep === 4;
+            const isClickable = step <= maxVisitedStep && reviewStep !== 4;
             return (
               <button
                 key={step}
@@ -433,7 +389,7 @@ export function RouteReviewFlow({
         </div>
       )}
 
-      {/* Step 3: Things Worth Knowing (Checkboxes) */}
+      {/* Step 3: Things Worth Knowing (Checkboxes) + Submit */}
       {reviewStep === 3 && (
         <div className="space-y-5">
           <div>
@@ -467,42 +423,6 @@ export function RouteReviewFlow({
             <Button variant="outline" className="flex-1 rounded-full" onClick={() => setReviewStep(2)}>
               Back
             </Button>
-            <Button className="flex-1 rounded-full bg-green-600 hover:bg-green-700" onClick={() => { setReviewStep(4); setMaxVisitedStep((p) => Math.max(p, 4)); }}>
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Step 4: Short Note */}
-      {reviewStep === 4 && (
-        <div className="space-y-5">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Anything you&apos;d tell a friend before riding this?</h2>
-            <p className="text-sm text-gray-500 mt-1">Keep it short and helpful</p>
-          </div>
-
-          <div className="relative">
-            <Textarea
-              placeholder="e.g. Bring waterproofs if it has been raining, the ford crossing can get deep!"
-              value={reviewShortNote}
-              onChange={(e) => {
-                if (e.target.value.length <= 500) setReviewShortNote(e.target.value);
-              }}
-              className="min-h-[100px] resize-none"
-            />
-            <span className={cn(
-              "absolute bottom-2 right-3 text-xs",
-              reviewShortNote.length > 450 ? "text-amber-500" : "text-gray-400"
-            )}>
-              {reviewShortNote.length}/500
-            </span>
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" className="flex-1 rounded-full" onClick={() => setReviewStep(3)}>
-              Back
-            </Button>
             <Button
               className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
               onClick={handleSubmitRideReview}
@@ -514,8 +434,8 @@ export function RouteReviewFlow({
         </div>
       )}
 
-      {/* Step 5: Warning Check (if active warnings) + Thank You + Optional Long Note */}
-      {reviewStep === 5 && (
+      {/* Step 4: Warning Check (if active warnings) + Thank You */}
+      {reviewStep === 4 && (
         <div className="space-y-5">
           {activeWarnings.length > 0 && !warningCheckDone ? (
             <>
@@ -609,33 +529,14 @@ export function RouteReviewFlow({
                 </div>
               )}
 
-              <Separator />
-
-              <div className="space-y-3">
-                <h3 className="font-medium text-gray-900">Share more with other riders</h3>
-                <p className="text-xs text-gray-500">
-                  Optional — add more detail to your review. This will be shown publicly alongside your review.
-                </p>
-                <Textarea
-                  placeholder="Share more details about your ride..."
-                  value={reviewLongNote}
-                  onChange={(e) => setReviewLongNote(e.target.value)}
-                  className="min-h-[120px]"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <Button variant="outline" className="flex-1 rounded-full" onClick={resetReviewState}>
-                  {reviewLongNote.trim() ? "Cancel" : "Done"}
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  className="w-full rounded-full"
+                  onClick={resetReviewState}
+                >
+                  Done
                 </Button>
-                {reviewLongNote.trim() && (
-                  <Button
-                    className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
-                    onClick={handleSubmitLongNote}
-                  >
-                    Save Note
-                  </Button>
-                )}
               </div>
             </>
           )}
