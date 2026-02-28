@@ -240,6 +240,65 @@ Required (in `.env.local`):
 
 ---
 
+## Post-Change Quality Checks (Mandatory)
+
+After every implementation, before presenting the summary to the user, perform these checks:
+
+### 1. Diff Review
+- Review the full diff of all changes made in this session
+- Check for bugs, logic errors, typos, and unintended side effects
+- Verify no debug code (console.log, TODO comments) was left in
+- Confirm no security vulnerabilities were introduced (SQL injection, XSS, exposed secrets)
+
+### 2. Functionality Preservation
+- Verify no existing functionality or logic was accidentally removed
+- If code was deleted, confirm it was intentional and requested
+- Check that refactors preserve original behaviour
+
+### 3. Documentation Alignment
+- Confirm changes are consistent with CLAUDE.md rules
+- If a UI component was changed, verify it follows the Padoq design language (green accents, shadcn/ui, Airbnb-inspired)
+- Ensure API changes follow existing patterns (error handling, response format, auth checks)
+
+### 4. Test Alignment
+- If tests exist for modified code, verify they still pass and are not invalidated by the changes
+- Check that no test was turned into a placeholder or had assertions bypassed
+- Report if test coverage was reduced by the changes
+
+### 5. Task Completion Verification
+- Cross-check all items marked as completed against the actual code changes
+- Report any tasks marked done that are not actually finished
+
+---
+
+## Post-Change Workflow (Mandatory)
+
+After completing work, always do the following in order:
+
+1. **Build check** — Run `npm run build` and fix any errors
+2. **Full summary** — Provide a clear summary of all changes: what was done, why, files modified, and any risks
+3. **Changelog** — Create or update `changelogs/YYYY-MM-DD.md` with the correct date
+4. **Git commit & push** — Commit with a descriptive message and push to remote. Use conventional commit style:
+   - `feat:` for new features
+   - `fix:` for bug fixes
+   - `refactor:` for restructuring without behaviour change
+   - `docs:` for documentation changes
+   - `style:` for formatting/UI-only changes
+5. **Report concerns** — Flag any risks, recommendations, or things to watch out for
+
+---
+
+## Custom Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/discuss` | Enter strategic discussion mode for planning and architecture decisions |
+| `/uxamine` | Deep UI/UX examination of a component, page, or flow |
+
+Command definitions are in `.claude/commands/`.
+
+---
+
 ## What NOT to Do
 
 - Do not reorganise or move files without approval

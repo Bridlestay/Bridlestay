@@ -100,13 +100,17 @@ export async function GET(
         shortNote = c.notes || "";
       }
 
-      // Collect photos for this user from both tables
+      // Collect photos for this user from both tables, normalize timestamps
       const photos = [
-        ...userPhotoRows.filter((p) => p.user_id === c.user_id),
+        ...userPhotoRows
+          .filter((p) => p.user_id === c.user_id)
+          .map((p) => ({ ...p, created_at: p.uploaded_at })),
         ...routePhotoRows.filter(
           (p) => p.uploaded_by_user_id === c.user_id
         ),
-      ];
+      ].sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
 
       return {
         id: c.id,

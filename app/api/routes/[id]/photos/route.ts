@@ -114,12 +114,11 @@ export async function POST(
       const source = formData.get("source") as string || "";
       const isReviewUpload = source === "review";
 
-      // Upload to Supabase Storage using service client to bypass storage policies
+      // Upload to Supabase Storage (authenticated user policy allows this)
       const fileExt = file.name.split(".").pop();
       const fileName = `${routeId}/${user.id}/${Date.now()}.${fileExt}`;
 
-      const storageClient = createServiceClient();
-      const { data: uploadData, error: uploadError } = await storageClient.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from("route-photos")
         .upload(fileName, file);
 
@@ -129,11 +128,11 @@ export async function POST(
       }
 
       // Get public URL
-      const { data: { publicUrl } } = storageClient.storage
+      const { data: { publicUrl } } = supabase.storage
         .from("route-photos")
         .getPublicUrl(fileName);
 
-      // Use service client for DB inserts to bypass RLS policies
+      // Use service client for DB inserts only (bypasses RLS on table inserts)
       const serviceClient = createServiceClient();
 
       if (isOwnerOrAdmin && !isReviewUpload) {
