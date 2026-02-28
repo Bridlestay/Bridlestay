@@ -35,19 +35,12 @@ import {
 } from "@/lib/weather";
 import { cache, CACHE_TTL } from "@/lib/cache";
 import { NearbyPropertyCard } from "./nearby-property-card";
-import { getMapboxThumbnailUrl } from "@/lib/routes/route-thumbnail";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
-import { ElevationProfile } from "./elevation-profile";
-import {
-  WARNING_TYPES,
-  getDifficultyInfo,
-  getTimeRemaining,
-} from "./route-detail-constants";
+import { getDifficultyInfo } from "./route-detail-constants";
 
 // Sub-components
 import { PhotoLightbox } from "./route-photo-lightbox";
-import { RouteWeatherSection } from "./route-weather-section";
 import { RouteDiscussionPanel } from "./route-discussion-panel";
 import { RouteWaypointsPanel } from "./route-waypoints-panel";
 import {
@@ -58,6 +51,7 @@ import {
 import { RouteReviewFlow } from "./route-review-flow";
 import { RouteReviewCards } from "./route-review-cards";
 import { RoutePhotoGallery } from "./route-photo-gallery";
+import { RouteDetailTabs } from "./route-detail-tabs";
 
 // --- Main Component ---
 
@@ -969,31 +963,30 @@ export function RouteDetailDrawer({
               </div>
             </div>
 
-            {/* ELEVATION PROFILE */}
-            {elevationData && elevationData.elevations.length > 1 && (
-              <ElevationProfile
-                className="mt-3"
-                elevations={elevationData.elevations}
-                distances={elevationData.distances}
-                totalAscent={elevationData.totalAscent}
-                totalDescent={elevationData.totalDescent}
-                distanceKm={Number(route.distance_km || 0)}
-              />
-            )}
-
-            {/* ROUTE MAP SNAPSHOT */}
-            {(() => {
-              const geo = route.geometry || route.route_geometry;
-              const snapshotUrl = getMapboxThumbnailUrl(geo, { width: 600, height: 200, routeColor: "166534", routeWeight: 3 });
-              return snapshotUrl ? (
-                <div className="relative w-full h-40 rounded-lg overflow-hidden bg-gray-100 border">
-                  <img src={snapshotUrl} alt="Route map" className="w-full h-full object-cover" />
-                </div>
-              ) : null;
-            })()}
-
-            {/* WEATHER */}
-            <RouteWeatherSection weatherData={weatherData} loading={loadingWeather} />
+            {/* TABBED SECTION: Elevation / Map / Waypoints / Hazards / Warnings / Weather */}
+            <RouteDetailTabs
+              route={route}
+              elevationData={elevationData}
+              loadingElevation={loadingElevation}
+              weatherData={weatherData}
+              loadingWeather={loadingWeather}
+              fullWaypointList={fullWaypointList}
+              waypointElevationMap={waypointElevationMap}
+              waypoints={waypoints}
+              activeHazards={activeHazards}
+              activeWarnings={activeWarnings}
+              showAllWarnings={showAllWarnings}
+              onShowAllWarningsChange={setShowAllWarnings}
+              userVotedWarnings={userVotedWarnings}
+              userId={userId}
+              onVoteClearWarning={handleVoteClearWarning}
+              onViewAllWaypoints={() => onEnterViewMode ? onEnterViewMode("waypoints") : setActiveFullPanel("waypoints")}
+              onEnterViewMode={onEnterViewMode}
+              onPlaceHazard={onPlaceHazard}
+              onPostWarning={() => setWarningDialogOpen(true)}
+              onFlyToLocation={onFlyToLocation}
+              onDismiss={onDismiss}
+            />
 
             {/* I'VE RIDDEN THIS ROUTE! */}
             {userId && !isOwner && (
@@ -1116,100 +1109,6 @@ export function RouteDetailDrawer({
               )}
             </div>
 
-            {/* ACTIVE WARNINGS */}
-            {activeWarnings.length > 0 && (
-              <div id="active-warnings" className="space-y-2">
-                {(showAllWarnings ? activeWarnings : activeWarnings.slice(0, 1)).map((warning: any) => (
-                  <div key={warning.id} className="p-3 bg-amber-50 border border-amber-300 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                        <span className="font-medium text-sm text-amber-900 truncate">
-                          {WARNING_TYPES.find((t) => t.value === warning.hazard_type)?.label || warning.hazard_type}
-                        </span>
-                      </div>
-                      {warning.expires_at && (
-                        <span className="text-xs text-amber-600 whitespace-nowrap ml-2">{getTimeRemaining(warning.expires_at)}</span>
-                      )}
-                    </div>
-                    {warning.description && <p className="text-xs text-amber-700 mt-1">{warning.description}</p>}
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-amber-500">
-                        Reported {formatDistanceToNow(new Date(warning.created_at), { addSuffix: true })}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {warning.clear_votes_needed && (
-                          <span className="text-xs text-amber-600">{warning.clear_votes_count || 0}/{warning.clear_votes_needed} say cleared</span>
-                        )}
-                        {userId && (
-                          userVotedWarnings.has(warning.id) || warning.user_has_voted ? (
-                            <Badge className="h-6 text-xs bg-green-100 text-green-700 border border-green-300 hover:bg-green-100">Voted</Badge>
-                          ) : (
-                            <Button variant="outline" size="sm" className="h-6 text-xs border-amber-300 text-amber-700 hover:bg-amber-100 px-2" onClick={() => handleVoteClearWarning(warning.id)}>
-                              Cleared?
-                            </Button>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {activeWarnings.length > 1 && (
-                  <Button variant="ghost" size="sm" className="w-full text-xs text-amber-700 hover:text-amber-800" onClick={() => setShowAllWarnings(!showAllWarnings)}>
-                    {showAllWarnings ? "Show less" : `Show ${activeWarnings.length - 1} more warning${activeWarnings.length - 1 > 1 ? "s" : ""}`}
-                  </Button>
-                )}
-              </div>
-            )}
-
-            {/* WAYPOINTS, HAZARDS & WARNINGS ROW */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <div
-                className="border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors"
-                onClick={() => onEnterViewMode ? onEnterViewMode("waypoints") : setActiveFullPanel("waypoints")}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm flex items-center gap-2"><MapPin className="h-4 w-4" />Waypoints</span>
-                  <Badge variant="outline" className="text-xs">{fullWaypointList.length}</Badge>
-                </div>
-                {fullWaypointList.length > 0 && (
-                  <div className="flex items-center gap-1 mt-1.5 text-[11px] text-slate-500">
-                    <span className="inline-flex items-center gap-0.5"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Start</span>
-                    {waypoints.length > 0 && <span>→ {waypoints.length} point{waypoints.length > 1 ? "s" : ""}</span>}
-                    <span className="inline-flex items-center gap-0.5">→ <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Finish</span>
-                  </div>
-                )}
-              </div>
-              <div
-                id="hazards-section"
-                className="border rounded-lg p-3 cursor-pointer hover:bg-slate-50 transition-colors relative"
-                onClick={() => {
-                  if (onEnterViewMode && activeHazards.length > 0) onEnterViewMode("hazards");
-                  else if (onPlaceHazard) onPlaceHazard();
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm flex items-center gap-2"><AlertTriangle className="h-4 w-4" />Hazards</span>
-                  <div className="flex items-center gap-1.5">
-                    {activeHazards.length > 0 && <Badge variant="destructive" className="text-xs">{activeHazards.length}</Badge>}
-                    <Badge variant="outline" className="text-xs cursor-pointer hover:bg-red-50" onClick={(e) => { e.stopPropagation(); onPlaceHazard?.(); }}>+ Report</Badge>
-                  </div>
-                </div>
-              </div>
-              <div
-                className="border rounded-lg p-3 cursor-pointer hover:bg-amber-50 transition-colors relative"
-                onClick={() => setWarningDialogOpen(true)}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-amber-600" />Warnings</span>
-                  {activeWarnings.length > 0 ? (
-                    <Badge className="text-xs bg-amber-500">{activeWarnings.length}</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-xs">Post</Badge>
-                  )}
-                </div>
-              </div>
-            </div>
 
             {/* RIDER REVIEWS */}
             <RouteReviewCards
