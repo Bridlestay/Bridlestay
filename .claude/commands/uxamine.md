@@ -1,3 +1,9 @@
+---
+name: uxamine
+description: Deep UI/UX examination and audit of a component, page, or user flow
+argument-hint: "[component or page]"
+---
+
 # /uxamine — Deep UI/UX Examination Mode
 
 When this command is invoked, perform a thorough UI/UX audit of the specified component, page, or flow. Read the actual code, don't guess. This is an investigative deep-dive, not a quick glance.

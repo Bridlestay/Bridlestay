@@ -1,3 +1,9 @@
+---
+name: discuss
+description: Strategic planning and discussion mode for exploring ideas, architecture, and design decisions
+argument-hint: "[topic]"
+---
+
 # /discuss — Strategic Planning & Discussion Mode
 
 When this command is invoked, enter a focused discussion mode for exploring ideas, architecture, and design decisions. This is NOT implementation time — this is thinking time.
