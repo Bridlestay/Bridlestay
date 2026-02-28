@@ -18,14 +18,38 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check route ownership
+    // Fetch route owner, waypoint creator, and user role
     const { data: route } = await supabase
       .from("routes")
       .select("owner_user_id")
       .eq("id", routeId)
       .single();
 
-    if (!route || route.owner_user_id !== user.id) {
+    const { data: waypoint } = await supabase
+      .from("route_waypoints")
+      .select("created_by_user_id")
+      .eq("id", waypointId)
+      .eq("route_id", routeId)
+      .single();
+
+    if (!waypoint) {
+      return NextResponse.json(
+        { error: "Waypoint not found" },
+        { status: 404 }
+      );
+    }
+
+    const { data: userData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const isRouteOwner = route?.owner_user_id === user.id;
+    const isWaypointCreator = waypoint.created_by_user_id === user.id;
+    const isAdmin = userData?.role === "admin";
+
+    if (!isRouteOwner && !isWaypointCreator && !isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -38,7 +62,7 @@ export async function PATCH(
     if (body.photo_url !== undefined) updates.photo_url = body.photo_url;
     if (body.tag) updates.tag = body.tag;
 
-    const { data: waypoint, error } = await supabase
+    const { data: updatedWaypoint, error } = await supabase
       .from("route_waypoints")
       .update(updates)
       .eq("id", waypointId)
@@ -51,7 +75,7 @@ export async function PATCH(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ waypoint });
+    return NextResponse.json({ waypoint: updatedWaypoint });
   } catch (error: any) {
     console.error("[ROUTE_WAYPOINT_UPDATE] Error:", error);
     return NextResponse.json(
@@ -78,14 +102,38 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check route ownership
+    // Fetch route owner, waypoint creator, and user role
     const { data: route } = await supabase
       .from("routes")
       .select("owner_user_id")
       .eq("id", routeId)
       .single();
 
-    if (!route || route.owner_user_id !== user.id) {
+    const { data: waypoint } = await supabase
+      .from("route_waypoints")
+      .select("created_by_user_id")
+      .eq("id", waypointId)
+      .eq("route_id", routeId)
+      .single();
+
+    if (!waypoint) {
+      return NextResponse.json(
+        { error: "Waypoint not found" },
+        { status: 404 }
+      );
+    }
+
+    const { data: userData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const isRouteOwner = route?.owner_user_id === user.id;
+    const isWaypointCreator = waypoint.created_by_user_id === user.id;
+    const isAdmin = userData?.role === "admin";
+
+    if (!isRouteOwner && !isWaypointCreator && !isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -109,6 +157,3 @@ export async function DELETE(
     );
   }
 }
-
-
-

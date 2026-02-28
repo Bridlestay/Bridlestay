@@ -705,12 +705,24 @@ export function RouteDetailDrawer({
         />
       ) : activeFullPanel === "waypoints" ? (
         <RouteWaypointsPanel
+          routeId={routeId!}
           fullWaypointList={fullWaypointList}
           waypointElevationMap={waypointElevationMap}
           onBack={() => setActiveFullPanel(null)}
           onFlyToLocation={onFlyToLocation}
           onDismiss={onDismiss}
           initialExpandedId={initialWaypointId || undefined}
+          userId={userId}
+          isOwner={isOwner}
+          isAdmin={isAdmin}
+          routeOwnerId={route?.owner_user_id}
+          routeGeometry={route?.geometry || route?.route_geometry}
+          onWaypointAdded={(wp) => setWaypoints((prev) => [...prev, wp])}
+          onWaypointUpdated={(id, updates) =>
+            setWaypoints((prev) =>
+              prev.map((w) => (w.id === id ? { ...w, ...updates } : w))
+            )
+          }
         />
       ) : activeFullPanel === "photos" ? (
         <RoutePhotoGallery
