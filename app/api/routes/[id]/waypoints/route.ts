@@ -12,13 +12,35 @@ export async function GET(
 
     const { data: waypoints, error } = await supabase
       .from("route_waypoints")
-      .select("*")
+      .select("*, waypoint_photos(id, url, caption, created_at)")
       .eq("route_id", routeId)
       .order("order_index");
 
     if (error) throw error;
 
-    return NextResponse.json({ waypoints: waypoints || [] });
+    // Enrich with community photo counts and previews
+    const enriched = (waypoints || []).map((wp: any) => {
+      const communityPhotos = (wp.waypoint_photos || [])
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.created_at).getTime() -
+            new Date(a.created_at).getTime()
+        )
+        .slice(0, 3);
+
+      const { waypoint_photos: _raw, ...rest } = wp;
+      return {
+        ...rest,
+        photo_count: (wp.waypoint_photos || []).length,
+        community_photos: communityPhotos.map((p: any) => ({
+          id: p.id,
+          url: p.url,
+          caption: p.caption,
+        })),
+      };
+    });
+
+    return NextResponse.json({ waypoints: enriched });
   } catch (error: any) {
     console.error("Error fetching waypoints:", error);
     return NextResponse.json(

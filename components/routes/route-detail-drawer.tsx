@@ -68,6 +68,7 @@ import { RouteReviewFlow } from "./route-review-flow";
 import { RoutePhotoGallery } from "./route-photo-gallery";
 import { ElevationProfile } from "./elevation-profile";
 import { RouteWeatherSection } from "./route-weather-section";
+import { WaypointTimeline } from "./waypoint-timeline";
 
 // --- Main Component ---
 
@@ -727,6 +728,18 @@ export function RouteDetailDrawer({
       });
   }, [route, activeHazards, elevationData]);
 
+  // Chart marker click → scroll to timeline entry
+  const handleChartWaypointClick = (index: number) => {
+    const waypointEntries = fullWaypointList.filter(
+      (wp: any) => waypointElevationMap[wp.id] !== undefined || wp.type === "start" || wp.type === "finish"
+    );
+    const wp = waypointEntries[index];
+    if (wp) {
+      const el = document.getElementById(`waypoint-timeline-${wp.id}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
   // ===================== EARLY RETURNS =====================
 
   if (!route && !loading) return null;
@@ -1192,14 +1205,14 @@ export function RouteDetailDrawer({
 
               {/* Tab content area */}
               <div className="min-h-[200px]">
-                {/* ELEVATION tab */}
+                {/* ELEVATION tab — clean chart, no markers */}
                 {activeInfoTab === "elevation" && (
                   <div className="space-y-2">
                     {loadingElevation ? (
-                      <Skeleton className="h-48 w-full rounded-lg" />
+                      <Skeleton className="h-56 w-full rounded-lg" />
                     ) : elevationData && elevationData.elevations.length > 1 ? (
                       <ElevationProfile
-                        className="h-48"
+                        className="h-56"
                         elevations={elevationData.elevations}
                         distances={elevationData.distances}
                         totalAscent={elevationData.totalAscent}
@@ -1207,112 +1220,80 @@ export function RouteDetailDrawer({
                         distanceKm={Number(route?.distance_km || 0)}
                       />
                     ) : (
-                      <div className="flex items-center justify-center h-48 bg-slate-50 rounded-lg border text-sm text-muted-foreground">
+                      <div className="flex items-center justify-center h-56 bg-slate-50 rounded-lg border text-sm text-muted-foreground">
                         No elevation data available
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* WAYPOINTS tab — chart with waypoint markers + list */}
+                {/* WAYPOINTS tab — floating markers on chart */}
                 {activeInfoTab === "waypoints" && (
-                  <div className="space-y-3">
+                  <div>
                     {loadingElevation ? (
-                      <Skeleton className="h-48 w-full rounded-lg" />
+                      <Skeleton className="h-56 w-full rounded-lg" />
                     ) : elevationData && elevationData.elevations.length > 1 ? (
                       <ElevationProfile
-                        className="h-48"
+                        className="h-56"
+                        markerStyle="floating"
                         elevations={elevationData.elevations}
                         distances={elevationData.distances}
                         totalAscent={elevationData.totalAscent}
                         totalDescent={elevationData.totalDescent}
                         distanceKm={Number(route?.distance_km || 0)}
-                        waypoints={fullWaypointList
-                          .filter((wp: any) => wp.type === "waypoint" && waypointElevationMap[wp.id] !== undefined)
+                        waypointItems={fullWaypointList
+                          .filter((wp: any) =>
+                            waypointElevationMap[wp.id] !== undefined ||
+                            wp.type === "start" || wp.type === "finish"
+                          )
                           .map((wp: any) => ({
+                            id: wp.id,
                             name: wp.name || "Waypoint",
                             distanceFromStart: wp._distFromStart || 0,
-                            elevation: waypointElevationMap[wp.id],
+                            elevation: waypointElevationMap[wp.id] ??
+                              (wp.type === "start" ? elevationData.elevations[0] :
+                               wp.type === "finish" ? elevationData.elevations[elevationData.elevations.length - 1] : undefined),
+                            type: wp.type,
+                            listIndex: wp.listIndex,
                           }))}
+                        onWaypointClick={handleChartWaypointClick}
                       />
                     ) : null}
-
-                    {fullWaypointList.length > 0 && (
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                            {fullWaypointList.length} waypoints
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs text-green-600 hover:text-green-700 h-7"
-                            onClick={() => onEnterViewMode ? onEnterViewMode("waypoints") : setActiveFullPanel("waypoints")}
-                          >
-                            View all
-                            <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
-                          </Button>
-                        </div>
-                        {fullWaypointList.slice(0, 6).map((wp: any) => {
-                          const dotColor =
-                            wp.type === "start" ? "bg-green-500"
-                              : wp.type === "finish" ? "bg-red-500"
-                              : "bg-blue-500";
-                          const elevation = waypointElevationMap[wp.id];
-                          return (
-                            <button
-                              key={wp.id}
-                              className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors text-left"
-                              onClick={() => { if (wp.lat && wp.lng && onFlyToLocation) onFlyToLocation(wp.lat, wp.lng); }}
-                            >
-                              <span className={`w-2.5 h-2.5 rounded-full ${dotColor} flex-shrink-0`} />
-                              <span className="text-sm font-medium truncate flex-1">{wp.name || `Waypoint ${(wp.listIndex || 0) + 1}`}</span>
-                              {elevation !== undefined && <span className="text-xs text-muted-foreground">{Math.round(elevation)}m</span>}
-                              {wp._distFromStart !== undefined && wp._distFromStart > 0 && (
-                                <span className="text-xs text-muted-foreground">
-                                  {wp._distFromStart < 1 ? `${Math.round(wp._distFromStart * 1000)}m` : `${wp._distFromStart.toFixed(1)}km`}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                        {fullWaypointList.length > 6 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full text-xs text-muted-foreground hover:text-foreground"
-                            onClick={() => onEnterViewMode ? onEnterViewMode("waypoints") : setActiveFullPanel("waypoints")}
-                          >
-                            View all {fullWaypointList.length} waypoints
-                            <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                          </Button>
-                        )}
-                      </div>
-                    )}
                   </div>
                 )}
 
-                {/* HAZARDS tab — chart with hazard markers + list */}
+                {/* HAZARDS tab — floating hazard markers on chart + list */}
                 {activeInfoTab === "hazards" && (
                   <div id="hazards-section" className="space-y-3">
                     {loadingElevation ? (
-                      <Skeleton className="h-48 w-full rounded-lg" />
+                      <Skeleton className="h-56 w-full rounded-lg" />
                     ) : elevationData && elevationData.elevations.length > 1 ? (
                       <ElevationProfile
-                        className="h-48"
+                        className="h-56"
+                        markerStyle="floating"
                         elevations={elevationData.elevations}
                         distances={elevationData.distances}
                         totalAscent={elevationData.totalAscent}
                         totalDescent={elevationData.totalDescent}
                         distanceKm={Number(route?.distance_km || 0)}
-                        hazards={hazardsWithDistance}
+                        hazardItems={hazardsWithDistance.map((h: any, i: number) => ({
+                          id: `hazard-${i}`,
+                          type: h.type,
+                          distanceFromStart: h.distanceFromStart,
+                          elevation: h.elevation,
+                        }))}
+                        onHazardClick={(index) => {
+                          document.getElementById(`hazard-card-${index}`)?.scrollIntoView({
+                            behavior: "smooth", block: "center"
+                          });
+                        }}
                       />
                     ) : null}
 
                     {activeHazards.length > 0 ? (
                       <div className="space-y-2">
-                        {activeHazards.map((hazard: any) => (
-                          <div key={hazard.id} className={`p-3 rounded-lg border ${SEVERITY_COLORS[hazard.severity] || SEVERITY_COLORS.medium}`}>
+                        {activeHazards.map((hazard: any, hIdx: number) => (
+                          <div key={hazard.id} id={`hazard-card-${hIdx}`} className={`p-3 rounded-lg border ${SEVERITY_COLORS[hazard.severity] || SEVERITY_COLORS.medium}`}>
                             <div className="flex items-center justify-between">
                               <span className="font-medium text-sm">
                                 {HAZARD_TYPES.find((t) => t.value === hazard.hazard_type)?.label || hazard.hazard_type}
@@ -1425,6 +1406,23 @@ export function RouteDetailDrawer({
                   </div>
                 )}
               </div>
+
+              {/* PERMANENT WAYPOINT TIMELINE — always visible below tabs */}
+              {fullWaypointList.length > 2 && (
+                <>
+                  <Separator />
+                  <WaypointTimeline
+                    fullWaypointList={fullWaypointList}
+                    waypointElevationMap={waypointElevationMap}
+                    onFlyToLocation={onFlyToLocation}
+                    onOpenFullPanel={() =>
+                      onEnterViewMode
+                        ? onEnterViewMode("waypoints")
+                        : setActiveFullPanel("waypoints")
+                    }
+                  />
+                </>
+              )}
 
               {/* I'VE RIDDEN THIS ROUTE! */}
               {userId && !isOwner && (
