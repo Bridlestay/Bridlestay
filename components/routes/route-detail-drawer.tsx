@@ -127,6 +127,7 @@ export function RouteDetailDrawer({
 
   // --- Panel view ---
   const [activeFullPanel, setActiveFullPanel] = useState<"discussion" | "reviews" | "waypoints" | "photos" | null>(null);
+  const [activeInfoTab, setActiveInfoTab] = useState<"elevation" | "waypoints" | "hazards" | "warnings" | "weather">("elevation");
 
   // --- Photo carousel ---
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
@@ -958,7 +959,7 @@ export function RouteDetailDrawer({
           {/* ==================== CONTENT AREA ==================== */}
           <div className={cn(
             "relative z-10 bg-white",
-            displayPhotosForCarousel.length > 0 && "rounded-t-2xl -mt-4"
+            displayPhotosForCarousel.length > 0 && "rounded-t-2xl -mt-2"
           )}>
             <div className={cn("p-4 space-y-4", displayPhotosForCarousel.length > 0 && "pt-5")}>
               {/* AUTHOR + META */}
@@ -1025,7 +1026,7 @@ export function RouteDetailDrawer({
 
               {/* DIFFICULTY + TIMES RIDDEN */}
               <div className="flex items-center gap-3 flex-wrap">
-                <Badge className={cn("text-sm px-3 py-1", getDifficultyInfo(route.difficulty).color)}>
+                <Badge className={cn("text-xs px-2 py-0.5", getDifficultyInfo(route.difficulty).color)}>
                   {getDifficultyInfo(route.difficulty).label}
                 </Badge>
                 {(route.completions_count > 0) && (
@@ -1034,6 +1035,26 @@ export function RouteDetailDrawer({
                   </span>
                 )}
               </div>
+
+              {/* DESCRIPTION — plain text */}
+              {route.description && (
+                <div>
+                  <p className={cn(
+                    "text-sm text-slate-600 leading-relaxed",
+                    !showFullDescription && "line-clamp-3"
+                  )}>
+                    {route.description}
+                  </p>
+                  {route.description.length > 150 && (
+                    <button
+                      onClick={() => setShowFullDescription(!showFullDescription)}
+                      className="text-sm text-green-600 hover:text-green-700 font-medium mt-1"
+                    >
+                      {showFullDescription ? "Show less" : "Show more"}
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* STATS — 2x2 Komoot-style grid */}
               <div className="grid grid-cols-2 gap-4 py-4">
@@ -1081,305 +1102,328 @@ export function RouteDetailDrawer({
                 </div>
               </div>
 
-              {/* DESCRIPTION — plain text */}
-              {route.description && (
-                <div>
-                  <p className={cn(
-                    "text-sm text-slate-600 leading-relaxed",
-                    !showFullDescription && "line-clamp-3"
-                  )}>
-                    {route.description}
-                  </p>
-                  {route.description.length > 150 && (
-                    <button
-                      onClick={() => setShowFullDescription(!showFullDescription)}
-                      className="text-sm text-green-600 hover:text-green-700 font-medium mt-1"
-                    >
-                      {showFullDescription ? "Show less" : "Show more"}
-                    </button>
+              <Separator />
+
+              {/* DISCUSSION — minimal Komoot-style social bar */}
+              <div
+                className="flex items-center gap-3 cursor-pointer group"
+                onClick={() => setActiveFullPanel("discussion")}
+              >
+                {/* Overlapping avatars */}
+                <div className="flex -space-x-2 flex-shrink-0">
+                  {comments.slice(0, 3).map((comment: any, i: number) => (
+                    <Avatar key={comment.id || i} className="h-8 w-8 border-2 border-white">
+                      <AvatarImage src={comment.user?.avatar_url} />
+                      <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600">
+                        {comment.user?.name?.[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
+                  {comments.length === 0 && (
+                    <div className="h-8 w-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center">
+                      <MessageCircle className="h-3.5 w-3.5 text-slate-400" />
+                    </div>
                   )}
                 </div>
-              )}
 
-              {/* DISCUSSION — inline Komoot-style comments */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-sm flex items-center gap-2">
-                    <MessageCircle className="h-4 w-4" />
-                    Comments
-                  </h3>
-                  <span className="text-xs text-muted-foreground">
+                {/* Counts */}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {likesCount > 0 && (
+                    <span className="text-sm text-slate-500">
+                      {likesCount} liked this
+                    </span>
+                  )}
+                  {likesCount > 0 && comments.length > 0 && (
+                    <span className="text-slate-300">|</span>
+                  )}
+                  <span className="text-sm text-slate-500">
                     {comments.length} {comments.length === 1 ? "comment" : "comments"}
                   </span>
                 </div>
 
-                {comments.length > 0 ? (
-                  <div className="space-y-3">
-                    {comments.slice(0, 3).map((comment: any) => (
-                      <div key={comment.id} className="flex items-start gap-2.5">
-                        <Avatar className="h-7 w-7 flex-shrink-0 mt-0.5">
-                          <AvatarImage src={comment.user?.avatar_url} />
-                          <AvatarFallback className="text-[10px]">
-                            {comment.user?.name?.[0]?.toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">{comment.user?.name}</span>
-                            {comment.created_at && (
-                              <span className="text-xs text-muted-foreground">
-                                {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">
-                            {comment.body}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    {comments.length > 3 && (
-                      <button
-                        onClick={() => setActiveFullPanel("discussion")}
-                        className="text-sm text-green-600 hover:text-green-700 font-medium"
-                      >
-                        View all {comments.length} comments
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No comments yet. Be the first!
-                  </p>
-                )}
-
-                <button
-                  onClick={() => setActiveFullPanel("discussion")}
-                  className="text-sm text-green-600 hover:text-green-700 font-medium"
-                >
-                  {comments.length > 0 ? "Add a comment" : "Start the discussion"}
-                </button>
-              </div>
-
-              <Separator />
-
-              {/* ELEVATION CHART — always visible */}
-              <div className="space-y-2">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" />
-                  Elevation Profile
-                </h3>
-                {loadingElevation ? (
-                  <Skeleton className="h-48 w-full rounded-lg" />
-                ) : elevationData && elevationData.elevations.length > 1 ? (
-                  <ElevationProfile
-                    className="h-48"
-                    elevations={elevationData.elevations}
-                    distances={elevationData.distances}
-                    totalAscent={elevationData.totalAscent}
-                    totalDescent={elevationData.totalDescent}
-                    distanceKm={Number(route?.distance_km || 0)}
-                    waypoints={fullWaypointList
-                      .filter((wp: any) => wp.type === "waypoint" && waypointElevationMap[wp.id] !== undefined)
-                      .map((wp: any) => ({
-                        name: wp.name || "Waypoint",
-                        distanceFromStart: wp._distFromStart || 0,
-                        elevation: waypointElevationMap[wp.id],
-                      }))}
-                    hazards={hazardsWithDistance}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-48 bg-slate-50 rounded-lg border text-sm text-muted-foreground">
-                    No elevation data available
-                  </div>
-                )}
-              </div>
-
-              {/* WAYPOINT LIST — permanent, below elevation chart */}
-              {fullWaypointList.length > 0 && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-sm flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      Waypoints
-                      <Badge variant="secondary" className="text-xs">{fullWaypointList.length}</Badge>
-                    </h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs text-green-600 hover:text-green-700 h-7"
-                      onClick={() => onEnterViewMode ? onEnterViewMode("waypoints") : setActiveFullPanel("waypoints")}
-                    >
-                      View all
-                      <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
-                    </Button>
-                  </div>
-                  {fullWaypointList.slice(0, 6).map((wp: any) => {
-                    const dotColor =
-                      wp.type === "start" ? "bg-green-500"
-                        : wp.type === "finish" ? "bg-red-500"
-                        : "bg-blue-500";
-                    const elevation = waypointElevationMap[wp.id];
-                    return (
-                      <button
-                        key={wp.id}
-                        className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors text-left"
-                        onClick={() => { if (wp.lat && wp.lng && onFlyToLocation) onFlyToLocation(wp.lat, wp.lng); }}
-                      >
-                        <span className={`w-2.5 h-2.5 rounded-full ${dotColor} flex-shrink-0`} />
-                        <span className="text-sm font-medium truncate flex-1">{wp.name || `Waypoint ${(wp.listIndex || 0) + 1}`}</span>
-                        {elevation !== undefined && <span className="text-xs text-muted-foreground">{Math.round(elevation)}m</span>}
-                        {wp._distFromStart !== undefined && wp._distFromStart > 0 && (
-                          <span className="text-xs text-muted-foreground">
-                            {wp._distFromStart < 1 ? `${Math.round(wp._distFromStart * 1000)}m` : `${wp._distFromStart.toFixed(1)}km`}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                  {fullWaypointList.length > 6 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => onEnterViewMode ? onEnterViewMode("waypoints") : setActiveFullPanel("waypoints")}
-                    >
-                      View all {fullWaypointList.length} waypoints
-                      <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                    </Button>
-                  )}
-                </div>
-              )}
-
-              {/* HAZARD LIST — permanent, with report button */}
-              <div id="hazards-section" className="space-y-2">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  Hazards
-                  {activeHazards.length > 0 && (
-                    <Badge variant="destructive" className="text-xs">{activeHazards.length}</Badge>
-                  )}
-                </h3>
-                {activeHazards.length > 0 ? (
-                  <>
-                    {activeHazards.map((hazard: any) => (
-                      <div key={hazard.id} className={`p-3 rounded-lg border ${SEVERITY_COLORS[hazard.severity] || SEVERITY_COLORS.medium}`}>
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-sm">
-                            {HAZARD_TYPES.find((t) => t.value === hazard.hazard_type)?.label || hazard.hazard_type}
-                          </span>
-                          <Badge variant="outline" className="text-[10px] capitalize">{hazard.severity}</Badge>
-                        </div>
-                        {hazard.description && <p className="text-xs mt-1 opacity-80">{hazard.description}</p>}
-                        <span className="text-[10px] opacity-60 mt-1 block">
-                          {formatDistanceToNow(new Date(hazard.created_at), { addSuffix: true })}
-                        </span>
-                      </div>
-                    ))}
-                    {onEnterViewMode && (
-                      <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => onEnterViewMode("hazards")}>
-                        View on map <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No active hazards reported</p>
-                )}
-                {onPlaceHazard && (
-                  <Button variant="outline" size="sm" className="w-full text-xs border-red-200 text-red-700 hover:bg-red-50" onClick={onPlaceHazard}>
-                    <Plus className="h-3.5 w-3.5 mr-1.5" /> Report a hazard
-                  </Button>
-                )}
-              </div>
-
-              {/* WARNINGS — inline section */}
-              <div id="active-warnings" className="space-y-2">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  Warnings
-                  {activeWarnings.length > 0 && (
-                    <Badge className="text-xs bg-amber-100 text-amber-700 border border-amber-300">{activeWarnings.length}</Badge>
-                  )}
-                </h3>
-                {activeWarnings.length > 0 ? (
-                  <>
-                    {(showAllWarnings ? activeWarnings : activeWarnings.slice(0, 3)).map((warning: any) => (
-                      <div key={warning.id} className="p-3 bg-amber-50 border border-amber-300 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                            <span className="font-medium text-sm text-amber-900 truncate">
-                              {WARNING_TYPES.find((t) => t.value === warning.hazard_type)?.label || warning.hazard_type}
-                            </span>
-                          </div>
-                          {warning.expires_at && (
-                            <span className="text-xs text-amber-600 whitespace-nowrap ml-2">
-                              {getTimeRemaining(warning.expires_at)}
-                            </span>
-                          )}
-                        </div>
-                        {warning.description && <p className="text-xs text-amber-700 mt-1">{warning.description}</p>}
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-amber-500">
-                            Reported {formatDistanceToNow(new Date(warning.created_at), { addSuffix: true })}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            {warning.clear_votes_needed && (
-                              <span className="text-xs text-amber-600">
-                                {warning.clear_votes_count || 0}/{warning.clear_votes_needed} say cleared
-                              </span>
-                            )}
-                            {userId && (
-                              userVotedWarnings.has(warning.id) || warning.user_has_voted ? (
-                                <Badge className="h-6 text-xs bg-green-100 text-green-700 border border-green-300 hover:bg-green-100">
-                                  Voted
-                                </Badge>
-                              ) : (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-6 text-xs border-amber-300 text-amber-700 hover:bg-amber-100 px-2"
-                                  onClick={() => handleVoteClearWarning(warning.id)}
-                                >
-                                  Cleared?
-                                </Button>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {activeWarnings.length > 3 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full text-xs text-amber-700 hover:text-amber-800"
-                        onClick={() => setShowAllWarnings(!showAllWarnings)}
-                      >
-                        {showAllWarnings ? "Show less" : `Show ${activeWarnings.length - 3} more warning${activeWarnings.length - 3 > 1 ? "s" : ""}`}
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No active warnings</p>
-                )}
+                {/* Comment button */}
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="w-full text-xs border-amber-200 text-amber-700 hover:bg-amber-50"
-                  onClick={() => setWarningDialogOpen(true)}
+                  className="text-xs text-green-600 hover:text-green-700 gap-1 h-8"
+                  onClick={(e) => { e.stopPropagation(); setActiveFullPanel("discussion"); }}
                 >
-                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Post a warning
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  Comment
                 </Button>
               </div>
 
-              {/* WEATHER — inline section */}
-              <div className="space-y-2">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
-                  <Cloud className="h-4 w-4" />
-                  Weather
-                </h3>
-                <RouteWeatherSection weatherData={weatherData} loading={loadingWeather} />
+              {/* ===== TABBED INFO SECTION ===== */}
+              <Separator />
+
+              {/* Tab header bar */}
+              <div className="flex border-b overflow-x-auto scrollbar-hidden -mx-4 px-4">
+                {([
+                  { key: "elevation", label: "Elevation" },
+                  { key: "waypoints", label: "Waypoints", count: fullWaypointList.length },
+                  { key: "hazards", label: "Hazards", count: activeHazards.length },
+                  { key: "warnings", label: "Warnings", count: activeWarnings.length },
+                  { key: "weather", label: "Weather" },
+                ] as const).map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveInfoTab(tab.key)}
+                    className={cn(
+                      "flex items-center gap-1 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+                      activeInfoTab === tab.key
+                        ? "border-green-600 text-green-700"
+                        : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                    )}
+                  >
+                    {tab.label}
+                    {"count" in tab && tab.count > 0 && (
+                      <span className={cn(
+                        "text-[10px] font-semibold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1",
+                        activeInfoTab === tab.key
+                          ? tab.key === "hazards" ? "bg-red-100 text-red-700" : tab.key === "warnings" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"
+                          : tab.key === "hazards" ? "bg-red-100 text-red-600" : tab.key === "warnings" ? "bg-amber-100 text-amber-600" : "bg-slate-100 text-slate-600"
+                      )}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab content area */}
+              <div className="min-h-[200px]">
+                {/* ELEVATION tab */}
+                {activeInfoTab === "elevation" && (
+                  <div className="space-y-2">
+                    {loadingElevation ? (
+                      <Skeleton className="h-48 w-full rounded-lg" />
+                    ) : elevationData && elevationData.elevations.length > 1 ? (
+                      <ElevationProfile
+                        className="h-48"
+                        elevations={elevationData.elevations}
+                        distances={elevationData.distances}
+                        totalAscent={elevationData.totalAscent}
+                        totalDescent={elevationData.totalDescent}
+                        distanceKm={Number(route?.distance_km || 0)}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-48 bg-slate-50 rounded-lg border text-sm text-muted-foreground">
+                        No elevation data available
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* WAYPOINTS tab — chart with waypoint markers + list */}
+                {activeInfoTab === "waypoints" && (
+                  <div className="space-y-3">
+                    {loadingElevation ? (
+                      <Skeleton className="h-48 w-full rounded-lg" />
+                    ) : elevationData && elevationData.elevations.length > 1 ? (
+                      <ElevationProfile
+                        className="h-48"
+                        elevations={elevationData.elevations}
+                        distances={elevationData.distances}
+                        totalAscent={elevationData.totalAscent}
+                        totalDescent={elevationData.totalDescent}
+                        distanceKm={Number(route?.distance_km || 0)}
+                        waypoints={fullWaypointList
+                          .filter((wp: any) => wp.type === "waypoint" && waypointElevationMap[wp.id] !== undefined)
+                          .map((wp: any) => ({
+                            name: wp.name || "Waypoint",
+                            distanceFromStart: wp._distFromStart || 0,
+                            elevation: waypointElevationMap[wp.id],
+                          }))}
+                      />
+                    ) : null}
+
+                    {fullWaypointList.length > 0 && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                            {fullWaypointList.length} waypoints
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-green-600 hover:text-green-700 h-7"
+                            onClick={() => onEnterViewMode ? onEnterViewMode("waypoints") : setActiveFullPanel("waypoints")}
+                          >
+                            View all
+                            <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
+                          </Button>
+                        </div>
+                        {fullWaypointList.slice(0, 6).map((wp: any) => {
+                          const dotColor =
+                            wp.type === "start" ? "bg-green-500"
+                              : wp.type === "finish" ? "bg-red-500"
+                              : "bg-blue-500";
+                          const elevation = waypointElevationMap[wp.id];
+                          return (
+                            <button
+                              key={wp.id}
+                              className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors text-left"
+                              onClick={() => { if (wp.lat && wp.lng && onFlyToLocation) onFlyToLocation(wp.lat, wp.lng); }}
+                            >
+                              <span className={`w-2.5 h-2.5 rounded-full ${dotColor} flex-shrink-0`} />
+                              <span className="text-sm font-medium truncate flex-1">{wp.name || `Waypoint ${(wp.listIndex || 0) + 1}`}</span>
+                              {elevation !== undefined && <span className="text-xs text-muted-foreground">{Math.round(elevation)}m</span>}
+                              {wp._distFromStart !== undefined && wp._distFromStart > 0 && (
+                                <span className="text-xs text-muted-foreground">
+                                  {wp._distFromStart < 1 ? `${Math.round(wp._distFromStart * 1000)}m` : `${wp._distFromStart.toFixed(1)}km`}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                        {fullWaypointList.length > 6 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-xs text-muted-foreground hover:text-foreground"
+                            onClick={() => onEnterViewMode ? onEnterViewMode("waypoints") : setActiveFullPanel("waypoints")}
+                          >
+                            View all {fullWaypointList.length} waypoints
+                            <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* HAZARDS tab — chart with hazard markers + list */}
+                {activeInfoTab === "hazards" && (
+                  <div id="hazards-section" className="space-y-3">
+                    {loadingElevation ? (
+                      <Skeleton className="h-48 w-full rounded-lg" />
+                    ) : elevationData && elevationData.elevations.length > 1 ? (
+                      <ElevationProfile
+                        className="h-48"
+                        elevations={elevationData.elevations}
+                        distances={elevationData.distances}
+                        totalAscent={elevationData.totalAscent}
+                        totalDescent={elevationData.totalDescent}
+                        distanceKm={Number(route?.distance_km || 0)}
+                        hazards={hazardsWithDistance}
+                      />
+                    ) : null}
+
+                    {activeHazards.length > 0 ? (
+                      <div className="space-y-2">
+                        {activeHazards.map((hazard: any) => (
+                          <div key={hazard.id} className={`p-3 rounded-lg border ${SEVERITY_COLORS[hazard.severity] || SEVERITY_COLORS.medium}`}>
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-sm">
+                                {HAZARD_TYPES.find((t) => t.value === hazard.hazard_type)?.label || hazard.hazard_type}
+                              </span>
+                              <Badge variant="outline" className="text-[10px] capitalize">{hazard.severity}</Badge>
+                            </div>
+                            {hazard.description && <p className="text-xs mt-1 opacity-80">{hazard.description}</p>}
+                            <span className="text-[10px] opacity-60 mt-1 block">
+                              {formatDistanceToNow(new Date(hazard.created_at), { addSuffix: true })}
+                            </span>
+                          </div>
+                        ))}
+                        {onEnterViewMode && (
+                          <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => onEnterViewMode("hazards")}>
+                            View on map <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No active hazards reported</p>
+                    )}
+                    {onPlaceHazard && (
+                      <Button variant="outline" size="sm" className="w-full text-xs border-red-200 text-red-700 hover:bg-red-50" onClick={onPlaceHazard}>
+                        <Plus className="h-3.5 w-3.5 mr-1.5" /> Report a hazard
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {/* WARNINGS tab — replaces chart with warnings content */}
+                {activeInfoTab === "warnings" && (
+                  <div id="active-warnings" className="space-y-2">
+                    {activeWarnings.length > 0 ? (
+                      <>
+                        {(showAllWarnings ? activeWarnings : activeWarnings.slice(0, 3)).map((warning: any) => (
+                          <div key={warning.id} className="p-3 bg-amber-50 border border-amber-300 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                                <span className="font-medium text-sm text-amber-900 truncate">
+                                  {WARNING_TYPES.find((t) => t.value === warning.hazard_type)?.label || warning.hazard_type}
+                                </span>
+                              </div>
+                              {warning.expires_at && (
+                                <span className="text-xs text-amber-600 whitespace-nowrap ml-2">
+                                  {getTimeRemaining(warning.expires_at)}
+                                </span>
+                              )}
+                            </div>
+                            {warning.description && <p className="text-xs text-amber-700 mt-1">{warning.description}</p>}
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-xs text-amber-500">
+                                Reported {formatDistanceToNow(new Date(warning.created_at), { addSuffix: true })}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                {warning.clear_votes_needed && (
+                                  <span className="text-xs text-amber-600">
+                                    {warning.clear_votes_count || 0}/{warning.clear_votes_needed} say cleared
+                                  </span>
+                                )}
+                                {userId && (
+                                  userVotedWarnings.has(warning.id) || warning.user_has_voted ? (
+                                    <Badge className="h-6 text-xs bg-green-100 text-green-700 border border-green-300 hover:bg-green-100">
+                                      Voted
+                                    </Badge>
+                                  ) : (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-6 text-xs border-amber-300 text-amber-700 hover:bg-amber-100 px-2"
+                                      onClick={() => handleVoteClearWarning(warning.id)}
+                                    >
+                                      Cleared?
+                                    </Button>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {activeWarnings.length > 3 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-xs text-amber-700 hover:text-amber-800"
+                            onClick={() => setShowAllWarnings(!showAllWarnings)}
+                          >
+                            {showAllWarnings ? "Show less" : `Show ${activeWarnings.length - 3} more warning${activeWarnings.length - 3 > 1 ? "s" : ""}`}
+                          </Button>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No active warnings</p>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs border-amber-200 text-amber-700 hover:bg-amber-50"
+                      onClick={() => setWarningDialogOpen(true)}
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1.5" /> Post a warning
+                    </Button>
+                  </div>
+                )}
+
+                {/* WEATHER tab — replaces chart with weather content */}
+                {activeInfoTab === "weather" && (
+                  <div>
+                    <RouteWeatherSection weatherData={weatherData} loading={loadingWeather} />
+                  </div>
+                )}
               </div>
 
               {/* I'VE RIDDEN THIS ROUTE! */}
@@ -1409,14 +1453,16 @@ export function RouteDetailDrawer({
               )}
 
               {/* NEARBY STAYS */}
-              {nearbyProperties.length > 0 && (
-                <div className="space-y-3">
-                  <Separator />
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <Home className="h-4 w-4" />
-                    Nearby Stays
+              <div className="space-y-3">
+                <Separator />
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Home className="h-4 w-4" />
+                  Nearby Stays
+                  {nearbyProperties.length > 0 && (
                     <Badge variant="secondary" className="text-xs">{nearbyProperties.length}</Badge>
-                  </h3>
+                  )}
+                </h3>
+                {nearbyProperties.length > 0 ? (
                   <ScrollArea className="w-full" type="scroll">
                     <div className="flex gap-3 pb-2">
                       {nearbyProperties.map((property) => (
@@ -1427,8 +1473,10 @@ export function RouteDetailDrawer({
                     </div>
                     <ScrollBar orientation="horizontal" />
                   </ScrollArea>
-                </div>
-              )}
+                ) : (
+                  <p className="text-sm text-muted-foreground">No nearby stays found for this route</p>
+                )}
+              </div>
 
               {/* DIALOGS */}
               <HazardReportDialog
