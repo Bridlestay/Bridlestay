@@ -1,141 +1,119 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
 
+// POST - Mark route as completed
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id } = await params;
-    
-    const { data: { user } } = await supabase.auth.getUser();
+    const { id: routeId } = await params;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { notes, rating } = await request.json();
+    // Verify route exists
+    const { data: route, error: routeError } = await supabase
+      .from("routes")
+      .select("id, name")
+      .eq("id", routeId)
+      .single();
 
-    // Check if user already has a completion for this route
-    const { data: existing } = await supabase
-      .from('route_completions')
-      .select('id')
-      .eq('route_id', id)
-      .eq('user_id', user.id)
-      .maybeSingle();
+    if (routeError || !route) {
+      return NextResponse.json({ error: "Route not found" }, { status: 404 });
+    }
 
-    let data;
-    if (existing) {
-      // Update existing completion (preserves completed_at, updates notes/rating)
-      const { data: updated, error: updateError } = await supabase
-        .from('route_completions')
-        .update({ notes, rating })
-        .eq('id', existing.id)
-        .select()
-        .single();
-      if (updateError) throw updateError;
-      data = updated;
-    } else {
-      // Insert new completion
-      const { data: inserted, error: insertError } = await supabase
-        .from('route_completions')
-        .insert({
-          route_id: id,
+    // Insert completion record (upsert to handle duplicate attempts)
+    const { data: completion, error } = await supabase
+      .from("route_completions")
+      .upsert(
+        {
+          route_id: routeId,
           user_id: user.id,
-          notes,
-          rating
-        })
-        .select()
-        .single();
-      if (insertError) throw insertError;
-      data = inserted;
-    }
-
-    // Update completions count on route
-    const { count } = await supabase
-      .from('route_completions')
-      .select('*', { count: 'exact', head: true })
-      .eq('route_id', id);
-    await supabase
-      .from('routes')
-      .update({ completions_count: count || 0 })
-      .eq('id', id);
-
-    return NextResponse.json({ success: true, completion: data });
-  } catch (error) {
-    console.error('Error marking route as complete:', error);
-    return NextResponse.json(
-      { error: 'Failed to mark route as complete' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient();
-    const { id } = await params;
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return NextResponse.json({ completed: false });
-    }
-
-    // Check if user has completed this route
-    const { data, error } = await supabase
-      .from('route_completions')
-      .select('*')
-      .eq('route_id', id)
-      .eq('user_id', user.id)
-      .maybeSingle();
+          completed_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "route_id,user_id",
+          ignoreDuplicates: false, // Update completed_at if already exists
+        }
+      )
+      .select()
+      .single();
 
     if (error) throw error;
 
-    return NextResponse.json({ 
-      completed: !!data,
-      completion: data 
-    });
-  } catch (error) {
-    console.error('Error checking route completion:', error);
-    return NextResponse.json(
-      { error: 'Failed to check completion status' },
-      { status: 500 }
-    );
+    return NextResponse.json({ completion }, { status: 201 });
+  } catch (error: any) {
+    console.error("[ROUTE_COMPLETE] Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
+// DELETE - Remove completion record
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { id } = await params;
-    
-    const { data: { user } } = await supabase.auth.getUser();
+    const { id: routeId } = await params;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Delete completion
     const { error } = await supabase
-      .from('route_completions')
+      .from("route_completions")
       .delete()
-      .eq('route_id', id)
-      .eq('user_id', user.id);
+      .eq("route_id", routeId)
+      .eq("user_id", user.id);
 
     if (error) throw error;
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error removing route completion:', error);
-    return NextResponse.json(
-      { error: 'Failed to remove completion' },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error("[ROUTE_COMPLETE_DELETE] Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// GET - Check if user has completed the route
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const supabase = await createClient();
+    const { id: routeId } = await params;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ completed: false });
+    }
+
+    const { data: completion } = await supabase
+      .from("route_completions")
+      .select("id, completed_at")
+      .eq("route_id", routeId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    return NextResponse.json({ completed: !!completion, completion });
+  } catch (error: any) {
+    console.error("[ROUTE_COMPLETE_GET] Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

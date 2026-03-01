@@ -64,6 +64,24 @@ export async function POST(
       );
     }
 
+    // Check if user has completed this route (required for community photos)
+    const { data: completion } = await supabase
+      .from("route_completions")
+      .select("id")
+      .eq("route_id", routeId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!completion) {
+      return NextResponse.json(
+        {
+          error:
+            "You must complete this route before adding photos. Mark the route as completed first!",
+        },
+        { status: 403 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
