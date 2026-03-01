@@ -1308,8 +1308,8 @@ export function RouteDetailDrawer({
                       <p className="text-sm text-muted-foreground">No active hazards reported</p>
                     )}
                     {onPlaceHazard && (
-                      <Button variant="outline" size="sm" className="w-full text-xs border-red-200 text-red-700 hover:bg-red-50" onClick={onPlaceHazard}>
-                        <Plus className="h-3.5 w-3.5 mr-1.5" /> Report a hazard
+                      <Button variant="outline" size="sm" className="w-full text-sm border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 py-2.5 transition-colors" onClick={onPlaceHazard}>
+                        <Plus className="h-4 w-4 mr-1.5" /> Report a hazard
                       </Button>
                     )}
                   </div>
@@ -1383,10 +1383,10 @@ export function RouteDetailDrawer({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full text-xs border-amber-200 text-amber-700 hover:bg-amber-50"
+                      className="w-full text-sm border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 py-2.5 transition-colors"
                       onClick={() => setWarningDialogOpen(true)}
                     >
-                      <Plus className="h-3.5 w-3.5 mr-1.5" /> Post a warning
+                      <Plus className="h-4 w-4 mr-1.5" /> Post a warning
                     </Button>
                   </div>
                 )}

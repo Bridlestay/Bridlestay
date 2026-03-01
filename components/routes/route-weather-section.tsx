@@ -1,7 +1,7 @@
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, Droplets, Wind, Sun, Cloud, CloudRain, Snowflake } from "lucide-react";
+import { AlertTriangle, Droplets, Wind, Sun, Cloud, CloudRain, Snowflake, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { WeatherData } from "@/lib/weather";
 import { useState } from "react";
@@ -162,15 +162,17 @@ export function RouteWeatherSection({ weatherData, loading }: RouteWeatherSectio
         </div>
       </div>
 
-      {/* Additional Weather Tips (Komoot-style) */}
-      <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
-        <h4 className="text-sm font-semibold text-blue-900 mb-2">
-          Additional weather tips
+      {/* Additional Weather Tips (Soft Muted Style) */}
+      <div className="rounded-lg bg-slate-50 border border-slate-200 p-3.5">
+        <h4 className="text-sm font-semibold text-slate-700 mb-2.5 flex items-center gap-2">
+          <Info className="h-4 w-4 text-slate-400" />
+          Weather tips
         </h4>
-        <ul className="space-y-1.5">
+        <ul className="space-y-2">
           {weatherTips.map((tip, idx) => (
-            <li key={idx} className="text-xs text-blue-800 leading-relaxed">
-              {tip}
+            <li key={idx} className="text-sm text-slate-600 leading-relaxed flex items-start gap-2">
+              <span className="text-slate-400 mt-0.5">•</span>
+              <span>{tip}</span>
             </li>
           ))}
         </ul>

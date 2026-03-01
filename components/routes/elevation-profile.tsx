@@ -161,7 +161,7 @@ export function ElevationProfile({
     const firstX = (elevationData.distances[0] / elevationData.totalDistance) * 400;
     const lastX = (elevationData.distances[elevationData.distances.length - 1] / elevationData.totalDistance) * 400;
 
-    return `M${firstX},100 L${points[0]} L${points.join(" L")} L${lastX},100 Z`;
+    return `M${points[0]} L${points.join(" L")} L${lastX},100 L${firstX},100 Z`;
   }, [elevationData]);
 
   // Key points: start, end, highest, lowest (inline mode only)
@@ -255,7 +255,7 @@ export function ElevationProfile({
 
     (waypointItems || []).forEach((wp, i) => {
       if (wp.elevation === undefined) return;
-      const x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 400, 4), 396);
+      const x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 100, 1), 99);
       const y = 100 - ((wp.elevation - minElevation) / range) * 65;
       const label =
         wp.type === "start" ? "S" :
@@ -281,7 +281,7 @@ export function ElevationProfile({
 
     (hazardItems || []).forEach((h, i) => {
       if (h.elevation === undefined) return;
-      const x = Math.min(Math.max((h.distanceFromStart / totalDistance) * 400, 4), 396);
+      const x = Math.min(Math.max((h.distanceFromStart / totalDistance) * 100, 1), 99);
       const y = 100 - ((h.elevation - minElevation) / range) * 65;
       all.push({
         id: h.id,
@@ -300,7 +300,7 @@ export function ElevationProfile({
     all.sort((a, b) => a.xPercent - b.xPercent);
 
     // Assign stagger tiers (max 2)
-    const OVERLAP_THRESHOLD = 20;
+    const OVERLAP_THRESHOLD = 5;
     for (let i = 1; i < all.length; i++) {
       if (all[i].xPercent - all[i - 1].xPercent < OVERLAP_THRESHOLD) {
         all[i].tier = Math.min((all[i - 1].tier || 0) + 1, 2);
@@ -441,10 +441,10 @@ export function ElevationProfile({
                   y1={y}
                   x2="400"
                   y2={y}
-                  stroke="#D4D4D4"
-                  strokeWidth="0.15"
+                  stroke="#C4C4C4"
+                  strokeWidth="0.3"
                   strokeDasharray="2,4"
-                  opacity="0.3"
+                  opacity="0.4"
                 />
               ))}
 
@@ -458,9 +458,9 @@ export function ElevationProfile({
               {isFloating && floatingMarkers.map((m, i) => (
                 <line
                   key={`drop-${i}`}
-                  x1={m.xPercent}
+                  x1={m.xPercent * 4}
                   y1="0"
-                  x2={m.xPercent}
+                  x2={m.xPercent * 4}
                   y2="100"
                   stroke={m.color}
                   strokeWidth="0.2"
@@ -497,7 +497,7 @@ export function ElevationProfile({
               {isFloating && floatingMarkers.map((m, i) => (
                 <circle
                   key={`dot-${i}`}
-                  cx={m.xPercent}
+                  cx={m.xPercent * 4}
                   cy={m.yOnLine}
                   r="0.8"
                   fill={m.color}
