@@ -33,8 +33,13 @@ import {
   Eraser,
   PlusCircle,
   Map,
+  MapPin,
 } from "lucide-react";
 import { RoutesPanelHeader } from "./routes-panel-header";
+import {
+  QuickAddWaypointDialog,
+  TempRouteWaypoint,
+} from "./quick-add-waypoint-dialog";
 
 // Types
 export interface Waypoint {
@@ -54,6 +59,8 @@ export interface RouteCreatorProps {
   isEditing?: boolean;
   isMobile?: boolean;
   onMapClick?: () => void;
+  onWaypointPlacementModeChange?: (enabled: boolean, handler: (lat: number, lng: number) => void) => void;
+  tempRouteWaypointsForDisplay?: TempRouteWaypoint[];
 }
 
 export interface RouteData {
@@ -63,6 +70,7 @@ export interface RouteData {
   difficulty: "unrated" | "easy" | "moderate" | "difficult" | "severe";
   routeType: "circular" | "linear";
   waypoints: Waypoint[];
+  routeWaypoints?: TempRouteWaypoint[]; // POIs/instructions/cautions added during planning
   geometry: {
     type: "LineString";
     coordinates: [number, number][];
@@ -80,6 +88,7 @@ export function RouteCreator({
   isEditing = false,
   isMobile = false,
   onMapClick,
+  onWaypointPlacementModeChange,
 }: RouteCreatorProps) {
   // Route metadata
   const [title, setTitle] = useState(existingRoute?.title || "");
@@ -97,6 +106,21 @@ export function RouteCreator({
   const [distanceKm, setDistanceKm] = useState(0);
   const [displayUnits, setDisplayUnits] = useState<"km" | "miles">("km");
   const [saving, setSaving] = useState(false);
+
+  // Route waypoints (POIs/instructions/cautions) - added during planning
+  const [tempRouteWaypoints, setTempRouteWaypoints] = useState<TempRouteWaypoint[]>(
+    existingRoute?.routeWaypoints || []
+  );
+  const [waypointPlacementMode, setWaypointPlacementMode] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddPosition, setQuickAddPosition] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Notify parent when waypoint placement mode changes
+  useEffect(() => {
+    if (onWaypointPlacementModeChange) {
+      onWaypointPlacementModeChange(waypointPlacementMode, handleMapClickForWaypoint);
+    }
+  }, [waypointPlacementMode]);
 
   // Calculate distance when waypoints change
   useEffect(() => {
@@ -159,6 +183,31 @@ export function RouteCreator({
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
+  // Waypoint placement handlers
+  const handleToggleWaypointMode = () => {
+    setWaypointPlacementMode((prev) => !prev);
+    if (!waypointPlacementMode) {
+      toast.info("Click on the map to add a waypoint");
+    }
+  };
+
+  const handleMapClickForWaypoint = (lat: number, lng: number) => {
+    if (!waypointPlacementMode) return;
+    setQuickAddPosition({ lat, lng });
+    setQuickAddOpen(true);
+  };
+
+  const handleAddWaypoint = (waypoint: TempRouteWaypoint) => {
+    setTempRouteWaypoints((prev) => [...prev, waypoint]);
+    toast.success(`Waypoint "${waypoint.name}" added`);
+    setWaypointPlacementMode(false); // Exit waypoint mode after adding
+  };
+
+  const handleRemoveWaypoint = (id: string) => {
+    setTempRouteWaypoints((prev) => prev.filter((wp) => wp.id !== id));
+    toast.success("Waypoint removed");
+  };
+
   const handleSave = async () => {
     // Validation with detailed messages
     const errors: string[] = [];
@@ -185,6 +234,7 @@ export function RouteCreator({
         difficulty,
         routeType,
         waypoints,
+        routeWaypoints: tempRouteWaypoints.length > 0 ? tempRouteWaypoints : undefined,
         geometry: {
           type: "LineString",
           coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
@@ -487,6 +537,14 @@ export function RouteCreator({
           {waypoints.length < 2 && <p>• Add at least 2 waypoints on the map</p>}
         </div>
       )}
+
+      {/* Quick Add Waypoint Dialog */}
+      <QuickAddWaypointDialog
+        open={quickAddOpen}
+        onOpenChange={setQuickAddOpen}
+        position={quickAddPosition}
+        onAdd={handleAddWaypoint}
+      />
     </div>
   );
 }
@@ -516,6 +574,8 @@ export function RouteCreatorToolbar({
   isMobile = false,
   containerClassName,
   onSwitchBar,
+  waypointPlacementMode = false,
+  onToggleWaypointMode,
 }: {
   isPlotting: boolean;
   setIsPlotting: (v: boolean) => void;
@@ -530,6 +590,8 @@ export function RouteCreatorToolbar({
   isMobile?: boolean;
   containerClassName?: string;
   onSwitchBar?: () => void;
+  waypointPlacementMode?: boolean;
+  onToggleWaypointMode?: () => void;
 }) {
   // padoq brand green color
   const activeColor = "bg-[#2E8B57]";
@@ -592,13 +654,28 @@ export function RouteCreatorToolbar({
           onClick={() => handleToolClick("erase")}
           className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all ${
             isPlotting && toolMode === "erase"
-              ? `${activeColor} ${activeTextColor}` 
+              ? `${activeColor} ${activeTextColor}`
               : "text-gray-600"
           }`}
         >
           <Eraser className="h-5 w-5" />
           <span className="text-[10px] mt-0.5 font-medium">Remove</span>
         </button>
+
+        {/* Add Waypoint */}
+        {onToggleWaypointMode && (
+          <button
+            onClick={onToggleWaypointMode}
+            className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all ${
+              waypointPlacementMode
+                ? `${activeColor} ${activeTextColor}`
+                : "text-gray-600"
+            }`}
+          >
+            <MapPin className="h-5 w-5" />
+            <span className="text-[10px] mt-0.5 font-medium">Waypoint</span>
+          </button>
+        )}
 
         {/* More (3 dots for additional options) */}
         <button
@@ -683,8 +760,8 @@ export function RouteCreatorToolbar({
               <button
                 onClick={() => setSnapEnabled(!snapEnabled)}
                 className={`flex flex-col items-center justify-center px-3 py-2 rounded-md transition-all ${
-                  snapEnabled 
-                    ? `${activeColor} ${activeTextColor} shadow-sm` 
+                  snapEnabled
+                    ? `${activeColor} ${activeTextColor} shadow-sm`
                     : "hover:bg-gray-100 text-gray-600"
                 }`}
               >
@@ -696,6 +773,28 @@ export function RouteCreatorToolbar({
               <p>Snap waypoints to roads & paths</p>
             </TooltipContent>
           </Tooltip>
+
+          {/* Add Waypoint */}
+          {onToggleWaypointMode && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={onToggleWaypointMode}
+                  className={`flex flex-col items-center justify-center px-3 py-2 rounded-md transition-all ${
+                    waypointPlacementMode
+                      ? `${activeColor} ${activeTextColor} shadow-sm`
+                      : "hover:bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  <MapPin className="h-5 w-5" />
+                  <span className="text-[11px] mt-1 font-semibold tracking-wide">Waypoint</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Add POI, instruction or caution to route</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
 
           <div className="w-px h-12 bg-gray-200 mx-1" />
 
