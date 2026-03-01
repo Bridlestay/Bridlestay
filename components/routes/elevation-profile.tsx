@@ -142,7 +142,7 @@ export function ElevationProfile({
 
     const points = elevationData.elevations.map((elev, i) => {
       const x = (elevationData.distances[i] / elevationData.totalDistance) * 400;
-      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 95;
+      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 100;
       return `${x},${y}`;
     });
 
@@ -155,7 +155,7 @@ export function ElevationProfile({
 
     const points = elevationData.elevations.map((elev, i) => {
       const x = (elevationData.distances[i] / elevationData.totalDistance) * 400;
-      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 95;
+      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 100;
       return `${x},${y}`;
     });
 
@@ -214,7 +214,7 @@ export function ElevationProfile({
       .filter((wp) => wp.elevation !== undefined)
       .map((wp) => {
         const x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 100, 1), 99);
-        const y = 100 - ((wp.elevation! - minElevation) / range) * 95;
+        const y = 100 - ((wp.elevation! - minElevation) / range) * 100;
         return { ...wp, x, y };
       });
   }, [elevationData, waypoints, isFloating]);
@@ -229,7 +229,7 @@ export function ElevationProfile({
       .filter((h) => h.elevation !== undefined)
       .map((h) => {
         const x = Math.min(Math.max((h.distanceFromStart / totalDistance) * 100, 1), 99);
-        const y = 100 - ((h.elevation! - minElevation) / range) * 95;
+        const y = 100 - ((h.elevation! - minElevation) / range) * 100;
         return { ...h, x, y };
       });
   }, [elevationData, hazards, isFloating]);
@@ -257,7 +257,7 @@ export function ElevationProfile({
     (waypointItems || []).forEach((wp, i) => {
       if (wp.elevation === undefined) return;
       const x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 100, 1), 99);
-      const y = 100 - ((wp.elevation - minElevation) / range) * 95;
+      const y = 100 - ((wp.elevation - minElevation) / range) * 100;
       const label =
         wp.type === "start" ? "S" :
         wp.type === "finish" ? "F" :
@@ -283,7 +283,7 @@ export function ElevationProfile({
     (hazardItems || []).forEach((h, i) => {
       if (h.elevation === undefined) return;
       const x = Math.min(Math.max((h.distanceFromStart / totalDistance) * 100, 1), 99);
-      const y = 100 - ((h.elevation - minElevation) / range) * 95;
+      const y = 100 - ((h.elevation - minElevation) / range) * 100;
       all.push({
         id: h.id,
         markerType: "hazard",
@@ -363,13 +363,10 @@ export function ElevationProfile({
           isFloating && "pb-0.5"
         )}>
           {isFloating && <div className="h-14 flex-shrink-0" />}
-          <div className="flex flex-col flex-1">
-            <div style={{ height: '5%' }} className="flex-shrink-0" />
-            <div className="flex flex-col justify-between flex-1 py-0.5">
-              <span>{Math.round(yMax)}m</span>
-              <span>{yMid}m</span>
-              <span>{Math.round(yMin)}m</span>
-            </div>
+          <div className="flex flex-col justify-between flex-1 py-0.5">
+            <span>{Math.round(yMax)}m</span>
+            <span>{yMid}m</span>
+            <span>{Math.round(yMin)}m</span>
           </div>
         </div>
 
@@ -396,7 +393,7 @@ export function ElevationProfile({
                       )}
                       onClick={() => onWaypointClick?.(m.originalIndex)}
                       onMouseEnter={() => {
-                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 95) * elevationData.range;
+                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 100) * elevationData.range;
                         setHoverMarker({ xPercent: m.xPercent, y: m.yOnLine, elevation: Math.round(elevation) });
                       }}
                       onMouseLeave={() => setHoverMarker(null)}
@@ -408,7 +405,7 @@ export function ElevationProfile({
                       className="w-5 h-5 text-amber-500 drop-shadow transition-transform hover:scale-110"
                       onClick={() => onHazardClick?.(m.originalIndex)}
                       onMouseEnter={() => {
-                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 95) * elevationData.range;
+                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 100) * elevationData.range;
                         setHoverMarker({ xPercent: m.xPercent, y: m.yOnLine, elevation: Math.round(elevation) });
                       }}
                       onMouseLeave={() => setHoverMarker(null)}
@@ -611,7 +608,7 @@ export function ElevationProfile({
                 className="absolute pointer-events-none"
                 style={{
                   left: `${(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}%`,
-                  top: `${100 - ((elevationData.elevations[activeIndex] - elevationData.minElevation) / elevationData.range) * 95}%`,
+                  top: `${100 - ((elevationData.elevations[activeIndex] - elevationData.minElevation) / elevationData.range) * 100}%`,
                   transform: "translate(-50%, -50%)",
                 }}
               >
