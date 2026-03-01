@@ -34,7 +34,9 @@ export interface LayerSettings {
   showHazards: boolean;
   showProperties: boolean;
   showPOIs: boolean;
-  routeLineWidth: number;
+  routeColor: string;
+  routeThickness: number;
+  routeOpacity: number;
   monochrome?: boolean;
 }
 
@@ -267,22 +269,97 @@ export function MapLayerControls({
               </div>
 
               {/* Route Style */}
-              <div>
-                <Label className="text-sm font-medium text-gray-600 mb-3 block">
-                  Route Line Width
+              <div className="space-y-4">
+                <Label className="text-sm font-medium text-gray-600 block">
+                  Route Style
                 </Label>
-                <div className="flex items-center gap-4">
+
+                {/* Line Colour */}
+                <div>
+                  <label className="text-xs font-medium text-gray-500 block mb-2">
+                    Line Colour
+                  </label>
+                  <div className="flex gap-2">
+                    {[
+                      { name: "Dark", value: "#374151" },
+                      { name: "Blue", value: "#3B82F6" },
+                      { name: "Green", value: "#059669" },
+                      { name: "Orange", value: "#D97706" },
+                      { name: "Purple", value: "#7C3AED" },
+                    ].map((c) => (
+                      <button
+                        key={c.value}
+                        onClick={() => updateSetting("routeColor", c.value)}
+                        className={cn(
+                          "w-8 h-8 rounded-full transition-all",
+                          settings.routeColor === c.value
+                            ? "ring-2 ring-offset-2 ring-green-600 scale-110"
+                            : "hover:scale-105"
+                        )}
+                        style={{ backgroundColor: c.value }}
+                        title={c.name}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Line Thickness */}
+                <div>
+                  <label className="text-xs font-medium text-gray-500 block mb-2">
+                    Line Thickness
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {[2, 3, 4, 6, 8].map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => updateSetting("routeThickness", t)}
+                        className={cn(
+                          "flex-1 h-8 rounded border-2 transition-all flex items-center justify-center",
+                          settings.routeThickness === t
+                            ? "border-green-600 bg-green-50"
+                            : "border-gray-200 hover:border-gray-300"
+                        )}
+                      >
+                        <div
+                          className="rounded-full bg-gray-800"
+                          style={{ height: `${t}px`, width: "24px" }}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Line Transparency */}
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <label className="text-xs font-medium text-gray-500">
+                      Line Transparency
+                    </label>
+                    <span className="text-xs text-gray-500">
+                      {100 - settings.routeOpacity}%
+                    </span>
+                  </div>
                   <Slider
-                    value={[settings.routeLineWidth]}
-                    onValueChange={([v]) => updateSetting("routeLineWidth", v)}
-                    min={2}
-                    max={8}
+                    value={[settings.routeOpacity]}
+                    onValueChange={([v]) => updateSetting("routeOpacity", v)}
+                    min={20}
+                    max={100}
                     step={1}
                     className="flex-1"
                   />
-                  <span className="text-sm text-gray-500 w-6 text-center">
-                    {settings.routeLineWidth}
-                  </span>
+                </div>
+
+                {/* Preview */}
+                <div className="pt-2 border-t">
+                  <label className="text-xs text-gray-400 block mb-2">Preview</label>
+                  <div
+                    className="h-4 rounded-full"
+                    style={{
+                      backgroundColor: settings.routeColor,
+                      height: `${settings.routeThickness * 2}px`,
+                      opacity: settings.routeOpacity / 100,
+                    }}
+                  />
                 </div>
               </div>
 

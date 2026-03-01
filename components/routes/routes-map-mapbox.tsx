@@ -82,6 +82,10 @@ export interface RoutesMapMapboxProps {
   pathLayers?: PathLayers;
   propertyPins?: any[];
   monochrome?: boolean; // Not yet implemented
+  // Route display styling
+  displayRouteColor?: string;
+  displayRouteThickness?: number;
+  displayRouteOpacity?: number;
   // Navigation/recording (not yet implemented)
   userPosition?: { lat: number; lng: number; heading: number } | null;
   followUser?: boolean;
@@ -183,6 +187,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       pathLayers,
       propertyPins = [],
       monochrome = false,
+      displayRouteColor = "#3B82F6",
+      displayRouteThickness = 4,
+      displayRouteOpacity = 80,
       userPosition,
       followUser = false,
       recordedPath = [],
@@ -321,9 +328,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
               "line-cap": "round",
             },
             paint: {
-              "line-color": ["get", "color"],
-              "line-width": ["get", "width"],
-              "line-opacity": 0.8,
+              "line-color": displayRouteColor,
+              "line-width": displayRouteThickness,
+              "line-opacity": displayRouteOpacity / 100,
             },
           });
         }
@@ -1278,7 +1285,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     // Update creation route style
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
-      
+
       const layer = mapRef.current.getLayer("creation-route-line");
       if (layer) {
         mapRef.current.setPaintProperty("creation-route-line", "line-color", routeStyle.color);
@@ -1286,6 +1293,18 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         mapRef.current.setPaintProperty("creation-route-line", "line-opacity", routeStyle.opacity / 100);
       }
     }, [routeStyle, mapLoaded, styleLoadCount]);
+
+    // Update displayed routes style from layer settings
+    useEffect(() => {
+      if (!mapRef.current || !mapLoaded) return;
+
+      const layer = mapRef.current.getLayer("routes-line");
+      if (layer) {
+        mapRef.current.setPaintProperty("routes-line", "line-color", displayRouteColor);
+        mapRef.current.setPaintProperty("routes-line", "line-width", displayRouteThickness);
+        mapRef.current.setPaintProperty("routes-line", "line-opacity", displayRouteOpacity / 100);
+      }
+    }, [displayRouteColor, displayRouteThickness, displayRouteOpacity, mapLoaded, styleLoadCount]);
 
     // Loading state
     if (loadError) {

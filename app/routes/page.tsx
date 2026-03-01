@@ -119,7 +119,9 @@ export default function RoutesPage() {
     showHazards: false,
     showProperties: true,
     showPOIs: false,
-    routeLineWidth: 4,
+    routeColor: "#3B82F6", // Blue
+    routeThickness: 4,
+    routeOpacity: 80,
     monochrome: false,
   });
 
@@ -1036,6 +1038,9 @@ export default function RoutesPage() {
               pathLayers={pathLayers}
               mapType={getGoogleMapType()}
               monochrome={layerSettings.monochrome}
+              displayRouteColor={layerSettings.routeColor}
+              displayRouteThickness={layerSettings.routeThickness}
+              displayRouteOpacity={layerSettings.routeOpacity}
               onWaypointAdd={addWaypoint}
               onWaypointUpdate={updateWaypoint}
               onWaypointRemove={removeWaypoint}
@@ -1324,6 +1329,9 @@ export default function RoutesPage() {
             highlightedRouteId={highlightedRouteId}
             mapType={getGoogleMapType()}
             monochrome={layerSettings.monochrome}
+            displayRouteColor={layerSettings.routeColor}
+            displayRouteThickness={layerSettings.routeThickness}
+            displayRouteOpacity={layerSettings.routeOpacity}
             userPosition={userPosition}
             followUser={isNavigating}
             recordedPath={recordedPath}
