@@ -140,7 +140,7 @@ export function ElevationProfile({
     if (!elevationData || elevationData.elevations.length < 2) return "";
 
     const points = elevationData.elevations.map((elev, i) => {
-      const x = (elevationData.distances[i] / elevationData.totalDistance) * 100;
+      const x = (elevationData.distances[i] / elevationData.totalDistance) * 400;
       const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 65;
       return `${x},${y}`;
     });
@@ -153,13 +153,13 @@ export function ElevationProfile({
     if (!elevationData || elevationData.elevations.length < 2) return "";
 
     const points = elevationData.elevations.map((elev, i) => {
-      const x = (elevationData.distances[i] / elevationData.totalDistance) * 100;
+      const x = (elevationData.distances[i] / elevationData.totalDistance) * 400;
       const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 65;
       return `${x},${y}`;
     });
 
-    const firstX = (elevationData.distances[0] / elevationData.totalDistance) * 100;
-    const lastX = (elevationData.distances[elevationData.distances.length - 1] / elevationData.totalDistance) * 100;
+    const firstX = (elevationData.distances[0] / elevationData.totalDistance) * 400;
+    const lastX = (elevationData.distances[elevationData.distances.length - 1] / elevationData.totalDistance) * 400;
 
     return `M${firstX},100 L${points[0]} L${points.join(" L")} L${lastX},100 Z`;
   }, [elevationData]);
@@ -172,7 +172,7 @@ export function ElevationProfile({
 
     const toSvg = (i: number) => ({
       x: (distances[i] / totalDistance) * 100,
-      y: 100 - ((elevations[i] - minElevation) / range) * 80,
+      y: 100 - ((elevations[i] - minElevation) / range) * 65,
       elevation: Math.round(elevations[i]),
     });
 
@@ -213,7 +213,7 @@ export function ElevationProfile({
       .filter((wp) => wp.elevation !== undefined)
       .map((wp) => {
         const x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 100, 1), 99);
-        const y = 100 - ((wp.elevation! - minElevation) / range) * 80;
+        const y = 100 - ((wp.elevation! - minElevation) / range) * 65;
         return { ...wp, x, y };
       });
   }, [elevationData, waypoints, isFloating]);
@@ -228,7 +228,7 @@ export function ElevationProfile({
       .filter((h) => h.elevation !== undefined)
       .map((h) => {
         const x = Math.min(Math.max((h.distanceFromStart / totalDistance) * 100, 1), 99);
-        const y = 100 - ((h.elevation! - minElevation) / range) * 80;
+        const y = 100 - ((h.elevation! - minElevation) / range) * 65;
         return { ...h, x, y };
       });
   }, [elevationData, hazards, isFloating]);
@@ -255,7 +255,7 @@ export function ElevationProfile({
 
     (waypointItems || []).forEach((wp, i) => {
       if (wp.elevation === undefined) return;
-      const x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 100, 1), 99);
+      const x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 400, 4), 396);
       const y = 100 - ((wp.elevation - minElevation) / range) * 65;
       const label =
         wp.type === "start" ? "S" :
@@ -281,7 +281,7 @@ export function ElevationProfile({
 
     (hazardItems || []).forEach((h, i) => {
       if (h.elevation === undefined) return;
-      const x = Math.min(Math.max((h.distanceFromStart / totalDistance) * 100, 1), 99);
+      const x = Math.min(Math.max((h.distanceFromStart / totalDistance) * 400, 4), 396);
       const y = 100 - ((h.elevation - minElevation) / range) * 65;
       all.push({
         id: h.id,
@@ -300,7 +300,7 @@ export function ElevationProfile({
     all.sort((a, b) => a.xPercent - b.xPercent);
 
     // Assign stagger tiers (max 2)
-    const OVERLAP_THRESHOLD = 5;
+    const OVERLAP_THRESHOLD = 20;
     for (let i = 1; i < all.length; i++) {
       if (all[i].xPercent - all[i - 1].xPercent < OVERLAP_THRESHOLD) {
         all[i].tier = Math.min((all[i - 1].tier || 0) + 1, 2);
@@ -421,7 +421,7 @@ export function ElevationProfile({
             onMouseLeave={handleMouseLeave}
           >
             <svg
-              viewBox="0 0 100 100"
+              viewBox="0 0 400 100"
               preserveAspectRatio="none"
               className="w-full h-full"
             >
@@ -439,7 +439,7 @@ export function ElevationProfile({
                   key={`grid-${y}`}
                   x1="0"
                   y1={y}
-                  x2="100"
+                  x2="400"
                   y2={y}
                   stroke="#D4D4D4"
                   strokeWidth="0.15"
@@ -464,7 +464,7 @@ export function ElevationProfile({
                   y2="100"
                   stroke={m.color}
                   strokeWidth="0.2"
-                  strokeDasharray="2,3"
+                  strokeDasharray="2,4"
                   opacity="0.25"
                 />
               ))}
@@ -474,17 +474,18 @@ export function ElevationProfile({
                 d={svgLinePath}
                 fill="none"
                 stroke="#7A8F6F"
-                strokeWidth="1.0"
+                strokeWidth="1.2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
               />
 
               {/* Hover line */}
               {activeIndex !== null && (
                 <line
-                  x1={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}
+                  x1={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 400}
                   y1="0"
-                  x2={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}
+                  x2={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 400}
                   y2="100"
                   stroke="#16A34A"
                   strokeWidth="0.5"
@@ -574,7 +575,7 @@ export function ElevationProfile({
                 className="absolute pointer-events-none"
                 style={{
                   left: `${(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}%`,
-                  top: `${100 - ((elevationData.elevations[activeIndex] - elevationData.minElevation) / elevationData.range) * 80}%`,
+                  top: `${100 - ((elevationData.elevations[activeIndex] - elevationData.minElevation) / elevationData.range) * 65}%`,
                   transform: "translate(-50%, -50%)",
                 }}
               >
