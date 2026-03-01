@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { latLngToOSGridRef } from "@/lib/routes/os-grid-ref";
 import { toast } from "sonner";
 import { AddWaypointDialog } from "./add-waypoint-dialog";
+import { EditWaypointDialog } from "./edit-waypoint-dialog";
 
 interface RouteWaypointsPanelProps {
   routeId: string;
@@ -81,6 +82,10 @@ export function RouteWaypointsPanel({
 
   // Add waypoint dialog
   const [addWaypointOpen, setAddWaypointOpen] = useState(false);
+
+  // Edit waypoint dialog
+  const [editWaypointOpen, setEditWaypointOpen] = useState(false);
+  const [editingWaypoint, setEditingWaypoint] = useState<any | null>(null);
 
   const canEditWaypoint = (wp: any) => {
     if (!userId) return false;
@@ -611,6 +616,21 @@ export function RouteWaypointsPanel({
 
                         {/* Action buttons */}
                         <div className="flex gap-2">
+                          {/* Edit details button */}
+                          {canEdit && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 text-xs"
+                              onClick={() => {
+                                setEditingWaypoint(wp);
+                                setEditWaypointOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-3 w-3 mr-1" />
+                              Edit details
+                            </Button>
+                          )}
                           {/* Add photo button */}
                           {userId && !wp.id.startsWith("__") && (
                             <Button
@@ -673,6 +693,21 @@ export function RouteWaypointsPanel({
           setAddWaypointOpen(false);
         }}
       />
+
+      {/* Edit Waypoint Dialog */}
+      {editingWaypoint && (
+        <EditWaypointDialog
+          open={editWaypointOpen}
+          onOpenChange={setEditWaypointOpen}
+          routeId={routeId}
+          waypoint={editingWaypoint}
+          onWaypointUpdated={(updatedWp) => {
+            onWaypointUpdated?.(editingWaypoint.id, updatedWp);
+            setEditWaypointOpen(false);
+            setEditingWaypoint(null);
+          }}
+        />
+      )}
     </div>
   );
 }

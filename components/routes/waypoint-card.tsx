@@ -2,6 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Eye,
   Droplet,
@@ -14,6 +15,7 @@ import {
   Squirrel,
   MapPin,
   Navigation,
+  Pencil,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -34,6 +36,7 @@ interface WaypointCardProps {
   index?: number;
   distanceFromStart?: number; // in km
   onClick?: () => void;
+  onEdit?: () => void;
 }
 
 const TAG_CONFIG: Record<string, { label: string; className: string }> = {
@@ -65,7 +68,7 @@ const PATH_TYPE_LABELS: Record<string, string> = {
   permissive: "Permissive Path",
 };
 
-export function WaypointCard({ waypoint, index, distanceFromStart, onClick }: WaypointCardProps) {
+export function WaypointCard({ waypoint, index, distanceFromStart, onClick, onEdit }: WaypointCardProps) {
   const iconConfig = waypoint.icon_type ? (ICON_MAP[waypoint.icon_type] || ICON_MAP.other) : ICON_MAP.other;
   const Icon = iconConfig.icon;
 
@@ -89,11 +92,26 @@ export function WaypointCard({ waypoint, index, distanceFromStart, onClick }: Wa
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
             <h4 className="font-semibold text-base leading-tight">{displayName}</h4>
-            {distanceFromStart !== undefined && (
-              <Badge variant="outline" className="flex-shrink-0 text-xs">
-                {distanceFromStart.toFixed(1)} km
-              </Badge>
-            )}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {distanceFromStart !== undefined && (
+                <Badge variant="outline" className="text-xs">
+                  {distanceFromStart.toFixed(1)} km
+                </Badge>
+              )}
+              {onEdit && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit();
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5 text-slate-500" />
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-1 mb-2">
