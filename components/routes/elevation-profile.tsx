@@ -142,7 +142,7 @@ export function ElevationProfile({
 
     const points = elevationData.elevations.map((elev, i) => {
       const x = (elevationData.distances[i] / elevationData.totalDistance) * 400;
-      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 92;
+      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 95;
       return `${x},${y}`;
     });
 
@@ -155,7 +155,7 @@ export function ElevationProfile({
 
     const points = elevationData.elevations.map((elev, i) => {
       const x = (elevationData.distances[i] / elevationData.totalDistance) * 400;
-      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 92;
+      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 95;
       return `${x},${y}`;
     });
 
@@ -363,10 +363,13 @@ export function ElevationProfile({
           isFloating && "pb-0.5"
         )}>
           {isFloating && <div className="h-14 flex-shrink-0" />}
-          <div className="flex flex-col justify-between flex-1 py-0.5">
-            <span>{Math.round(yMax)}m</span>
-            <span>{yMid}m</span>
-            <span>{Math.round(yMin)}m</span>
+          <div className="flex flex-col flex-1">
+            <div style={{ height: '5%' }} className="flex-shrink-0" />
+            <div className="flex flex-col justify-between flex-1 py-0.5">
+              <span>{Math.round(yMax)}m</span>
+              <span>{yMid}m</span>
+              <span>{Math.round(yMin)}m</span>
+            </div>
           </div>
         </div>
 
@@ -393,7 +396,7 @@ export function ElevationProfile({
                       )}
                       onClick={() => onWaypointClick?.(m.originalIndex)}
                       onMouseEnter={() => {
-                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 92) * elevationData.range;
+                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 95) * elevationData.range;
                         setHoverMarker({ xPercent: m.xPercent, y: m.yOnLine, elevation: Math.round(elevation) });
                       }}
                       onMouseLeave={() => setHoverMarker(null)}
@@ -405,7 +408,7 @@ export function ElevationProfile({
                       className="w-5 h-5 text-amber-500 drop-shadow transition-transform hover:scale-110"
                       onClick={() => onHazardClick?.(m.originalIndex)}
                       onMouseEnter={() => {
-                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 92) * elevationData.range;
+                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 95) * elevationData.range;
                         setHoverMarker({ xPercent: m.xPercent, y: m.yOnLine, elevation: Math.round(elevation) });
                       }}
                       onMouseLeave={() => setHoverMarker(null)}
