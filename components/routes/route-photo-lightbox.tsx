@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 interface PhotoLightboxProps {
   open: boolean;
@@ -77,10 +79,35 @@ export function PhotoLightbox({
         </>
       )}
 
-      {/* Caption */}
-      {photos[currentIndex]?.caption && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/90 text-sm bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full max-w-md text-center">
-          {photos[currentIndex].caption}
+      {/* Photo metadata */}
+      {(photos[currentIndex]?.user_name || photos[currentIndex]?.caption) && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 max-w-md">
+          {/* Uploaded by */}
+          {photos[currentIndex]?.user_name && (
+            <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
+              <Avatar className="h-5 w-5">
+                <AvatarImage src={photos[currentIndex]?.user_avatar || undefined} />
+                <AvatarFallback className="text-[8px] bg-slate-600 text-white">
+                  {photos[currentIndex].user_name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-white/90 text-xs font-medium">
+                {photos[currentIndex].user_name}
+              </span>
+              {photos[currentIndex]?.source === "community" && (
+                <Badge className="bg-blue-600 text-white text-[9px] h-4 px-1.5 ml-0.5">
+                  Community
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Caption */}
+          {photos[currentIndex]?.caption && (
+            <div className="text-white/90 text-sm bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full text-center">
+              {photos[currentIndex].caption}
+            </div>
+          )}
         </div>
       )}
     </div>

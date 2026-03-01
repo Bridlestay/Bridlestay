@@ -73,8 +73,7 @@ export function RoutePhotoGallery({
           <div className="columns-2 md:columns-3 gap-1 p-1">
             {photos.map((photo, idx) => {
               const isCover = photo.id === coverPhotoId;
-              const canSetCover =
-                isOwner && !isCover && photo.source === "owner";
+              const canSetCover = isOwner && !isCover;
 
               return (
                 <div key={photo.id} className="relative group mb-1 break-inside-avoid">
@@ -95,7 +94,7 @@ export function RoutePhotoGallery({
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-200" />
                   </button>
 
-                  {/* Set as cover button (owner only, owner photos only) */}
+                  {/* Set as cover button (owner only, any photo) */}
                   {canSetCover && (
                     <button
                       onClick={(e) => {

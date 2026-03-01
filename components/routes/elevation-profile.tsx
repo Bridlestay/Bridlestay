@@ -258,8 +258,8 @@ export function ElevationProfile({
       const x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 100, 1), 99);
       const y = 100 - ((wp.elevation - minElevation) / range) * 80;
       const label =
-        wp.type === "start" ? "A" :
-        wp.type === "finish" ? "B" :
+        wp.type === "start" ? "S" :
+        wp.type === "finish" ? "F" :
         `${(wp.listIndex ?? i) + 1}`;
       const bgColor =
         wp.type === "start" ? "bg-green-500" :
@@ -361,7 +361,7 @@ export function ElevationProfile({
           "flex flex-col justify-end text-[10px] text-slate-400 pr-1 w-10 text-right flex-shrink-0",
           isFloating && "pb-0.5"
         )}>
-          {isFloating && <div className="h-10 flex-shrink-0" />}
+          {isFloating && <div className="h-14 flex-shrink-0" />}
           <div className="flex flex-col justify-between flex-1 py-0.5">
             <span>{Math.round(yMax)}m</span>
             <span>{yMid}m</span>
@@ -370,24 +370,24 @@ export function ElevationProfile({
         </div>
 
         {/* Chart + markers column */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Floating markers gutter */}
           {isFloating && (
-            <div className="relative h-10 flex-shrink-0">
+            <div className="relative h-14 flex-shrink-0 overflow-visible">
               {floatingMarkers.map((m, i) => (
                 <div
                   key={`fm-${m.id}-${i}`}
                   className="absolute z-10"
                   style={{
                     left: `${m.xPercent}%`,
-                    bottom: `${m.tier * 20}px`,
+                    bottom: `${m.tier * 22}px`,
                     transform: "translateX(-50%)",
                   }}
                 >
                   {m.markerType === "waypoint" ? (
                     <button
                       className={cn(
-                        "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm transition-transform hover:scale-110",
+                        "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shadow-md transition-transform hover:scale-110",
                         m.bgColor
                       )}
                       onClick={() => onWaypointClick?.(m.originalIndex)}
@@ -427,8 +427,9 @@ export function ElevationProfile({
             >
               <defs>
                 <linearGradient id="elevationGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#16A34A" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="#16A34A" stopOpacity="0.05" />
+                  <stop offset="0%" stopColor="#16A34A" stopOpacity="0.15" />
+                  <stop offset="50%" stopColor="#16A34A" stopOpacity="0.08" />
+                  <stop offset="100%" stopColor="#16A34A" stopOpacity="0.02" />
                 </linearGradient>
               </defs>
 
@@ -447,18 +448,18 @@ export function ElevationProfile({
                   x2={m.xPercent}
                   y2="100"
                   stroke={m.color}
-                  strokeWidth="0.3"
-                  strokeDasharray="1.5,2"
-                  opacity="0.4"
+                  strokeWidth="0.25"
+                  strokeDasharray="2,3"
+                  opacity="0.3"
                 />
               ))}
 
-              {/* Line path (softer stroke) */}
+              {/* Line path (refined stroke like Komoot) */}
               <path
                 d={svgLinePath}
                 fill="none"
                 stroke="#16A34A"
-                strokeWidth="1.8"
+                strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />

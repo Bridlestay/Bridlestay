@@ -55,16 +55,16 @@ export function WaypointTimeline({
           const isWaypoint = wp.type === "waypoint";
 
           const circleLabel = isStart
-            ? "A"
+            ? "S"
             : isFinish
-            ? "B"
+            ? "F"
             : `${(wp.listIndex ?? index) + 1}`;
 
           const circleColor = isStart
             ? "bg-green-500"
             : isFinish
             ? "bg-red-500"
-            : "bg-blue-500";
+            : "bg-slate-800";
 
           const elevation = waypointElevationMap[wp.id];
           const distPrev = wp._distFromPrev;
