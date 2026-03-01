@@ -173,7 +173,7 @@ export function ElevationProfile({
 
     const toSvg = (i: number) => ({
       x: (distances[i] / totalDistance) * 100,
-      y: 100 - ((elevations[i] - minElevation) / range) * 65,
+      y: 100 - ((elevations[i] - minElevation) / range) * 95,
       elevation: Math.round(elevations[i]),
     });
 
@@ -214,7 +214,7 @@ export function ElevationProfile({
       .filter((wp) => wp.elevation !== undefined)
       .map((wp) => {
         const x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 100, 1), 99);
-        const y = 100 - ((wp.elevation! - minElevation) / range) * 65;
+        const y = 100 - ((wp.elevation! - minElevation) / range) * 95;
         return { ...wp, x, y };
       });
   }, [elevationData, waypoints, isFloating]);
@@ -229,7 +229,7 @@ export function ElevationProfile({
       .filter((h) => h.elevation !== undefined)
       .map((h) => {
         const x = Math.min(Math.max((h.distanceFromStart / totalDistance) * 100, 1), 99);
-        const y = 100 - ((h.elevation! - minElevation) / range) * 65;
+        const y = 100 - ((h.elevation! - minElevation) / range) * 95;
         return { ...h, x, y };
       });
   }, [elevationData, hazards, isFloating]);
@@ -257,7 +257,7 @@ export function ElevationProfile({
     (waypointItems || []).forEach((wp, i) => {
       if (wp.elevation === undefined) return;
       const x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 100, 1), 99);
-      const y = 100 - ((wp.elevation - minElevation) / range) * 65;
+      const y = 100 - ((wp.elevation - minElevation) / range) * 95;
       const label =
         wp.type === "start" ? "S" :
         wp.type === "finish" ? "F" :
@@ -283,7 +283,7 @@ export function ElevationProfile({
     (hazardItems || []).forEach((h, i) => {
       if (h.elevation === undefined) return;
       const x = Math.min(Math.max((h.distanceFromStart / totalDistance) * 100, 1), 99);
-      const y = 100 - ((h.elevation - minElevation) / range) * 65;
+      const y = 100 - ((h.elevation - minElevation) / range) * 95;
       all.push({
         id: h.id,
         markerType: "hazard",
@@ -611,7 +611,7 @@ export function ElevationProfile({
                 className="absolute pointer-events-none"
                 style={{
                   left: `${(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}%`,
-                  top: `${100 - ((elevationData.elevations[activeIndex] - elevationData.minElevation) / elevationData.range) * 65}%`,
+                  top: `${100 - ((elevationData.elevations[activeIndex] - elevationData.minElevation) / elevationData.range) * 95}%`,
                   transform: "translate(-50%, -50%)",
                 }}
               >
