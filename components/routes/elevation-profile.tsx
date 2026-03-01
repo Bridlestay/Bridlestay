@@ -142,7 +142,7 @@ export function ElevationProfile({
 
     const points = elevationData.elevations.map((elev, i) => {
       const x = (elevationData.distances[i] / elevationData.totalDistance) * 400;
-      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 85;
+      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 92;
       return `${x},${y}`;
     });
 
@@ -155,7 +155,7 @@ export function ElevationProfile({
 
     const points = elevationData.elevations.map((elev, i) => {
       const x = (elevationData.distances[i] / elevationData.totalDistance) * 400;
-      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 85;
+      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 92;
       return `${x},${y}`;
     });
 
@@ -393,7 +393,7 @@ export function ElevationProfile({
                       )}
                       onClick={() => onWaypointClick?.(m.originalIndex)}
                       onMouseEnter={() => {
-                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 65) * elevationData.range;
+                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 92) * elevationData.range;
                         setHoverMarker({ xPercent: m.xPercent, y: m.yOnLine, elevation: Math.round(elevation) });
                       }}
                       onMouseLeave={() => setHoverMarker(null)}
@@ -405,7 +405,7 @@ export function ElevationProfile({
                       className="w-5 h-5 text-amber-500 drop-shadow transition-transform hover:scale-110"
                       onClick={() => onHazardClick?.(m.originalIndex)}
                       onMouseEnter={() => {
-                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 65) * elevationData.range;
+                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 92) * elevationData.range;
                         setHoverMarker({ xPercent: m.xPercent, y: m.yOnLine, elevation: Math.round(elevation) });
                       }}
                       onMouseLeave={() => setHoverMarker(null)}
