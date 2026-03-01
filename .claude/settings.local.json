@@ -14,7 +14,8 @@
       "Bash(for var in showAllWarnings userVotedWarnings)",
       "Bash(do echo \"=== $var ===\")",
       "Bash(done)",
-      "Bash(\"c:\\\\Users\\\\Richard\\\\OneDrive\\\\Desktop\\\\Git Bridlestay\\\\Bridlestay\\\\changelogs\\\\2026-03-01.md\":*)"
+      "Bash(\"c:\\\\Users\\\\Richard\\\\OneDrive\\\\Desktop\\\\Git Bridlestay\\\\Bridlestay\\\\changelogs\\\\2026-03-01.md\":*)",
+      "Bash(ls:*)"
     ]
   }
 }

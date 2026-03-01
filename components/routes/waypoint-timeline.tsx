@@ -78,9 +78,9 @@ export function WaypointTimeline({
             <div key={wp.id} id={`waypoint-timeline-${wp.id}`}>
               {/* Distance connector between entries */}
               {index > 0 && distPrev > 0 && (
-                <div className="flex items-center ml-[13px] py-0.5">
-                  <div className="w-px h-5 border-l-2 border-dotted border-slate-300" />
-                  <span className="text-[10px] text-slate-400 ml-2.5">
+                <div className="flex items-center ml-[13px] py-1">
+                  <div className="w-px h-6 border-l border-dotted border-slate-200" />
+                  <span className="text-xs text-slate-400 ml-2.5">
                     {distPrev < 1
                       ? `${Math.round(distPrev * 1000)}m`
                       : `${distPrev.toFixed(1)} km`}
@@ -90,7 +90,7 @@ export function WaypointTimeline({
 
               {/* Waypoint entry */}
               <button
-                className="group flex items-start gap-3 w-full py-1.5 rounded-lg hover:bg-slate-50 transition-colors text-left"
+                className="group flex items-start gap-3 w-full py-2 rounded-lg hover:bg-slate-50 transition-colors text-left"
                 onClick={() => {
                   if (wp.lat && wp.lng && onFlyToLocation)
                     onFlyToLocation(wp.lat, wp.lng);
