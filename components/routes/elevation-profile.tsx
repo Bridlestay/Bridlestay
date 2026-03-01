@@ -69,6 +69,7 @@ export function ElevationProfile({
   onHazardClick,
 }: ElevationProfileProps) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [hoverMarker, setHoverMarker] = useState<{ xPercent: number; y: number; elevation: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isFloating = markerStyle === "floating";
 
@@ -141,7 +142,7 @@ export function ElevationProfile({
 
     const points = elevationData.elevations.map((elev, i) => {
       const x = (elevationData.distances[i] / elevationData.totalDistance) * 400;
-      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 65;
+      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 85;
       return `${x},${y}`;
     });
 
@@ -154,7 +155,7 @@ export function ElevationProfile({
 
     const points = elevationData.elevations.map((elev, i) => {
       const x = (elevationData.distances[i] / elevationData.totalDistance) * 400;
-      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 65;
+      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 85;
       return `${x},${y}`;
     });
 
@@ -391,6 +392,11 @@ export function ElevationProfile({
                         m.bgColor
                       )}
                       onClick={() => onWaypointClick?.(m.originalIndex)}
+                      onMouseEnter={() => {
+                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 65) * elevationData.range;
+                        setHoverMarker({ xPercent: m.xPercent, y: m.yOnLine, elevation: Math.round(elevation) });
+                      }}
+                      onMouseLeave={() => setHoverMarker(null)}
                     >
                       {m.label}
                     </button>
@@ -398,6 +404,11 @@ export function ElevationProfile({
                     <button
                       className="w-5 h-5 text-amber-500 drop-shadow transition-transform hover:scale-110"
                       onClick={() => onHazardClick?.(m.originalIndex)}
+                      onMouseEnter={() => {
+                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 65) * elevationData.range;
+                        setHoverMarker({ xPercent: m.xPercent, y: m.yOnLine, elevation: Math.round(elevation) });
+                      }}
+                      onMouseLeave={() => setHoverMarker(null)}
                     >
                       <svg viewBox="0 0 20 20" className="w-full h-full">
                         <path d="M10 2L1 18h18L10 2z" fill="currentColor" stroke="white" strokeWidth="1.5" />
@@ -441,10 +452,10 @@ export function ElevationProfile({
                   y1={y}
                   x2="400"
                   y2={y}
-                  stroke="#C4C4C4"
-                  strokeWidth="0.3"
+                  stroke="#B8B8B8"
+                  strokeWidth="0.4"
                   strokeDasharray="2,4"
-                  opacity="0.4"
+                  opacity="0.55"
                 />
               ))}
 
@@ -463,9 +474,9 @@ export function ElevationProfile({
                   x2={m.xPercent * 4}
                   y2="100"
                   stroke={m.color}
-                  strokeWidth="0.2"
+                  strokeWidth="0.3"
                   strokeDasharray="2,4"
-                  opacity="0.25"
+                  opacity="0.45"
                 />
               ))}
 
@@ -504,6 +515,28 @@ export function ElevationProfile({
                   opacity="0.7"
                 />
               ))}
+
+              {/* Hover marker dot on elevation line */}
+              {hoverMarker && (
+                <>
+                  <circle
+                    cx={hoverMarker.xPercent * 4}
+                    cy={hoverMarker.y}
+                    r="2"
+                    fill="#16A34A"
+                    stroke="white"
+                    strokeWidth="1.5"
+                  />
+                  <text
+                    x={hoverMarker.xPercent * 4}
+                    y={hoverMarker.y - 5}
+                    textAnchor="middle"
+                    className="text-[10px] font-semibold fill-slate-700"
+                  >
+                    {hoverMarker.elevation}m
+                  </text>
+                </>
+              )}
             </svg>
 
             {/* Key-point markers (inline mode only) */}

@@ -1285,17 +1285,28 @@ export function RouteDetailDrawer({
                     {activeHazards.length > 0 ? (
                       <div className="space-y-2">
                         {activeHazards.map((hazard: any, hIdx: number) => (
-                          <div key={hazard.id} id={`hazard-card-${hIdx}`} className={`p-3 rounded-lg border ${SEVERITY_COLORS[hazard.severity] || SEVERITY_COLORS.medium}`}>
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-sm">
-                                {HAZARD_TYPES.find((t) => t.value === hazard.hazard_type)?.label || hazard.hazard_type}
-                              </span>
-                              <Badge variant="outline" className="text-[10px] capitalize">{hazard.severity}</Badge>
+                          <div key={hazard.id} id={`hazard-card-${hIdx}`} className={`p-3.5 rounded-xl border ${SEVERITY_COLORS[hazard.severity] || SEVERITY_COLORS.medium} transition-colors`}>
+                            <div className="flex items-start gap-2.5">
+                              <div className="flex-shrink-0 w-5 h-5 text-amber-600 mt-0.5">
+                                <svg viewBox="0 0 20 20" className="w-full h-full">
+                                  <path d="M10 2L1 18h18L10 2z" fill="currentColor" opacity="0.15" />
+                                  <path d="M10 2L1 18h18L10 2z" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                                  <text x="10" y="15" textAnchor="middle" fill="currentColor" fontSize="9" fontWeight="bold">!</text>
+                                </svg>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <span className="font-semibold text-sm text-slate-800">
+                                    {HAZARD_TYPES.find((t) => t.value === hazard.hazard_type)?.label || hazard.hazard_type}
+                                  </span>
+                                  <Badge variant="secondary" className="text-[10px] capitalize font-medium bg-slate-100/80 text-slate-600 border-0">{hazard.severity}</Badge>
+                                </div>
+                                {hazard.description && <p className="text-xs mt-1.5 text-slate-600 leading-relaxed">{hazard.description}</p>}
+                                <span className="text-[10px] text-slate-400 mt-2 block font-medium">
+                                  {formatDistanceToNow(new Date(hazard.created_at), { addSuffix: true })}
+                                </span>
+                              </div>
                             </div>
-                            {hazard.description && <p className="text-xs mt-1 opacity-80">{hazard.description}</p>}
-                            <span className="text-[10px] opacity-60 mt-1 block">
-                              {formatDistanceToNow(new Date(hazard.created_at), { addSuffix: true })}
-                            </span>
                           </div>
                         ))}
                         {onEnterViewMode && (
