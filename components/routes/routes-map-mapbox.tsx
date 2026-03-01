@@ -1077,9 +1077,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             "line-cap": "round",
           },
           paint: {
-            "line-color": ["coalesce", ["get", "color"], "#5E35B1"],
-            "line-width": ["coalesce", ["get", "width"], 5],
-            "line-opacity": 0.9,
+            "line-color": displayRouteColor,
+            "line-width": displayRouteThickness,
+            "line-opacity": displayRouteOpacity / 100,
           },
         });
         source = map.getSource("routes") as mapboxgl.GeoJSONSource;
