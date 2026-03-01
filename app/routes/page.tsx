@@ -169,12 +169,12 @@ export default function RoutesPage() {
   // POI state
   const [pois, setPois] = useState<any[]>([]);
 
-  // Route style state
-  const [routeStyle, setRouteStyle] = useState<RouteStyle>({
-    color: "#3B82F6",
-    thickness: layerSettings.routeLineWidth,
-    opacity: 100,
-  });
+  // Derive route style from layer settings
+  const routeStyle: RouteStyle = {
+    color: layerSettings.routeColor,
+    thickness: layerSettings.routeThickness,
+    opacity: layerSettings.routeOpacity,
+  };
 
   // Convert layer settings to path layers format
   const pathLayers = {
@@ -1124,7 +1124,6 @@ export default function RoutesPage() {
                 onClear={handleClear}
                 canUndo={history.length > 0}
                 routeStyle={routeStyle}
-                onStyleChange={setRouteStyle}
                 isMobile={true}
               />
             </div>
@@ -1264,7 +1263,6 @@ export default function RoutesPage() {
                 onClear={handleClear}
                 canUndo={history.length > 0}
                 routeStyle={routeStyle}
-                onStyleChange={setRouteStyle}
                 containerClassName="top-4"
                 onSwitchBar={() => setShowToolbarInCreate(false)}
               />

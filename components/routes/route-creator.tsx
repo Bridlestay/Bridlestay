@@ -30,7 +30,6 @@ import {
   Globe,
   Link2,
   X,
-  Palette,
   Eraser,
   PlusCircle,
   Map,
@@ -499,16 +498,6 @@ export interface RouteStyle {
   opacity: number;
 }
 
-const ROUTE_COLORS = [
-  { name: "Dark", value: "#374151" },
-  { name: "Blue", value: "#3B82F6" },
-  { name: "Green", value: "#059669" },
-  { name: "Orange", value: "#D97706" },
-  { name: "Purple", value: "#7C3AED" },
-];
-
-const THICKNESS_OPTIONS = [2, 3, 4, 6, 8];
-
 // Tool mode for the route creator
 export type ToolMode = "plot" | "erase" | "insert";
 
@@ -524,7 +513,6 @@ export function RouteCreatorToolbar({
   onClear,
   canUndo,
   routeStyle,
-  onStyleChange,
   isMobile = false,
   containerClassName,
   onSwitchBar,
@@ -539,25 +527,13 @@ export function RouteCreatorToolbar({
   onClear: () => void;
   canUndo: boolean;
   routeStyle?: RouteStyle;
-  onStyleChange?: (style: RouteStyle) => void;
   isMobile?: boolean;
   containerClassName?: string;
   onSwitchBar?: () => void;
 }) {
-  const [showStylePopup, setShowStylePopup] = useState(false);
-  const [localStyle, setLocalStyle] = useState<RouteStyle>(
-    routeStyle || { color: "#3B82F6", thickness: 4, opacity: 100 }
-  );
-
   // padoq brand green color
   const activeColor = "bg-[#2E8B57]";
   const activeTextColor = "text-white";
-
-  const handleStyleChange = (newStyle: Partial<RouteStyle>) => {
-    const updated = { ...localStyle, ...newStyle };
-    setLocalStyle(updated);
-    onStyleChange?.(updated);
-  };
 
   const handleToolClick = (mode: ToolMode) => {
     if (toolMode === mode && isPlotting) {
@@ -623,58 +599,6 @@ export function RouteCreatorToolbar({
           <Eraser className="h-5 w-5" />
           <span className="text-[10px] mt-0.5 font-medium">Remove</span>
         </button>
-
-        {/* Style */}
-        <div className="relative">
-          <button
-            onClick={() => setShowStylePopup(!showStylePopup)}
-            className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all ${
-              showStylePopup ? `${activeColor} ${activeTextColor}` : "text-gray-600"
-            }`}
-          >
-            <Palette className="h-5 w-5" />
-            <span className="text-[10px] mt-0.5 font-medium">Style</span>
-          </button>
-
-          {/* Style Popup - positioned for mobile */}
-          {showStylePopup && (
-            <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border p-3 z-50">
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-medium text-gray-700 block mb-1.5">Colour</label>
-                  <div className="flex gap-2">
-                    {ROUTE_COLORS.map((c) => (
-                      <button
-                        key={c.value}
-                        onClick={() => handleStyleChange({ color: c.value })}
-                        className={`w-7 h-7 rounded-full transition-all ${
-                          localStyle.color === c.value ? "ring-2 ring-offset-1 ring-[#2E8B57]" : ""
-                        }`}
-                        style={{ backgroundColor: c.value }}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700 block mb-1.5">Thickness</label>
-                  <div className="flex items-center gap-1">
-                    {THICKNESS_OPTIONS.map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => handleStyleChange({ thickness: t })}
-                        className={`flex-1 h-7 rounded border transition-all flex items-center justify-center ${
-                          localStyle.thickness === t ? "border-[#2E8B57] bg-[#2E8B57]/10" : "border-gray-200"
-                        }`}
-                      >
-                        <div className="rounded-full bg-gray-800" style={{ height: `${t}px`, width: "16px" }} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* More (3 dots for additional options) */}
         <button
@@ -811,118 +735,6 @@ export function RouteCreatorToolbar({
               <p>Clear all waypoints</p>
             </TooltipContent>
           </Tooltip>
-
-          <div className="w-px h-12 bg-gray-200 mx-1" />
-
-          {/* Style - with popup */}
-          <div className="relative">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setShowStylePopup(!showStylePopup)}
-                  className={`flex flex-col items-center justify-center px-3 py-2 rounded-md transition-all ${
-                    showStylePopup 
-                      ? `${activeColor} ${activeTextColor} shadow-sm` 
-                      : "hover:bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  <Palette className="h-5 w-5" />
-                  <span className="text-[11px] mt-1 font-semibold tracking-wide">Style</span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <p>Route style options</p>
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Style Popup */}
-            {showStylePopup && (
-              <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border p-4 z-50">
-                <div className="space-y-4">
-                  {/* Line Colour */}
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-2">
-                      Line Colour
-                    </label>
-                    <div className="flex gap-2">
-                      {ROUTE_COLORS.map((c) => (
-                        <button
-                          key={c.value}
-                          onClick={() => handleStyleChange({ color: c.value })}
-                          className={`w-8 h-8 rounded-full transition-all ${
-                            localStyle.color === c.value
-                              ? "ring-2 ring-offset-2 ring-[#2E8B57] scale-110"
-                              : "hover:scale-105"
-                          }`}
-                          style={{ backgroundColor: c.value }}
-                          title={c.name}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Line Thickness */}
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-2">
-                      Line Thickness
-                    </label>
-                    <div className="flex items-center gap-2">
-                      {THICKNESS_OPTIONS.map((t) => (
-                        <button
-                          key={t}
-                          onClick={() => handleStyleChange({ thickness: t })}
-                          className={`flex-1 h-8 rounded border-2 transition-all flex items-center justify-center ${
-                            localStyle.thickness === t
-                              ? "border-[#2E8B57] bg-[#2E8B57]/10"
-                              : "border-gray-200 hover:border-gray-300"
-                          }`}
-                        >
-                          <div
-                            className="rounded-full bg-gray-800"
-                            style={{ height: `${t}px`, width: "24px" }}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Line Transparency */}
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Line Transparency
-                      </label>
-                      <span className="text-sm text-gray-500">
-                        {100 - localStyle.opacity}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="20"
-                      max="100"
-                      value={localStyle.opacity}
-                      onChange={(e) =>
-                        handleStyleChange({ opacity: parseInt(e.target.value) })
-                      }
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#2E8B57]"
-                    />
-                  </div>
-
-                  {/* Preview */}
-                  <div className="pt-2 border-t">
-                    <label className="text-xs text-gray-500 block mb-2">Preview</label>
-                    <div className="h-4 rounded-full" 
-                      style={{ 
-                        backgroundColor: localStyle.color,
-                        height: `${localStyle.thickness * 2}px`,
-                        opacity: localStyle.opacity / 100 
-                      }} 
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Switch to navigation bar */}
           {onSwitchBar && (
