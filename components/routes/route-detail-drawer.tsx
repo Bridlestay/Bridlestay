@@ -1423,6 +1423,8 @@ export function RouteDetailDrawer({
                         ? onEnterViewMode("waypoints")
                         : setActiveFullPanel("waypoints")
                     }
+                    onDismiss={onDismiss}
+                    onToggleWaypoints={onWaypointFocused}
                   />
                 </>
               )}

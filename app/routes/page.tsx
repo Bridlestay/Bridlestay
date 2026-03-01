@@ -1574,7 +1574,14 @@ export default function RoutesPage() {
             mapRef.current?.flyTo(lat, lng, 18);
           }}
           initialWaypointId={initialWaypointId}
-          onWaypointFocused={() => setInitialWaypointId(null)}
+          onWaypointFocused={() => {
+            setInitialWaypointId(null);
+            // Toggle waypoints on when clicking a waypoint
+            setLayerSettings((prev) => ({
+              ...prev,
+              showWaymarkers: true,
+            }));
+          }}
           onEnterViewMode={handleEnterViewMode}
           onHazardsLoaded={(hazards: any[]) => setSelectedRouteHazards(hazards)}
           onHazardResolved={(hazardId: string) => {

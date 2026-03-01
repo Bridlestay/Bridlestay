@@ -17,6 +17,8 @@ interface WaypointTimelineProps {
   waypointElevationMap: Record<string, number>;
   onFlyToLocation?: (lat: number, lng: number) => void;
   onOpenFullPanel?: () => void;
+  onDismiss?: () => void;
+  onToggleWaypoints?: () => void;
 }
 
 export function WaypointTimeline({
@@ -24,6 +26,8 @@ export function WaypointTimeline({
   waypointElevationMap,
   onFlyToLocation,
   onOpenFullPanel,
+  onDismiss,
+  onToggleWaypoints,
 }: WaypointTimelineProps) {
   if (fullWaypointList.length === 0) return null;
 
@@ -92,8 +96,11 @@ export function WaypointTimeline({
               <button
                 className="group flex items-start gap-3 w-full py-2 rounded-lg hover:bg-slate-50 transition-colors text-left"
                 onClick={() => {
-                  if (wp.lat && wp.lng && onFlyToLocation)
-                    onFlyToLocation(wp.lat, wp.lng);
+                  if (wp.lat && wp.lng) {
+                    if (onFlyToLocation) onFlyToLocation(wp.lat, wp.lng);
+                    if (onToggleWaypoints) onToggleWaypoints();
+                    if (onDismiss) onDismiss();
+                  }
                 }}
               >
                 {/* Numbered circle with hover effect */}
