@@ -173,7 +173,7 @@ export function ElevationProfile({
 
     const toSvg = (i: number) => ({
       x: (distances[i] / totalDistance) * 100,
-      y: 100 - ((elevations[i] - minElevation) / range) * 95,
+      y: 100 - ((elevations[i] - minElevation) / range) * 100,
       elevation: Math.round(elevations[i]),
     });
 
@@ -392,11 +392,6 @@ export function ElevationProfile({
                         m.bgColor
                       )}
                       onClick={() => onWaypointClick?.(m.originalIndex)}
-                      onMouseEnter={() => {
-                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 100) * elevationData.range;
-                        setHoverMarker({ xPercent: m.xPercent, y: m.yOnLine, elevation: Math.round(elevation) });
-                      }}
-                      onMouseLeave={() => setHoverMarker(null)}
                     >
                       {m.label}
                     </button>
@@ -404,11 +399,6 @@ export function ElevationProfile({
                     <button
                       className="w-5 h-5 text-amber-500 drop-shadow transition-transform hover:scale-110"
                       onClick={() => onHazardClick?.(m.originalIndex)}
-                      onMouseEnter={() => {
-                        const elevation = elevationData.minElevation + ((100 - m.yOnLine) / 100) * elevationData.range;
-                        setHoverMarker({ xPercent: m.xPercent, y: m.yOnLine, elevation: Math.round(elevation) });
-                      }}
-                      onMouseLeave={() => setHoverMarker(null)}
                     >
                       <svg viewBox="0 0 20 20" className="w-full h-full">
                         <path d="M10 2L1 18h18L10 2z" fill="currentColor" stroke="white" strokeWidth="1.5" />
@@ -516,27 +506,6 @@ export function ElevationProfile({
                 />
               ))}
 
-              {/* Hover marker dot on elevation line */}
-              {hoverMarker && (
-                <>
-                  <circle
-                    cx={hoverMarker.xPercent * 4}
-                    cy={hoverMarker.y}
-                    r="2"
-                    fill="#16A34A"
-                    stroke="white"
-                    strokeWidth="1.5"
-                  />
-                  <text
-                    x={hoverMarker.xPercent * 4}
-                    y={hoverMarker.y - 5}
-                    textAnchor="middle"
-                    className="text-[10px] font-semibold fill-slate-700"
-                  >
-                    {hoverMarker.elevation}m
-                  </text>
-                </>
-              )}
             </svg>
 
             {/* Key-point markers (inline mode only) */}
