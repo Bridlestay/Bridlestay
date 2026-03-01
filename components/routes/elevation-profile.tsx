@@ -148,6 +148,22 @@ export function ElevationProfile({
     return `M${points[0]} L${points.join(" L")}`;
   }, [elevationData]);
 
+  // Generate SVG area fill path (Komoot-style)
+  const svgAreaPath = useMemo(() => {
+    if (!elevationData || elevationData.elevations.length < 2) return "";
+
+    const points = elevationData.elevations.map((elev, i) => {
+      const x = (elevationData.distances[i] / elevationData.totalDistance) * 100;
+      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 80;
+      return `${x},${y}`;
+    });
+
+    const firstX = (elevationData.distances[0] / elevationData.totalDistance) * 100;
+    const lastX = (elevationData.distances[elevationData.distances.length - 1] / elevationData.totalDistance) * 100;
+
+    return `M${firstX},100 L${points[0]} L${points.join(" L")} L${lastX},100 Z`;
+  }, [elevationData]);
+
   // Key points: start, end, highest, lowest (inline mode only)
   const keyPoints = useMemo(() => {
     if (isFloating) return [];
@@ -398,7 +414,7 @@ export function ElevationProfile({
           <div
             ref={containerRef}
             className={cn(
-              "relative cursor-crosshair overflow-hidden",
+              "relative cursor-crosshair",
               isFloating ? "flex-1 min-h-0" : "h-28"
             )}
             onMouseMove={handleMouseMove}
@@ -409,27 +425,40 @@ export function ElevationProfile({
               preserveAspectRatio="none"
               className="w-full h-full"
             >
-              {/* Dotted drop-lines for floating markers */}
+              <defs>
+                <linearGradient id="elevationGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#16A34A" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#16A34A" stopOpacity="0.05" />
+                </linearGradient>
+              </defs>
+
+              {/* Area fill (Komoot-style soft gradient) */}
+              <path
+                d={svgAreaPath}
+                fill="url(#elevationGradient)"
+              />
+
+              {/* Dotted drop-lines for floating markers (full height) */}
               {isFloating && floatingMarkers.map((m, i) => (
                 <line
                   key={`drop-${i}`}
                   x1={m.xPercent}
                   y1="0"
                   x2={m.xPercent}
-                  y2={m.yOnLine}
+                  y2="100"
                   stroke={m.color}
-                  strokeWidth="0.4"
-                  strokeDasharray="1,1.5"
-                  opacity="0.5"
+                  strokeWidth="0.3"
+                  strokeDasharray="1.5,2"
+                  opacity="0.4"
                 />
               ))}
 
-              {/* Line path (no fill) */}
+              {/* Line path (softer stroke) */}
               <path
                 d={svgLinePath}
                 fill="none"
                 stroke="#16A34A"
-                strokeWidth="1.2"
+                strokeWidth="1.8"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />

@@ -70,42 +70,29 @@ export function RoutePhotoGallery({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-1 p-1">
+          <div className="columns-2 md:columns-3 gap-1 p-1">
             {photos.map((photo, idx) => {
               const isCover = photo.id === coverPhotoId;
-              const isCommunity = photo.source === "community";
               const canSetCover =
                 isOwner && !isCover && photo.source === "owner";
 
               return (
-                <div key={photo.id} className="relative group">
+                <div key={photo.id} className="relative group mb-1 break-inside-avoid">
                   <button
                     onClick={() => onOpenLightbox(idx)}
-                    className="block w-full aspect-square relative overflow-hidden bg-muted"
+                    className="block w-full relative overflow-hidden bg-muted rounded-sm"
                   >
                     <Image
                       src={photo.url}
                       alt={photo.caption || "Route photo"}
-                      fill
-                      className="object-cover transition-transform group-hover:scale-105"
+                      width={600}
+                      height={400}
+                      className="w-full h-auto object-cover transition-all duration-200 group-hover:brightness-95"
                       sizes="(max-width: 768px) 50vw, 33vw"
                     />
 
-                    {/* Cover badge */}
-                    {isCover && (
-                      <span className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-green-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow">
-                        <Star className="h-3 w-3 fill-current" />
-                        Cover
-                      </span>
-                    )}
-
-                    {/* Community badge */}
-                    {isCommunity && (
-                      <span className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-blue-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow">
-                        <Users className="h-3 w-3" />
-                        Community
-                      </span>
-                    )}
+                    {/* Subtle overlay on hover */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-200" />
                   </button>
 
                   {/* Set as cover button (owner only, owner photos only) */}
@@ -115,40 +102,18 @@ export function RoutePhotoGallery({
                         e.stopPropagation();
                         onSetCover(photo.id);
                       }}
-                      className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-1 rounded-full hover:bg-black/80"
+                      className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium px-2.5 py-1 rounded-full hover:bg-black/90 shadow-lg"
                     >
                       Set as cover
                     </button>
                   )}
 
-                  {/* Photo info bar */}
-                  <div className="px-2 py-1.5">
-                    {photo.caption && (
-                      <p className="text-xs text-foreground truncate">
-                        {photo.caption}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      {photo.user_name && (
-                        <>
-                          <Avatar className="h-4 w-4">
-                            <AvatarImage src={photo.user_avatar || undefined} />
-                            <AvatarFallback className="text-[8px]">
-                              {photo.user_name.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-[10px] text-muted-foreground truncate">
-                            {photo.user_name}
-                          </span>
-                        </>
-                      )}
-                      <span className="text-[10px] text-muted-foreground ml-auto">
-                        {formatDistanceToNow(new Date(photo.created_at), {
-                          addSuffix: true,
-                        })}
-                      </span>
+                  {/* Subtle cover indicator (no badge) */}
+                  {isCover && (
+                    <div className="absolute top-2 left-2 z-10 w-5 h-5 rounded-full bg-green-500 shadow-md flex items-center justify-center opacity-90">
+                      <Star className="h-3 w-3 text-white fill-current" />
                     </div>
-                  </div>
+                  )}
                 </div>
               );
             })}

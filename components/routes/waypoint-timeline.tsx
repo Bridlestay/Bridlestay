@@ -90,16 +90,17 @@ export function WaypointTimeline({
 
               {/* Waypoint entry */}
               <button
-                className="flex items-start gap-3 w-full py-1.5 rounded-lg hover:bg-slate-50 transition-colors text-left"
+                className="group flex items-start gap-3 w-full py-1.5 rounded-lg hover:bg-slate-50 transition-colors text-left"
                 onClick={() => {
                   if (wp.lat && wp.lng && onFlyToLocation)
                     onFlyToLocation(wp.lat, wp.lng);
                 }}
               >
-                {/* Numbered circle */}
+                {/* Numbered circle with hover effect */}
                 <div
                   className={cn(
-                    "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shadow-sm",
+                    "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shadow-sm transition-all duration-200",
+                    "group-hover:bg-green-500 group-hover:scale-110",
                     circleColor
                   )}
                 >

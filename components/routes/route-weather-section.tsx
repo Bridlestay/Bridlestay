@@ -1,16 +1,59 @@
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Droplets, Wind, Sun, Cloud, CloudRain, Snowflake } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { WeatherData } from "@/lib/weather";
+import { useState } from "react";
 
 interface RouteWeatherSectionProps {
   weatherData: WeatherData | null;
   loading: boolean;
 }
 
+// Generate dynamic weather tips based on conditions
+function getWeatherTips(weatherData: WeatherData): string[] {
+  const tips: string[] = [];
+  const temp = weatherData.current.temperature;
+  const wind = weatherData.current.windSpeed;
+  const precipitation = weatherData.current.precipitation;
+  const condition = weatherData.current.conditionText.toLowerCase();
+
+  // Temperature tips
+  if (temp > 25) {
+    tips.push("🌡️ Hot day expected — bring plenty of water and sun protection");
+  } else if (temp < 5) {
+    tips.push("❄️ Cold conditions — dress in layers and check for ice on trails");
+  } else if (temp < 15) {
+    tips.push("🧥 Cool weather — bring a light jacket for comfort");
+  }
+
+  // Wind tips
+  if (wind > 30) {
+    tips.push("💨 Strong winds expected — riding may be challenging in exposed areas");
+  } else if (wind > 20) {
+    tips.push("🌬️ Moderate winds — be prepared for gusts on open sections");
+  }
+
+  // Precipitation tips
+  if (precipitation > 5 || condition.includes("rain") || condition.includes("shower")) {
+    tips.push("☔ Rain expected — trails may be muddy, bring waterproof gear");
+  } else if (condition.includes("snow")) {
+    tips.push("⛄ Snow possible — check trail conditions before heading out");
+  } else if (precipitation === 0 && !condition.includes("cloud")) {
+    tips.push("☀️ Clear skies — great day for a ride!");
+  }
+
+  // Default tip if no specific conditions
+  if (tips.length === 0) {
+    tips.push("🐴 Check current conditions before heading out");
+  }
+
+  return tips;
+}
+
 export function RouteWeatherSection({ weatherData, loading }: RouteWeatherSectionProps) {
+  const [showAllDays, setShowAllDays] = useState(false);
   if (loading) {
     return (
       <div className="space-y-3">
@@ -30,14 +73,11 @@ export function RouteWeatherSection({ weatherData, loading }: RouteWeatherSectio
 
   if (!weatherData) return null;
 
-  return (
-    <div className="space-y-3">
-      {/* Section Header */}
-      <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-        <span className="text-base">{weatherData.current.icon}</span>
-        Weather Conditions
-      </h4>
+  const weatherTips = getWeatherTips(weatherData);
+  const displayForecast = showAllDays ? weatherData.forecast : weatherData.forecast.slice(0, 3);
 
+  return (
+    <div className="space-y-4">
       {/* Warning Banner */}
       {weatherData.warningMessage && (
         <div
@@ -53,66 +93,87 @@ export function RouteWeatherSection({ weatherData, loading }: RouteWeatherSectio
         </div>
       )}
 
-      {/* Current Conditions Grid */}
-      <div className="grid grid-cols-4 gap-2 py-3 border rounded-lg bg-slate-50/50 px-2">
-        <div className="text-center">
-          <p className="text-lg font-bold text-slate-900">
-            {weatherData.current.temperature}°
-          </p>
-          <p className="text-[10px] text-slate-500 uppercase tracking-wide">
-            Temp
-          </p>
+      {/* Current Conditions — Cleaner Komoot-style */}
+      <div className="rounded-lg border border-slate-200 overflow-hidden">
+        <div className="bg-gradient-to-br from-blue-50 to-slate-50 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-3xl">{weatherData.current.icon}</span>
+            <div className="text-right">
+              <p className="text-3xl font-bold text-slate-900">
+                {weatherData.current.temperature}°
+              </p>
+              <p className="text-sm text-slate-600 mt-0.5">
+                {weatherData.current.conditionText}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 text-sm text-slate-600">
+            <div className="flex items-center gap-1.5">
+              <Wind className="h-4 w-4" />
+              <span>{weatherData.current.windSpeed} km/h</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Droplets className="h-4 w-4" />
+              <span>{weatherData.current.precipitation} mm</span>
+            </div>
+          </div>
         </div>
-        <div className="text-center border-l border-slate-200">
-          <p className="text-lg font-bold text-slate-900">
-            {weatherData.current.icon}
-          </p>
-          <p className="text-[10px] text-slate-500 uppercase tracking-wide truncate px-1">
-            {weatherData.current.conditionText}
-          </p>
-        </div>
-        <div className="text-center border-l border-slate-200">
-          <p className="text-lg font-bold text-slate-900">
-            {weatherData.current.windSpeed}
-          </p>
-          <p className="text-[10px] text-slate-500 uppercase tracking-wide">
-            Wind km/h
-          </p>
-        </div>
-        <div className="text-center border-l border-slate-200">
-          <p className="text-lg font-bold text-slate-900">
-            {weatherData.current.precipitation}
-          </p>
-          <p className="text-[10px] text-slate-500 uppercase tracking-wide">
-            Rain mm
-          </p>
+
+        {/* Forecast Cards */}
+        <div className="p-3 space-y-2">
+          {displayForecast.map((day, idx) => (
+            <div
+              key={day.date}
+              className={cn(
+                "flex items-center justify-between p-2.5 rounded-lg border transition-colors",
+                day.isSevere
+                  ? "bg-red-50 border-red-200"
+                  : day.isWarning
+                    ? "bg-amber-50 border-amber-200"
+                    : "bg-slate-50 border-slate-100 hover:bg-slate-100"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{day.icon}</span>
+                <div>
+                  <p className="text-sm font-medium text-slate-900">
+                    {day.dayName}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {day.date}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-semibold text-slate-900">
+                  {day.tempMax}° / {day.tempMin}°
+                </p>
+              </div>
+            </div>
+          ))}
+          {weatherData.forecast.length > 3 && (
+            <button
+              onClick={() => setShowAllDays(!showAllDays)}
+              className="w-full text-xs text-green-600 hover:text-green-700 font-medium py-1"
+            >
+              {showAllDays ? "Show less" : `Show ${weatherData.forecast.length - 3} more days`}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 3-Day Forecast */}
-      <div className="flex gap-2">
-        {weatherData.forecast.map((day) => (
-          <div
-            key={day.date}
-            className={cn(
-              "flex-1 text-center rounded-lg border p-2",
-              day.isSevere
-                ? "bg-red-50 border-red-200"
-                : day.isWarning
-                  ? "bg-amber-50 border-amber-200"
-                  : "bg-slate-50 border-slate-200"
-            )}
-          >
-            <p className="text-xs font-medium text-slate-600">
-              {day.dayName}
-            </p>
-            <p className="text-xl my-1">{day.icon}</p>
-            <p className="text-sm font-bold text-slate-900">
-              {day.tempMax}°
-            </p>
-            <p className="text-xs text-slate-500">{day.tempMin}°</p>
-          </div>
-        ))}
+      {/* Additional Weather Tips (Komoot-style) */}
+      <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
+        <h4 className="text-sm font-semibold text-blue-900 mb-2">
+          Additional weather tips
+        </h4>
+        <ul className="space-y-1.5">
+          {weatherTips.map((tip, idx) => (
+            <li key={idx} className="text-xs text-blue-800 leading-relaxed">
+              {tip}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

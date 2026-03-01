@@ -913,7 +913,7 @@ export function RouteDetailDrawer({
                     e.stopPropagation();
                     setActiveFullPanel("photos");
                   }}
-                  className="absolute bottom-3 left-3 z-10 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 hover:bg-black/70 transition-colors"
+                  className="absolute bottom-5 left-3 z-10 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 hover:bg-black/70 transition-colors"
                 >
                   <ImageIcon className="h-3 w-3" />
                   See all {totalPhotoCount}
@@ -956,7 +956,7 @@ export function RouteDetailDrawer({
 
               {/* Dot indicators */}
               {displayPhotosForCarousel.length > 1 && displayPhotosForCarousel.length <= 8 && (
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
                   {displayPhotosForCarousel.map((_: any, idx: number) => (
                     <button
                       key={idx}
@@ -972,9 +972,9 @@ export function RouteDetailDrawer({
           {/* ==================== CONTENT AREA ==================== */}
           <div className={cn(
             "relative z-10 bg-white",
-            displayPhotosForCarousel.length > 0 && "rounded-t-2xl -mt-2"
+            displayPhotosForCarousel.length > 0 && "rounded-t-2xl -mt-4"
           )}>
-            <div className={cn("p-4 space-y-4", displayPhotosForCarousel.length > 0 && "pt-5")}>
+            <div className={cn("p-4 space-y-4", displayPhotosForCarousel.length > 0 && "pt-6")}>
               {/* AUTHOR + META */}
               {route?.owner && (
                 <Link href={`/profile/${route.owner.id}`} className="flex items-center gap-3 group">
@@ -1141,14 +1141,6 @@ export function RouteDetailDrawer({
 
                 {/* Counts */}
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  {likesCount > 0 && (
-                    <span className="text-sm text-slate-500">
-                      {likesCount} liked this
-                    </span>
-                  )}
-                  {likesCount > 0 && comments.length > 0 && (
-                    <span className="text-slate-300">|</span>
-                  )}
                   <span className="text-sm text-slate-500">
                     {comments.length} {comments.length === 1 ? "comment" : "comments"}
                   </span>
