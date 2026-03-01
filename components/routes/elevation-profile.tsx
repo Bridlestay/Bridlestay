@@ -256,7 +256,15 @@ export function ElevationProfile({
 
     (waypointItems || []).forEach((wp, i) => {
       if (wp.elevation === undefined) return;
-      const x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 100, 1), 99);
+      // Force Start to 0%, Finish to 100%, others use GPS-based position
+      let x: number;
+      if (wp.type === "start") {
+        x = 0;
+      } else if (wp.type === "finish") {
+        x = 100;
+      } else {
+        x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 100, 1), 99);
+      }
       const y = 100 - ((wp.elevation - minElevation) / range) * 100;
       const label =
         wp.type === "start" ? "S" :
@@ -282,7 +290,8 @@ export function ElevationProfile({
 
     (hazardItems || []).forEach((h, i) => {
       if (h.elevation === undefined) return;
-      const x = Math.min(Math.max((h.distanceFromStart / totalDistance) * 100, 1), 99);
+      // Hazards use GPS-based position, but clamp to 0.5%-99.5% to avoid edge overlap
+      const x = Math.min(Math.max((h.distanceFromStart / totalDistance) * 100, 0.5), 99.5);
       const y = 100 - ((h.elevation - minElevation) / range) * 100;
       all.push({
         id: h.id,
@@ -358,11 +367,8 @@ export function ElevationProfile({
     <div className={cn("bg-[#f8f6f3] rounded-lg p-3 flex flex-col overflow-hidden", className)}>
       <div className="flex gap-1 flex-1 min-h-0">
         {/* Y-axis */}
-        <div className={cn(
-          "flex flex-col justify-end text-[9px] text-slate-400 font-light pr-1 w-10 text-right flex-shrink-0",
-          isFloating && "pb-0.5"
-        )}>
-          {isFloating && <div className="h-14 flex-shrink-0" />}
+        <div className="flex flex-col justify-end text-[9px] text-slate-400 font-light pr-1 w-10 text-right flex-shrink-0 pb-0.5">
+          <div className="h-14 flex-shrink-0" />
           <div className="flex flex-col justify-between flex-1 py-0.5">
             <span>{Math.round(yMax)}m</span>
             <span>{yMid}m</span>
@@ -372,10 +378,9 @@ export function ElevationProfile({
 
         {/* Chart + markers column */}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Floating markers gutter */}
-          {isFloating && (
-            <div className="relative h-14 flex-shrink-0 overflow-visible">
-              {floatingMarkers.map((m, i) => (
+          {/* Floating markers gutter (always present for layout consistency) */}
+          <div className="relative h-14 flex-shrink-0 overflow-visible">
+            {isFloating && floatingMarkers.map((m, i) => (
                 <div
                   key={`fm-${m.id}-${i}`}
                   className="absolute z-10"
@@ -407,17 +412,13 @@ export function ElevationProfile({
                     </button>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
+            ))}
+          </div>
 
           {/* Chart area */}
           <div
             ref={containerRef}
-            className={cn(
-              "relative cursor-crosshair",
-              isFloating ? "flex-1 min-h-0" : "h-28"
-            )}
+            className="relative flex-1 min-h-0 cursor-crosshair"
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
           >
@@ -464,9 +465,9 @@ export function ElevationProfile({
                   x2={m.xPercent * 4}
                   y2="100"
                   stroke={m.color}
-                  strokeWidth="0.3"
-                  strokeDasharray="2,4"
-                  opacity="0.45"
+                  strokeWidth="0.8"
+                  strokeDasharray="2,2"
+                  opacity="0.65"
                 />
               ))}
 
