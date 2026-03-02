@@ -69,6 +69,7 @@ import { RoutePhotoGallery } from "./route-photo-gallery";
 import { ElevationProfile } from "./elevation-profile";
 import { RouteWeatherSection } from "./route-weather-section";
 import { WaypointTimeline } from "./waypoint-timeline";
+import { AddWaypointDialog } from "./add-waypoint-dialog";
 
 // --- Main Component ---
 
@@ -86,6 +87,8 @@ interface RouteDetailDrawerProps {
   onHazardsLoaded?: (hazards: any[]) => void;
   onHazardResolved?: (hazardId: string) => void;
   onPlaceHazard?: () => void;
+  onPlaceWaypoint?: () => void;
+  waypointPlacementCoords?: { lat: number; lng: number } | null;
 }
 
 export function RouteDetailDrawer({
@@ -102,6 +105,8 @@ export function RouteDetailDrawer({
   onHazardsLoaded,
   onHazardResolved,
   onPlaceHazard,
+  onPlaceWaypoint,
+  waypointPlacementCoords,
 }: RouteDetailDrawerProps) {
   // --- Route data ---
   const [route, setRoute] = useState<any>(null);
@@ -165,8 +170,16 @@ export function RouteDetailDrawer({
   const [hazardDialogOpen, setHazardDialogOpen] = useState(false);
   const [warningDialogOpen, setWarningDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [addWaypointDialogOpen, setAddWaypointDialogOpen] = useState(false);
 
   const supabase = createClient();
+
+  // Watch for waypoint placement coordinates and open dialog
+  useEffect(() => {
+    if (waypointPlacementCoords && isOwner) {
+      setAddWaypointDialogOpen(true);
+    }
+  }, [waypointPlacementCoords, isOwner]);
 
   // ===================== DATA FETCHING =====================
 
@@ -1500,6 +1513,22 @@ export function RouteDetailDrawer({
                 userId={userId}
                 onWarningAdded={(warning) => setWarnings((prev) => [warning, ...prev])}
               />
+
+              {/* Add Waypoint Dialog (Owner Only) */}
+              {isOwner && waypointPlacementCoords && (
+                <AddWaypointDialog
+                  open={addWaypointDialogOpen}
+                  onOpenChange={setAddWaypointDialogOpen}
+                  routeId={routeId!}
+                  lat={waypointPlacementCoords.lat}
+                  lng={waypointPlacementCoords.lng}
+                  onWaypointAdded={(waypoint) => {
+                    setWaypoints((prev) => [...prev, waypoint]);
+                    setAddWaypointDialogOpen(false);
+                    toast.success("Waypoint added successfully!");
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>
