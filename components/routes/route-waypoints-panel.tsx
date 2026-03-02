@@ -17,7 +17,6 @@ import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { latLngToOSGridRef } from "@/lib/routes/os-grid-ref";
 import { toast } from "sonner";
-import { AddWaypointDialog } from "./add-waypoint-dialog";
 import { EditWaypointDialog } from "./edit-waypoint-dialog";
 
 interface RouteWaypointsPanelProps {
@@ -80,12 +79,14 @@ export function RouteWaypointsPanel({
   const [editDescValue, setEditDescValue] = useState("");
   const [savingDescription, setSavingDescription] = useState(false);
 
-  // Add waypoint dialog
-  const [addWaypointOpen, setAddWaypointOpen] = useState(false);
-
   // Edit waypoint dialog
   const [editWaypointOpen, setEditWaypointOpen] = useState(false);
   const [editingWaypoint, setEditingWaypoint] = useState<any | null>(null);
+
+  // Waypoint suggestions (owner view only)
+  const [pendingSuggestions, setPendingSuggestions] = useState<any[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [processingSuggestion, setProcessingSuggestion] = useState<string | null>(null);
 
   const canEditWaypoint = (wp: any) => {
     if (!userId) return false;
@@ -140,6 +141,79 @@ export function RouteWaypointsPanel({
       fetchWaypointPhotos(initialExpandedId);
     }
   }, [initialExpandedId]);
+
+  // Fetch pending suggestions (owner only)
+  const fetchPendingSuggestions = async () => {
+    if (!isOwner) return;
+    setLoadingSuggestions(true);
+    try {
+      const res = await fetch(`/api/routes/${routeId}/waypoint-suggestions?status=pending`);
+      if (res.ok) {
+        const data = await res.json();
+        setPendingSuggestions(data.suggestions || []);
+      }
+    } catch {
+      // Silent fail
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOwner) {
+      fetchPendingSuggestions();
+    }
+  }, [isOwner, routeId]);
+
+  const handleApproveSuggestion = async (suggestionId: string) => {
+    setProcessingSuggestion(suggestionId);
+    try {
+      const res = await fetch(`/api/routes/${routeId}/waypoint-suggestions/${suggestionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve" }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        toast.success("Waypoint suggestion approved and added to route!");
+        setPendingSuggestions(prev => prev.filter(s => s.id !== suggestionId));
+        if (data.waypoint) {
+          onWaypointAdded?.(data.waypoint);
+        }
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to approve suggestion");
+      }
+    } catch {
+      toast.error("Failed to approve suggestion");
+    } finally {
+      setProcessingSuggestion(null);
+    }
+  };
+
+  const handleRejectSuggestion = async (suggestionId: string) => {
+    setProcessingSuggestion(suggestionId);
+    try {
+      const res = await fetch(`/api/routes/${routeId}/waypoint-suggestions/${suggestionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reject", rejection_reason: "Not suitable for this route" }),
+      });
+
+      if (res.ok) {
+        toast.success("Suggestion rejected");
+        setPendingSuggestions(prev => prev.filter(s => s.id !== suggestionId));
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to reject suggestion");
+      }
+    } catch {
+      toast.error("Failed to reject suggestion");
+    } finally {
+      setProcessingSuggestion(null);
+    }
+  };
 
   const handlePhotoUpload = async (
     e: React.ChangeEvent<HTMLInputElement>
@@ -259,16 +333,10 @@ export function RouteWaypointsPanel({
         <Badge variant="outline" className="ml-auto">
           {fullWaypointList.length}
         </Badge>
-        {userId && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setAddWaypointOpen(true)}
-            className="h-8 text-xs"
-          >
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            Add
-          </Button>
+        {isOwner && (
+          <span className="text-xs text-slate-500 italic">
+            Click map to add waypoints
+          </span>
         )}
       </div>
 
@@ -320,6 +388,84 @@ export function RouteWaypointsPanel({
           );
         })}
       </div>
+
+      {/* Pending Suggestions Section (Owner Only) */}
+      {isOwner && pendingSuggestions.length > 0 && (
+        <div className="border-b bg-amber-50/50 p-4 space-y-2">
+          <h3 className="text-sm font-semibold text-amber-900 flex items-center gap-2">
+            <span>Pending Suggestions</span>
+            <Badge className="bg-amber-100 text-amber-700 border-amber-300">
+              {pendingSuggestions.length}
+            </Badge>
+          </h3>
+          <div className="space-y-2">
+            {pendingSuggestions.map((suggestion) => (
+              <div
+                key={suggestion.id}
+                className="bg-white border border-amber-200 rounded-lg p-3 space-y-2"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-slate-900">{suggestion.name}</p>
+                    {suggestion.description && (
+                      <p className="text-xs text-slate-600 mt-1">{suggestion.description}</p>
+                    )}
+                    <div className="flex items-center gap-2 mt-1.5">
+                      {suggestion.tag && (
+                        <Badge
+                          variant="outline"
+                          className={cn("text-[10px] h-5 px-1.5", {
+                            "bg-blue-50 text-blue-700 border-blue-200":
+                              suggestion.tag === "instruction",
+                            "bg-purple-50 text-purple-700 border-purple-200":
+                              suggestion.tag === "poi",
+                            "bg-amber-50 text-amber-700 border-amber-200":
+                              suggestion.tag === "caution",
+                            "bg-gray-50 text-gray-700 border-gray-200":
+                              suggestion.tag === "note",
+                          })}
+                        >
+                          {suggestion.tag === "instruction"
+                            ? "Instruction"
+                            : suggestion.tag === "poi"
+                              ? "POI"
+                              : suggestion.tag === "caution"
+                                ? "Caution"
+                                : "Note"}
+                        </Badge>
+                      )}
+                      {suggestion.user?.name && (
+                        <span className="text-xs text-slate-500">
+                          by {suggestion.user.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs border-red-200 text-red-700 hover:bg-red-50"
+                    disabled={processingSuggestion === suggestion.id}
+                    onClick={() => handleRejectSuggestion(suggestion.id)}
+                  >
+                    {processingSuggestion === suggestion.id ? "Rejecting..." : "Reject"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs bg-green-600 hover:bg-green-700"
+                    disabled={processingSuggestion === suggestion.id}
+                    onClick={() => handleApproveSuggestion(suggestion.id)}
+                  >
+                    {processingSuggestion === suggestion.id ? "Approving..." : "Approve & Add"}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Waypoints Content */}
       <ScrollArea className="flex-1 p-4">
@@ -681,18 +827,6 @@ export function RouteWaypointsPanel({
           )}
         </div>
       </ScrollArea>
-
-      {/* Add Waypoint Dialog */}
-      <AddWaypointDialog
-        open={addWaypointOpen}
-        onOpenChange={setAddWaypointOpen}
-        routeId={routeId}
-        routeGeometry={routeGeometry}
-        onWaypointAdded={(wp) => {
-          onWaypointAdded?.(wp);
-          setAddWaypointOpen(false);
-        }}
-      />
 
       {/* Edit Waypoint Dialog */}
       {editingWaypoint && (
