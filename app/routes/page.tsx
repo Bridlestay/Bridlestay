@@ -105,6 +105,10 @@ export default function RoutesPage() {
   });
   const [submittingNewHazard, setSubmittingNewHazard] = useState(false);
 
+  // Waypoint placement state (for adding waypoints during route creation)
+  const [placingWaypoint, setPlacingWaypoint] = useState(false);
+  const [waypointClickHandler, setWaypointClickHandler] = useState<((lat: number, lng: number) => void) | null>(null);
+
   // Route preview (quick card at bottom)
   const [previewRoute, setPreviewRoute] = useState<any | null>(null);
 
@@ -630,6 +634,21 @@ export default function RoutesPage() {
     setMobileRouteDetailOpen(true);
   };
 
+  // Waypoint placement: handle mode change from RouteCreator
+  const handleWaypointPlacementModeChange = (enabled: boolean, handler: (lat: number, lng: number) => void) => {
+    setPlacingWaypoint(enabled);
+    setWaypointClickHandler(enabled ? () => handler : null);
+  };
+
+  // Waypoint placement: user clicked on map
+  const handleWaypointPlaced = (lat: number, lng: number) => {
+    if (waypointClickHandler) {
+      waypointClickHandler(lat, lng);
+      setPlacingWaypoint(false);
+      setWaypointClickHandler(null);
+    }
+  };
+
   // Hazard placement: submit
   const handleSubmitNewHazard = async () => {
     if (!newHazardData.hazard_type || !newHazardData.title) {
@@ -915,6 +934,39 @@ export default function RoutesPage() {
       throw new Error(errorData.error || "Failed to save route");
     }
 
+    // Get the saved route data (includes route ID)
+    const savedRoute = await res.json();
+    const routeId = savedRoute.route?.id || savedRoute.id;
+
+    // Save route waypoints (POIs/instructions/cautions) if any
+    if (routeData.routeWaypoints && routeData.routeWaypoints.length > 0 && routeId) {
+      try {
+        const waypointPromises = routeData.routeWaypoints.map((wp, index) =>
+          fetch(`/api/routes/${routeId}/waypoints`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lat: wp.lat,
+              lng: wp.lng,
+              name: wp.name,
+              tag: wp.tag,
+              icon_type: wp.icon_type,
+              description: wp.description,
+              order_index: index,
+            }),
+          })
+        );
+
+        await Promise.all(waypointPromises);
+        toast.success(`Route saved with ${routeData.routeWaypoints.length} waypoint${routeData.routeWaypoints.length > 1 ? "s" : ""}!`);
+      } catch (waypointError) {
+        console.error("Failed to save route waypoints:", waypointError);
+        toast.warning("Route saved, but some waypoints failed to save");
+      }
+    } else {
+      toast.success(isEditing ? "Route updated!" : "Route saved!");
+    }
+
     // Reset state
     setIsCreating(false);
     setIsEditing(false);
@@ -927,7 +979,6 @@ export default function RoutesPage() {
     setActiveTab("map");
     setDrawnRouteId(null);
     fetchExploreRoutes();
-    toast.success(isEditing ? "Route updated!" : "Route saved!");
   };
 
   // Handle recorded route save
@@ -1046,6 +1097,8 @@ export default function RoutesPage() {
               onWaypointRemove={removeWaypoint}
               onWaypointInsert={insertWaypoint}
               onCircularDetected={handleCircularDetected}
+              placingRouteWaypoint={placingWaypoint}
+              onRouteWaypointPlaced={handleWaypointPlaced}
             />
           </div>
 
@@ -1088,6 +1141,7 @@ export default function RoutesPage() {
                   estimatedTimeMinutes: isEditing && editingRouteData ? (editingRouteData.estimated_time_minutes || 0) : 0,
                 }}
                 isEditing={isEditing}
+                onWaypointPlacementModeChange={handleWaypointPlacementModeChange}
               />
             </div>
             <div className="border-t p-4">
@@ -1191,6 +1245,7 @@ export default function RoutesPage() {
                   isEditing={isEditing}
                   isMobile={true}
                   onMapClick={() => setMobileCreateView("map")}
+                  onWaypointPlacementModeChange={handleWaypointPlacementModeChange}
                 />
               </div>
 
@@ -1365,6 +1420,27 @@ export default function RoutesPage() {
                 size="sm"
                 className="h-7 w-7 p-0 rounded-full"
                 onClick={handleCancelPlacingHazard}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Waypoint placement instruction bar (route creation mode only) */}
+        {placingWaypoint && isCreating && (
+          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-30 md:top-4">
+            <div className="flex items-center gap-3 bg-white rounded-full shadow-lg border px-5 py-2.5">
+              <MapPin className="h-4 w-4 text-blue-500" />
+              <span className="text-sm font-medium">Click on the map to add a waypoint</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 rounded-full"
+                onClick={() => {
+                  setPlacingWaypoint(false);
+                  setWaypointClickHandler(null);
+                }}
               >
                 <X className="h-4 w-4" />
               </Button>

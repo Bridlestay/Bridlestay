@@ -130,6 +130,9 @@ export interface RoutesMapMapboxProps {
   // Hazard placement mode
   placingHazard?: boolean;
   onHazardPlaced?: (lat: number, lng: number) => void;
+  // Route waypoint placement mode (for adding waypoints during route creation)
+  placingRouteWaypoint?: boolean;
+  onRouteWaypointPlaced?: (lat: number, lng: number) => void;
 }
 
 export interface RoutesMapMapboxHandle {
@@ -204,6 +207,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       isAuthenticated = false,
       placingHazard = false,
       onHazardPlaced,
+      placingRouteWaypoint = false,
+      onRouteWaypointPlaced,
     },
     ref
   ) => {
@@ -1054,6 +1059,33 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         placementMarkerRef.current = null;
       };
     }, [placingHazard, mapLoaded, selectedRouteId, selectedRouteData, routes, onHazardPlaced]);
+
+    // Route waypoint placement mode — click anywhere on map to place waypoint
+    useEffect(() => {
+      if (!mapRef.current || !mapLoaded) return;
+      const map = mapRef.current;
+
+      // Clean up when exiting placement mode
+      if (!placingRouteWaypoint) {
+        map.getCanvas().style.cursor = "";
+        return;
+      }
+
+      // Set crosshair cursor
+      map.getCanvas().style.cursor = "crosshair";
+
+      const handleClick = (e: mapboxgl.MapMouseEvent) => {
+        const { lat, lng } = e.lngLat;
+        onRouteWaypointPlaced?.(lat, lng);
+      };
+
+      map.on("click", handleClick);
+
+      return () => {
+        map.off("click", handleClick);
+        map.getCanvas().style.cursor = "";
+      };
+    }, [placingRouteWaypoint, mapLoaded, onRouteWaypointPlaced]);
 
     // Draw selected route polyline with start/end markers
     useEffect(() => {
