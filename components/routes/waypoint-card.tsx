@@ -16,8 +16,11 @@ import {
   MapPin,
   Navigation,
   Pencil,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import Image from "next/image";
+import { useState } from "react";
 
 interface WaypointCardProps {
   waypoint: {
@@ -28,15 +31,21 @@ interface WaypointCardProps {
     description?: string | null;
     icon_type?: string | null;
     photo_url?: string | null;
+    photos?: Array<{ id: string; url: string; caption?: string }>;
     order_index: number;
     snapped?: boolean;
     snapped_to_path_type?: string | null;
     tag?: string | null;
+    pending_suggestions_count?: number;
   };
   index?: number;
+  waypointNumber?: string; // "S", "1", "2", "F"
+  distanceFromPrevious?: number; // in meters
   distanceFromStart?: number; // in km
-  onClick?: () => void;
+  onShowOnMap?: () => void;
   onEdit?: () => void;
+  onSuggestEdit?: () => void;
+  isOwner?: boolean;
 }
 
 const TAG_CONFIG: Record<string, { label: string; className: string }> = {
@@ -68,55 +77,103 @@ const PATH_TYPE_LABELS: Record<string, string> = {
   permissive: "Permissive Path",
 };
 
-export function WaypointCard({ waypoint, index, distanceFromStart, onClick, onEdit }: WaypointCardProps) {
+export function WaypointCard({
+  waypoint,
+  waypointNumber,
+  distanceFromPrevious,
+  onShowOnMap,
+  onEdit,
+  onSuggestEdit,
+  isOwner,
+}: WaypointCardProps) {
+  const [expanded, setExpanded] = useState(false);
   const iconConfig = waypoint.icon_type ? (ICON_MAP[waypoint.icon_type] || ICON_MAP.other) : ICON_MAP.other;
   const Icon = iconConfig.icon;
 
   // Generate a name if not provided
-  const displayName = waypoint.name || `Waypoint ${index || waypoint.order_index + 1}`;
+  const displayName = waypoint.name || "Waypoint";
+
+  // Format distance
+  const distanceText = distanceFromPrevious
+    ? distanceFromPrevious < 1000
+      ? `${Math.round(distanceFromPrevious)} m`
+      : `${(distanceFromPrevious / 1000).toFixed(2)} km`
+    : null;
+
+  // Get all photos (primary + additional)
+  const allPhotos = [
+    ...(waypoint.photo_url ? [{ id: "primary", url: waypoint.photo_url, caption: null }] : []),
+    ...(waypoint.photos || []),
+  ];
+
+  // Number circle color based on type
+  const getNumberCircleColor = () => {
+    if (waypointNumber === "S") return "bg-green-500 text-white";
+    if (waypointNumber === "F") return "bg-red-500 text-white";
+    return "bg-slate-700 text-white";
+  };
 
   return (
-    <Card
-      className={`overflow-hidden ${onClick ? "cursor-pointer hover:shadow-lg transition-shadow" : ""}`}
-      onClick={onClick}
-    >
-      <div className="flex gap-4 p-4">
-        {/* Icon Badge */}
-        <div className="flex-shrink-0">
-          <div className={`rounded-full bg-muted p-3 ${iconConfig.color}`}>
-            <Icon className="h-6 w-6" />
-          </div>
+    <div className="border-b border-slate-200 last:border-0">
+      {/* Collapsed View - Always Visible */}
+      <div
+        className="flex items-start gap-3 py-3 px-1 cursor-pointer hover:bg-slate-50 transition-colors"
+        onClick={() => setExpanded(!expanded)}
+      >
+        {/* Number Circle */}
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${getNumberCircleColor()}`}>
+          {waypointNumber || waypoint.order_index + 1}
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <h4 className="font-semibold text-base leading-tight">{displayName}</h4>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {distanceFromStart !== undefined && (
-                <Badge variant="outline" className="text-xs">
-                  {distanceFromStart.toFixed(1)} km
-                </Badge>
-              )}
-              {onEdit && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit();
-                  }}
-                >
-                  <Pencil className="h-3.5 w-3.5 text-slate-500" />
-                </Button>
-              )}
-            </div>
-          </div>
+          {/* Tag (small gray text) */}
+          {waypoint.tag && TAG_CONFIG[waypoint.tag] && (
+            <p className="text-xs text-slate-500 mb-0.5">{TAG_CONFIG[waypoint.tag].label}</p>
+          )}
 
-          <div className="flex flex-wrap gap-1 mb-2">
+          {/* Name */}
+          <h4 className="font-semibold text-base leading-tight text-slate-900">{displayName}</h4>
+
+          {/* Distance from previous */}
+          {distanceText && (
+            <p className="text-xs text-slate-500 mt-0.5">{distanceText}</p>
+          )}
+        </div>
+
+        {/* Thumbnail Photo */}
+        {allPhotos[0] && (
+          <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+            <Image
+              src={allPhotos[0].url}
+              alt={displayName}
+              fill
+              className="object-cover"
+            />
+          </div>
+        )}
+
+        {/* Expand/Collapse Icon */}
+        <div className="flex-shrink-0 text-slate-400">
+          {expanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+        </div>
+      </div>
+
+      {/* Expanded View */}
+      {expanded && (
+        <div className="px-1 pb-4" onClick={(e) => e.stopPropagation()}>
+          {/* Description */}
+          {waypoint.description && (
+            <p className="text-sm text-slate-600 leading-relaxed mb-3 ml-11">
+              {waypoint.description}
+            </p>
+          )}
+
+          {/* Badges */}
+          <div className="flex flex-wrap gap-1.5 mb-3 ml-11">
             {waypoint.icon_type && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                <Icon className="h-3 w-3" />
                 {iconConfig.label}
               </Badge>
             )}
@@ -125,38 +182,70 @@ export function WaypointCard({ waypoint, index, distanceFromStart, onClick, onEd
                 {TAG_CONFIG[waypoint.tag].label}
               </Badge>
             )}
-            {waypoint.snapped && waypoint.snapped_to_path_type && (
-              <Badge variant="outline" className="text-xs">
-                On {PATH_TYPE_LABELS[waypoint.snapped_to_path_type] || waypoint.snapped_to_path_type}
-              </Badge>
-            )}
           </div>
 
-          {waypoint.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-              {waypoint.description}
-            </p>
-          )}
-
-          {/* Coordinates */}
-          <p className="text-xs text-muted-foreground">
-            {waypoint.lat.toFixed(5)}, {waypoint.lng.toFixed(5)}
-          </p>
-
-          {/* Photo */}
-          {waypoint.photo_url && (
-            <div className="relative h-32 w-full mt-2 rounded-md overflow-hidden">
-              <Image
-                src={waypoint.photo_url}
-                alt={displayName}
-                fill
-                className="object-cover"
-              />
+          {/* Photos Grid */}
+          {allPhotos.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 mb-3 ml-11">
+              {allPhotos.slice(0, 4).map((photo, idx) => (
+                <div key={photo.id || idx} className="relative h-24 rounded-md overflow-hidden">
+                  <Image
+                    src={photo.url}
+                    alt={photo.caption || displayName}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ))}
             </div>
           )}
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 ml-11">
+            {/* Show on Map */}
+            {onShowOnMap && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-green-600 hover:text-green-700 hover:bg-green-50 h-8"
+                onClick={onShowOnMap}
+              >
+                <MapPin className="h-3.5 w-3.5 mr-1" />
+                Show on map
+              </Button>
+            )}
+
+            {/* Edit / Suggest Edit */}
+            {isOwner && onEdit ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-8 relative"
+                onClick={onEdit}
+              >
+                <Pencil className="h-3.5 w-3.5 mr-1" />
+                Edit
+                {waypoint.pending_suggestions_count && waypoint.pending_suggestions_count > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[10px] rounded-full flex items-center justify-center font-semibold">
+                    {waypoint.pending_suggestions_count}
+                  </span>
+                )}
+              </Button>
+            ) : onSuggestEdit ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-8"
+                onClick={onSuggestEdit}
+              >
+                <Pencil className="h-3.5 w-3.5 mr-1" />
+                Suggest an edit
+              </Button>
+            ) : null}
+          </div>
         </div>
-      </div>
-    </Card>
+      )}
+    </div>
   );
 }
 
