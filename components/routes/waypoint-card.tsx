@@ -114,10 +114,10 @@ export function WaypointCard({
   };
 
   return (
-    <div className="border-b border-slate-200 last:border-0">
+    <div>
       {/* Collapsed View - Always Visible */}
       <div
-        className="flex items-start gap-3 py-3 px-1 cursor-pointer hover:bg-slate-50 transition-colors"
+        className="flex items-start gap-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors rounded-lg"
         onClick={() => setExpanded(!expanded)}
       >
         {/* Number Circle */}
@@ -134,11 +134,6 @@ export function WaypointCard({
 
           {/* Name */}
           <h4 className="font-semibold text-base leading-tight text-slate-900">{displayName}</h4>
-
-          {/* Distance from previous */}
-          {distanceText && (
-            <p className="text-xs text-slate-500 mt-0.5">{distanceText}</p>
-          )}
         </div>
 
         {/* Thumbnail Photo */}

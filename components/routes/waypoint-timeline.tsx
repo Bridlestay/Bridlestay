@@ -47,8 +47,8 @@ export function WaypointTimeline({
         )}
       </div>
 
-      {/* Collapsible Waypoint Cards */}
-      <div className="border border-slate-200 rounded-lg overflow-hidden">
+      {/* Waypoint Timeline with Dotted Connectors */}
+      <div className="relative">
         {fullWaypointList.map((wp: any, index: number) => {
           const isStart = wp.type === "start";
           const isFinish = wp.type === "finish";
@@ -64,21 +64,39 @@ export function WaypointTimeline({
             ? wp._distFromPrev * 1000
             : undefined;
 
+          const showConnector = index > 0 && distanceFromPrevious;
+          const distanceText = distanceFromPrevious
+            ? distanceFromPrevious < 1000
+              ? `${Math.round(distanceFromPrevious)} m`
+              : `${(distanceFromPrevious / 1000).toFixed(1)} km`
+            : null;
+
           return (
-            <WaypointCard
-              key={wp.id}
-              waypoint={wp}
-              waypointNumber={waypointNumber}
-              distanceFromPrevious={distanceFromPrevious}
-              onShowOnMap={
-                wp.lat && wp.lng
-                  ? () => onFlyToLocation?.(wp.lat, wp.lng)
-                  : undefined
-              }
-              onEdit={isOwner && onEditWaypoint ? () => onEditWaypoint(wp) : undefined}
-              onSuggestEdit={!isOwner && onSuggestEdit ? () => onSuggestEdit(wp) : undefined}
-              isOwner={isOwner}
-            />
+            <div key={wp.id} id={`waypoint-timeline-${wp.id}`}>
+              {/* Distance connector between waypoints */}
+              {showConnector && (
+                <div className="flex items-center ml-4 py-1">
+                  <div className="w-px h-6 border-l-2 border-dotted border-slate-300" />
+                  <span className="text-xs text-slate-400 ml-3">
+                    {distanceText}
+                  </span>
+                </div>
+              )}
+
+              <WaypointCard
+                waypoint={wp}
+                waypointNumber={waypointNumber}
+                distanceFromPrevious={distanceFromPrevious}
+                onShowOnMap={
+                  wp.lat && wp.lng
+                    ? () => onFlyToLocation?.(wp.lat, wp.lng)
+                    : undefined
+                }
+                onEdit={isOwner && onEditWaypoint ? () => onEditWaypoint(wp) : undefined}
+                onSuggestEdit={!isOwner && onSuggestEdit ? () => onSuggestEdit(wp) : undefined}
+                isOwner={isOwner}
+              />
+            </div>
           );
         })}
       </div>
