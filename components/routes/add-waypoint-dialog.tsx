@@ -19,10 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertTriangle, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { getDistanceMeters } from "./route-detail-constants";
 
 const WAYPOINT_TAGS = [
   { value: "poi", label: "Point of Interest" },
@@ -51,7 +50,8 @@ interface AddWaypointDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   routeId: string;
-  routeGeometry?: any;
+  lat: number | null;
+  lng: number | null;
   onWaypointAdded: (waypoint: any) => void;
 }
 
@@ -59,7 +59,8 @@ export function AddWaypointDialog({
   open,
   onOpenChange,
   routeId,
-  routeGeometry,
+  lat,
+  lng,
   onWaypointAdded,
 }: AddWaypointDialogProps) {
   const [name, setName] = useState("");
@@ -68,98 +69,12 @@ export function AddWaypointDialog({
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const [locationStatus, setLocationStatus] = useState<
-    "idle" | "checking" | "near" | "far" | "error"
-  >("idle");
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [userCoords, setUserCoords] = useState<{
-    lat: number;
-    lng: number;
-  } | null>(null);
-
-  const checkUserLocation = () => {
-    setLocationStatus("checking");
-    setLocationError(null);
-
-    if (!navigator.geolocation) {
-      setLocationStatus("error");
-      setLocationError("Geolocation is not supported by your browser");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userLat = position.coords.latitude;
-        const userLng = position.coords.longitude;
-        setUserCoords({ lat: userLat, lng: userLng });
-
-        const geometry = routeGeometry;
-        if (!geometry?.coordinates) {
-          setLocationStatus("near");
-          return;
-        }
-
-        let minDistance = Infinity;
-        const coords = geometry.coordinates as [number, number][];
-
-        for (const coord of coords) {
-          const distance = getDistanceMeters(
-            userLat,
-            userLng,
-            coord[1],
-            coord[0]
-          );
-          if (distance < minDistance) {
-            minDistance = distance;
-          }
-        }
-
-        const MAX_DISTANCE_METERS = 500;
-        if (minDistance <= MAX_DISTANCE_METERS) {
-          setLocationStatus("near");
-        } else {
-          setLocationStatus("far");
-          setLocationError(
-            `You appear to be ${Math.round(minDistance / 1000)}km from this route. Waypoints must be added while near the route.`
-          );
-        }
-      },
-      (error) => {
-        setLocationStatus("error");
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            setLocationError(
-              "Location access denied. Please enable location services to add waypoints."
-            );
-            break;
-          case error.POSITION_UNAVAILABLE:
-            setLocationError("Location unavailable. Please try again.");
-            break;
-          case error.TIMEOUT:
-            setLocationError("Location request timed out. Please try again.");
-            break;
-          default:
-            setLocationError(
-              "Unable to get your location. Please try again."
-            );
-        }
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
-
   useEffect(() => {
-    if (open && locationStatus === "idle") {
-      checkUserLocation();
-    }
     if (!open) {
-      setLocationStatus("idle");
-      setLocationError(null);
       setName("");
       setTag("note");
       setIconType("");
       setDescription("");
-      setUserCoords(null);
     }
   }, [open]);
 
@@ -168,7 +83,7 @@ export function AddWaypointDialog({
       toast.error("Please enter a waypoint name");
       return;
     }
-    if (!userCoords) {
+    if (lat === null || lng === null) {
       toast.error("Location not available");
       return;
     }
@@ -179,8 +94,8 @@ export function AddWaypointDialog({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          lat: userCoords.lat,
-          lng: userCoords.lng,
+          lat,
+          lng,
           name: name.trim(),
           tag,
           icon_type: iconType || undefined,
@@ -192,7 +107,7 @@ export function AddWaypointDialog({
         const data = await res.json();
         onWaypointAdded(data.waypoint);
         onOpenChange(false);
-        toast.success("Waypoint added! Thank you for contributing.");
+        toast.success("Waypoint added successfully!");
       } else {
         const data = await res.json();
         toast.error(data.error || "Failed to add waypoint");
@@ -208,124 +123,74 @@ export function AddWaypointDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add a Waypoint</DialogTitle>
+          <DialogTitle>Add Waypoint</DialogTitle>
           <DialogDescription>
-            Mark a useful point along this route for other riders.
+            Add a waypoint to your route at the selected location.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Location Status Banners */}
-        {locationStatus === "checking" && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
-            <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" />
-            <span className="text-sm text-blue-700">
-              Checking your location...
-            </span>
-          </div>
-        )}
-        {locationStatus === "near" && (
+        {lat !== null && lng !== null && (
           <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
             <MapPin className="h-4 w-4 text-green-600" />
             <span className="text-sm text-green-700">
-              Location verified &mdash; you&apos;re near the route
+              Location selected: {lat.toFixed(5)}, {lng.toFixed(5)}
             </span>
           </div>
         )}
-        {locationStatus === "far" && (
-          <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <MapPin className="h-4 w-4 text-orange-600" />
-              <span className="text-sm font-medium text-orange-700">
-                Too far from route
-              </span>
-            </div>
-            <p className="text-sm text-orange-600">{locationError}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={checkUserLocation}
-            >
-              Try Again
-            </Button>
-          </div>
-        )}
-        {locationStatus === "error" && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <span className="text-sm font-medium text-red-700">
-                Location Error
-              </span>
-            </div>
-            <p className="text-sm text-red-600">{locationError}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={checkUserLocation}
-            >
-              Try Again
-            </Button>
-          </div>
-        )}
 
-        {/* Form — only when location verified */}
-        {locationStatus === "near" && (
-          <div className="space-y-4">
+        <div className="space-y-4">
+          <div>
+            <Label>Name *</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. River crossing, Scenic viewpoint"
+              maxLength={100}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Name *</Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. River crossing, Scenic viewpoint"
-                maxLength={100}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Tag</Label>
-                <Select value={tag} onValueChange={setTag}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {WAYPOINT_TAGS.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Icon</Label>
-                <Select value={iconType} onValueChange={setIconType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Optional..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ICON_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Label>Tag</Label>
+              <Select value={tag} onValueChange={setTag}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {WAYPOINT_TAGS.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <Label>Description (optional)</Label>
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe this waypoint..."
-                maxLength={500}
-                className="min-h-[60px]"
-              />
+              <Label>Icon</Label>
+              <Select value={iconType} onValueChange={setIconType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Optional..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {ICON_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-        )}
+          <div>
+            <Label>Description (optional)</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe this waypoint..."
+              maxLength={500}
+              className="min-h-[60px]"
+            />
+          </div>
+        </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -333,9 +198,7 @@ export function AddWaypointDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={
-              submitting || locationStatus !== "near" || !name.trim()
-            }
+            disabled={submitting || lat === null || lng === null || !name.trim()}
             className="bg-green-600 hover:bg-green-700"
           >
             {submitting ? "Adding..." : "Add Waypoint"}
