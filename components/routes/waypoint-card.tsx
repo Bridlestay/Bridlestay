@@ -106,22 +106,22 @@ export function WaypointCard({
     ...(waypoint.photos || []),
   ];
 
-  // Number circle color based on type
+  // Number circle color based on type (muted colors like Komoot)
   const getNumberCircleColor = () => {
-    if (waypointNumber === "S") return "bg-green-500 text-white";
-    if (waypointNumber === "F") return "bg-red-500 text-white";
-    return "bg-slate-700 text-white";
+    if (waypointNumber === "S") return "bg-green-600 text-white";
+    if (waypointNumber === "F") return "bg-red-600 text-white";
+    return "bg-slate-800 text-white";
   };
 
   return (
-    <div>
+    <div className="relative bg-white">
       {/* Collapsed View - Always Visible */}
       <div
-        className="flex items-start gap-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors rounded-lg"
+        className="flex items-start gap-3 py-2 pr-2 cursor-pointer hover:bg-slate-50 transition-colors rounded-lg"
         onClick={() => setExpanded(!expanded)}
       >
-        {/* Number Circle */}
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${getNumberCircleColor()}`}>
+        {/* Number Circle - positioned to overlay the timeline */}
+        <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 shadow-sm ${getNumberCircleColor()}`}>
           {waypointNumber || waypoint.order_index + 1}
         </div>
 
