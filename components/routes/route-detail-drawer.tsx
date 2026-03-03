@@ -70,7 +70,7 @@ import { ElevationProfile } from "./elevation-profile";
 import { RouteWeatherSection } from "./route-weather-section";
 import { WaypointTimeline } from "./waypoint-timeline";
 import { AddWaypointDialog } from "./add-waypoint-dialog";
-import { EditWaypointDialog } from "./edit-waypoint-dialog";
+import { EditWaypointView } from "./edit-waypoint-view";
 import { SuggestEditWaypointDialog } from "./suggest-edit-waypoint-dialog";
 
 // --- Main Component ---
@@ -173,8 +173,7 @@ export function RouteDetailDrawer({
   const [warningDialogOpen, setWarningDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [addWaypointDialogOpen, setAddWaypointDialogOpen] = useState(false);
-  const [editWaypointDialogOpen, setEditWaypointDialogOpen] = useState(false);
-  const [waypointToEdit, setWaypointToEdit] = useState<any>(null);
+  const [editingWaypointId, setEditingWaypointId] = useState<string | null>(null);
   const [suggestEditDialogOpen, setSuggestEditDialogOpen] = useState(false);
   const [waypointToSuggestEdit, setWaypointToSuggestEdit] = useState<any>(null);
 
@@ -761,8 +760,7 @@ export function RouteDetailDrawer({
 
   // Edit waypoint (owner only)
   const handleEditWaypoint = (waypoint: any) => {
-    setWaypointToEdit(waypoint);
-    setEditWaypointDialogOpen(true);
+    setEditingWaypointId(waypoint.id);
   };
 
   // Suggest edit (guests only)
@@ -779,6 +777,16 @@ export function RouteDetailDrawer({
     );
   };
 
+  // Exit edit mode
+  const handleExitEdit = () => {
+    setEditingWaypointId(null);
+  };
+
+  // Get waypoint being edited
+  const editingWaypoint = editingWaypointId
+    ? waypoints.find((wp) => wp.id === editingWaypointId)
+    : null;
+
   // ===================== EARLY RETURNS =====================
 
   if (!route && !loading) return null;
@@ -792,6 +800,12 @@ export function RouteDetailDrawer({
         <div className="flex items-center justify-center h-64">
           <p className="text-muted-foreground">Loading...</p>
         </div>
+      ) : editingWaypoint ? (
+        <EditWaypointView
+          waypoint={editingWaypoint}
+          onBack={handleExitEdit}
+          onWaypointUpdated={handleWaypointUpdated}
+        />
       ) : reviewStep !== null ? (
         <RouteReviewFlow
           routeId={routeId!}
@@ -1556,16 +1570,6 @@ export function RouteDetailDrawer({
                     setAddWaypointDialogOpen(false);
                     toast.success("Waypoint added successfully!");
                   }}
-                />
-              )}
-
-              {/* Edit Waypoint Dialog (Owner Only) */}
-              {waypointToEdit && (
-                <EditWaypointDialog
-                  open={editWaypointDialogOpen}
-                  onOpenChange={setEditWaypointDialogOpen}
-                  waypoint={waypointToEdit}
-                  onWaypointUpdated={handleWaypointUpdated}
                 />
               )}
 

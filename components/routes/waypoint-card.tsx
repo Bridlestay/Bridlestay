@@ -212,20 +212,18 @@ export function WaypointCard({
 
             {/* Edit / Suggest Edit */}
             {isOwner && onEdit ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs h-8 relative"
+              <button
                 onClick={onEdit}
+                className="relative text-slate-600 hover:text-slate-900 transition-colors p-1"
+                title="Edit waypoint"
               >
-                <Pencil className="h-3.5 w-3.5 mr-1" />
-                Edit
+                <Pencil className="h-4 w-4" />
                 {waypoint.pending_suggestions_count && waypoint.pending_suggestions_count > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[10px] rounded-full flex items-center justify-center font-semibold">
+                  <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-amber-500 text-white text-[9px] rounded-full flex items-center justify-center font-semibold">
                     {waypoint.pending_suggestions_count}
                   </span>
                 )}
-              </Button>
+              </button>
             ) : onSuggestEdit ? (
               <Button
                 variant="outline"
