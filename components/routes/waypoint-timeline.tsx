@@ -48,7 +48,7 @@ export function WaypointTimeline({
       </div>
 
       {/* Waypoint Timeline - Komoot Style */}
-      <div className="relative pl-[16px]">
+      <div className="relative">
         {/* Continuous dotted line behind all waypoints */}
         <div className="absolute left-[16px] top-0 bottom-0 w-[2px] border-l-2 border-dotted border-slate-300" />
 
@@ -79,7 +79,7 @@ export function WaypointTimeline({
             <div key={wp.id} id={`waypoint-timeline-${wp.id}`} className="relative">
               {/* Distance label on the line */}
               {showConnector && distanceText && (
-                <div className="absolute left-[-12px] top-[-8px] z-10">
+                <div className="absolute left-[4px] top-[-8px] z-10">
                   <span className="text-xs text-slate-400 bg-white px-1">
                     {distanceText}
                   </span>
