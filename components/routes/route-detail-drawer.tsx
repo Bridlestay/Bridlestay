@@ -70,6 +70,7 @@ import { ElevationProfile } from "./elevation-profile";
 import { RouteWeatherSection } from "./route-weather-section";
 import { WaypointTimeline } from "./waypoint-timeline";
 import { AddWaypointDialog } from "./add-waypoint-dialog";
+import { EditWaypointDialog } from "./edit-waypoint-dialog";
 
 // --- Main Component ---
 
@@ -171,6 +172,8 @@ export function RouteDetailDrawer({
   const [warningDialogOpen, setWarningDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [addWaypointDialogOpen, setAddWaypointDialogOpen] = useState(false);
+  const [editWaypointDialogOpen, setEditWaypointDialogOpen] = useState(false);
+  const [waypointToEdit, setWaypointToEdit] = useState<any>(null);
 
   const supabase = createClient();
 
@@ -751,6 +754,26 @@ export function RouteDetailDrawer({
       const el = document.getElementById(`waypoint-timeline-${wp.id}`);
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
+  };
+
+  // Edit waypoint (owner only)
+  const handleEditWaypoint = (waypoint: any) => {
+    setWaypointToEdit(waypoint);
+    setEditWaypointDialogOpen(true);
+  };
+
+  // Suggest edit (guests only)
+  const handleSuggestEdit = (waypoint: any) => {
+    // TODO: Open suggest edit dialog
+    console.log("Suggest edit for waypoint:", waypoint);
+  };
+
+  // Waypoint updated callback
+  const handleWaypointUpdated = (waypointId: string, updates: any) => {
+    // Update the waypoint in the local state
+    setWaypoints((prev) =>
+      prev.map((wp) => (wp.id === waypointId ? { ...wp, ...updates } : wp))
+    );
   };
 
   // ===================== EARLY RETURNS =====================
@@ -1438,6 +1461,9 @@ export function RouteDetailDrawer({
                     }
                     onDismiss={onDismiss}
                     onToggleWaypoints={onWaypointFocused}
+                    isOwner={isOwner}
+                    onEditWaypoint={handleEditWaypoint}
+                    onSuggestEdit={handleSuggestEdit}
                   />
                 </>
               )}
@@ -1527,6 +1553,16 @@ export function RouteDetailDrawer({
                     setAddWaypointDialogOpen(false);
                     toast.success("Waypoint added successfully!");
                   }}
+                />
+              )}
+
+              {/* Edit Waypoint Dialog (Owner Only) */}
+              {waypointToEdit && (
+                <EditWaypointDialog
+                  open={editWaypointDialogOpen}
+                  onOpenChange={setEditWaypointDialogOpen}
+                  waypoint={waypointToEdit}
+                  onWaypointUpdated={handleWaypointUpdated}
                 />
               )}
             </div>
