@@ -50,7 +50,7 @@ export function WaypointTimeline({
       {/* Waypoint Timeline - Komoot Style */}
       <div className="relative pl-10">
         {/* Continuous dotted line behind all waypoints */}
-        <div className="absolute left-[16px] top-0 bottom-0 w-[1px] border-l-[1.5px] border-dotted border-slate-300 z-0" />
+        <div className="absolute left-[16px] top-0 bottom-0 border-l-2 border-dotted border-slate-300 z-0" />
 
         {fullWaypointList.map((wp: any, index: number) => {
           const isStart = wp.type === "start";
@@ -79,8 +79,8 @@ export function WaypointTimeline({
             <div key={wp.id} id={`waypoint-timeline-${wp.id}`} className="relative">
               {/* Distance label on the line */}
               {showConnector && distanceText && (
-                <div className="absolute left-[-32px] top-1 z-10 flex items-center justify-center w-10">
-                  <span className="text-[10px] text-slate-400 bg-white px-1 leading-none whitespace-nowrap">
+                <div className="absolute left-[-33px] top-[-10px] z-10 flex items-center justify-center w-11">
+                  <span className="text-[10px] text-slate-400 bg-white px-1.5 py-0.5 leading-none whitespace-nowrap rounded-sm">
                     {distanceText}
                   </span>
                 </div>
