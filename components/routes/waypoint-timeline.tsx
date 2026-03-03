@@ -79,7 +79,7 @@ export function WaypointTimeline({
             <div key={wp.id} id={`waypoint-timeline-${wp.id}`} className="relative">
               {/* Distance label on the line */}
               {showConnector && distanceText && (
-                <div className="absolute left-[-24px] top-[-14px] z-10 flex items-center justify-center">
+                <div className="absolute left-[-40px] top-[-26px] z-10 w-8 flex items-center justify-center">
                   <span className="text-[10px] text-slate-400 bg-white px-1.5 py-0.5 leading-none whitespace-nowrap rounded-sm">
                     {distanceText}
                   </span>

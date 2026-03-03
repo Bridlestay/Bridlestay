@@ -114,7 +114,7 @@ export function WaypointCard({
   };
 
   return (
-    <div className="relative mb-4">
+    <div className="relative mb-8">
       {/* Number Circle - positioned absolutely to overlay the timeline */}
       <div className={`absolute left-[-40px] top-2 z-10 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shadow-sm ${getNumberCircleColor()}`}>
         {waypointNumber || waypoint.order_index + 1}
