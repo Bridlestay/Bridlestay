@@ -71,6 +71,7 @@ import { RouteWeatherSection } from "./route-weather-section";
 import { WaypointTimeline } from "./waypoint-timeline";
 import { AddWaypointDialog } from "./add-waypoint-dialog";
 import { EditWaypointDialog } from "./edit-waypoint-dialog";
+import { SuggestEditWaypointDialog } from "./suggest-edit-waypoint-dialog";
 
 // --- Main Component ---
 
@@ -174,6 +175,8 @@ export function RouteDetailDrawer({
   const [addWaypointDialogOpen, setAddWaypointDialogOpen] = useState(false);
   const [editWaypointDialogOpen, setEditWaypointDialogOpen] = useState(false);
   const [waypointToEdit, setWaypointToEdit] = useState<any>(null);
+  const [suggestEditDialogOpen, setSuggestEditDialogOpen] = useState(false);
+  const [waypointToSuggestEdit, setWaypointToSuggestEdit] = useState<any>(null);
 
   const supabase = createClient();
 
@@ -764,8 +767,8 @@ export function RouteDetailDrawer({
 
   // Suggest edit (guests only)
   const handleSuggestEdit = (waypoint: any) => {
-    // TODO: Open suggest edit dialog
-    console.log("Suggest edit for waypoint:", waypoint);
+    setWaypointToSuggestEdit(waypoint);
+    setSuggestEditDialogOpen(true);
   };
 
   // Waypoint updated callback
@@ -1563,6 +1566,15 @@ export function RouteDetailDrawer({
                   onOpenChange={setEditWaypointDialogOpen}
                   waypoint={waypointToEdit}
                   onWaypointUpdated={handleWaypointUpdated}
+                />
+              )}
+
+              {/* Suggest Edit Dialog (Guests Only) */}
+              {waypointToSuggestEdit && (
+                <SuggestEditWaypointDialog
+                  open={suggestEditDialogOpen}
+                  onOpenChange={setSuggestEditDialogOpen}
+                  waypoint={waypointToSuggestEdit}
                 />
               )}
             </div>
