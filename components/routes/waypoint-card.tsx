@@ -114,17 +114,17 @@ export function WaypointCard({
   };
 
   return (
-    <div className="relative bg-white">
+    <div className="relative mb-1">
+      {/* Number Circle - positioned absolutely to overlay the timeline */}
+      <div className={`absolute left-[-40px] top-2 z-10 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shadow-sm ${getNumberCircleColor()}`}>
+        {waypointNumber || waypoint.order_index + 1}
+      </div>
+
       {/* Collapsed View - Always Visible */}
       <div
-        className="flex items-start gap-3 py-2 pr-2 cursor-pointer hover:bg-slate-50 transition-colors rounded-lg"
+        className="flex items-start gap-3 py-2 pr-2 cursor-pointer hover:bg-slate-50 transition-colors rounded-lg bg-white"
         onClick={() => setExpanded(!expanded)}
       >
-        {/* Number Circle - positioned to overlay the timeline */}
-        <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 shadow-sm ${getNumberCircleColor()}`}>
-          {waypointNumber || waypoint.order_index + 1}
-        </div>
-
         {/* Content */}
         <div className="flex-1 min-w-0">
           {/* Tag (small gray text) */}
@@ -156,16 +156,16 @@ export function WaypointCard({
 
       {/* Expanded View */}
       {expanded && (
-        <div className="px-1 pb-4" onClick={(e) => e.stopPropagation()}>
+        <div className="px-1 pb-4 bg-white" onClick={(e) => e.stopPropagation()}>
           {/* Description */}
           {waypoint.description && (
-            <p className="text-sm text-slate-600 leading-relaxed mb-3 ml-11">
+            <p className="text-sm text-slate-600 leading-relaxed mb-3">
               {waypoint.description}
             </p>
           )}
 
           {/* Badges */}
-          <div className="flex flex-wrap gap-1.5 mb-3 ml-11">
+          <div className="flex flex-wrap gap-1.5 mb-3">
             {waypoint.icon_type && (
               <Badge variant="secondary" className="text-xs flex items-center gap-1">
                 <Icon className="h-3 w-3" />
@@ -181,7 +181,7 @@ export function WaypointCard({
 
           {/* Photos Grid */}
           {allPhotos.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 mb-3 ml-11">
+            <div className="grid grid-cols-2 gap-2 mb-3">
               {allPhotos.slice(0, 4).map((photo, idx) => (
                 <div key={photo.id || idx} className="relative h-24 rounded-md overflow-hidden">
                   <Image
@@ -196,7 +196,7 @@ export function WaypointCard({
           )}
 
           {/* Actions */}
-          <div className="flex items-center gap-2 ml-11">
+          <div className="flex items-center gap-2">
             {/* Show on Map */}
             {onShowOnMap && (
               <Button
