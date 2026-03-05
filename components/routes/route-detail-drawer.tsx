@@ -1621,7 +1621,7 @@ export function RouteDetailDrawer({
           </div>
 
           {/* Bottom Action Bar — Save + Navigate (only on main route view) */}
-          {!loading && reviewStep === null && activeFullPanel === null && route && (
+          {!loading && reviewStep === null && activeFullPanel === null && !editingWaypointId && route && (
             <div className="shrink-0 border-t bg-white px-5 py-3 flex items-center justify-between gap-3">
               <Button
                 variant={favorited ? "default" : "outline"}
@@ -1642,6 +1642,28 @@ export function RouteDetailDrawer({
               >
                 <Navigation className="h-4 w-4" />
                 Navigate
+              </Button>
+            </div>
+          )}
+
+          {/* Edit Waypoint Action Bar */}
+          {editingWaypointId && editingWaypoint && (
+            <div className="shrink-0 border-t bg-white px-5 py-3 flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExitEdit}
+                className="flex-1 rounded-full"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="edit-waypoint-form"
+                size="sm"
+                className="flex-1 rounded-full bg-green-600 hover:bg-green-700 text-white"
+              >
+                Save Changes
               </Button>
             </div>
           )}

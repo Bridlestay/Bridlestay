@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -70,7 +70,8 @@ export function EditWaypointView({
     }
   }, [waypoint]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!name.trim()) {
       toast.error("Please enter a waypoint name");
       return;
@@ -106,94 +107,98 @@ export function EditWaypointView({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header with Back Button */}
-      <div className="flex items-center gap-3 pb-4 border-b mb-4">
-        <Button
-          variant="ghost"
-          size="sm"
+    <div>
+      {/* Green header banner — matches the photo hero height feel */}
+      <div className="bg-gradient-to-br from-green-50 to-green-100 px-4 pt-5 pb-6">
+        <button
           onClick={onBack}
-          className="h-8 w-8 p-0"
+          className="w-8 h-8 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center transition-colors mb-4"
         >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h2 className="text-lg font-semibold">Edit Waypoint</h2>
-          <p className="text-sm text-muted-foreground">
-            Update waypoint details. Changes will be visible to all users.
-          </p>
+          <ArrowLeft className="h-4 w-4 text-slate-700" />
+        </button>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+            <MapPin className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Edit Waypoint</h2>
+            <p className="text-sm text-slate-500">
+              {waypoint.name || "Waypoint"}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Form */}
-      <div className="flex-1 overflow-y-auto space-y-4 pb-4">
-        <div>
-          <Label>Name *</Label>
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. River crossing, Scenic viewpoint"
-            maxLength={100}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label>Tag</Label>
-            <Select value={tag} onValueChange={setTag}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {WAYPOINT_TAGS.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>
-                    {t.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Icon</Label>
-            <Select value={iconType} onValueChange={setIconType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Optional..." />
-              </SelectTrigger>
-              <SelectContent>
-                {ICON_TYPES.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>
-                    {t.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div>
-          <Label>Description</Label>
-          <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe this waypoint..."
-            maxLength={500}
-            className="min-h-[120px]"
-          />
-        </div>
-      </div>
-
-      {/* Footer Actions */}
-      <div className="flex items-center gap-2 pt-4 border-t">
-        <Button variant="outline" onClick={onBack} className="flex-1">
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          disabled={submitting || !name.trim()}
-          className="flex-1 bg-green-600 hover:bg-green-700"
+      {/* Content area — same padding as route card */}
+      <div className="relative z-10 bg-white rounded-t-2xl -mt-3">
+        <form
+          id="edit-waypoint-form"
+          onSubmit={handleSubmit}
+          className="p-4 pt-6 space-y-5"
         >
-          {submitting ? "Saving..." : "Save Changes"}
-        </Button>
+          <div>
+            <Label className="text-sm font-medium text-slate-700">
+              Name *
+            </Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. River crossing, Scenic viewpoint"
+              maxLength={100}
+              className="mt-1.5"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-sm font-medium text-slate-700">
+                Tag
+              </Label>
+              <Select value={tag} onValueChange={setTag}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {WAYPOINT_TAGS.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-slate-700">
+                Icon
+              </Label>
+              <Select value={iconType} onValueChange={setIconType}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Optional..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {ICON_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium text-slate-700">
+              Description
+            </Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe this waypoint..."
+              maxLength={500}
+              className="mt-1.5 min-h-[140px]"
+            />
+          </div>
+        </form>
       </div>
     </div>
   );
