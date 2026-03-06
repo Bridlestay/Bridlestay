@@ -18,6 +18,39 @@ export async function GET(
 
     if (error) throw error;
 
+    // Check if current user is the route owner (for suggestion counts)
+    let isOwner = false;
+    let suggestionCounts: Record<string, number> = {};
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user && waypoints && waypoints.length > 0) {
+      const { data: route } = await supabase
+        .from("routes")
+        .select("owner_user_id")
+        .eq("id", routeId)
+        .single();
+
+      if (route?.owner_user_id === user.id) {
+        isOwner = true;
+        // Batch count pending edit suggestions for all waypoints
+        const wpIds = waypoints.map((wp: any) => wp.id);
+        const { data: counts } = await supabase
+          .from("waypoint_edit_suggestions")
+          .select("waypoint_id")
+          .in("waypoint_id", wpIds)
+          .eq("status", "pending");
+
+        if (counts) {
+          for (const row of counts) {
+            suggestionCounts[row.waypoint_id] =
+              (suggestionCounts[row.waypoint_id] || 0) + 1;
+          }
+        }
+      }
+    }
+
     // Enrich with community photo counts and previews
     const enriched = (waypoints || []).map((wp: any) => {
       const communityPhotos = (wp.waypoint_photos || [])
@@ -39,6 +72,9 @@ export async function GET(
         photo_count: (wp.waypoint_photos || []).length,
         community_photos: photoList,
         photos: photoList,
+        ...(isOwner && suggestionCounts[wp.id]
+          ? { pending_suggestions_count: suggestionCounts[wp.id] }
+          : {}),
       };
     });
 

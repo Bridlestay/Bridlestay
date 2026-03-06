@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,16 +11,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   ArrowLeft,
   MapPin,
   ImagePlus,
   X,
   Loader2,
+  Check,
+  MessageSquare,
+  ArrowRight,
 } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 const WAYPOINT_TAGS = [
   { value: "poi", label: "Point of Interest" },
@@ -44,11 +50,36 @@ const ICON_TYPES = [
   { value: "other", label: "Other" },
 ];
 
+const TAG_LABELS: Record<string, string> = {
+  poi: "Point of Interest",
+  instruction: "Instruction",
+  caution: "Caution",
+  note: "Note",
+};
+
+const ICON_LABELS: Record<string, string> = Object.fromEntries(
+  ICON_TYPES.map((t) => [t.value, t.label])
+);
+
 interface WaypointPhoto {
   id: string;
   url: string;
   caption?: string | null;
   user?: { id: string; name?: string; avatar_url?: string } | null;
+}
+
+interface EditSuggestion {
+  id: string;
+  waypoint_id: string;
+  user_id: string;
+  suggested_name: string | null;
+  suggested_tag: string | null;
+  suggested_icon_type: string | null;
+  suggested_description: string | null;
+  suggestion_comment: string;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  users?: { id: string; username?: string; avatar_url?: string };
 }
 
 interface EditWaypointViewProps {
@@ -84,6 +115,13 @@ export function EditWaypointView({
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Suggestion state
+  const [suggestions, setSuggestions] = useState<EditSuggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+
   // Fetch existing photos
   useEffect(() => {
     const fetchPhotos = async () => {
@@ -105,6 +143,30 @@ export function EditWaypointView({
     fetchPhotos();
   }, [routeId, waypoint.id]);
 
+  // Fetch pending edit suggestions
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      setLoadingSuggestions(true);
+      try {
+        const res = await fetch(
+          `/api/waypoints/${waypoint.id}/edit-suggestions`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const pending = (data.suggestions || []).filter(
+            (s: EditSuggestion) => s.status === "pending"
+          );
+          setSuggestions(pending);
+        }
+      } catch {
+        // Non-critical — owner may not have suggestions
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+    fetchSuggestions();
+  }, [waypoint.id]);
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!name.trim()) {
@@ -114,16 +176,19 @@ export function EditWaypointView({
 
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/routes/${routeId}/waypoints/${waypoint.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          tag: tag || null,
-          icon_type: iconType || null,
-          description: description.trim() || null,
-        }),
-      });
+      const res = await fetch(
+        `/api/routes/${routeId}/waypoints/${waypoint.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name.trim(),
+            tag: tag || null,
+            icon_type: iconType || null,
+            description: description.trim() || null,
+          }),
+        }
+      );
 
       if (res.ok) {
         const data = await res.json();
@@ -198,6 +263,78 @@ export function EditWaypointView({
     }
   };
 
+  const handleApproveSuggestion = async (suggestion: EditSuggestion) => {
+    setProcessingId(suggestion.id);
+    try {
+      const res = await fetch(
+        `/api/waypoints/${waypoint.id}/edit-suggestions/${suggestion.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "approve" }),
+        }
+      );
+
+      if (res.ok) {
+        // Apply suggested values to the form
+        if (suggestion.suggested_name !== null)
+          setName(suggestion.suggested_name);
+        if (suggestion.suggested_tag !== null)
+          setTag(suggestion.suggested_tag);
+        if (suggestion.suggested_icon_type !== null)
+          setIconType(suggestion.suggested_icon_type);
+        if (suggestion.suggested_description !== null)
+          setDescription(suggestion.suggested_description);
+
+        setSuggestions((prev) => prev.filter((s) => s.id !== suggestion.id));
+        toast.success("Suggestion approved and applied!");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to approve suggestion");
+      }
+    } catch {
+      toast.error("Failed to approve suggestion");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRejectSuggestion = async (suggestionId: string) => {
+    if (!rejectionReason.trim()) {
+      toast.error("Please provide a reason for rejection");
+      return;
+    }
+
+    setProcessingId(suggestionId);
+    try {
+      const res = await fetch(
+        `/api/waypoints/${waypoint.id}/edit-suggestions/${suggestionId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "reject",
+            rejection_reason: rejectionReason.trim(),
+          }),
+        }
+      );
+
+      if (res.ok) {
+        setSuggestions((prev) => prev.filter((s) => s.id !== suggestionId));
+        setRejectingId(null);
+        setRejectionReason("");
+        toast.success("Suggestion rejected");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to reject suggestion");
+      }
+    } catch {
+      toast.error("Failed to reject suggestion");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   // Combine primary photo_url with fetched photos for display
   const allPhotos = [
     ...(waypoint.photo_url
@@ -205,6 +342,8 @@ export function EditWaypointView({
       : []),
     ...photos,
   ];
+
+  const pendingCount = suggestions.length;
 
   return (
     <div>
@@ -225,9 +364,7 @@ export function EditWaypointView({
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
               <MapPin className="h-12 w-12 text-green-300 mx-auto" />
-              <p className="text-sm text-green-400 mt-2">
-                No photos yet
-              </p>
+              <p className="text-sm text-green-400 mt-2">No photos yet</p>
             </div>
           </div>
         )}
@@ -291,6 +428,169 @@ export function EditWaypointView({
               Changes will be visible to all users.
             </p>
           </div>
+
+          {/* Pending Suggestions Section */}
+          {pendingCount > 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/50 overflow-hidden">
+              <div className="px-3.5 py-2.5 bg-amber-100/60 border-b border-amber-200">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-amber-600" />
+                  <span className="text-sm font-semibold text-amber-800">
+                    {pendingCount} suggested edit
+                    {pendingCount !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              </div>
+
+              <div className="divide-y divide-amber-100">
+                {suggestions.map((s) => (
+                  <div key={s.id} className="p-3.5">
+                    {/* User + time */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage
+                          src={s.users?.avatar_url || undefined}
+                        />
+                        <AvatarFallback className="text-[10px] bg-slate-200">
+                          {(s.users?.username || "U")[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium text-slate-700">
+                        {s.users?.username || "User"}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {formatDistanceToNow(new Date(s.created_at), {
+                          addSuffix: true,
+                        })}
+                      </span>
+                    </div>
+
+                    {/* Comment */}
+                    <p className="text-sm text-slate-600 italic mb-3 leading-relaxed">
+                      &ldquo;{s.suggestion_comment}&rdquo;
+                    </p>
+
+                    {/* Proposed changes */}
+                    <div className="space-y-1.5 mb-3">
+                      {s.suggested_name !== null && (
+                        <SuggestionDiff
+                          label="Name"
+                          current={waypoint.name || "—"}
+                          suggested={s.suggested_name}
+                        />
+                      )}
+                      {s.suggested_tag !== null && (
+                        <SuggestionDiff
+                          label="Tag"
+                          current={
+                            waypoint.tag
+                              ? TAG_LABELS[waypoint.tag] || waypoint.tag
+                              : "—"
+                          }
+                          suggested={
+                            TAG_LABELS[s.suggested_tag] || s.suggested_tag
+                          }
+                        />
+                      )}
+                      {s.suggested_icon_type !== null && (
+                        <SuggestionDiff
+                          label="Icon"
+                          current={
+                            waypoint.icon_type
+                              ? ICON_LABELS[waypoint.icon_type] ||
+                                waypoint.icon_type
+                              : "—"
+                          }
+                          suggested={
+                            ICON_LABELS[s.suggested_icon_type] ||
+                            s.suggested_icon_type
+                          }
+                        />
+                      )}
+                      {s.suggested_description !== null && (
+                        <SuggestionDiff
+                          label="Description"
+                          current={waypoint.description || "—"}
+                          suggested={s.suggested_description}
+                          multiline
+                        />
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    {rejectingId === s.id ? (
+                      <div className="space-y-2">
+                        <Textarea
+                          value={rejectionReason}
+                          onChange={(e) => setRejectionReason(e.target.value)}
+                          placeholder="Reason for rejecting..."
+                          className="min-h-[60px] text-sm"
+                          maxLength={300}
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={() => {
+                              setRejectingId(null);
+                              setRejectionReason("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="text-xs h-7"
+                            disabled={
+                              !rejectionReason.trim() ||
+                              processingId === s.id
+                            }
+                            onClick={() => handleRejectSuggestion(s.id)}
+                          >
+                            {processingId === s.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            ) : null}
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7 text-slate-600"
+                          disabled={processingId === s.id}
+                          onClick={() => setRejectingId(s.id)}
+                        >
+                          Reject
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="text-xs h-7 bg-green-600 hover:bg-green-700 text-white"
+                          disabled={processingId === s.id}
+                          onClick={() => handleApproveSuggestion(s)}
+                        >
+                          {processingId === s.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          ) : (
+                            <Check className="h-3 w-3 mr-1" />
+                          )}
+                          Apply changes
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <Label className="text-sm font-medium text-slate-700">
@@ -389,6 +689,44 @@ export function EditWaypointView({
           )}
         </form>
       </div>
+    </div>
+  );
+}
+
+/* ─── Suggestion diff row ─────────────────────────────── */
+function SuggestionDiff({
+  label,
+  current,
+  suggested,
+  multiline,
+}: {
+  label: string;
+  current: string;
+  suggested: string;
+  multiline?: boolean;
+}) {
+  return (
+    <div
+      className={`text-xs ${multiline ? "space-y-1" : "flex items-center gap-1.5 flex-wrap"}`}
+    >
+      <span className="font-medium text-slate-500">{label}:</span>
+      {multiline ? (
+        <>
+          <p className="text-slate-400 line-clamp-1">{current}</p>
+          <div className="flex items-center gap-1">
+            <ArrowRight className="h-3 w-3 text-green-500 flex-shrink-0" />
+            <p className="text-green-700 font-medium line-clamp-2">
+              {suggested}
+            </p>
+          </div>
+        </>
+      ) : (
+        <>
+          <span className="text-slate-400">{current}</span>
+          <ArrowRight className="h-3 w-3 text-green-500 flex-shrink-0" />
+          <span className="text-green-700 font-medium">{suggested}</span>
+        </>
+      )}
     </div>
   );
 }
