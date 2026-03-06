@@ -64,22 +64,33 @@ export async function POST(
       );
     }
 
-    // Check if user has completed this route (required for community photos)
-    const { data: completion } = await supabase
-      .from("route_completions")
-      .select("id")
-      .eq("route_id", routeId)
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // Route owner can always upload photos to their waypoints
+    const { data: route } = await supabase
+      .from("routes")
+      .select("owner_user_id")
+      .eq("id", routeId)
+      .single();
 
-    if (!completion) {
-      return NextResponse.json(
-        {
-          error:
-            "You must complete this route before adding photos. Mark the route as completed first!",
-        },
-        { status: 403 }
-      );
+    const isRouteOwner = route?.owner_user_id === user.id;
+
+    if (!isRouteOwner) {
+      // Non-owners must have completed the route to upload community photos
+      const { data: completion } = await supabase
+        .from("route_completions")
+        .select("id")
+        .eq("route_id", routeId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!completion) {
+        return NextResponse.json(
+          {
+            error:
+              "You must complete this route before adding photos. Mark the route as completed first!",
+          },
+          { status: 403 }
+        );
+      }
     }
 
     const formData = await request.formData();

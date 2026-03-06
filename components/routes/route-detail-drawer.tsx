@@ -803,6 +803,7 @@ export function RouteDetailDrawer({
       ) : editingWaypoint ? (
         <EditWaypointView
           waypoint={editingWaypoint}
+          routeId={routeId!}
           onBack={handleExitEdit}
           onWaypointUpdated={handleWaypointUpdated}
         />

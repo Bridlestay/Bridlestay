@@ -353,6 +353,13 @@ export default function RoutesPage() {
     }
   }, [layerSettings.showHazards, mapViewMode]);
 
+  // Exit waypoints view mode when the user toggles waypoints off in settings
+  useEffect(() => {
+    if (!layerSettings.showWaymarkers && mapViewMode === "waypoints") {
+      setMapViewMode(null);
+    }
+  }, [layerSettings.showWaymarkers, mapViewMode]);
+
   const fetchExploreRoutes = async () => {
     try {
       // Fetch public routes
@@ -531,6 +538,9 @@ export default function RoutesPage() {
     // Sync layer settings so the toggle reflects the active view mode
     if (mode === "hazards") {
       setLayerSettings((prev) => ({ ...prev, showHazards: true }));
+    }
+    if (mode === "waypoints") {
+      setLayerSettings((prev) => ({ ...prev, showWaymarkers: true }));
     }
     // Route stays drawn on map (selectedRouteId, selectedRouteData, drawnRouteId preserved)
 

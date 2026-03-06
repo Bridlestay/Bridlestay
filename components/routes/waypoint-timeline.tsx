@@ -95,8 +95,8 @@ export function WaypointTimeline({
                     ? () => onFlyToLocation?.(wp.lat, wp.lng)
                     : undefined
                 }
-                onEdit={isOwner && onEditWaypoint ? () => onEditWaypoint(wp) : undefined}
-                onSuggestEdit={!isOwner && onSuggestEdit ? () => onSuggestEdit(wp) : undefined}
+                onEdit={isOwner && onEditWaypoint && !isStart && !isFinish ? () => onEditWaypoint(wp) : undefined}
+                onSuggestEdit={!isOwner && onSuggestEdit && !isStart && !isFinish ? () => onSuggestEdit(wp) : undefined}
                 isOwner={isOwner}
               />
             </div>
