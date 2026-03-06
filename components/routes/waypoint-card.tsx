@@ -251,15 +251,13 @@ export function WaypointCard({
               )}
           </button>
         ) : onSuggestEdit ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs h-7"
+          <button
             onClick={onSuggestEdit}
+            className="text-slate-400 hover:text-slate-700 transition-colors p-1"
+            title="Suggest an edit"
           >
-            <Pencil className="h-3 w-3 mr-1" />
-            Suggest an edit
-          </Button>
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
         ) : null}
       </div>
     </div>

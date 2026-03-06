@@ -44,11 +44,15 @@ export async function POST(
       suggested_tag,
       suggested_icon_type,
       suggested_description,
+      suggested_photos,
       suggestion_comment,
     } = body;
 
-    if (!suggested_name && !suggested_tag && !suggested_icon_type && !suggested_description) {
-      return NextResponse.json({ error: "At least one field must be suggested" }, { status: 400 });
+    const hasTextChanges = suggested_name || suggested_tag || suggested_icon_type || suggested_description;
+    const hasPhotoChanges = Array.isArray(suggested_photos) && suggested_photos.length > 0;
+
+    if (!hasTextChanges && !hasPhotoChanges) {
+      return NextResponse.json({ error: "At least one change must be suggested" }, { status: 400 });
     }
 
     if (!suggestion_comment || !suggestion_comment.trim()) {
@@ -56,18 +60,24 @@ export async function POST(
     }
 
     // Create edit suggestion
+    const insertData: any = {
+      waypoint_id: waypointId,
+      user_id: user.id,
+      suggested_name: suggested_name || null,
+      suggested_tag: suggested_tag || null,
+      suggested_icon_type: suggested_icon_type || null,
+      suggested_description: suggested_description || null,
+      suggestion_comment: suggestion_comment.trim(),
+      status: "pending",
+    };
+
+    if (hasPhotoChanges) {
+      insertData.suggested_photos = suggested_photos;
+    }
+
     const { data: suggestion, error } = await supabase
       .from("waypoint_edit_suggestions")
-      .insert({
-        waypoint_id: waypointId,
-        user_id: user.id,
-        suggested_name,
-        suggested_tag,
-        suggested_icon_type,
-        suggested_description,
-        suggestion_comment: suggestion_comment.trim(),
-        status: "pending",
-      })
+      .insert(insertData)
       .select()
       .single();
 

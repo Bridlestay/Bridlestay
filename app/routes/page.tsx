@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Map, Settings, AlertTriangle, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   Dialog,
@@ -60,16 +61,23 @@ const HAZARD_TYPES = [
 ];
 
 export default function RoutesPage() {
+  const router = useRouter();
   const mapRef = useRef<RoutesMapV2Handle>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
-  // Fetch current user on mount
+  // Fetch current user on mount — redirect if not logged in
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserId(user?.id || null);
+      if (!user) {
+        router.replace("/auth/sign-in");
+        return;
+      }
+      setUserId(user.id);
+      setAuthChecked(true);
     });
-  }, []);
+  }, [router]);
 
   // Navigation tab state
   const [activeTab, setActiveTab] = useState<RouteTab>("map");
@@ -1370,6 +1378,15 @@ export default function RoutesPage() {
           onConfirm={confirmCancel}
         />
       </TooltipProvider>
+    );
+  }
+
+  // Wait for auth check before rendering
+  if (!authChecked) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-white">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-600 border-t-transparent" />
+      </div>
     );
   }
 

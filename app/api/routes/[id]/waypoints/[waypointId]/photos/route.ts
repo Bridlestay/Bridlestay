@@ -64,6 +64,9 @@ export async function POST(
       );
     }
 
+    const { searchParams } = new URL(request.url);
+    const isSuggestionUpload = searchParams.get("suggestion") === "true";
+
     // Route owner can always upload photos to their waypoints
     const { data: route } = await supabase
       .from("routes")
@@ -73,7 +76,7 @@ export async function POST(
 
     const isRouteOwner = route?.owner_user_id === user.id;
 
-    if (!isRouteOwner) {
+    if (!isRouteOwner && !isSuggestionUpload) {
       // Non-owners must have completed the route to upload community photos
       const { data: completion } = await supabase
         .from("route_completions")
@@ -121,7 +124,8 @@ export async function POST(
 
     // Upload to Supabase Storage (reuse route-photos bucket)
     const fileExt = file.name.split(".").pop();
-    const fileName = `${routeId}/waypoints/${waypointId}/${user.id}/${Date.now()}.${fileExt}`;
+    const subDir = isSuggestionUpload ? "suggestions" : user.id;
+    const fileName = `${routeId}/waypoints/${waypointId}/${subDir}/${Date.now()}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from("route-photos")
@@ -139,6 +143,11 @@ export async function POST(
     const {
       data: { publicUrl },
     } = supabase.storage.from("route-photos").getPublicUrl(fileName);
+
+    // Suggestion mode: return URL only, don't create DB record
+    if (isSuggestionUpload) {
+      return NextResponse.json({ url: publicUrl }, { status: 201 });
+    }
 
     // Use service client for DB insert (bypasses RLS)
     const serviceClient = createServiceClient();

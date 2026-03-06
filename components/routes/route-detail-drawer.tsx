@@ -1580,6 +1580,7 @@ export function RouteDetailDrawer({
                   open={suggestEditDialogOpen}
                   onOpenChange={setSuggestEditDialogOpen}
                   waypoint={waypointToSuggestEdit}
+                  routeId={routeId || undefined}
                 />
               )}
             </div>

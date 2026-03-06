@@ -68,6 +68,12 @@ interface WaypointPhoto {
   user?: { id: string; name?: string; avatar_url?: string } | null;
 }
 
+interface SuggestedPhotoEntry {
+  action: "add" | "remove";
+  url: string;
+  caption?: string | null;
+}
+
 interface EditSuggestion {
   id: string;
   waypoint_id: string;
@@ -76,6 +82,7 @@ interface EditSuggestion {
   suggested_tag: string | null;
   suggested_icon_type: string | null;
   suggested_description: string | null;
+  suggested_photos: SuggestedPhotoEntry[] | null;
   suggestion_comment: string;
   status: "pending" | "approved" | "rejected";
   created_at: string;
@@ -299,6 +306,32 @@ export function EditWaypointView({
     }
   };
 
+  const handleApprovePhotosOnly = async (suggestion: EditSuggestion) => {
+    setProcessingId(suggestion.id);
+    try {
+      const res = await fetch(
+        `/api/waypoints/${waypoint.id}/edit-suggestions/${suggestion.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "approve_photos" }),
+        }
+      );
+
+      if (res.ok) {
+        setSuggestions((prev) => prev.filter((s) => s.id !== suggestion.id));
+        toast.success("Photos accepted!");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to accept photos");
+      }
+    } catch {
+      toast.error("Failed to accept photos");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const handleRejectSuggestion = async (suggestionId: string) => {
     if (!rejectionReason.trim()) {
       toast.error("Please provide a reason for rejection");
@@ -517,6 +550,33 @@ export function EditWaypointView({
                       )}
                     </div>
 
+                    {/* Suggested photos */}
+                    {Array.isArray(s.suggested_photos) &&
+                      s.suggested_photos.length > 0 && (
+                        <div className="mb-3">
+                          <span className="text-xs font-medium text-slate-500 block mb-1.5">
+                            Suggested photos:
+                          </span>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {s.suggested_photos
+                              .filter((p) => p.action === "add")
+                              .map((p, idx) => (
+                                <div
+                                  key={idx}
+                                  className="relative h-16 rounded-md overflow-hidden"
+                                >
+                                  <Image
+                                    src={p.url}
+                                    alt={p.caption || "Suggested photo"}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+
                     {/* Actions */}
                     {rejectingId === s.id ? (
                       <div className="space-y-2">
@@ -559,7 +619,7 @@ export function EditWaypointView({
                         </div>
                       </div>
                     ) : (
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           type="button"
                           variant="outline"
@@ -570,6 +630,29 @@ export function EditWaypointView({
                         >
                           Reject
                         </Button>
+                        {/* Accept photos only (when suggestion has both text + photos) */}
+                        {Array.isArray(s.suggested_photos) &&
+                          s.suggested_photos.length > 0 &&
+                          (s.suggested_name !== null ||
+                            s.suggested_tag !== null ||
+                            s.suggested_icon_type !== null ||
+                            s.suggested_description !== null) && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="text-xs h-7 text-green-600 border-green-200 hover:bg-green-50"
+                              disabled={processingId === s.id}
+                              onClick={() => handleApprovePhotosOnly(s)}
+                            >
+                              {processingId === s.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                              ) : (
+                                <ImagePlus className="h-3 w-3 mr-1" />
+                              )}
+                              Accept photos only
+                            </Button>
+                          )}
                         <Button
                           type="button"
                           size="sm"
@@ -582,7 +665,7 @@ export function EditWaypointView({
                           ) : (
                             <Check className="h-3 w-3 mr-1" />
                           )}
-                          Apply changes
+                          Apply all changes
                         </Button>
                       </div>
                     )}
