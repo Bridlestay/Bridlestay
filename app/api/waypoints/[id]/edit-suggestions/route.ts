@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 // POST /api/waypoints/[id]/edit-suggestions - Create edit suggestion
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -14,7 +14,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const waypointId = params.id;
+    const { id: waypointId } = await params;
     const body = await req.json();
 
     // Check if waypoint exists and user is NOT the owner
@@ -96,7 +96,7 @@ export async function POST(
 // GET /api/waypoints/[id]/edit-suggestions - Get all edit suggestions for a waypoint
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -106,7 +106,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const waypointId = params.id;
+    const { id: waypointId } = await params;
 
     // Check if waypoint exists and user is the owner
     const { data: waypoint } = await supabase

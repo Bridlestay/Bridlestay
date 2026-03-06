@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 // PATCH /api/waypoints/[id]/edit-suggestions/[suggestionId] - Approve or reject suggestion
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string; suggestionId: string } }
+  { params }: { params: Promise<{ id: string; suggestionId: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -15,8 +15,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const waypointId = params.id;
-    const suggestionId = params.suggestionId;
+    const { id: waypointId, suggestionId } = await params;
     const body = await req.json();
     // action: "approve" | "reject" | "approve_photos"
     const { action, rejection_reason } = body;
