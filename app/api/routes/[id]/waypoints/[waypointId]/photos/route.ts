@@ -16,7 +16,7 @@ export async function GET(
       .select(
         `
         *,
-        user:users!waypoint_photos_user_id_fkey(id, name, avatar_url)
+        user:users(id, name, avatar_url)
       `
       )
       .eq("waypoint_id", waypointId)
@@ -155,7 +155,7 @@ export async function POST(
       .select(
         `
         *,
-        user:users!waypoint_photos_user_id_fkey(id, name, avatar_url)
+        user:users(id, name, avatar_url)
       `
       )
       .single();
