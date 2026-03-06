@@ -123,7 +123,7 @@ export function EditWaypointView({
 
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/waypoints/${waypoint.id}`, {
+      const res = await fetch(`/api/routes/${routeId}/waypoints/${waypoint.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
