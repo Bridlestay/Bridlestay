@@ -72,10 +72,10 @@ export function EditWaypointView({
   onBack,
   onWaypointUpdated,
 }: EditWaypointViewProps) {
-  const [name, setName] = useState("");
-  const [tag, setTag] = useState("");
-  const [iconType, setIconType] = useState("");
-  const [description, setDescription] = useState("");
+  const [name, setName] = useState(waypoint.name || "");
+  const [tag, setTag] = useState(waypoint.tag || "");
+  const [iconType, setIconType] = useState(waypoint.icon_type || "");
+  const [description, setDescription] = useState(waypoint.description || "");
   const [submitting, setSubmitting] = useState(false);
 
   // Photo state
@@ -83,15 +83,6 @@ export function EditWaypointView({
   const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (waypoint) {
-      setName(waypoint.name || "");
-      setTag(waypoint.tag || "note");
-      setIconType(waypoint.icon_type || "");
-      setDescription(waypoint.description || "");
-    }
-  }, [waypoint]);
 
   // Fetch existing photos
   useEffect(() => {
@@ -128,7 +119,7 @@ export function EditWaypointView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
-          tag,
+          tag: tag || null,
           icon_type: iconType || null,
           description: description.trim() || null,
         }),
@@ -321,7 +312,7 @@ export function EditWaypointView({
               </Label>
               <Select value={tag} onValueChange={setTag}>
                 <SelectTrigger className="mt-1.5">
-                  <SelectValue />
+                  <SelectValue placeholder="Optional..." />
                 </SelectTrigger>
                 <SelectContent>
                   {WAYPOINT_TAGS.map((t) => (
