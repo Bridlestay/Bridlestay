@@ -50,8 +50,9 @@ interface WaypointCardProps {
 
 const TAG_CONFIG: Record<string, { label: string; className: string }> = {
   instruction: { label: "Instruction", className: "bg-blue-100 text-blue-700 border-blue-200" },
-  poi: { label: "POI", className: "bg-purple-100 text-purple-700 border-purple-200" },
+  poi: { label: "Point of Interest", className: "bg-purple-100 text-purple-700 border-purple-200" },
   caution: { label: "Caution", className: "bg-amber-100 text-amber-700 border-amber-200" },
+  note: { label: "Note", className: "bg-slate-100 text-slate-700 border-slate-200" },
 };
 
 const ICON_MAP: Record<string, { icon: any; color: string; label: string }> = {

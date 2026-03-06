@@ -29,14 +29,16 @@ export async function GET(
         .slice(0, 3);
 
       const { waypoint_photos: _raw, ...rest } = wp;
+      const photoList = communityPhotos.map((p: any) => ({
+        id: p.id,
+        url: p.url,
+        caption: p.caption,
+      }));
       return {
         ...rest,
         photo_count: (wp.waypoint_photos || []).length,
-        community_photos: communityPhotos.map((p: any) => ({
-          id: p.id,
-          url: p.url,
-          caption: p.caption,
-        })),
+        community_photos: photoList,
+        photos: photoList,
       };
     });
 
