@@ -127,7 +127,12 @@ export async function POST(
     const subDir = isSuggestionUpload ? "suggestions" : user.id;
     const fileName = `${routeId}/waypoints/${waypointId}/${subDir}/${Date.now()}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
+    // Use service client for suggestion uploads (bypasses storage RLS)
+    const storageClient = isSuggestionUpload
+      ? createServiceClient()
+      : supabase;
+
+    const { error: uploadError } = await storageClient.storage
       .from("route-photos")
       .upload(fileName, file);
 
@@ -142,7 +147,7 @@ export async function POST(
     // Get public URL
     const {
       data: { publicUrl },
-    } = supabase.storage.from("route-photos").getPublicUrl(fileName);
+    } = storageClient.storage.from("route-photos").getPublicUrl(fileName);
 
     // Suggestion mode: return URL only, don't create DB record
     if (isSuggestionUpload) {
