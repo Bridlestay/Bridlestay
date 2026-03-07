@@ -76,6 +76,7 @@ export function SuggestEditWaypointDialog({
   const [iconType, setIconType] = useState("");
   const [description, setDescription] = useState("");
   const [comment, setComment] = useState("");
+  const [commentError, setCommentError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Photo state
@@ -90,6 +91,7 @@ export function SuggestEditWaypointDialog({
       setIconType(waypoint.icon_type || "");
       setDescription(waypoint.description || "");
       setComment("");
+      setCommentError(false);
       setSuggestedPhotos([]);
     }
   }, [open, waypoint]);
@@ -153,7 +155,7 @@ export function SuggestEditWaypointDialog({
     }
 
     if (!comment.trim()) {
-      toast.error("Please add a comment explaining your suggestion");
+      setCommentError(true);
       return;
     }
 
@@ -351,16 +353,23 @@ export function SuggestEditWaypointDialog({
           )}
 
           <div>
-            <Label>Explain your suggestion *</Label>
+            <Label className={commentError ? "text-red-600" : ""}>
+              Explain your suggestion *
+            </Label>
             <Textarea
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              onChange={(e) => {
+                setComment(e.target.value);
+                if (e.target.value.trim()) setCommentError(false);
+              }}
               placeholder="Why are you suggesting these changes?"
               maxLength={500}
-              className="min-h-[60px]"
+              className={`min-h-[60px] ${commentError ? "border-red-400 focus-visible:ring-red-400" : ""}`}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Help the owner understand your suggestion
+            <p className={`text-xs mt-1 ${commentError ? "text-red-500" : "text-muted-foreground"}`}>
+              {commentError
+                ? "Please explain why you're suggesting these changes"
+                : "Help the owner understand your suggestion"}
             </p>
           </div>
         </div>

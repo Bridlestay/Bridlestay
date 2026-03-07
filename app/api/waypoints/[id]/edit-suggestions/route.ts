@@ -126,10 +126,7 @@ export async function GET(
     // Get all edit suggestions for this waypoint
     const { data: suggestions, error } = await supabase
       .from("waypoint_edit_suggestions")
-      .select(`
-        *,
-        users!waypoint_edit_suggestions_user_id_fkey(id, username, avatar_url)
-      `)
+      .select("*")
       .eq("waypoint_id", waypointId)
       .order("created_at", { ascending: false });
 
@@ -138,7 +135,32 @@ export async function GET(
       return NextResponse.json({ error: "Failed to fetch suggestions" }, { status: 500 });
     }
 
-    return NextResponse.json({ suggestions }, { status: 200 });
+    // Fetch user info separately (FK points to auth.users, not public.users)
+    const userIds = [
+      ...new Set(
+        (suggestions || []).map((s: any) => s.user_id).filter(Boolean)
+      ),
+    ];
+    let usersMap: Record<string, any> = {};
+    if (userIds.length > 0) {
+      const { data: users } = await supabase
+        .from("users")
+        .select("id, username, avatar_url")
+        .in("id", userIds);
+      if (users) {
+        for (const u of users) {
+          usersMap[u.id] = u;
+        }
+      }
+    }
+
+    // Attach user info to each suggestion
+    const enriched = (suggestions || []).map((s: any) => ({
+      ...s,
+      users: usersMap[s.user_id] || null,
+    }));
+
+    return NextResponse.json({ suggestions: enriched }, { status: 200 });
   } catch (error) {
     console.error("Error in GET /api/waypoints/[id]/edit-suggestions:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
