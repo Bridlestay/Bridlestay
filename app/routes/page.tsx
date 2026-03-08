@@ -961,7 +961,7 @@ export default function RoutesPage() {
       route_type: routeType,
       geometry: {
         type: "LineString",
-        coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
+        coordinates: mapRef.current?.getRouteGeometry?.() || waypoints.map((wp) => [wp.lng, wp.lat]),
       },
       distance_km: createDistanceKm,
       estimated_time_minutes: createRideTimeMinutes,

@@ -191,6 +191,7 @@ export interface RoutesMapMapboxHandle {
   highlightRoute: (routeId: string | null) => void;
   setMapType: (type: string) => void;
   showPropertyInfoWindow: (propertyId: string) => void;
+  getRouteGeometry: () => [number, number][];
 }
 
 // Convert Google Maps map types to Mapbox styles
@@ -274,6 +275,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const startEndMarkersRef = useRef<mapboxgl.Marker[]>([]);
     // Flag to prevent map click from firing when a marker was clicked
     const markerClickedRef = useRef(false);
+    // Snapped route segments: stores road-following geometry per segment
+    // Key: "wpIndex" (0, 1, 2...), Value: array of [lng, lat] coordinates for that segment
+    const snappedSegmentsRef = useRef<Map<number, [number, number][]>>(new Map());
 
     const { isLoaded, loadError } = useMapbox();
     const [mapLoaded, setMapLoaded] = useState(false);
@@ -351,6 +355,38 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       showPropertyInfoWindow: (propertyId: string) => {
         // TODO: Implement property info window
         console.log("showPropertyInfoWindow called:", propertyId);
+      },
+      // Get the full route geometry (snapped if available, straight-line fallback)
+      getRouteGeometry: (): [number, number][] => {
+        const wps = waypointsRef.current;
+        if (wps.length < 2) return wps.map(wp => [wp.lng, wp.lat]);
+
+        const segments = snappedSegmentsRef.current;
+        if (segments.size === 0) {
+          // No snapped data — return straight lines
+          return wps.map(wp => [wp.lng, wp.lat]);
+        }
+
+        // Build full geometry from snapped segments
+        const coords: [number, number][] = [];
+        for (let i = 0; i < wps.length - 1; i++) {
+          const seg = segments.get(i);
+          if (seg && seg.length > 0) {
+            // Add segment coordinates (skip first point of subsequent segments to avoid duplicates)
+            if (coords.length === 0) {
+              coords.push(...seg);
+            } else {
+              coords.push(...seg.slice(1));
+            }
+          } else {
+            // Fallback to straight line for this segment
+            if (coords.length === 0) {
+              coords.push([wps[i].lng, wps[i].lat]);
+            }
+            coords.push([wps[i + 1].lng, wps[i + 1].lat]);
+          }
+        }
+        return coords;
       },
     }));
 
@@ -540,29 +576,31 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           }
         }
 
-        if (snapEnabledRef.current) {
-          // Try snapping to nearest road/path using Mapbox Map Matching API
+        if (snapEnabledRef.current && wps.length > 0) {
+          // Use Mapbox Directions API to get road-following route from last waypoint
           try {
-            if (wps.length > 0) {
-              const prev = wps[wps.length - 1];
-              const response = await fetch(
-                `https://api.mapbox.com/matching/v5/mapbox/walking/${prev.lng},${prev.lat};${lng},${lat}?access_token=${mapboxgl.accessToken}&geometries=geojson&steps=false&overview=simplified`
-              );
-              const data = await response.json();
-              if (data.matchings?.[0]?.geometry?.coordinates) {
-                const coords = data.matchings[0].geometry.coordinates;
-                const snappedPoint = coords[coords.length - 1];
-                onWaypointAddRef.current?.(snappedPoint[1], snappedPoint[0], true, "road");
-                return;
-              }
+            const prev = wps[wps.length - 1];
+            const response = await fetch(
+              `https://api.mapbox.com/directions/v5/mapbox/walking/${prev.lng},${prev.lat};${lng},${lat}?access_token=${mapboxgl.accessToken}&geometries=geojson&overview=full`
+            );
+            const data = await response.json();
+            if (data.routes?.[0]?.geometry?.coordinates) {
+              const routeCoords = data.routes[0].geometry.coordinates as [number, number][];
+              // Snapped destination = last point of the directions result
+              const snappedPoint = routeCoords[routeCoords.length - 1];
+              // Store the full road-following segment geometry
+              const segIndex = wps.length - 1; // segment from prev to new
+              snappedSegmentsRef.current.set(segIndex, routeCoords);
+              onWaypointAddRef.current?.(snappedPoint[1], snappedPoint[0], true, "road");
+              return;
             }
-            // Fallback: no previous point or matching failed
+            // Directions failed — fall back to unsnapped
             onWaypointAddRef.current?.(lat, lng, false);
           } catch {
-            // On error, fall back to unsnapped
             onWaypointAddRef.current?.(lat, lng, false);
           }
         } else {
+          // No snap or first waypoint — place directly
           onWaypointAddRef.current?.(lat, lng);
         }
       });
@@ -1418,9 +1456,35 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       waypointMarkersRef.current.clear();
 
       if (isCreating && waypoints.length > 0) {
-        // Draw line connecting waypoints
-        const coordinates = waypoints.map((wp) => [wp.lng, wp.lat]);
-        
+        // Build route line — use snapped segments when available
+        let coordinates: [number, number][];
+        const segments = snappedSegmentsRef.current;
+
+        if (segments.size > 0 && waypoints.length >= 2) {
+          // Build from snapped segments
+          coordinates = [];
+          for (let i = 0; i < waypoints.length - 1; i++) {
+            const seg = segments.get(i);
+            if (seg && seg.length > 0) {
+              // Add segment (skip first point after first segment to avoid dups)
+              if (coordinates.length === 0) {
+                coordinates.push(...seg);
+              } else {
+                coordinates.push(...seg.slice(1));
+              }
+            } else {
+              // No snapped data for this segment — straight line
+              if (coordinates.length === 0) {
+                coordinates.push([waypoints[i].lng, waypoints[i].lat]);
+              }
+              coordinates.push([waypoints[i + 1].lng, waypoints[i + 1].lat]);
+            }
+          }
+        } else {
+          // No snapped data — straight lines between waypoints
+          coordinates = waypoints.map((wp) => [wp.lng, wp.lat]);
+        }
+
         // If circular, connect back to start
         if (routeType === "circular" && waypoints.length > 2) {
           coordinates.push([waypoints[0].lng, waypoints[0].lat]);
@@ -1469,10 +1533,45 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             .setLngLat([wp.lng, wp.lat])
             .addTo(mapRef.current!);
 
-          // Handle drag — use ref to get current callback with correct signature
-          marker.on("dragend", () => {
+          // Handle drag — update waypoint position, re-fetch snapped segments if snap is on
+          marker.on("dragend", async () => {
             const lngLat = marker.getLngLat();
             onWaypointUpdateRef.current?.(wp.id, lngLat.lat, lngLat.lng);
+
+            // Re-fetch affected snapped segments after drag
+            if (snapEnabledRef.current) {
+              const token = mapboxgl.accessToken;
+              const wps = waypointsRef.current;
+              const wpIdx = wps.findIndex(w => w.id === wp.id);
+              if (wpIdx < 0 || !token) return;
+
+              // Re-fetch segment before this waypoint
+              if (wpIdx > 0) {
+                try {
+                  const prev = wps[wpIdx - 1];
+                  const res = await fetch(
+                    `https://api.mapbox.com/directions/v5/mapbox/walking/${prev.lng},${prev.lat};${lngLat.lng},${lngLat.lat}?access_token=${token}&geometries=geojson&overview=full`
+                  );
+                  const data = await res.json();
+                  if (data.routes?.[0]?.geometry?.coordinates) {
+                    snappedSegmentsRef.current.set(wpIdx - 1, data.routes[0].geometry.coordinates);
+                  }
+                } catch { /* skip */ }
+              }
+              // Re-fetch segment after this waypoint
+              if (wpIdx < wps.length - 1) {
+                try {
+                  const next = wps[wpIdx + 1];
+                  const res = await fetch(
+                    `https://api.mapbox.com/directions/v5/mapbox/walking/${lngLat.lng},${lngLat.lat};${next.lng},${next.lat}?access_token=${token}&geometries=geojson&overview=full`
+                  );
+                  const data = await res.json();
+                  if (data.routes?.[0]?.geometry?.coordinates) {
+                    snappedSegmentsRef.current.set(wpIdx, data.routes[0].geometry.coordinates);
+                  }
+                } catch { /* skip */ }
+              }
+            }
           });
 
           // Handle click on marker — always set flag to prevent map click from
@@ -1491,6 +1590,60 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         source.setData({ type: "FeatureCollection", features: [] });
       }
     }, [isCreating, waypoints, routeType, toolMode, mapLoaded, styleLoadCount, routeStyle]);
+
+    // Clean up snapped segments when waypoints change or snap is toggled off
+    useEffect(() => {
+      if (!snapEnabled) {
+        // Snap turned off — clear all snapped geometry
+        snappedSegmentsRef.current.clear();
+        return;
+      }
+      // Remove segments for indices that no longer exist
+      const maxIdx = waypoints.length - 2; // max valid segment index
+      const segments = snappedSegmentsRef.current;
+      for (const key of Array.from(segments.keys())) {
+        if (key > maxIdx) {
+          segments.delete(key);
+        }
+      }
+      // If waypoints were cleared entirely, clear all segments
+      if (waypoints.length < 2) {
+        segments.clear();
+      }
+    }, [waypoints, snapEnabled]);
+
+    // When snap is toggled ON with existing waypoints, fetch all segments
+    useEffect(() => {
+      if (!snapEnabled || waypoints.length < 2) return;
+
+      // Check if we already have segments — if so, don't re-fetch
+      if (snappedSegmentsRef.current.size > 0) return;
+
+      const fetchAllSegments = async () => {
+        const token = mapboxgl.accessToken;
+        if (!token) return;
+
+        for (let i = 0; i < waypoints.length - 1; i++) {
+          const from = waypoints[i];
+          const to = waypoints[i + 1];
+          try {
+            const response = await fetch(
+              `https://api.mapbox.com/directions/v5/mapbox/walking/${from.lng},${from.lat};${to.lng},${to.lat}?access_token=${token}&geometries=geojson&overview=full`
+            );
+            const data = await response.json();
+            if (data.routes?.[0]?.geometry?.coordinates) {
+              snappedSegmentsRef.current.set(i, data.routes[0].geometry.coordinates);
+            }
+          } catch {
+            // Skip failed segments
+          }
+        }
+        // Trigger a re-render to update the displayed line
+        setStyleLoadCount(prev => prev + 1);
+      };
+
+      fetchAllSegments();
+    }, [snapEnabled]);
 
     // Update creation route style
     useEffect(() => {
