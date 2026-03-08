@@ -240,7 +240,7 @@ export function SaveRouteModal({
       />
 
       {/* Modal card */}
-      <div className="relative w-full max-w-md mx-4 max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div className="relative w-full max-w-2xl mx-4 max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -250,7 +250,7 @@ export function SaveRouteModal({
         </button>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {/* Stats grid — matches route detail card style */}
           <div className="px-6 pt-6 pb-4">
             <div className="grid grid-cols-2 gap-3">
