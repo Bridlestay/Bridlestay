@@ -229,6 +229,18 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const { isLoaded, loadError } = useMapbox();
     const [mapLoaded, setMapLoaded] = useState(false);
 
+    // Refs to avoid stale closures in the map click handler
+    const isCreatingRef = useRef(isCreating);
+    const isPlottingRef = useRef(isPlotting);
+    const toolModeRef = useRef(toolMode);
+    const onWaypointAddRef = useRef(onWaypointAdd);
+    const waypointsRef = useRef(waypoints);
+    isCreatingRef.current = isCreating;
+    isPlottingRef.current = isPlotting;
+    toolModeRef.current = toolMode;
+    onWaypointAddRef.current = onWaypointAdd;
+    waypointsRef.current = waypoints;
+
     // Expose methods to parent via ref
     useImperativeHandle(ref, () => ({
       panTo: (lat: number, lng: number) => {
@@ -380,22 +392,23 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       });
 
       // Handle click on map for adding waypoints (UK only)
+      // Uses refs to avoid stale closures since this runs once on mount
       map.on("click", (e) => {
-        if (!isCreating || !isPlotting || toolMode !== "plot") return;
-        
+        if (!isCreatingRef.current || !isPlottingRef.current || toolModeRef.current !== "plot") return;
+
         const { lng, lat } = e.lngLat;
-        
+
         // Check if point is within UK bounds
         if (!isWithinUK(lng, lat)) {
           toast.error("Routes can only be created within the UK & Ireland");
           return;
         }
-        
-        onWaypointAdd?.({
+
+        onWaypointAddRef.current?.({
           id: `wp-${Date.now()}`,
           lat,
           lng,
-          order: waypoints.length,
+          order: waypointsRef.current.length,
         });
       });
 
