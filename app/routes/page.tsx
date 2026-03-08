@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 // Using Mapbox instead of Google Maps for better outdoor mapping
 import { RoutesMapMapbox as RoutesMapV2, RoutesMapMapboxHandle as RoutesMapV2Handle } from "@/components/routes/routes-map-mapbox";
 import { RouteDetailDrawer } from "@/components/routes/route-detail-drawer";
-import { RouteCreator, RouteCreatorToolbar, PathLayerToggles, Waypoint, RouteData, RouteStyle, ToolMode } from "@/components/routes/route-creator";
+import { RouteCreatorToolbar, Waypoint, RouteStyle, ToolMode } from "@/components/routes/route-creator";
+import { RouteStatsPill, SaveRouteButton } from "@/components/routes/route-creation-overlay";
+import { SaveRouteModal, SaveRouteFormData } from "@/components/routes/save-route-modal";
 import { MapLayerControls, LayerSettings } from "@/components/routes/map-layer-controls";
 import { RoutesNavTabs, RouteTab } from "@/components/routes/routes-nav-tabs";
 import { SavedRoutesPanel } from "@/components/routes/saved-routes-panel";
@@ -149,13 +151,12 @@ export default function RoutesPage() {
   const [history, setHistory] = useState<Waypoint[][]>([]);
   const [toolMode, setToolMode] = useState<ToolMode>("plot");
   const [showToolbarInCreate, setShowToolbarInCreate] = useState(true);
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordedPath, setRecordedPath] = useState<{ lat: number; lng: number }[]>([]);
 
-  // Mobile create route state (toggles between map and options/settings view)
-  const [mobileCreateView, setMobileCreateView] = useState<"options" | "map">("options");
   const [pendingTabChange, setPendingTabChange] = useState<RouteTab | null>(null);
 
   // Mobile panel state for Find/Saved (whether to show panel or map)
@@ -267,7 +268,6 @@ export default function RoutesPage() {
   useEffect(() => {
     if (activeTab === "create") {
       startCreating();
-      setMobileCreateView("options"); // Start with options on mobile
     } else {
       if (isCreating && waypoints.length > 0) {
         // Don't auto-cancel if there's a pending tab change dialog
@@ -912,32 +912,64 @@ export default function RoutesPage() {
     toast.info("Route cleared");
   }, []);
 
-  const handleSaveRoute = async (routeData: RouteData) => {
-    if (!routeData.title?.trim()) {
-      throw new Error("Route name is required");
+  // Distance calculation for the floating stats pill
+  const haversineDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const createDistanceKm = (() => {
+    if (waypoints.length < 2) return 0;
+    let total = 0;
+    for (let i = 1; i < waypoints.length; i++) {
+      total += haversineDistance(
+        waypoints[i - 1].lat, waypoints[i - 1].lng,
+        waypoints[i].lat, waypoints[i].lng
+      );
     }
+    if (routeType === "circular" && waypoints.length > 2) {
+      total += haversineDistance(
+        waypoints[waypoints.length - 1].lat, waypoints[waypoints.length - 1].lng,
+        waypoints[0].lat, waypoints[0].lng
+      );
+    }
+    return total;
+  })();
+
+  const createRideTimeMinutes = Math.round((createDistanceKm / 10) * 60);
+
+  // Handle save from the new modal (wraps handleSaveRoute + photo uploads)
+  const handleModalSave = async (formData: SaveRouteFormData) => {
     if (waypoints.length < 2) {
       throw new Error("At least 2 waypoints are required");
     }
 
     const payload = {
-      title: routeData.title.trim(),
-      description: routeData.description?.trim() || "",
-      visibility: routeData.visibility,
-      difficulty: routeData.difficulty,
+      title: formData.title.trim(),
+      description: formData.description?.trim() || "",
+      visibility: formData.visibility,
+      difficulty: formData.difficulty,
       route_type: routeType,
       geometry: {
         type: "LineString",
         coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
       },
-      distance_km: routeData.distanceKm,
-      estimated_time_minutes: routeData.estimatedTimeMinutes,
-      is_public: routeData.visibility === "public",
+      distance_km: createDistanceKm,
+      estimated_time_minutes: createRideTimeMinutes,
+      is_public: formData.visibility === "public",
     };
 
-    // Use PATCH for editing, POST for creating
-    const url = isEditing && editingRouteId 
-      ? `/api/routes/${editingRouteId}` 
+    const url = isEditing && editingRouteId
+      ? `/api/routes/${editingRouteId}`
       : "/api/routes";
     const method = isEditing && editingRouteId ? "PATCH" : "POST";
 
@@ -952,38 +984,27 @@ export default function RoutesPage() {
       throw new Error(errorData.error || "Failed to save route");
     }
 
-    // Get the saved route data (includes route ID)
     const savedRoute = await res.json();
     const routeId = savedRoute.route?.id || savedRoute.id;
 
-    // Save route waypoints (POIs/instructions/cautions) if any
-    if (routeData.routeWaypoints && routeData.routeWaypoints.length > 0 && routeId) {
+    // Upload photos if any
+    if (formData.photos.length > 0 && routeId) {
       try {
-        const waypointPromises = routeData.routeWaypoints.map((wp, index) =>
-          fetch(`/api/routes/${routeId}/waypoints`, {
+        for (const photo of formData.photos) {
+          const photoForm = new FormData();
+          photoForm.append("file", photo.file);
+          await fetch(`/api/routes/${routeId}/photos`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              lat: wp.lat,
-              lng: wp.lng,
-              name: wp.name,
-              tag: wp.tag,
-              icon_type: wp.icon_type,
-              description: wp.description,
-              order_index: index,
-            }),
-          })
-        );
-
-        await Promise.all(waypointPromises);
-        toast.success(`Route saved with ${routeData.routeWaypoints.length} waypoint${routeData.routeWaypoints.length > 1 ? "s" : ""}!`);
-      } catch (waypointError) {
-        console.error("Failed to save route waypoints:", waypointError);
-        toast.warning("Route saved, but some waypoints failed to save");
+            body: photoForm,
+          });
+        }
+      } catch (photoError) {
+        console.error("Failed to upload some photos:", photoError);
+        toast.warning("Route saved, but some photos failed to upload");
       }
-    } else {
-      toast.success(isEditing ? "Route updated!" : "Route saved!");
     }
+
+    toast.success(isEditing ? "Route updated!" : "Route saved!");
 
     // Reset state
     setIsCreating(false);
@@ -996,6 +1017,7 @@ export default function RoutesPage() {
     setToolMode("plot");
     setActiveTab("map");
     setDrawnRouteId(null);
+    setShowSaveModal(false);
     fetchExploreRoutes();
   };
 
@@ -1089,12 +1111,8 @@ export default function RoutesPage() {
     return (
       <TooltipProvider>
         <div className="fixed inset-0 bg-background">
-          {/* Full-screen map for route creation - always rendered, visibility controlled */}
-          <div className={cn(
-            "absolute inset-0",
-            // On mobile, only show map when in map view
-            mobileCreateView === "options" ? "hidden md:block" : "block"
-          )}>
+          {/* Full-screen map for route creation */}
+          <div className="absolute inset-0">
             <RoutesMapV2
               ref={mapRef}
               isCreating={isCreating}
@@ -1120,70 +1138,11 @@ export default function RoutesPage() {
             />
           </div>
 
-          {/* Desktop: Show either nav tabs or creation toolbar (one at a time) */}
-          {!showToolbarInCreate && (
-            <div className="hidden md:block">
-              <RoutesNavTabs
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-                onSwitchToToolbar={() => setShowToolbarInCreate(true)}
-              />
-            </div>
-          )}
-
-          {/* DESKTOP: Route creation sidebar (left panel) */}
-          <div className="hidden md:flex absolute top-0 left-0 bottom-0 w-96 bg-white shadow-2xl z-20 flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto">
-              <RouteCreator
-                onSave={handleSaveRoute}
-                onCancel={() => {
-                  if (waypoints.length > 0) {
-                    setShowDiscardDialog(true);
-                  } else {
-                    confirmCancel();
-                  }
-                }}
-                mapRef={mapRef}
-                existingRoute={{
-                  title: isEditing && editingRouteData ? editingRouteData.title : "",
-                  description: isEditing && editingRouteData ? (editingRouteData.description || "") : "",
-                  visibility: isEditing && editingRouteData ? (editingRouteData.visibility || "private") : "private",
-                  difficulty: isEditing && editingRouteData ? (editingRouteData.difficulty || "unrated") : "unrated",
-                  routeType,
-                  waypoints,
-                  geometry: {
-                    type: "LineString",
-                    coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
-                  },
-                  distanceKm: isEditing && editingRouteData ? (editingRouteData.distance_km || 0) : 0,
-                  estimatedTimeMinutes: isEditing && editingRouteData ? (editingRouteData.estimated_time_minutes || 0) : 0,
-                }}
-                isEditing={isEditing}
-                onWaypointPlacementModeChange={handleWaypointPlacementModeChange}
-              />
-            </div>
-            <div className="border-t p-4">
-              <PathLayerToggles
-                layers={pathLayers}
-                onToggle={(layer, enabled) => {
-                  setLayerSettings((prev) => {
-                    const key = layer === "bridleways" ? "showBridleways" :
-                                layer === "boats" ? "showByways" :
-                                layer === "footpaths" ? "showFootpaths" :
-                                "showRestrictedByways";
-                    return { ...prev, [key]: enabled };
-                  });
-                }}
-              />
-            </div>
-          </div>
-
-          {/* MOBILE: Map view with bottom sheet for options */}
+          {/* MOBILE: Top header */}
           <div className="md:hidden">
-            {/* Mobile top header with hamburger, search, profile - always visible */}
             <MobileTopHeader />
 
-            {/* Mobile Route Creator Toolbar below header */}
+            {/* Mobile toolbar below header */}
             <div className="fixed top-14 left-0 right-0 z-30 bg-white border-b border-gray-100 px-3 py-2">
               <RouteCreatorToolbar
                 isPlotting={isPlotting}
@@ -1200,115 +1159,15 @@ export default function RoutesPage() {
               />
             </div>
 
-            {/* Options button - bottom center (only when sheet is closed) */}
-            {mobileCreateView === "map" && (
-              <div className="fixed bottom-20 left-0 right-0 pb-2 z-30">
-                <MobilePanelToggle
-                  mode="options"
-                  onClick={() => setMobileCreateView("options")}
-                  alwaysVisible={true}
-                />
-              </div>
-            )}
+            {/* Mobile FAB for map settings */}
+            <MobileFabMenu
+              onOpenSettings={() => setShowLayerPanel(true)}
+              onLocateMe={handleLocateMe}
+            />
 
-            {/* Mobile FAB for map settings (only when sheet is closed) */}
-            {mobileCreateView === "map" && (
-              <MobileFabMenu 
-                onOpenSettings={() => setShowLayerPanel(true)}
-                onLocateMe={handleLocateMe}
-              />
-            )}
-
-            {/* Bottom sheet for route options - slides up */}
-            <div
-              className={cn(
-                "fixed left-0 right-0 bottom-0 z-40 bg-white rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out",
-                mobileCreateView === "options"
-                  ? "translate-y-0"
-                  : "translate-y-full"
-              )}
-              style={{ maxHeight: "85vh" }}
-            >
-              {/* Sheet handle */}
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="w-10 h-1 bg-gray-300 rounded-full" />
-              </div>
-
-              {/* Create Route Form - scrollable */}
-              <div className="overflow-y-auto pb-4" style={{ maxHeight: "calc(85vh - 180px)" }}>
-                <RouteCreator
-                  onSave={handleSaveRoute}
-                  onCancel={() => {
-                    if (waypoints.length > 0) {
-                      setShowDiscardDialog(true);
-                    } else {
-                      confirmCancel();
-                    }
-                  }}
-                  mapRef={mapRef}
-                  existingRoute={{
-                    title: isEditing && editingRouteData ? editingRouteData.title : "",
-                    description: isEditing && editingRouteData ? (editingRouteData.description || "") : "",
-                    visibility: isEditing && editingRouteData ? (editingRouteData.visibility || "private") : "private",
-                    difficulty: isEditing && editingRouteData ? (editingRouteData.difficulty || "unrated") : "unrated",
-                    routeType,
-                    waypoints,
-                    geometry: {
-                      type: "LineString",
-                      coordinates: waypoints.map((wp) => [wp.lng, wp.lat]),
-                    },
-                    distanceKm: isEditing && editingRouteData ? (editingRouteData.distance_km || 0) : 0,
-                    estimatedTimeMinutes: isEditing && editingRouteData ? (editingRouteData.estimated_time_minutes || 0) : 0,
-                  }}
-                  isEditing={isEditing}
-                  isMobile={true}
-                  onMapClick={() => setMobileCreateView("map")}
-                  onWaypointPlacementModeChange={handleWaypointPlacementModeChange}
-                />
-              </div>
-
-              {/* Fixed bottom buttons */}
-              <div className="px-4 pb-4 pt-2 border-t bg-white space-y-3">
-                {/* Map button - centered, discreet */}
-                <MobilePanelToggle
-                  mode="map"
-                  onClick={() => setMobileCreateView("map")}
-                  alwaysVisible={true}
-                />
-                
-                {/* Cancel / Save buttons side by side */}
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    className="flex-1 rounded-full h-10 border-2 border-red-500 text-red-500 hover:bg-red-50"
-                    onClick={() => {
-                      if (waypoints.length > 0) {
-                        setShowDiscardDialog(true);
-                      } else {
-                        confirmCancel();
-                      }
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    className="flex-1 rounded-full h-10 bg-[#2E8B57] hover:bg-[#256b45] text-white"
-                    onClick={() => {
-                      // Trigger save from RouteCreator
-                      const saveBtn = document.querySelector('[data-mobile-save]') as HTMLButtonElement;
-                      saveBtn?.click();
-                    }}
-                    disabled={waypoints.length < 2}
-                  >
-                    Save
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile Bottom Nav - always visible */}
-            <MobileBottomNav 
-              activeTab={activeTab} 
+            {/* Mobile Bottom Nav */}
+            <MobileBottomNav
+              activeTab={activeTab}
               onTabChange={handleMobileTabChange}
               isRecording={isRecording}
               onRecordClick={() => {
@@ -1322,8 +1181,16 @@ export default function RoutesPage() {
             />
           </div>
 
-          {/* Desktop Route creation toolbar (replaces nav tabs position) */}
-          {showToolbarInCreate && (
+          {/* Desktop: Show either nav tabs or creation toolbar */}
+          {!showToolbarInCreate ? (
+            <div className="hidden md:block">
+              <RoutesNavTabs
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                onSwitchToToolbar={() => setShowToolbarInCreate(true)}
+              />
+            </div>
+          ) : (
             <div className="hidden md:block">
               <RouteCreatorToolbar
                 isPlotting={isPlotting}
@@ -1342,7 +1209,38 @@ export default function RoutesPage() {
             </div>
           )}
 
-          {/* Map controls - desktop only, mobile uses FAB */}
+          {/* Floating stats pill — bottom-left */}
+          <div className="absolute bottom-6 left-4 z-20 md:bottom-8 md:left-8">
+            <RouteStatsPill
+              distanceKm={createDistanceKm}
+              rideTimeMinutes={createRideTimeMinutes}
+            />
+          </div>
+
+          {/* Floating save button + cancel — bottom-center */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 md:bottom-8">
+            {waypoints.length > 0 && (
+              <Button
+                variant="outline"
+                className="bg-white/95 backdrop-blur-sm shadow-lg rounded-full px-5 h-11 text-sm font-medium text-slate-600 hover:text-red-600 hover:border-red-300"
+                onClick={() => {
+                  if (waypoints.length > 0) {
+                    setShowDiscardDialog(true);
+                  } else {
+                    confirmCancel();
+                  }
+                }}
+              >
+                Cancel
+              </Button>
+            )}
+            <SaveRouteButton
+              waypointCount={waypoints.length}
+              onClick={() => setShowSaveModal(true)}
+            />
+          </div>
+
+          {/* Map controls — desktop */}
           <div className="hidden md:block">
             <MapLayerControls
               settings={layerSettings}
@@ -1352,7 +1250,7 @@ export default function RoutesPage() {
             />
           </div>
 
-          {/* Mobile layer panel - shared between views */}
+          {/* Mobile layer panel */}
           <MapLayerControls
             settings={layerSettings}
             onSettingsChange={setLayerSettings}
@@ -1361,6 +1259,27 @@ export default function RoutesPage() {
             showPanel={showLayerPanel}
             onPanelChange={setShowLayerPanel}
             className="hidden"
+          />
+
+          {/* Save Route Modal */}
+          <SaveRouteModal
+            open={showSaveModal}
+            onClose={() => setShowSaveModal(false)}
+            onSave={handleModalSave}
+            distanceKm={createDistanceKm}
+            rideTimeMinutes={createRideTimeMinutes}
+            routeType={routeType}
+            isEditing={isEditing}
+            existingData={
+              isEditing && editingRouteData
+                ? {
+                    title: editingRouteData.title || "",
+                    description: editingRouteData.description || "",
+                    visibility: editingRouteData.visibility || "private",
+                    difficulty: editingRouteData.difficulty || "unrated",
+                  }
+                : undefined
+            }
           />
         </div>
 
