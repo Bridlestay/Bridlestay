@@ -179,7 +179,7 @@ export function Header() {
                   <Button variant="ghost" size="icon" className="relative">
                     <Menu className="h-5 w-5" />
                     {(unreadCount > 0 || notifCount > 0) && (
-                      <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
+                      <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-green-500" />
                     )}
                   </Button>
                 </DropdownMenuTrigger>
@@ -207,7 +207,7 @@ export function Header() {
                           <span className="text-xs text-muted-foreground">
                             {notifCount}
                           </span>
-                          <span className="h-2 w-2 rounded-full bg-red-500" />
+                          <span className="h-2 w-2 rounded-full bg-green-500" />
                         </span>
                       )}
                     </Link>
@@ -221,7 +221,7 @@ export function Header() {
                           <span className="text-xs text-muted-foreground">
                             {unreadCount}
                           </span>
-                          <span className="h-2 w-2 rounded-full bg-red-500" />
+                          <span className="h-2 w-2 rounded-full bg-green-500" />
                         </span>
                       )}
                     </Link>

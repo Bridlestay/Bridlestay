@@ -114,6 +114,13 @@ export function NotificationsFeed() {
   useEffect(() => {
     setLoading(true);
     fetchNotifications();
+
+    // Poll for new notifications every 15 seconds
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 15000);
+
+    return () => clearInterval(interval);
   }, [fetchNotifications]);
 
   const handleMarkAllRead = async () => {
