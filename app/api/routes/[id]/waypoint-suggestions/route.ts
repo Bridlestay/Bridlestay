@@ -110,7 +110,7 @@ export async function POST(
     if (error) throw error;
 
     // Send in-app notification to route owner
-    createNotification({
+    await createNotification({
       userId: route.owner_user_id,
       type: "suggestion_received",
       title: `${user.user_metadata?.name || "Someone"} suggested a new waypoint on your route`,

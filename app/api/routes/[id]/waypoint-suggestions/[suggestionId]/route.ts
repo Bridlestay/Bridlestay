@@ -117,7 +117,7 @@ export async function PATCH(
       if (updateError) throw updateError;
 
       // Notify the suggester that their suggestion was approved
-      createNotification({
+      await createNotification({
         userId: suggestion.user_id,
         type: "suggestion_approved",
         title: "Your waypoint suggestion was approved!",
@@ -146,7 +146,7 @@ export async function PATCH(
       if (updateError) throw updateError;
 
       // Notify the suggester that their suggestion was rejected
-      createNotification({
+      await createNotification({
         userId: suggestion.user_id,
         type: "suggestion_rejected",
         title: "Your waypoint suggestion was not accepted",

@@ -115,7 +115,7 @@ export async function POST(request: Request) {
     }
 
     // Send in-app notification to guest
-    createNotification({
+    await createNotification({
       userId: booking.guest_id,
       type: "booking_declined",
       title: "Your booking request was declined",

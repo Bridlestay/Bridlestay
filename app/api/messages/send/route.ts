@@ -151,7 +151,7 @@ export async function POST(request: Request) {
     }
 
     // Send in-app notification to recipient
-    createNotification({
+    await createNotification({
       userId: recipientId,
       type: "message",
       title: `${user.user_metadata?.name || "Someone"} sent you a message`,

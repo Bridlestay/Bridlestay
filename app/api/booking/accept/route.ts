@@ -171,7 +171,7 @@ export async function POST(request: Request) {
     }
 
     // Send in-app notification to guest
-    createNotification({
+    await createNotification({
       userId: booking.guest_id,
       type: "booking_accepted",
       title: "Your booking has been accepted!",

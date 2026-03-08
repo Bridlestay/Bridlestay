@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
 
     // Send in-app notification to the other party
     const otherPartyId = isHost ? booking.guest_id : booking.property.host_id;
-    createNotification({
+    await createNotification({
       userId: otherPartyId,
       type: "booking_cancelled",
       title: isHost

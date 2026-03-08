@@ -131,7 +131,7 @@ export async function POST(
             .single();
 
           if (parentComment) {
-            createNotification({
+            await createNotification({
               userId: parentComment.user_id,
               type: "route_comment",
               title: `${commenterName} replied to your comment`,
@@ -145,7 +145,7 @@ export async function POST(
         }
 
         // Also notify route owner (if different from commenter and parent author)
-        createNotification({
+        await createNotification({
           userId: route.owner_user_id,
           type: "route_comment",
           title: `${commenterName} commented on your route`,

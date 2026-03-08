@@ -150,7 +150,7 @@ export async function POST(
         .eq("id", user.id)
         .single();
 
-      createNotification({
+      await createNotification({
         userId: route.owner_user_id,
         type: "route_review",
         title: `${reviewer?.name || "Someone"} reviewed your route`,

@@ -104,7 +104,7 @@ export async function POST(request: Request) {
         .eq("id", user.id)
         .single();
 
-      createNotification({
+      await createNotification({
         userId: property.host_id,
         type: "listing_review",
         title: `${reviewer?.name || "A guest"} left a review for ${property.name}`,

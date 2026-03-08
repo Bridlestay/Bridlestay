@@ -353,7 +353,7 @@ export async function POST(request: Request) {
       .eq("id", user.id)
       .single();
 
-    createNotification({
+    await createNotification({
       userId: property.host_id,
       type: "booking_request",
       title: `${guestUser?.name || "A guest"} requested to book ${property.name}`,

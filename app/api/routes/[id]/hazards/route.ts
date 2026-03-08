@@ -153,7 +153,7 @@ export async function POST(
       .single();
 
     if (route) {
-      createNotification({
+      await createNotification({
         userId: route.owner_user_id,
         type: "hazard_reported",
         title: `A ${isWarning ? "warning" : "hazard"} was reported on your route`,

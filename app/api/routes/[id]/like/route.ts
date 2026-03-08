@@ -84,7 +84,7 @@ export async function POST(
         .eq("id", user.id)
         .single();
 
-      createNotification({
+      await createNotification({
         userId: route.owner_user_id,
         type: "route_liked",
         title: `${liker?.name || "Someone"} liked your route`,

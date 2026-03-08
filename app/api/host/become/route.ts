@@ -65,7 +65,7 @@ export async function POST() {
         .eq("id", user.id)
         .single();
 
-      createNotifications(
+      await createNotifications(
         admins.map((admin) => ({
           userId: admin.id,
           type: "host_application" as const,
