@@ -261,6 +261,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const hazardPopupsRef = useRef<mapboxgl.Popup[]>([]);
     const placementMarkerRef = useRef<mapboxgl.Marker | null>(null);
     const startEndMarkersRef = useRef<mapboxgl.Marker[]>([]);
+    // Flag to prevent map click from firing when a marker was clicked
+    const markerClickedRef = useRef(false);
 
     const { isLoaded, loadError } = useMapbox();
     const [mapLoaded, setMapLoaded] = useState(false);
@@ -451,7 +453,46 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       // Handle click on map for adding waypoints (Great Britain only, not water)
       // Uses refs to avoid stale closures since this runs once on mount
       map.on("click", async (e) => {
-        if (!isCreatingRef.current || !isPlottingRef.current || toolModeRef.current !== "plot") return;
+        if (!isCreatingRef.current || !isPlottingRef.current) return;
+
+        // Skip if a marker was just clicked (flag set by marker click handler)
+        if (markerClickedRef.current) {
+          markerClickedRef.current = false;
+          return;
+        }
+
+        const mode = toolModeRef.current;
+
+        // --- INSERT MODE ---
+        if (mode === "insert") {
+          const { lng, lat } = e.lngLat;
+          const wps = waypointsRef.current;
+          if (wps.length < 2) return;
+
+          // Find nearest segment and compute real-world distance to it
+          let minDistKm = Infinity;
+          let insertIdx = 1;
+          for (let i = 0; i < wps.length - 1; i++) {
+            const nearestPt = nearestPointOnSegment(lng, lat, wps[i].lng, wps[i].lat, wps[i + 1].lng, wps[i + 1].lat);
+            const distKm = haversineDistanceSimple(lat, lng, nearestPt.lat, nearestPt.lng);
+            if (distKm < minDistKm) {
+              minDistKm = distKm;
+              insertIdx = i + 1;
+            }
+          }
+
+          // Only allow insert within 5m (0.005 km) of the route line
+          if (minDistKm > 0.005) {
+            toast.error("Click closer to the route line to insert a waypoint");
+            return;
+          }
+
+          onWaypointInsertRef.current?.(insertIdx, lat, lng);
+          return;
+        }
+
+        // --- PLOT MODE ---
+        if (mode !== "plot") return;
 
         const { lng, lat } = e.lngLat;
 
@@ -467,11 +508,20 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           return;
         }
 
+        // Block waypoints closer than 5m to any existing waypoint
+        const wps = waypointsRef.current;
+        for (const wp of wps) {
+          const distKm = haversineDistanceSimple(wp.lat, wp.lng, lat, lng);
+          if (distKm < 0.005) { // 5m = 0.005km
+            toast.error("Waypoint too close to an existing waypoint (min 5m apart)");
+            return;
+          }
+        }
+
         // Circular route detection: if user clicks near the start point
         // after plotting a meaningful route (5+ waypoints), close the loop
-        const wpsForCircular = waypointsRef.current;
-        if (wpsForCircular.length >= 5) {
-          const first = wpsForCircular[0];
+        if (wps.length >= 5) {
+          const first = wps[0];
           const distToStart = haversineDistanceSimple(first.lat, first.lng, lat, lng);
           if (distToStart < 0.015) { // Within ~15m of start
             onCircularDetectedRef.current?.(true);
@@ -482,7 +532,6 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         if (snapEnabledRef.current) {
           // Try snapping to nearest road/path using Mapbox Map Matching API
           try {
-            const wps = waypointsRef.current;
             if (wps.length > 0) {
               const prev = wps[wps.length - 1];
               const response = await fetch(
@@ -505,36 +554,6 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         } else {
           onWaypointAddRef.current?.(lat, lng);
         }
-      });
-
-      // Insert mode: click anywhere on the map and check if within 5m of route line
-      map.on("click", (e) => {
-        if (!isCreatingRef.current || toolModeRef.current !== "insert") return;
-
-        const { lng, lat } = e.lngLat;
-        const wps = waypointsRef.current;
-        if (wps.length < 2) return;
-
-        // Find nearest segment and compute real-world distance to it
-        let minDistKm = Infinity;
-        let insertIdx = 1;
-        for (let i = 0; i < wps.length - 1; i++) {
-          // Project click point onto the segment to find nearest point
-          const nearestPt = nearestPointOnSegment(lng, lat, wps[i].lng, wps[i].lat, wps[i + 1].lng, wps[i + 1].lat);
-          const distKm = haversineDistanceSimple(lat, lng, nearestPt.lat, nearestPt.lng);
-          if (distKm < minDistKm) {
-            minDistKm = distKm;
-            insertIdx = i + 1;
-          }
-        }
-
-        // Only allow insert within 5m (0.005 km) of the route line
-        if (minDistKm > 0.005) {
-          toast.error("Click closer to the route line to insert a waypoint");
-          return;
-        }
-
-        onWaypointInsertRef.current?.(insertIdx, lat, lng);
       });
 
       // Cursor changes for insert mode on route line
@@ -1434,7 +1453,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
           const marker = new mapboxgl.Marker({
             element: el,
-            draggable: toolMode === "plot",
+            draggable: toolMode === "plot" || toolMode === "insert",
           })
             .setLngLat([wp.lng, wp.lat])
             .addTo(mapRef.current!);
@@ -1445,10 +1464,12 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             onWaypointUpdateRef.current?.(wp.id, lngLat.lat, lngLat.lng);
           });
 
-          // Handle click for eraser tool — use refs to avoid stale closures
+          // Handle click on marker — always set flag to prevent map click from
+          // adding a new waypoint on top. In erase mode, remove the waypoint.
           el.addEventListener("click", (e) => {
+            e.stopPropagation();
+            markerClickedRef.current = true;
             if (toolModeRef.current === "erase") {
-              e.stopPropagation();
               onWaypointRemoveRef.current?.(wp.id);
             }
           });
