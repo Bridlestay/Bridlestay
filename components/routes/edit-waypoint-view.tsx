@@ -21,11 +21,14 @@ import {
   Check,
   MessageSquare,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { PhotoLightbox } from "./route-photo-lightbox";
 
 const WAYPOINT_TAGS = [
   { value: "poi", label: "Point of Interest" },
@@ -120,6 +123,8 @@ export function EditWaypointView({
   const [photos, setPhotos] = useState<WaypointPhoto[]>([]);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Suggestion state
@@ -270,6 +275,21 @@ export function EditWaypointView({
     }
   };
 
+  // Re-fetch photos from the DB (used after approval inserts new photos)
+  const refetchPhotos = async () => {
+    try {
+      const res = await fetch(
+        `/api/routes/${routeId}/waypoints/${waypoint.id}/photos`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setPhotos(data.photos || []);
+      }
+    } catch {
+      // Non-critical
+    }
+  };
+
   const handleApproveSuggestion = async (suggestion: EditSuggestion) => {
     setProcessingId(suggestion.id);
     try {
@@ -292,6 +312,14 @@ export function EditWaypointView({
           setIconType(suggestion.suggested_icon_type);
         if (suggestion.suggested_description !== null)
           setDescription(suggestion.suggested_description);
+
+        // Re-fetch photos to pick up any newly approved photos from the DB
+        if (
+          Array.isArray(suggestion.suggested_photos) &&
+          suggestion.suggested_photos.some((p) => p.action === "add")
+        ) {
+          await refetchPhotos();
+        }
 
         setSuggestions((prev) => prev.filter((s) => s.id !== suggestion.id));
         toast.success("Suggestion approved and applied!");
@@ -319,6 +347,8 @@ export function EditWaypointView({
       );
 
       if (res.ok) {
+        // Re-fetch photos to pick up the newly approved photos from the DB
+        await refetchPhotos();
         setSuggestions((prev) => prev.filter((s) => s.id !== suggestion.id));
         toast.success("Photos accepted!");
       } else {
@@ -376,23 +406,33 @@ export function EditWaypointView({
     ...photos,
   ];
 
+  // Clamp index if photos were removed
+  const safePhotoIndex =
+    allPhotos.length > 0
+      ? Math.min(currentPhotoIndex, allPhotos.length - 1)
+      : 0;
+
   const pendingCount = suggestions.length;
 
   return (
     <div>
       {/* Header banner — matches photo hero height */}
       <div className="relative h-48 md:h-56 bg-gradient-to-br from-green-50 via-green-100 to-emerald-50 overflow-hidden">
-        {/* Show first photo as background if available */}
+        {/* Show current photo as background if available */}
         {allPhotos.length > 0 ? (
-          <>
+          <button
+            type="button"
+            className="absolute inset-0 w-full h-full cursor-pointer"
+            onClick={() => setLightboxOpen(true)}
+          >
             <Image
-              src={allPhotos[0].url}
+              src={allPhotos[safePhotoIndex].url}
               alt={waypoint.name || "Waypoint"}
               fill
               className="object-cover"
             />
             <div className="absolute inset-0 bg-black/20" />
-          </>
+          </button>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
@@ -402,8 +442,37 @@ export function EditWaypointView({
           </div>
         )}
 
+        {/* Photo navigation arrows */}
+        {allPhotos.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={() =>
+                setCurrentPhotoIndex((i) =>
+                  i > 0 ? i - 1 : allPhotos.length - 1
+                )
+              }
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 flex items-center justify-center transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4 text-white" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setCurrentPhotoIndex((i) =>
+                  i < allPhotos.length - 1 ? i + 1 : 0
+                )
+              }
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 flex items-center justify-center transition-colors"
+            >
+              <ChevronRight className="h-4 w-4 text-white" />
+            </button>
+          </>
+        )}
+
         {/* Back button */}
         <button
+          type="button"
           onClick={onBack}
           className="absolute top-3 left-3 z-20 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 flex items-center justify-center transition-colors"
         >
@@ -412,6 +481,7 @@ export function EditWaypointView({
 
         {/* Upload photo button */}
         <button
+          type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
           className="absolute bottom-5 right-3 z-20 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-black/70 transition-colors"
@@ -424,10 +494,12 @@ export function EditWaypointView({
           {uploading ? "Uploading..." : "Add photo"}
         </button>
 
-        {/* Photo count */}
+        {/* Photo count / position indicator */}
         {allPhotos.length > 0 && (
           <div className="absolute bottom-5 left-3 z-10 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full">
-            {allPhotos.length} photo{allPhotos.length !== 1 ? "s" : ""}
+            {allPhotos.length > 1
+              ? `${safePhotoIndex + 1} / ${allPhotos.length}`
+              : "1 photo"}
           </div>
         )}
 
@@ -745,11 +817,19 @@ export function EditWaypointView({
                 Photos
               </Label>
               <div className="grid grid-cols-3 gap-2">
-                {allPhotos.map((photo) => (
+                {allPhotos.map((photo, idx) => (
                   <div
                     key={photo.id}
                     className="relative h-20 rounded-lg overflow-hidden group"
                   >
+                    <button
+                      type="button"
+                      className="absolute inset-0 w-full h-full cursor-pointer z-10"
+                      onClick={() => {
+                        setCurrentPhotoIndex(idx);
+                        setLightboxOpen(true);
+                      }}
+                    />
                     <Image
                       src={photo.url}
                       alt="Waypoint photo"
@@ -760,7 +840,7 @@ export function EditWaypointView({
                       <button
                         type="button"
                         onClick={() => handleDeletePhoto(photo.id)}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1 right-1 z-20 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -772,6 +852,15 @@ export function EditWaypointView({
           )}
         </form>
       </div>
+
+      {/* Photo lightbox */}
+      <PhotoLightbox
+        open={lightboxOpen}
+        photos={allPhotos}
+        currentIndex={safePhotoIndex}
+        onClose={() => setLightboxOpen(false)}
+        onIndexChange={setCurrentPhotoIndex}
+      />
     </div>
   );
 }

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
+import { PhotoLightbox } from "./route-photo-lightbox";
 
 interface WaypointCardProps {
   waypoint: {
@@ -78,6 +79,8 @@ export function WaypointCard({
   isOwner,
 }: WaypointCardProps) {
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const iconConfig = waypoint.icon_type
     ? ICON_MAP[waypoint.icon_type] || ICON_MAP.other
@@ -112,51 +115,87 @@ export function WaypointCard({
 
       {/* Photo Collage */}
       {allPhotos.length === 1 && (
-        <div className="relative w-full h-36 rounded-lg overflow-hidden mb-2">
+        <button
+          type="button"
+          className="relative w-full h-36 rounded-lg overflow-hidden mb-2 cursor-pointer"
+          onClick={() => {
+            setLightboxIndex(0);
+            setLightboxOpen(true);
+          }}
+        >
           <Image
             src={allPhotos[0].url}
             alt={displayName}
             fill
             className="object-cover"
           />
-        </div>
+        </button>
       )}
       {allPhotos.length === 2 && (
         <div className="grid grid-cols-2 gap-1 rounded-lg overflow-hidden h-32 mb-2">
           {allPhotos.map((photo, idx) => (
-            <div key={photo.id || idx} className="relative">
+            <button
+              type="button"
+              key={photo.id || idx}
+              className="relative cursor-pointer"
+              onClick={() => {
+                setLightboxIndex(idx);
+                setLightboxOpen(true);
+              }}
+            >
               <Image
                 src={photo.url}
                 alt={photo.caption || displayName}
                 fill
                 className="object-cover"
               />
-            </div>
+            </button>
           ))}
         </div>
       )}
       {allPhotos.length >= 3 && (
         <div className="grid grid-cols-3 gap-1 rounded-lg overflow-hidden h-40 mb-2">
           {/* Large image — left 2/3 */}
-          <div className="col-span-2 relative">
+          <button
+            type="button"
+            className="col-span-2 relative cursor-pointer"
+            onClick={() => {
+              setLightboxIndex(0);
+              setLightboxOpen(true);
+            }}
+          >
             <Image
               src={allPhotos[0].url}
               alt={displayName}
               fill
               className="object-cover"
             />
-          </div>
+          </button>
           {/* Two stacked images — right 1/3 */}
           <div className="flex flex-col gap-1">
-            <div className="relative flex-1">
+            <button
+              type="button"
+              className="relative flex-1 cursor-pointer"
+              onClick={() => {
+                setLightboxIndex(1);
+                setLightboxOpen(true);
+              }}
+            >
               <Image
                 src={allPhotos[1].url}
                 alt={allPhotos[1].caption || displayName}
                 fill
                 className="object-cover"
               />
-            </div>
-            <div className="relative flex-1">
+            </button>
+            <button
+              type="button"
+              className="relative flex-1 cursor-pointer"
+              onClick={() => {
+                setLightboxIndex(2);
+                setLightboxOpen(true);
+              }}
+            >
               <Image
                 src={allPhotos[2].url}
                 alt={allPhotos[2].caption || displayName}
@@ -169,7 +208,7 @@ export function WaypointCard({
                   {allPhotos.length} images
                 </div>
               )}
-            </div>
+            </button>
           </div>
         </div>
       )}
@@ -260,6 +299,17 @@ export function WaypointCard({
           </button>
         ) : null}
       </div>
+
+      {/* Photo lightbox */}
+      {allPhotos.length > 0 && (
+        <PhotoLightbox
+          open={lightboxOpen}
+          photos={allPhotos}
+          currentIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+          onIndexChange={setLightboxIndex}
+        />
+      )}
     </div>
   );
 }
