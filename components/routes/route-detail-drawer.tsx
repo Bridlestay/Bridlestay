@@ -1091,23 +1091,13 @@ export function RouteDetailDrawer({
                 </>
               )}
 
-              {/* Dot indicators — compact counter when > 12 photos */}
+              {/* Sliding dot indicators */}
               {displayPhotosForCarousel.length > 1 && (
-                displayPhotosForCarousel.length <= 12 ? (
-                  <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                    {displayPhotosForCarousel.map((_: any, idx: number) => (
-                      <button
-                        key={idx}
-                        onClick={(e) => { e.stopPropagation(); pauseAutoScroll(); setCurrentPhotoIndex(idx); }}
-                        className={cn("h-2 rounded-full transition-all", idx === currentPhotoIndex ? "bg-white w-4" : "bg-white/50 w-2")}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full">
-                    {currentPhotoIndex + 1} / {displayPhotosForCarousel.length}
-                  </div>
-                )
+                <SlidingDots
+                  total={displayPhotosForCarousel.length}
+                  current={currentPhotoIndex}
+                  onDotClick={(idx) => { pauseAutoScroll(); setCurrentPhotoIndex(idx); }}
+                />
               )}
             </div>
           </div>
@@ -1770,5 +1760,87 @@ export function RouteDetailDrawer({
         onIndexChange={setCurrentPhotoIndex}
       />
     </>
+  );
+}
+
+/* ─── Sliding dot indicator (Instagram-style) ─────────── */
+function SlidingDots({
+  total,
+  current,
+  onDotClick,
+}: {
+  total: number;
+  current: number;
+  onDotClick: (idx: number) => void;
+}) {
+  // For 5 or fewer, show all dots normally
+  const maxVisible = 5;
+
+  if (total <= maxVisible) {
+    return (
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+        {Array.from({ length: total }).map((_, idx) => (
+          <button
+            key={idx}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDotClick(idx);
+            }}
+            className={cn(
+              "h-2 rounded-full transition-all duration-300",
+              idx === current
+                ? "bg-white w-4"
+                : "bg-white/50 w-2"
+            )}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  // Sliding window: always show 5 dots, centered on current
+  // The window slides so current is in the middle when possible
+  const half = Math.floor(maxVisible / 2);
+  let start = current - half;
+  if (start < 0) start = 0;
+  if (start > total - maxVisible) start = total - maxVisible;
+
+  const visibleIndices = Array.from(
+    { length: maxVisible },
+    (_, i) => start + i
+  );
+
+  return (
+    <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+      {visibleIndices.map((idx) => {
+        const distance = Math.abs(idx - current);
+        // Active dot is wide + bright, adjacent are normal, edge dots shrink
+        const isActive = idx === current;
+        const isEdge =
+          (idx === visibleIndices[0] && start > 0) ||
+          (idx === visibleIndices[maxVisible - 1] &&
+            start < total - maxVisible);
+
+        return (
+          <button
+            key={idx}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDotClick(idx);
+            }}
+            className={cn(
+              "rounded-full transition-all duration-300",
+              isActive
+                ? "bg-white w-4 h-2"
+                : isEdge
+                  ? "bg-white/30 w-1.5 h-1.5"
+                  : distance === 1
+                    ? "bg-white/60 w-2 h-2"
+                    : "bg-white/40 w-2 h-2"
+            )}
+          />
+        );
+      })}
+    </div>
   );
 }
