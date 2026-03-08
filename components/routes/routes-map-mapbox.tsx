@@ -449,6 +449,18 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           return;
         }
 
+        // Circular route detection: if user clicks near the start point
+        // after plotting a meaningful route (5+ waypoints), close the loop
+        const wpsForCircular = waypointsRef.current;
+        if (wpsForCircular.length >= 5) {
+          const first = wpsForCircular[0];
+          const distToStart = haversineDistanceSimple(first.lat, first.lng, lat, lng);
+          if (distToStart < 0.05) { // Within ~50m of start
+            onCircularDetectedRef.current?.(true);
+            return;
+          }
+        }
+
         if (snapEnabledRef.current) {
           // Try snapping to nearest road/path using Mapbox Map Matching API
           try {
@@ -1418,16 +1430,6 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
           waypointMarkersRef.current.set(wp.id, marker);
         });
-
-        // Check for circular route detection (last waypoint near first)
-        if (waypoints.length >= 3 && routeType !== "circular") {
-          const first = waypoints[0];
-          const last = waypoints[waypoints.length - 1];
-          const distKm = haversineDistanceSimple(first.lat, first.lng, last.lat, last.lng);
-          if (distKm < 0.05) {
-            onCircularDetectedRef.current?.(true);
-          }
-        }
       } else {
         source.setData({ type: "FeatureCollection", features: [] });
       }
