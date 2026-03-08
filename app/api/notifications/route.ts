@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
     let query = supabase
       .from("notifications")
-      .select("*, actor:users!notifications_actor_id_fkey(id, name, avatar_url)")
+      .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
@@ -32,7 +32,36 @@ export async function GET(request: Request) {
 
     if (error) throw error;
 
-    return NextResponse.json({ notifications: notifications || [] });
+    // Fetch actor details from public.users for notifications with actor_id
+    const actorIds = [
+      ...new Set(
+        (notifications || [])
+          .map((n: any) => n.actor_id)
+          .filter(Boolean)
+      ),
+    ];
+
+    let actorMap: Record<string, { id: string; name: string; avatar_url: string | null }> = {};
+    if (actorIds.length > 0) {
+      const { data: actors } = await supabase
+        .from("users")
+        .select("id, name, avatar_url")
+        .in("id", actorIds);
+
+      if (actors) {
+        for (const actor of actors) {
+          actorMap[actor.id] = actor;
+        }
+      }
+    }
+
+    // Attach actor data to each notification
+    const enriched = (notifications || []).map((n: any) => ({
+      ...n,
+      actor: n.actor_id ? actorMap[n.actor_id] || null : null,
+    }));
+
+    return NextResponse.json({ notifications: enriched });
   } catch (error: any) {
     console.error("[NOTIFICATIONS_GET]", error);
     return NextResponse.json(
