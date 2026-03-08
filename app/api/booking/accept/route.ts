@@ -3,6 +3,7 @@ import { stripe } from "@/lib/stripe";
 import { NextResponse } from "next/server";
 import { format } from "date-fns";
 import { sendBookingConfirmation } from "@/lib/email/send";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(request: Request) {
   try {
@@ -168,6 +169,16 @@ export async function POST(request: Request) {
       // Don't fail the booking acceptance if email fails
       console.error("Failed to send booking confirmation email:", emailError);
     }
+
+    // Send in-app notification to guest
+    createNotification({
+      userId: booking.guest_id,
+      type: "booking_accepted",
+      title: "Your booking has been accepted!",
+      body: "Your host has confirmed your reservation. Payment has been captured.",
+      link: `/dashboard`,
+      actorId: user.id,
+    });
 
     return NextResponse.json({
       success: true,

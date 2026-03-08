@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextResponse } from "next/server";
+import { createNotification, createNotifications } from "@/lib/notifications";
 
 export async function POST() {
   try {
@@ -49,9 +51,35 @@ export async function POST() {
 
     if (hostProfileError) throw hostProfileError;
 
-    return NextResponse.json({ 
+    // Notify all admins about the new host application
+    const serviceClient = createServiceClient();
+    const { data: admins } = await serviceClient
+      .from("users")
+      .select("id")
+      .eq("role", "admin");
+
+    if (admins && admins.length > 0) {
+      const { data: applicant } = await supabase
+        .from("users")
+        .select("name")
+        .eq("id", user.id)
+        .single();
+
+      createNotifications(
+        admins.map((admin) => ({
+          userId: admin.id,
+          type: "host_application" as const,
+          title: `${applicant?.name || "A user"} became a host`,
+          body: "A new host account has been created",
+          link: "/admin/dashboard",
+          actorId: user.id,
+        }))
+      );
+    }
+
+    return NextResponse.json({
       success: true,
-      message: "Successfully upgraded to host account" 
+      message: "Successfully upgraded to host account"
     });
   } catch (error: any) {
     console.error("Error upgrading to host:", error);

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { createNotification } from "@/lib/notifications";
 
 // GET - Check if user has liked a route
 export async function GET(
@@ -67,6 +68,30 @@ export async function POST(
         return NextResponse.json({ liked: true });
       }
       throw error;
+    }
+
+    // Notify route owner about the like
+    const { data: route } = await supabase
+      .from("routes")
+      .select("owner_user_id, title")
+      .eq("id", routeId)
+      .single();
+
+    if (route) {
+      const { data: liker } = await supabase
+        .from("users")
+        .select("name")
+        .eq("id", user.id)
+        .single();
+
+      createNotification({
+        userId: route.owner_user_id,
+        type: "route_liked",
+        title: `${liker?.name || "Someone"} liked your route`,
+        body: route.title,
+        link: `/routes/${routeId}`,
+        actorId: user.id,
+      });
     }
 
     return NextResponse.json({ liked: true });

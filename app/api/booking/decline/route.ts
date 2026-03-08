@@ -3,6 +3,7 @@ import { stripe } from "@/lib/stripe";
 import { NextResponse } from "next/server";
 import { format } from "date-fns";
 import { sendBookingCancelledGuest } from "@/lib/email/send";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(request: Request) {
   try {
@@ -112,6 +113,16 @@ export async function POST(request: Request) {
       // Don't fail the decline if email fails
       console.error("Failed to send cancellation email:", emailError);
     }
+
+    // Send in-app notification to guest
+    createNotification({
+      userId: booking.guest_id,
+      type: "booking_declined",
+      title: "Your booking request was declined",
+      body: "The host has declined your booking request. Your payment hold has been released.",
+      link: `/dashboard`,
+      actorId: user.id,
+    });
 
     return NextResponse.json({
       success: true,

@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { differenceInDays, format } from "date-fns";
 import { sendBookingRequestHost } from "@/lib/email/send";
 import { checkRateLimit, RATE_LIMITS, getIdentifier, rateLimitError } from "@/lib/rate-limit";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(request: Request) {
   try {
@@ -344,6 +345,22 @@ export async function POST(request: Request) {
       // Don't fail the booking if email sending fails
       console.error("Failed to send booking request email:", emailError);
     }
+
+    // Send in-app notification to host
+    const { data: guestUser } = await supabase
+      .from("users")
+      .select("name")
+      .eq("id", user.id)
+      .single();
+
+    createNotification({
+      userId: property.host_id,
+      type: "booking_request",
+      title: `${guestUser?.name || "A guest"} requested to book ${property.name}`,
+      body: `${nights} ${nights === 1 ? "night" : "nights"}, ${guestCount} ${guestCount === 1 ? "guest" : "guests"}${horseCount > 0 ? `, ${horseCount} ${horseCount === 1 ? "horse" : "horses"}` : ""}`,
+      link: `/host/bookings`,
+      actorId: user.id,
+    });
 
     return NextResponse.json({
       booking,

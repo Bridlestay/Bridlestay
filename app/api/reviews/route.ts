@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(request: Request) {
   try {
@@ -88,6 +89,30 @@ export async function POST(request: Request) {
       .single();
 
     if (reviewError) throw reviewError;
+
+    // Notify host about the listing review
+    const { data: property } = await supabase
+      .from("properties")
+      .select("host_id, name")
+      .eq("id", booking.property_id)
+      .single();
+
+    if (property) {
+      const { data: reviewer } = await supabase
+        .from("users")
+        .select("name")
+        .eq("id", user.id)
+        .single();
+
+      createNotification({
+        userId: property.host_id,
+        type: "listing_review",
+        title: `${reviewer?.name || "A guest"} left a review for ${property.name}`,
+        body: `${"★".repeat(rating)}${"☆".repeat(5 - rating)}`,
+        link: `/host/listings`,
+        actorId: user.id,
+      });
+    }
 
     return NextResponse.json({ success: true, review });
   } catch (error: any) {

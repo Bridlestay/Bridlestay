@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { createNotification } from "@/lib/notifications";
 
 // GET - Get hazards for a route
 export async function GET(
@@ -143,6 +144,24 @@ export async function POST(
       .single();
 
     if (error) throw error;
+
+    // Notify route owner about the hazard
+    const { data: route } = await supabase
+      .from("routes")
+      .select("owner_user_id, title")
+      .eq("id", routeId)
+      .single();
+
+    if (route) {
+      createNotification({
+        userId: route.owner_user_id,
+        type: "hazard_reported",
+        title: `A ${isWarning ? "warning" : "hazard"} was reported on your route`,
+        body: `${title} — ${route.title}`,
+        link: `/routes/${routeId}`,
+        actorId: user.id,
+      });
+    }
 
     return NextResponse.json({ hazard });
   } catch (error: any) {

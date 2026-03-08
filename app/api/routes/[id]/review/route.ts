@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(
   request: Request,
@@ -139,6 +140,24 @@ export async function POST(
           community_difficulty: communityDifficulty,
         })
         .eq("id", params.id);
+    }
+
+    // Notify route owner about the review (only for new reviews, not updates)
+    if (!existingReview && route.owner_user_id !== user.id) {
+      const { data: reviewer } = await supabase
+        .from("users")
+        .select("name")
+        .eq("id", user.id)
+        .single();
+
+      createNotification({
+        userId: route.owner_user_id,
+        type: "route_review",
+        title: `${reviewer?.name || "Someone"} reviewed your route`,
+        body: `${"★".repeat(rating)}${"☆".repeat(5 - rating)} — ${review_text?.slice(0, 80) || ""}`,
+        link: `/routes/${params.id}`,
+        actorId: user.id,
+      });
     }
 
     return NextResponse.json({ success: true });

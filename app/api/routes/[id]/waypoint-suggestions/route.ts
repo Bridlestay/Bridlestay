@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { createNotification } from "@/lib/notifications";
 
 // GET - List waypoint suggestions for a route
 export async function GET(
@@ -107,6 +108,16 @@ export async function POST(
       .single();
 
     if (error) throw error;
+
+    // Send in-app notification to route owner
+    createNotification({
+      userId: route.owner_user_id,
+      type: "suggestion_received",
+      title: `${user.user_metadata?.name || "Someone"} suggested a new waypoint on your route`,
+      body: `"${name.trim()}" was suggested for "${route.title}"`,
+      link: `/routes/${routeId}`,
+      actorId: user.id,
+    });
 
     // Send email notification to route owner (async, don't await)
     fetch(`${request.nextUrl.origin}/api/routes/${routeId}/waypoint-suggestions/notify`, {

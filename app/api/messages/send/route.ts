@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { moderateMessage, getBlockedMessageText } from "@/lib/moderation";
 import { sendNewMessageNotification } from "@/lib/email/send";
 import { checkRateLimit, RATE_LIMITS, getIdentifier, rateLimitError } from "@/lib/rate-limit";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(request: Request) {
   try {
@@ -149,9 +150,19 @@ export async function POST(request: Request) {
       console.error("Failed to send message notification email:", emailError);
     }
 
-    return NextResponse.json({ 
+    // Send in-app notification to recipient
+    createNotification({
+      userId: recipientId,
+      type: "message",
+      title: `${user.user_metadata?.name || "Someone"} sent you a message`,
+      body: message.length > 100 ? message.slice(0, 100) + "..." : message,
+      link: "/messages",
+      actorId: user.id,
+    });
+
+    return NextResponse.json({
       message: newMessage,
-      flagged: moderationResult.flagged 
+      flagged: moderationResult.flagged
     });
   } catch (error: any) {
     console.error("Error sending message:", error);

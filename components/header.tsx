@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Settings, LayoutDashboard, Heart, MessageCircle, MessageSquarePlus, Star, Menu, HelpCircle, AlertTriangle } from "lucide-react";
+import { User, LogOut, Settings, LayoutDashboard, Heart, MessageCircle, MessageSquarePlus, Star, Menu, HelpCircle, AlertTriangle, Bell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -22,6 +22,7 @@ export function Header() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notifCount, setNotifCount] = useState(0);
   const router = useRouter();
   const supabase = createClient();
 
@@ -76,9 +77,30 @@ export function Header() {
 
     fetchUnreadCount();
 
-    // Poll for new messages every 30 seconds
+    // Poll every 30 seconds
     const interval = setInterval(fetchUnreadCount, 30000);
 
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchNotifCount = async () => {
+      try {
+        const response = await fetch("/api/notifications/unread-count");
+        if (response.ok) {
+          const data = await response.json();
+          setNotifCount(data.count || 0);
+        }
+      } catch {
+        // Non-critical
+      }
+    };
+
+    fetchNotifCount();
+    const interval = setInterval(fetchNotifCount, 30000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -154,8 +176,11 @@ export function Header() {
               {/* Hamburger Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" className="relative">
                     <Menu className="h-5 w-5" />
+                    {(unreadCount > 0 || notifCount > 0) && (
+                      <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -174,13 +199,30 @@ export function Header() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
+                    <Link href="/notifications" className="cursor-pointer">
+                      <Bell className="mr-2 h-4 w-4" />
+                      Notifications
+                      {notifCount > 0 && (
+                        <span className="ml-auto flex items-center gap-1.5">
+                          <span className="text-xs text-muted-foreground">
+                            {notifCount}
+                          </span>
+                          <span className="h-2 w-2 rounded-full bg-red-500" />
+                        </span>
+                      )}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/messages" className="cursor-pointer">
                       <MessageCircle className="mr-2 h-4 w-4" />
                       Messages
                       {unreadCount > 0 && (
-                        <Badge className="ml-auto bg-primary text-white">
-                          {unreadCount}
-                        </Badge>
+                        <span className="ml-auto flex items-center gap-1.5">
+                          <span className="text-xs text-muted-foreground">
+                            {unreadCount}
+                          </span>
+                          <span className="h-2 w-2 rounded-full bg-red-500" />
+                        </span>
                       )}
                     </Link>
                   </DropdownMenuItem>

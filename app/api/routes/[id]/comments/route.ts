@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { NextRequest, NextResponse } from "next/server";
 import { moderateComment } from "@/lib/routes/moderation";
+import { createNotification } from "@/lib/notifications";
 
 // GET - Get comments for a route
 export async function GET(
@@ -108,6 +109,51 @@ export async function POST(
         reason: moderation.reason,
         severity: moderation.severity,
       });
+    }
+
+    // Notify route owner about the comment
+    if (!moderation.blocked) {
+      const { data: route } = await supabase
+        .from("routes")
+        .select("owner_user_id, title")
+        .eq("id", routeId)
+        .single();
+
+      if (route) {
+        const commenterName = comment.user?.name || "Someone";
+
+        if (parent_comment_id) {
+          // Reply — notify the parent comment author
+          const { data: parentComment } = await supabase
+            .from("route_comments")
+            .select("user_id")
+            .eq("id", parent_comment_id)
+            .single();
+
+          if (parentComment) {
+            createNotification({
+              userId: parentComment.user_id,
+              type: "route_comment",
+              title: `${commenterName} replied to your comment`,
+              body: commentBody.length > 100
+                ? commentBody.slice(0, 100) + "..."
+                : commentBody,
+              link: `/routes/${routeId}`,
+              actorId: user.id,
+            });
+          }
+        }
+
+        // Also notify route owner (if different from commenter and parent author)
+        createNotification({
+          userId: route.owner_user_id,
+          type: "route_comment",
+          title: `${commenterName} commented on your route`,
+          body: route.title,
+          link: `/routes/${routeId}`,
+          actorId: user.id,
+        });
+      }
     }
 
     return NextResponse.json({ comment, moderation }, { status: 201 });

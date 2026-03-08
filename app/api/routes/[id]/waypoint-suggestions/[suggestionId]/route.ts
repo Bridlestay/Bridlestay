@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { createNotification } from "@/lib/notifications";
 
 // PATCH - Approve or reject a waypoint suggestion
 export async function PATCH(
@@ -115,6 +116,16 @@ export async function PATCH(
 
       if (updateError) throw updateError;
 
+      // Notify the suggester that their suggestion was approved
+      createNotification({
+        userId: suggestion.user_id,
+        type: "suggestion_approved",
+        title: "Your waypoint suggestion was approved!",
+        body: `"${suggestion.name}" has been added to the route`,
+        link: `/routes/${routeId}`,
+        actorId: user.id,
+      });
+
       return NextResponse.json({
         success: true,
         action: "approved",
@@ -133,6 +144,18 @@ export async function PATCH(
         .eq("id", suggestionId);
 
       if (updateError) throw updateError;
+
+      // Notify the suggester that their suggestion was rejected
+      createNotification({
+        userId: suggestion.user_id,
+        type: "suggestion_rejected",
+        title: "Your waypoint suggestion was not accepted",
+        body: rejection_reason
+          ? `"${suggestion.name}" — ${rejection_reason}`
+          : `"${suggestion.name}" was not added to the route`,
+        link: `/routes/${routeId}`,
+        actorId: user.id,
+      });
 
       return NextResponse.json({
         success: true,

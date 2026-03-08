@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { differenceInDays } from "date-fns";
+import { createNotification } from "@/lib/notifications";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2024-06-20",
@@ -151,7 +152,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to update booking" }, { status: 500 });
     }
 
-    // TODO: Send cancellation notification emails to guest and host
+    // Send in-app notification to the other party
+    const otherPartyId = isHost ? booking.guest_id : booking.property.host_id;
+    createNotification({
+      userId: otherPartyId,
+      type: "booking_cancelled",
+      title: isHost
+        ? "Your booking has been cancelled by the host"
+        : "A guest has cancelled their booking",
+      body: `Booking for ${booking.property.name} has been cancelled${refundAmount > 0 ? ". A refund is being processed." : "."}`,
+      link: isHost ? `/dashboard` : `/host/bookings`,
+      actorId: user.id,
+    });
 
     return NextResponse.json({
       success: true,
