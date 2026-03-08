@@ -21,11 +21,12 @@ const PIN_COLOR = "#16A34A"; // Green-600 — brand accent
 const PIN_BORDER = "#ffffff";
 
 // UK bounds for route creation restriction
-const UK_BOUNDS = {
+// Great Britain bounds (England, Scotland, Wales — excludes Ireland)
+const GB_BOUNDS = {
   north: 60.86,  // Shetland
-  south: 49.86,  // Channel Islands
+  south: 49.95,  // Isles of Scilly
   east: 1.77,    // Lowestoft
-  west: -8.65,   // Western Ireland/Scotland
+  west: -5.75,   // St Kilda / western Scotland coast
 };
 
 // Haversine distance in km (for circular route detection)
@@ -37,27 +38,38 @@ function haversineDistanceSimple(lat1: number, lng1: number, lat2: number, lng2:
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Point-to-line-segment distance for insert mode
-function pointToSegmentDistance(
+// Find nearest point on a line segment (returns lng/lat of closest point)
+function nearestPointOnSegment(
   px: number, py: number,
   ax: number, ay: number,
   bx: number, by: number
-): number {
+): { lng: number; lat: number } {
   const dx = bx - ax;
   const dy = by - ay;
   const lenSq = dx * dx + dy * dy;
-  if (lenSq === 0) return Math.hypot(px - ax, py - ay);
+  if (lenSq === 0) return { lng: ax, lat: ay };
   let t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
   t = Math.max(0, Math.min(1, t));
-  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+  return { lng: ax + t * dx, lat: ay + t * dy };
 }
 
-// Check if coordinates are within UK
-function isWithinUK(lng: number, lat: number): boolean {
-  return lat >= UK_BOUNDS.south && 
-         lat <= UK_BOUNDS.north && 
-         lng >= UK_BOUNDS.west && 
-         lng <= UK_BOUNDS.east;
+// Check if coordinates are within Great Britain (England, Scotland, Wales)
+function isWithinGB(lng: number, lat: number): boolean {
+  return lat >= GB_BOUNDS.south &&
+         lat <= GB_BOUNDS.north &&
+         lng >= GB_BOUNDS.west &&
+         lng <= GB_BOUNDS.east;
+}
+
+// Check if a point is on water by querying Mapbox rendered features
+function isOnWater(map: mapboxgl.Map, point: mapboxgl.Point): boolean {
+  const features = map.queryRenderedFeatures(point);
+  // Check if the topmost feature is a water layer
+  if (features.length === 0) return false;
+  const topFeature = features[0];
+  const layerId = topFeature.layer?.id || "";
+  const sourceLayer = topFeature.sourceLayer || "";
+  return layerId.includes("water") || sourceLayer === "water";
 }
 
 // Map style options
@@ -436,16 +448,22 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         setupSourcesAndLayers();
       });
 
-      // Handle click on map for adding waypoints (UK only)
+      // Handle click on map for adding waypoints (Great Britain only, not water)
       // Uses refs to avoid stale closures since this runs once on mount
       map.on("click", async (e) => {
         if (!isCreatingRef.current || !isPlottingRef.current || toolModeRef.current !== "plot") return;
 
         const { lng, lat } = e.lngLat;
 
-        // Check if point is within UK bounds
-        if (!isWithinUK(lng, lat)) {
-          toast.error("Routes can only be created within the UK & Ireland");
+        // Check if point is within Great Britain bounds
+        if (!isWithinGB(lng, lat)) {
+          toast.error("Routes can only be created within England, Scotland & Wales");
+          return;
+        }
+
+        // Check if point is on water (sea, lakes, rivers)
+        if (isOnWater(map, e.point)) {
+          toast.error("Waypoints cannot be placed on water");
           return;
         }
 
@@ -455,7 +473,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         if (wpsForCircular.length >= 5) {
           const first = wpsForCircular[0];
           const distToStart = haversineDistanceSimple(first.lat, first.lng, lat, lng);
-          if (distToStart < 0.05) { // Within ~50m of start
+          if (distToStart < 0.015) { // Within ~15m of start
             onCircularDetectedRef.current?.(true);
             return;
           }
@@ -489,24 +507,31 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         }
       });
 
-      // Insert mode: click on route line to insert a waypoint between existing ones
-      map.on("click", "creation-route-line-hitarea", (e) => {
+      // Insert mode: click anywhere on the map and check if within 5m of route line
+      map.on("click", (e) => {
         if (!isCreatingRef.current || toolModeRef.current !== "insert") return;
-        e.originalEvent.stopPropagation();
 
         const { lng, lat } = e.lngLat;
         const wps = waypointsRef.current;
         if (wps.length < 2) return;
 
-        // Find nearest segment to determine insertion index
-        let minDist = Infinity;
+        // Find nearest segment and compute real-world distance to it
+        let minDistKm = Infinity;
         let insertIdx = 1;
         for (let i = 0; i < wps.length - 1; i++) {
-          const dist = pointToSegmentDistance(lng, lat, wps[i].lng, wps[i].lat, wps[i + 1].lng, wps[i + 1].lat);
-          if (dist < minDist) {
-            minDist = dist;
+          // Project click point onto the segment to find nearest point
+          const nearestPt = nearestPointOnSegment(lng, lat, wps[i].lng, wps[i].lat, wps[i + 1].lng, wps[i + 1].lat);
+          const distKm = haversineDistanceSimple(lat, lng, nearestPt.lat, nearestPt.lng);
+          if (distKm < minDistKm) {
+            minDistKm = distKm;
             insertIdx = i + 1;
           }
+        }
+
+        // Only allow insert within 5m (0.005 km) of the route line
+        if (minDistKm > 0.005) {
+          toast.error("Click closer to the route line to insert a waypoint");
+          return;
         }
 
         onWaypointInsertRef.current?.(insertIdx, lat, lng);
