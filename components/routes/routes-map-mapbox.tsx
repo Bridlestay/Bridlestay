@@ -61,15 +61,26 @@ function isWithinGB(lng: number, lat: number): boolean {
          lng <= GB_BOUNDS.east;
 }
 
-// Check if a point is on water by querying Mapbox rendered features
+// Check if a point is on water by querying ALL rendered features at that point
 function isOnWater(map: mapboxgl.Map, point: mapboxgl.Point): boolean {
   const features = map.queryRenderedFeatures(point);
-  // Check if the topmost feature is a water layer
   if (features.length === 0) return false;
-  const topFeature = features[0];
-  const layerId = topFeature.layer?.id || "";
-  const sourceLayer = topFeature.sourceLayer || "";
-  return layerId.includes("water") || sourceLayer === "water";
+  // Check all features — water may be beneath labels, roads, etc.
+  for (const feature of features) {
+    const layerId = feature.layer?.id || "";
+    const sourceLayer = feature.sourceLayer || "";
+    if (
+      layerId.includes("water") ||
+      sourceLayer === "water" ||
+      feature.properties?.class === "ocean" ||
+      feature.properties?.class === "lake" ||
+      feature.properties?.class === "river" ||
+      feature.properties?.class === "sea"
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // Map style options
@@ -508,12 +519,12 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           return;
         }
 
-        // Block waypoints closer than 5m to any existing waypoint
+        // Block waypoints closer than 7.5m to any existing waypoint
         const wps = waypointsRef.current;
         for (const wp of wps) {
           const distKm = haversineDistanceSimple(wp.lat, wp.lng, lat, lng);
-          if (distKm < 0.005) { // 5m = 0.005km
-            toast.error("Waypoint too close to an existing waypoint (min 5m apart)");
+          if (distKm < 0.0075) { // 7.5m = 0.0075km
+            toast.error("Too close to an existing waypoint (min 7.5m apart)");
             return;
           }
         }
