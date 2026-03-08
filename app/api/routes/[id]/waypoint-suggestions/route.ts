@@ -119,18 +119,6 @@ export async function POST(
       actorId: user.id,
     });
 
-    // Send email notification to route owner (async, don't await)
-    fetch(`${request.nextUrl.origin}/api/routes/${routeId}/waypoint-suggestions/notify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        suggestionId: suggestion.id,
-        routeTitle: route.title,
-        waypointName: name.trim(),
-        suggesterName: user.user_metadata?.name || user.email,
-      }),
-    }).catch((err) => console.error("[SUGGESTION_NOTIFY] Failed:", err));
-
     return NextResponse.json({ suggestion }, { status: 201 });
   } catch (error: any) {
     console.error("[WAYPOINT_SUGGESTIONS_POST] Error:", error);
