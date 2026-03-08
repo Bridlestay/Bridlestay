@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -659,15 +659,48 @@ export function RouteDetailDrawer({
     return routeCompletions.some((c: any) => c.user?.id === userId);
   }, [routeCompletions, userId]);
 
-  const displayPhotosForCarousel = useMemo(() => {
-    if (coverPhoto || apiDisplayPhotos.length > 0) {
-      return coverPhoto ? [coverPhoto, ...apiDisplayPhotos] : apiDisplayPhotos;
+  // Collect all waypoint photos (primary + community) into a flat array
+  const waypointPhotos = useMemo(() => {
+    const wpPhotos: any[] = [];
+    for (const wp of waypoints) {
+      if (wp.photo_url) {
+        wpPhotos.push({
+          id: `wp-primary-${wp.id}`,
+          url: wp.photo_url,
+          caption: wp.name || null,
+          source: "waypoint" as const,
+        });
+      }
+      for (const p of wp.photos || []) {
+        wpPhotos.push({
+          id: p.id,
+          url: p.url,
+          caption: p.caption || wp.name || null,
+          created_at: p.created_at,
+          source: "waypoint" as const,
+        });
+      }
     }
-    const allPhotos = [...photos, ...(route?.route_photos || [])];
-    const cover = allPhotos.find((p: any) => p.is_cover);
-    const display = allPhotos.filter((p: any) => p.is_display && !p.is_cover);
-    return cover ? [cover, ...display] : display;
-  }, [coverPhoto, apiDisplayPhotos, photos, route]);
+    return wpPhotos;
+  }, [waypoints]);
+
+  const displayPhotosForCarousel = useMemo(() => {
+    let routeDisplayPhotos: any[];
+    if (coverPhoto || apiDisplayPhotos.length > 0) {
+      routeDisplayPhotos = coverPhoto
+        ? [coverPhoto, ...apiDisplayPhotos]
+        : apiDisplayPhotos;
+    } else {
+      const allRoutePhotos = [...photos, ...(route?.route_photos || [])];
+      const cover = allRoutePhotos.find((p: any) => p.is_cover);
+      const display = allRoutePhotos.filter(
+        (p: any) => p.is_display && !p.is_cover
+      );
+      routeDisplayPhotos = cover ? [cover, ...display] : display;
+    }
+    // Append waypoint photos after route display photos
+    return [...routeDisplayPhotos, ...waypointPhotos];
+  }, [coverPhoto, apiDisplayPhotos, photos, route, waypointPhotos]);
 
   const allPhotosForGallery = useMemo(() => {
     const ownerPhotos = (photos || []).map((p: any) => ({
@@ -691,14 +724,47 @@ export function RouteDetailDrawer({
       user_name: p.user?.name || null,
       user_avatar: p.user?.avatar_url || null,
     }));
-    return [...ownerPhotos, ...communityPhotos].sort(
+    const wpPhotos = waypointPhotos.map((p: any) => ({
+      ...p,
+      source: "waypoint" as const,
+    }));
+    return [...ownerPhotos, ...communityPhotos, ...wpPhotos].sort(
       (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        new Date(b.created_at || 0).getTime() -
+        new Date(a.created_at || 0).getTime()
     );
-  }, [photos, userPhotos]);
+  }, [photos, userPhotos, waypointPhotos]);
 
   const totalPhotoCount =
-    (photos?.length || 0) + (userPhotos?.length || 0);
+    (photos?.length || 0) +
+    (userPhotos?.length || 0) +
+    waypointPhotos.length;
+
+  // Auto-scroll photo carousel (pauses 6s on user interaction)
+  const autoScrollPaused = useRef(false);
+  const pauseTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const pauseAutoScroll = useCallback(() => {
+    autoScrollPaused.current = true;
+    clearTimeout(pauseTimeout.current);
+    pauseTimeout.current = setTimeout(() => {
+      autoScrollPaused.current = false;
+    }, 6000);
+  }, []);
+
+  useEffect(() => {
+    if (displayPhotosForCarousel.length <= 1) return;
+    const interval = setInterval(() => {
+      if (autoScrollPaused.current) return;
+      setCurrentPhotoIndex((prev) =>
+        prev < displayPhotosForCarousel.length - 1 ? prev + 1 : 0
+      );
+    }, 4000);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(pauseTimeout.current);
+    };
+  }, [displayPhotosForCarousel.length]);
 
   const activeHazards = hazards.filter((h) => h.status === "active");
   const activeWarnings = warnings.filter((w) => w.status === "active");
@@ -872,7 +938,7 @@ export function RouteDetailDrawer({
                   ? "h-64 md:h-72 cursor-pointer"
                   : "h-48 md:h-56"
               )}
-              onClick={displayPhotosForCarousel.length > 0 ? () => setLightboxOpen(true) : undefined}
+              onClick={displayPhotosForCarousel.length > 0 ? () => { pauseAutoScroll(); setLightboxOpen(true); } : undefined}
             >
               {displayPhotosForCarousel.length > 0 ? (
                 displayPhotosForCarousel.map((photo: any, idx: number) => (
@@ -994,13 +1060,13 @@ export function RouteDetailDrawer({
               {displayPhotosForCarousel.length > 1 && (
                 <>
                   <button
-                    onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex((prev) => (prev > 0 ? prev - 1 : displayPhotosForCarousel.length - 1)); }}
+                    onClick={(e) => { e.stopPropagation(); pauseAutoScroll(); setCurrentPhotoIndex((prev) => (prev > 0 ? prev - 1 : displayPhotosForCarousel.length - 1)); }}
                     className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-10"
                   >
                     <ChevronLeft className="h-4 w-4 text-gray-700" />
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex((prev) => (prev < displayPhotosForCarousel.length - 1 ? prev + 1 : 0)); }}
+                    onClick={(e) => { e.stopPropagation(); pauseAutoScroll(); setCurrentPhotoIndex((prev) => (prev < displayPhotosForCarousel.length - 1 ? prev + 1 : 0)); }}
                     className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-10"
                   >
                     <ChevronRight className="h-4 w-4 text-gray-700" />
@@ -1014,7 +1080,7 @@ export function RouteDetailDrawer({
                   {displayPhotosForCarousel.map((_: any, idx: number) => (
                     <button
                       key={idx}
-                      onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex(idx); }}
+                      onClick={(e) => { e.stopPropagation(); pauseAutoScroll(); setCurrentPhotoIndex(idx); }}
                       className={cn("h-2 rounded-full transition-all", idx === currentPhotoIndex ? "bg-white w-4" : "bg-white/50 w-2")}
                     />
                   ))}
