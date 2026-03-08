@@ -590,6 +590,15 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
               const snappedLat = snappedPoint[1];
               const snappedLng = snappedPoint[0];
 
+              // Check if snapped destination is too far from click (>15m)
+              // If so, the user clicked off-road — place unsnapped instead
+              const snapDrift = haversineDistanceSimple(lat, lng, snappedLat, snappedLng);
+              if (snapDrift > 0.015) {
+                // Off-road click — place directly without snap
+                onWaypointAddRef.current?.(lat, lng, false);
+                return;
+              }
+
               // Check snapped position against existing waypoints (7.5m min)
               let tooClose = false;
               for (const wp of wps) {
@@ -601,6 +610,12 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
               if (tooClose) {
                 toast.error("Too close to an existing waypoint (min 7.5m apart)");
                 return;
+              }
+
+              // For the first segment (wp0→wp1), keep wp0's actual position
+              // as the start of the segment so the line starts at the marker
+              if (wps.length === 1) {
+                routeCoords[0] = [prev.lng, prev.lat];
               }
 
               // Store the full road-following segment geometry
@@ -1606,7 +1621,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                   );
                   const data = await res.json();
                   if (data.routes?.[0]?.geometry?.coordinates) {
-                    snappedSegmentsRef.current.set(wpIdx - 1, data.routes[0].geometry.coordinates);
+                    const coords = data.routes[0].geometry.coordinates as [number, number][];
+                    // Pin wp0's actual position for the first segment
+                    if (wpIdx - 1 === 0) coords[0] = [prev.lng, prev.lat];
+                    snappedSegmentsRef.current.set(wpIdx - 1, coords);
                   }
                 } catch { /* skip */ }
               }
@@ -1618,7 +1636,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                   );
                   const data = await res.json();
                   if (data.routes?.[0]?.geometry?.coordinates) {
-                    snappedSegmentsRef.current.set(wpIdx, data.routes[0].geometry.coordinates);
+                    const coords = data.routes[0].geometry.coordinates as [number, number][];
+                    // Pin wp0's actual position for the first segment
+                    if (wpIdx === 0) coords[0] = [finalLng, finalLat];
+                    snappedSegmentsRef.current.set(wpIdx, coords);
                   }
                 } catch { /* skip */ }
               }
@@ -1686,7 +1707,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             );
             const data = await response.json();
             if (data.routes?.[0]?.geometry?.coordinates) {
-              snappedSegmentsRef.current.set(i, data.routes[0].geometry.coordinates);
+              const coords = data.routes[0].geometry.coordinates as [number, number][];
+              // Pin wp0's actual position for the first segment
+              if (i === 0) coords[0] = [from.lng, from.lat];
+              snappedSegmentsRef.current.set(i, coords);
             }
           } catch {
             // Skip failed segments
