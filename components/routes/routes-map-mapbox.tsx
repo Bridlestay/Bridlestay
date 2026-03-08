@@ -73,7 +73,7 @@ export interface RoutesMapMapboxProps {
   routeType?: "linear" | "circular";
   routeStyle?: RouteStyle;
   toolMode?: ToolMode;
-  onWaypointAdd?: (waypoint: Waypoint) => void;
+  onWaypointAdd?: (lat: number, lng: number, snapped?: boolean, pathType?: string) => void;
   onWaypointUpdate?: (index: number, waypoint: Waypoint) => void;
   onWaypointRemove?: (index: number) => void;
   onWaypointInsert?: (index: number, waypoint: Waypoint) => void; // Not yet implemented
@@ -404,12 +404,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           return;
         }
 
-        onWaypointAddRef.current?.({
-          id: `wp-${Date.now()}`,
-          lat,
-          lng,
-          order: waypointsRef.current.length,
-        });
+        onWaypointAddRef.current?.(lat, lng);
       });
 
       mapRef.current = map;
