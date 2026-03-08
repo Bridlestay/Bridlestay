@@ -28,6 +28,30 @@ const UK_BOUNDS = {
   west: -8.65,   // Western Ireland/Scotland
 };
 
+// Haversine distance in km (for circular route detection)
+function haversineDistanceSimple(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Point-to-line-segment distance for insert mode
+function pointToSegmentDistance(
+  px: number, py: number,
+  ax: number, ay: number,
+  bx: number, by: number
+): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(px - ax, py - ay);
+  let t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
 // Check if coordinates are within UK
 function isWithinUK(lng: number, lat: number): boolean {
   return lat >= UK_BOUNDS.south && 
@@ -68,16 +92,16 @@ export interface RoutesMapMapboxProps {
   // Creation mode props
   isCreating?: boolean;
   isPlotting?: boolean;
-  snapEnabled?: boolean; // Not yet implemented for Mapbox
+  snapEnabled?: boolean;
   waypoints?: Waypoint[];
   routeType?: "linear" | "circular";
   routeStyle?: RouteStyle;
   toolMode?: ToolMode;
   onWaypointAdd?: (lat: number, lng: number, snapped?: boolean, pathType?: string) => void;
-  onWaypointUpdate?: (index: number, waypoint: Waypoint) => void;
-  onWaypointRemove?: (index: number) => void;
-  onWaypointInsert?: (index: number, waypoint: Waypoint) => void; // Not yet implemented
-  onCircularDetected?: (isCircular: boolean) => void; // Not yet implemented
+  onWaypointUpdate?: (id: string, lat: number, lng: number, snapped?: boolean) => void;
+  onWaypointRemove?: (id: string) => void;
+  onWaypointInsert?: (index: number, lat: number, lng: number, snapped?: boolean, pathType?: string) => void;
+  onCircularDetected?: (isCircular: boolean) => void;
   // Layer settings (compatibility props - some not yet implemented)
   pathLayers?: PathLayers;
   propertyPins?: any[];
@@ -229,16 +253,26 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const { isLoaded, loadError } = useMapbox();
     const [mapLoaded, setMapLoaded] = useState(false);
 
-    // Refs to avoid stale closures in the map click handler
+    // Refs to avoid stale closures in map event handlers
     const isCreatingRef = useRef(isCreating);
     const isPlottingRef = useRef(isPlotting);
     const toolModeRef = useRef(toolMode);
+    const snapEnabledRef = useRef(snapEnabled);
     const onWaypointAddRef = useRef(onWaypointAdd);
+    const onWaypointUpdateRef = useRef(onWaypointUpdate);
+    const onWaypointRemoveRef = useRef(onWaypointRemove);
+    const onWaypointInsertRef = useRef(onWaypointInsert);
+    const onCircularDetectedRef = useRef(onCircularDetected);
     const waypointsRef = useRef(waypoints);
     isCreatingRef.current = isCreating;
     isPlottingRef.current = isPlotting;
     toolModeRef.current = toolMode;
+    snapEnabledRef.current = snapEnabled;
     onWaypointAddRef.current = onWaypointAdd;
+    onWaypointUpdateRef.current = onWaypointUpdate;
+    onWaypointRemoveRef.current = onWaypointRemove;
+    onWaypointInsertRef.current = onWaypointInsert;
+    onCircularDetectedRef.current = onCircularDetected;
     waypointsRef.current = waypoints;
 
     // Expose methods to parent via ref
@@ -375,6 +409,17 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             },
           });
         }
+
+        // Invisible wider hit area for insert mode clicking on route line
+        if (!map.getLayer("creation-route-line-hitarea")) {
+          map.addLayer({
+            id: "creation-route-line-hitarea",
+            type: "line",
+            source: "creation-route",
+            layout: { "line-join": "round", "line-cap": "round" },
+            paint: { "line-color": "transparent", "line-width": 20 },
+          });
+        }
       };
 
       map.on("load", () => {
@@ -393,7 +438,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
       // Handle click on map for adding waypoints (UK only)
       // Uses refs to avoid stale closures since this runs once on mount
-      map.on("click", (e) => {
+      map.on("click", async (e) => {
         if (!isCreatingRef.current || !isPlottingRef.current || toolModeRef.current !== "plot") return;
 
         const { lng, lat } = e.lngLat;
@@ -404,7 +449,67 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           return;
         }
 
-        onWaypointAddRef.current?.(lat, lng);
+        if (snapEnabledRef.current) {
+          // Try snapping to nearest road/path using Mapbox Map Matching API
+          try {
+            const wps = waypointsRef.current;
+            if (wps.length > 0) {
+              const prev = wps[wps.length - 1];
+              const response = await fetch(
+                `https://api.mapbox.com/matching/v5/mapbox/walking/${prev.lng},${prev.lat};${lng},${lat}?access_token=${mapboxgl.accessToken}&geometries=geojson&steps=false&overview=simplified`
+              );
+              const data = await response.json();
+              if (data.matchings?.[0]?.geometry?.coordinates) {
+                const coords = data.matchings[0].geometry.coordinates;
+                const snappedPoint = coords[coords.length - 1];
+                onWaypointAddRef.current?.(snappedPoint[1], snappedPoint[0], true, "road");
+                return;
+              }
+            }
+            // Fallback: no previous point or matching failed
+            onWaypointAddRef.current?.(lat, lng, false);
+          } catch {
+            // On error, fall back to unsnapped
+            onWaypointAddRef.current?.(lat, lng, false);
+          }
+        } else {
+          onWaypointAddRef.current?.(lat, lng);
+        }
+      });
+
+      // Insert mode: click on route line to insert a waypoint between existing ones
+      map.on("click", "creation-route-line-hitarea", (e) => {
+        if (!isCreatingRef.current || toolModeRef.current !== "insert") return;
+        e.originalEvent.stopPropagation();
+
+        const { lng, lat } = e.lngLat;
+        const wps = waypointsRef.current;
+        if (wps.length < 2) return;
+
+        // Find nearest segment to determine insertion index
+        let minDist = Infinity;
+        let insertIdx = 1;
+        for (let i = 0; i < wps.length - 1; i++) {
+          const dist = pointToSegmentDistance(lng, lat, wps[i].lng, wps[i].lat, wps[i + 1].lng, wps[i + 1].lat);
+          if (dist < minDist) {
+            minDist = dist;
+            insertIdx = i + 1;
+          }
+        }
+
+        onWaypointInsertRef.current?.(insertIdx, lat, lng);
+      });
+
+      // Cursor changes for insert mode on route line
+      map.on("mouseenter", "creation-route-line-hitarea", () => {
+        if (toolModeRef.current === "insert") {
+          map.getCanvas().style.cursor = "copy";
+        }
+      });
+      map.on("mouseleave", "creation-route-line-hitarea", () => {
+        if (isCreatingRef.current && isPlottingRef.current) {
+          map.getCanvas().style.cursor = toolModeRef.current === "plot" ? "crosshair" : "default";
+        }
       });
 
       mapRef.current = map;
@@ -1288,7 +1393,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
               color: white;
             ">${index + 1}</div>
           `;
-          el.style.cursor = "move";
+          el.style.cursor = toolMode === "erase" ? "pointer" : "move";
 
           const marker = new mapboxgl.Marker({
             element: el,
@@ -1297,30 +1402,36 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             .setLngLat([wp.lng, wp.lat])
             .addTo(mapRef.current!);
 
-          // Handle drag
+          // Handle drag — use ref to get current callback with correct signature
           marker.on("dragend", () => {
             const lngLat = marker.getLngLat();
-            onWaypointUpdate?.(index, {
-              ...wp,
-              lat: lngLat.lat,
-              lng: lngLat.lng,
-            });
+            onWaypointUpdateRef.current?.(wp.id, lngLat.lat, lngLat.lng);
           });
 
-          // Handle click for eraser tool
+          // Handle click for eraser tool — use refs to avoid stale closures
           el.addEventListener("click", (e) => {
-            if (toolMode === "erase") {
+            if (toolModeRef.current === "erase") {
               e.stopPropagation();
-              onWaypointRemove?.(index);
+              onWaypointRemoveRef.current?.(wp.id);
             }
           });
 
           waypointMarkersRef.current.set(wp.id, marker);
         });
+
+        // Check for circular route detection (last waypoint near first)
+        if (waypoints.length >= 3 && routeType !== "circular") {
+          const first = waypoints[0];
+          const last = waypoints[waypoints.length - 1];
+          const distKm = haversineDistanceSimple(first.lat, first.lng, last.lat, last.lng);
+          if (distKm < 0.05) {
+            onCircularDetectedRef.current?.(true);
+          }
+        }
       } else {
         source.setData({ type: "FeatureCollection", features: [] });
       }
-    }, [isCreating, waypoints, routeType, toolMode, mapLoaded, onWaypointUpdate, onWaypointRemove, styleLoadCount, routeStyle]);
+    }, [isCreating, waypoints, routeType, toolMode, mapLoaded, styleLoadCount, routeStyle]);
 
     // Update creation route style
     useEffect(() => {
