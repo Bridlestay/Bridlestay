@@ -1091,17 +1091,23 @@ export function RouteDetailDrawer({
                 </>
               )}
 
-              {/* Dot indicators */}
-              {displayPhotosForCarousel.length > 1 && displayPhotosForCarousel.length <= 8 && (
-                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                  {displayPhotosForCarousel.map((_: any, idx: number) => (
-                    <button
-                      key={idx}
-                      onClick={(e) => { e.stopPropagation(); pauseAutoScroll(); setCurrentPhotoIndex(idx); }}
-                      className={cn("h-2 rounded-full transition-all", idx === currentPhotoIndex ? "bg-white w-4" : "bg-white/50 w-2")}
-                    />
-                  ))}
-                </div>
+              {/* Dot indicators — compact counter when > 12 photos */}
+              {displayPhotosForCarousel.length > 1 && (
+                displayPhotosForCarousel.length <= 12 ? (
+                  <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                    {displayPhotosForCarousel.map((_: any, idx: number) => (
+                      <button
+                        key={idx}
+                        onClick={(e) => { e.stopPropagation(); pauseAutoScroll(); setCurrentPhotoIndex(idx); }}
+                        className={cn("h-2 rounded-full transition-all", idx === currentPhotoIndex ? "bg-white w-4" : "bg-white/50 w-2")}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full">
+                    {currentPhotoIndex + 1} / {displayPhotosForCarousel.length}
+                  </div>
+                )
               )}
             </div>
           </div>
