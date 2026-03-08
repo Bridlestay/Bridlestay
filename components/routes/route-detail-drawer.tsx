@@ -684,32 +684,6 @@ export function RouteDetailDrawer({
     return wpPhotos;
   }, [waypoints]);
 
-  // Collect review/completion photos (deduplicated against userPhotos)
-  const completionPhotos = useMemo(() => {
-    const existingIds = new Set([
-      ...(photos || []).map((p: any) => p.id),
-      ...(userPhotos || []).map((p: any) => p.id),
-    ]);
-    const result: any[] = [];
-    for (const completion of routeCompletions) {
-      for (const p of completion.photos || []) {
-        if (!existingIds.has(p.id)) {
-          existingIds.add(p.id);
-          result.push({
-            id: p.id,
-            url: p.url,
-            caption: p.caption || null,
-            created_at: p.created_at,
-            source: "review" as const,
-            user_name: completion.user?.name || null,
-            user_avatar: completion.user?.avatar_url || null,
-          });
-        }
-      }
-    }
-    return result;
-  }, [routeCompletions, photos, userPhotos]);
-
   const displayPhotosForCarousel = useMemo(() => {
     let routeDisplayPhotos: any[];
     if (coverPhoto || apiDisplayPhotos.length > 0) {
@@ -724,9 +698,26 @@ export function RouteDetailDrawer({
       );
       routeDisplayPhotos = cover ? [cover, ...display] : display;
     }
-    // Append waypoint + review photos after route display photos
-    return [...routeDisplayPhotos, ...waypointPhotos, ...completionPhotos];
-  }, [coverPhoto, apiDisplayPhotos, photos, route, waypointPhotos, completionPhotos]);
+    // Non-display route photos (not already in routeDisplayPhotos)
+    const displayIds = new Set(routeDisplayPhotos.map((p: any) => p.id));
+    const remainingRoutePhotos = (photos || []).filter(
+      (p: any) => !displayIds.has(p.id)
+    );
+    // Community / review photos (from route_user_photos)
+    const communityForCarousel = (userPhotos || []).map((p: any) => ({
+      id: p.id,
+      url: p.url,
+      caption: p.caption,
+      source: "community" as const,
+    }));
+    // Append all: display photos → remaining route photos → community → waypoint
+    return [
+      ...routeDisplayPhotos,
+      ...remainingRoutePhotos,
+      ...communityForCarousel,
+      ...waypointPhotos,
+    ];
+  }, [coverPhoto, apiDisplayPhotos, photos, route, userPhotos, waypointPhotos]);
 
   const allPhotosForGallery = useMemo(() => {
     const ownerPhotos = (photos || []).map((p: any) => ({
@@ -754,18 +745,17 @@ export function RouteDetailDrawer({
       ...p,
       source: "waypoint" as const,
     }));
-    return [...ownerPhotos, ...communityPhotos, ...wpPhotos, ...completionPhotos].sort(
+    return [...ownerPhotos, ...communityPhotos, ...wpPhotos].sort(
       (a, b) =>
         new Date(b.created_at || 0).getTime() -
         new Date(a.created_at || 0).getTime()
     );
-  }, [photos, userPhotos, waypointPhotos, completionPhotos]);
+  }, [photos, userPhotos, waypointPhotos]);
 
   const totalPhotoCount =
     (photos?.length || 0) +
     (userPhotos?.length || 0) +
-    waypointPhotos.length +
-    completionPhotos.length;
+    waypointPhotos.length;
 
   // Auto-scroll photo carousel (pauses 6s on user interaction)
   const autoScrollPaused = useRef(false);
