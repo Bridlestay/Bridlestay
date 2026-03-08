@@ -759,7 +759,7 @@ export function RouteDetailDrawer({
       setCurrentPhotoIndex((prev) =>
         prev < displayPhotosForCarousel.length - 1 ? prev + 1 : 0
       );
-    }, 4000);
+    }, 6000);
     return () => {
       clearInterval(interval);
       clearTimeout(pauseTimeout.current);
