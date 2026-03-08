@@ -586,12 +586,27 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             const data = await response.json();
             if (data.routes?.[0]?.geometry?.coordinates) {
               const routeCoords = data.routes[0].geometry.coordinates as [number, number][];
-              // Snapped destination = last point of the directions result
               const snappedPoint = routeCoords[routeCoords.length - 1];
+              const snappedLat = snappedPoint[1];
+              const snappedLng = snappedPoint[0];
+
+              // Check snapped position against existing waypoints (7.5m min)
+              let tooClose = false;
+              for (const wp of wps) {
+                if (haversineDistanceSimple(wp.lat, wp.lng, snappedLat, snappedLng) < 0.0075) {
+                  tooClose = true;
+                  break;
+                }
+              }
+              if (tooClose) {
+                toast.error("Too close to an existing waypoint (min 7.5m apart)");
+                return;
+              }
+
               // Store the full road-following segment geometry
-              const segIndex = wps.length - 1; // segment from prev to new
+              const segIndex = wps.length - 1;
               snappedSegmentsRef.current.set(segIndex, routeCoords);
-              onWaypointAddRef.current?.(snappedPoint[1], snappedPoint[0], true, "road");
+              onWaypointAddRef.current?.(snappedLat, snappedLng, true, "road");
               return;
             }
             // Directions failed — fall back to unsnapped
@@ -1533,24 +1548,61 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             .setLngLat([wp.lng, wp.lat])
             .addTo(mapRef.current!);
 
-          // Handle drag — update waypoint position, re-fetch snapped segments if snap is on
+          // Handle drag — snap to road if close, re-fetch segments, update position
           marker.on("dragend", async () => {
             const lngLat = marker.getLngLat();
-            onWaypointUpdateRef.current?.(wp.id, lngLat.lat, lngLat.lng);
+            const wps = waypointsRef.current;
+            const wpIdx = wps.findIndex(w => w.id === wp.id);
 
-            // Re-fetch affected snapped segments after drag
-            if (snapEnabledRef.current) {
+            if (snapEnabledRef.current && wpIdx >= 0) {
               const token = mapboxgl.accessToken;
-              const wps = waypointsRef.current;
-              const wpIdx = wps.findIndex(w => w.id === wp.id);
-              if (wpIdx < 0 || !token) return;
+              if (!token) {
+                onWaypointUpdateRef.current?.(wp.id, lngLat.lat, lngLat.lng);
+                return;
+              }
 
-              // Re-fetch segment before this waypoint
+              // Clear stale segments immediately so the line redraws correctly
+              if (wpIdx > 0) snappedSegmentsRef.current.delete(wpIdx - 1);
+              if (wpIdx < wps.length - 1) snappedSegmentsRef.current.delete(wpIdx);
+
+              // Try to snap the dragged position to a nearby road
+              // Use a short directions call from/to the same point area
+              let finalLat = lngLat.lat;
+              let finalLng = lngLat.lng;
+              let snappedToRoad = false;
+
+              // Check if there's a neighbor to route from to snap the position
+              const neighbor = wpIdx > 0 ? wps[wpIdx - 1] : (wpIdx < wps.length - 1 ? wps[wpIdx + 1] : null);
+              if (neighbor) {
+                try {
+                  const res = await fetch(
+                    `https://api.mapbox.com/directions/v5/mapbox/walking/${neighbor.lng},${neighbor.lat};${lngLat.lng},${lngLat.lat}?access_token=${token}&geometries=geojson&overview=full`
+                  );
+                  const data = await res.json();
+                  if (data.routes?.[0]?.geometry?.coordinates) {
+                    const coords = data.routes[0].geometry.coordinates as [number, number][];
+                    const snappedEnd = coords[coords.length - 1];
+                    // Check if snapped point is within 25m of dragged position
+                    // If too far, the user dragged way off a road — keep unsnapped
+                    const snapDist = haversineDistanceSimple(lngLat.lat, lngLat.lng, snappedEnd[1], snappedEnd[0]);
+                    if (snapDist < 0.025) { // 25m threshold
+                      finalLat = snappedEnd[1];
+                      finalLng = snappedEnd[0];
+                      snappedToRoad = true;
+                    }
+                  }
+                } catch { /* keep unsnapped */ }
+              }
+
+              // Update the waypoint position (snapped or unsnapped)
+              onWaypointUpdateRef.current?.(wp.id, finalLat, finalLng, snappedToRoad);
+
+              // Now re-fetch both affected segments with the final position
               if (wpIdx > 0) {
                 try {
                   const prev = wps[wpIdx - 1];
                   const res = await fetch(
-                    `https://api.mapbox.com/directions/v5/mapbox/walking/${prev.lng},${prev.lat};${lngLat.lng},${lngLat.lat}?access_token=${token}&geometries=geojson&overview=full`
+                    `https://api.mapbox.com/directions/v5/mapbox/walking/${prev.lng},${prev.lat};${finalLng},${finalLat}?access_token=${token}&geometries=geojson&overview=full`
                   );
                   const data = await res.json();
                   if (data.routes?.[0]?.geometry?.coordinates) {
@@ -1558,12 +1610,11 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                   }
                 } catch { /* skip */ }
               }
-              // Re-fetch segment after this waypoint
               if (wpIdx < wps.length - 1) {
                 try {
                   const next = wps[wpIdx + 1];
                   const res = await fetch(
-                    `https://api.mapbox.com/directions/v5/mapbox/walking/${lngLat.lng},${lngLat.lat};${next.lng},${next.lat}?access_token=${token}&geometries=geojson&overview=full`
+                    `https://api.mapbox.com/directions/v5/mapbox/walking/${finalLng},${finalLat};${next.lng},${next.lat}?access_token=${token}&geometries=geojson&overview=full`
                   );
                   const data = await res.json();
                   if (data.routes?.[0]?.geometry?.coordinates) {
@@ -1571,6 +1622,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                   }
                 } catch { /* skip */ }
               }
+            } else {
+              // Snap off or waypoint not found — just update position
+              onWaypointUpdateRef.current?.(wp.id, lngLat.lat, lngLat.lng);
             }
           });
 
