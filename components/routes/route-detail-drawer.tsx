@@ -684,6 +684,32 @@ export function RouteDetailDrawer({
     return wpPhotos;
   }, [waypoints]);
 
+  // Collect review/completion photos (deduplicated against userPhotos)
+  const completionPhotos = useMemo(() => {
+    const existingIds = new Set([
+      ...(photos || []).map((p: any) => p.id),
+      ...(userPhotos || []).map((p: any) => p.id),
+    ]);
+    const result: any[] = [];
+    for (const completion of routeCompletions) {
+      for (const p of completion.photos || []) {
+        if (!existingIds.has(p.id)) {
+          existingIds.add(p.id);
+          result.push({
+            id: p.id,
+            url: p.url,
+            caption: p.caption || null,
+            created_at: p.created_at,
+            source: "review" as const,
+            user_name: completion.user?.name || null,
+            user_avatar: completion.user?.avatar_url || null,
+          });
+        }
+      }
+    }
+    return result;
+  }, [routeCompletions, photos, userPhotos]);
+
   const displayPhotosForCarousel = useMemo(() => {
     let routeDisplayPhotos: any[];
     if (coverPhoto || apiDisplayPhotos.length > 0) {
@@ -698,9 +724,9 @@ export function RouteDetailDrawer({
       );
       routeDisplayPhotos = cover ? [cover, ...display] : display;
     }
-    // Append waypoint photos after route display photos
-    return [...routeDisplayPhotos, ...waypointPhotos];
-  }, [coverPhoto, apiDisplayPhotos, photos, route, waypointPhotos]);
+    // Append waypoint + review photos after route display photos
+    return [...routeDisplayPhotos, ...waypointPhotos, ...completionPhotos];
+  }, [coverPhoto, apiDisplayPhotos, photos, route, waypointPhotos, completionPhotos]);
 
   const allPhotosForGallery = useMemo(() => {
     const ownerPhotos = (photos || []).map((p: any) => ({
@@ -728,17 +754,18 @@ export function RouteDetailDrawer({
       ...p,
       source: "waypoint" as const,
     }));
-    return [...ownerPhotos, ...communityPhotos, ...wpPhotos].sort(
+    return [...ownerPhotos, ...communityPhotos, ...wpPhotos, ...completionPhotos].sort(
       (a, b) =>
         new Date(b.created_at || 0).getTime() -
         new Date(a.created_at || 0).getTime()
     );
-  }, [photos, userPhotos, waypointPhotos]);
+  }, [photos, userPhotos, waypointPhotos, completionPhotos]);
 
   const totalPhotoCount =
     (photos?.length || 0) +
     (userPhotos?.length || 0) +
-    waypointPhotos.length;
+    waypointPhotos.length +
+    completionPhotos.length;
 
   // Auto-scroll photo carousel (pauses 6s on user interaction)
   const autoScrollPaused = useRef(false);
