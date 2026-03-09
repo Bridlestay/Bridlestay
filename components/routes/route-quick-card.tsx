@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin, Clock, Users, X } from "lucide-react";
+import { MapPin, Clock, Users, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getMapboxThumbnailUrl } from "@/lib/routes/route-thumbnail";
 
@@ -11,6 +11,11 @@ interface RouteQuickCardProps {
   onClose: () => void;
   onClick: () => void;
   className?: string;
+  // Optional navigation for browsing multiple routes (e.g., after cluster click)
+  onPrev?: () => void;
+  onNext?: () => void;
+  currentIndex?: number;
+  totalCount?: number;
 }
 
 const DIFFICULTY_STYLES: Record<string, { bg: string; text: string; border: string }> = {
@@ -23,8 +28,19 @@ const DIFFICULTY_STYLES: Record<string, { bg: string; text: string; border: stri
   unrated: { bg: "bg-gray-100", text: "text-gray-700", border: "border-gray-300" },
 };
 
-export function RouteQuickCard({ route, onClose, onClick, className }: RouteQuickCardProps) {
+export function RouteQuickCard({
+  route,
+  onClose,
+  onClick,
+  className,
+  onPrev,
+  onNext,
+  currentIndex,
+  totalCount,
+}: RouteQuickCardProps) {
   if (!route) return null;
+
+  const hasNavigation = onPrev && onNext && totalCount && totalCount > 1;
 
   // Calculate ride time
   const rideTimeMinutes = Math.round((route.distance_km || 0) / 8 * 60);
@@ -52,106 +68,140 @@ export function RouteQuickCard({ route, onClose, onClick, className }: RouteQuic
         className
       )}
     >
-      <div
-        className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-2xl transition-shadow duration-200"
-        onClick={onClick}
-      >
-        {/* Close button - small corner cutout */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-          className="absolute top-0 right-0 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-bl-xl rounded-tr-2xl flex items-center justify-center hover:bg-gray-100 transition-colors"
+      <div className="relative flex items-center gap-1.5">
+        {/* Prev arrow */}
+        {hasNavigation && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPrev();
+            }}
+            className="flex-shrink-0 w-9 h-9 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all"
+          >
+            <ChevronLeft className="h-5 w-5 text-gray-600" />
+          </button>
+        )}
+
+        {/* Card */}
+        <div
+          className="flex-1 min-w-0 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-2xl transition-shadow duration-200"
+          onClick={onClick}
         >
-          <X className="h-3.5 w-3.5 text-gray-500" />
-        </button>
+          {/* Close button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="absolute top-0 right-0 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-bl-xl rounded-tr-2xl flex items-center justify-center hover:bg-gray-100 transition-colors"
+            style={hasNavigation ? { right: "44px" } : undefined}
+          >
+            <X className="h-3.5 w-3.5 text-gray-500" />
+          </button>
 
-        <div className="flex items-center gap-3 p-3">
-          {/* Route Thumbnail */}
-          {thumbnailUrl && (
-            <div className="flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden bg-gray-100">
-              <img
-                src={thumbnailUrl}
-                alt={route.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
-              />
-            </div>
-          )}
-
-          {/* Route Info */}
-          <div className="flex-1 min-w-0">
-            {/* Title */}
-            <h3 className="font-semibold text-sm text-gray-900 truncate leading-tight">
-              {route.title || "Untitled Route"}
-            </h3>
-
-            {/* Author */}
-            {route.owner?.name && (
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <Avatar className="h-4 w-4">
-                  <AvatarImage src={route.owner?.avatar_url} />
-                  <AvatarFallback className="text-[8px] bg-green-100 text-green-800">
-                    {route.owner?.name?.[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-xs text-gray-500 truncate">
-                  {route.owner.name}
-                </span>
+          <div className="flex items-center gap-3 p-3">
+            {/* Route Thumbnail */}
+            {thumbnailUrl && (
+              <div className="flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden bg-gray-100">
+                <img
+                  src={thumbnailUrl}
+                  alt={route.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
               </div>
             )}
 
-            {/* Stats Row */}
-            <div className="flex items-center gap-3 mt-1.5">
-              {/* Distance */}
-              <span className="text-xs text-gray-600 flex items-center gap-1">
-                🐴 {(route.distance_km || 0).toFixed(1)} km
-              </span>
+            {/* Route Info */}
+            <div className="flex-1 min-w-0">
+              {/* Title */}
+              <h3 className="font-semibold text-sm text-gray-900 truncate leading-tight">
+                {route.title || "Untitled Route"}
+              </h3>
 
-              {/* Time */}
-              <span className="text-xs text-gray-600 flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {rideTimeStr}
-              </span>
-
-              {/* Completions */}
-              {(route.completions_count !== undefined && route.completions_count > 0) && (
-                <span className="text-xs text-gray-600 flex items-center gap-1">
-                  <Users className="h-3 w-3" />
-                  {route.completions_count}
-                </span>
+              {/* Author */}
+              {route.owner?.name && (
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <Avatar className="h-4 w-4">
+                    <AvatarImage src={route.owner?.avatar_url} />
+                    <AvatarFallback className="text-[8px] bg-green-100 text-green-800">
+                      {route.owner?.name?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs text-gray-500 truncate">
+                    {route.owner.name}
+                  </span>
+                </div>
               )}
+
+              {/* Stats Row */}
+              <div className="flex items-center gap-3 mt-1.5">
+                {/* Distance */}
+                <span className="text-xs text-gray-600 flex items-center gap-1">
+                  {(route.distance_km || 0).toFixed(1)} km
+                </span>
+
+                {/* Time */}
+                <span className="text-xs text-gray-600 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {rideTimeStr}
+                </span>
+
+                {/* Completions */}
+                {(route.completions_count !== undefined && route.completions_count > 0) && (
+                  <span className="text-xs text-gray-600 flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    {route.completions_count}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Difficulty Badge */}
+            <div className="flex-shrink-0">
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[11px] px-2.5 py-0.5 font-semibold capitalize",
+                  diffStyle.bg,
+                  diffStyle.text,
+                  diffStyle.border
+                )}
+              >
+                {difficulty === "unrated" ? "Unrated" : difficulty}
+              </Badge>
             </div>
           </div>
 
-          {/* Difficulty Badge */}
-          <div className="flex-shrink-0">
-            <Badge
-              variant="outline"
-              className={cn(
-                "text-[11px] px-2.5 py-0.5 font-semibold capitalize",
-                diffStyle.bg,
-                diffStyle.text,
-                diffStyle.border
-              )}
-            >
-              {difficulty === "unrated" ? "Unrated" : difficulty}
-            </Badge>
+          {/* Bottom bar — tap hint + page indicator */}
+          <div className="bg-green-50 px-3 py-1.5 border-t border-green-100 flex items-center justify-center gap-2">
+            {hasNavigation && (
+              <span className="text-[10px] text-green-600 font-medium">
+                {(currentIndex ?? 0) + 1} of {totalCount}
+              </span>
+            )}
+            <p className="text-[11px] text-green-700 text-center font-medium">
+              <span className="md:hidden">Tap for full details</span>
+              <span className="hidden md:inline">Click for full details</span>
+            </p>
           </div>
         </div>
 
-        {/* Subtle tap hint */}
-        <div className="bg-green-50 px-3 py-1.5 border-t border-green-100">
-          <p className="text-[11px] text-green-700 text-center font-medium">
-            <span className="md:hidden">Tap for full details</span>
-            <span className="hidden md:inline">Click for full details</span>
-          </p>
-        </div>
+        {/* Next arrow */}
+        {hasNavigation && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onNext();
+            }}
+            className="flex-shrink-0 w-9 h-9 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all"
+          >
+            <ChevronRight className="h-5 w-5 text-gray-600" />
+          </button>
+        )}
       </div>
     </div>
   );
 }
-

@@ -92,6 +92,9 @@ export default function RoutesPage() {
   const [bottomSheetRoutes, setBottomSheetRoutes] = useState<any[]>([]);
   const [isCluster, setIsCluster] = useState(false);
   const [clusterCount, setClusterCount] = useState(0);
+  // Cluster route browsing — quick card with prev/next arrows
+  const [clusterBrowseRoutes, setClusterBrowseRoutes] = useState<any[]>([]);
+  const [clusterBrowseIndex, setClusterBrowseIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [highlightedRouteId, setHighlightedRouteId] = useState<string | null>(null);
 
@@ -516,17 +519,27 @@ export default function RoutesPage() {
     setSelectedRouteData(null);
     setHighlightedRouteId(null);
     setSelectedRouteWaypoints([]);
+    setClusterBrowseRoutes([]);
+    setClusterBrowseIndex(0);
   };
 
-  // Handle cluster click
+  // Handle cluster click — show quick card with prev/next navigation
   const handleClusterClick = (routeIds: string[], count: number) => {
     const routes = exploreRoutes.filter((r) => routeIds.includes(r.id));
-    setBottomSheetRoutes(routes);
-    setSelectedRouteId(routes[0]?.id || null);
-    setShowBottomSheet(true);
-    setIsCluster(true);
-    setClusterCount(count);
-    if (routes[0]) setHighlightedRouteId(routes[0].id);
+    if (routes.length === 0) return;
+
+    setClusterBrowseRoutes(routes);
+    setClusterBrowseIndex(0);
+    // Show the first route as a preview with navigation
+    const first = routes[0];
+    setPreviewRoute(first);
+    setDrawnRouteId(first.id);
+    setHighlightedRouteId(first.id);
+    setSelectedRouteData(first);
+    setSelectedRouteId(first.id);
+    setDrawerOpen(false);
+    setShowBottomSheet(false);
+    fetchRouteWaypoints(first.id);
   };
 
   // Handle waypoint marker click on map — open drawer to waypoints panel
@@ -1565,6 +1578,30 @@ export default function RoutesPage() {
             route={previewRoute}
             onClose={handleClosePreview}
             onClick={() => handleRouteClick(previewRoute.id)}
+            onPrev={clusterBrowseRoutes.length > 1 ? () => {
+              const newIdx = (clusterBrowseIndex - 1 + clusterBrowseRoutes.length) % clusterBrowseRoutes.length;
+              setClusterBrowseIndex(newIdx);
+              const route = clusterBrowseRoutes[newIdx];
+              setPreviewRoute(route);
+              setDrawnRouteId(route.id);
+              setHighlightedRouteId(route.id);
+              setSelectedRouteData(route);
+              setSelectedRouteId(route.id);
+              fetchRouteWaypoints(route.id);
+            } : undefined}
+            onNext={clusterBrowseRoutes.length > 1 ? () => {
+              const newIdx = (clusterBrowseIndex + 1) % clusterBrowseRoutes.length;
+              setClusterBrowseIndex(newIdx);
+              const route = clusterBrowseRoutes[newIdx];
+              setPreviewRoute(route);
+              setDrawnRouteId(route.id);
+              setHighlightedRouteId(route.id);
+              setSelectedRouteData(route);
+              setSelectedRouteId(route.id);
+              fetchRouteWaypoints(route.id);
+            } : undefined}
+            currentIndex={clusterBrowseIndex}
+            totalCount={clusterBrowseRoutes.length}
           />
         )}
 

@@ -397,6 +397,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     onWaypointInsertRef.current = onWaypointInsert;
     onCircularDetectedRef.current = onCircularDetected;
     waypointsRef.current = waypoints;
+    const onClusterClickRef = useRef(onClusterClick);
+    onClusterClickRef.current = onClusterClick;
     onCreationPOIAddRef.current = onCreationPOIAdd;
     onCreationPOIUpdateRef.current = onCreationPOIUpdate;
     onCreationPOIRemoveRef.current = onCreationPOIRemove;
@@ -937,18 +939,33 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         });
 
 
-        // Click on cluster to zoom
+        // Click on cluster to zoom + show route cards
         map.on("click", "clusters", (e) => {
           const features = map.queryRenderedFeatures(e.point, { layers: ["clusters"] });
           const clusterId = features[0].properties?.cluster_id;
           const source = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
-          
+
           source.getClusterExpansionZoom(clusterId, (err, zoom) => {
             if (err) return;
             map.easeTo({
               center: (features[0].geometry as any).coordinates,
               zoom: zoom,
             });
+            // Ensure pins appear after zoom animation completes
+            map.once("idle", () => {
+              updatePinMarkers();
+            });
+          });
+
+          // Get all routes in this cluster for the navigation quick card
+          source.getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
+            if (err || !leaves) return;
+            const routeIds = leaves
+              .map((l: any) => l.properties?.id)
+              .filter(Boolean) as string[];
+            if (routeIds.length > 0) {
+              onClusterClickRef.current?.(routeIds, routeIds.length);
+            }
           });
         });
 
@@ -1765,10 +1782,11 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                 } catch { /* keep unsnapped */ }
               }
 
-              // Update the waypoint position (snapped or unsnapped)
-              onWaypointUpdateRef.current?.(wp.id, finalLat, finalLng, snappedToRoad);
+              // Move marker to snapped position immediately for visual feedback
+              marker.setLngLat([finalLng, finalLat]);
 
-              // Now re-fetch both affected segments with the final position
+              // Re-fetch both affected segments BEFORE triggering state update
+              // so the route redraws with snapped geometry, not straight lines.
               if (wpIdx > 0) {
                 try {
                   const prev = wps[wpIdx - 1];
@@ -1778,7 +1796,6 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                   const data = await res.json();
                   if (data.routes?.[0]?.geometry?.coordinates) {
                     const coords = data.routes[0].geometry.coordinates as [number, number][];
-                    // Pin wp0's actual position for the first segment
                     if (wpIdx - 1 === 0) coords[0] = [prev.lng, prev.lat];
                     snappedSegmentsRef.current.set(wpIdx - 1, coords);
                   }
@@ -1793,12 +1810,14 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                   const data = await res.json();
                   if (data.routes?.[0]?.geometry?.coordinates) {
                     const coords = data.routes[0].geometry.coordinates as [number, number][];
-                    // Pin wp0's actual position for the first segment
                     if (wpIdx === 0) coords[0] = [finalLng, finalLat];
                     snappedSegmentsRef.current.set(wpIdx, coords);
                   }
                 } catch { /* skip */ }
               }
+
+              // NOW update waypoint position — triggers re-render with segments already in place
+              onWaypointUpdateRef.current?.(wp.id, finalLat, finalLng, snappedToRoad);
             } else {
               // Snap off or waypoint not found — just update position
               onWaypointUpdateRef.current?.(wp.id, lngLat.lat, lngLat.lng);
