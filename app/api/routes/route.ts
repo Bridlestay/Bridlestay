@@ -9,7 +9,7 @@ const RouteSchema = z.object({
   description: z.string().max(5000).optional(),
   county: z.string().optional(),
   terrain_tags: z.array(z.string()).default([]),
-  difficulty: z.enum(["unrated", "easy", "moderate", "medium", "difficult", "hard", "severe"]).optional(),
+  difficulty: z.enum(["unrated", "easy", "moderate", "medium", "difficult", "hard"]).optional(),
   seasonal_notes: z.string().optional(),
   surface: z.string().optional(),
   geometry: z.object({

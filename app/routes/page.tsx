@@ -150,7 +150,6 @@ export default function RoutesPage() {
   const [routeType, setRouteType] = useState<"circular" | "linear">("linear");
   const [history, setHistory] = useState<Waypoint[][]>([]);
   const [toolMode, setToolMode] = useState<ToolMode>("plot");
-  const [showToolbarInCreate, setShowToolbarInCreate] = useState(true);
   const [showSaveModal, setShowSaveModal] = useState(false);
 
   // Recording state
@@ -1059,7 +1058,6 @@ export default function RoutesPage() {
     setEditingRouteId(null);
     setEditingRouteData(null);
     setIsPlotting(true);
-    setShowToolbarInCreate(true);
     setToolMode("plot");
     setShowBottomSheet(false);
   };
@@ -1185,33 +1183,29 @@ export default function RoutesPage() {
             />
           </div>
 
-          {/* Desktop: Show either nav tabs or creation toolbar */}
-          {!showToolbarInCreate ? (
-            <div className="hidden md:block">
-              <RoutesNavTabs
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-                onSwitchToToolbar={() => setShowToolbarInCreate(true)}
-              />
-            </div>
-          ) : (
-            <div className="hidden md:block">
-              <RouteCreatorToolbar
-                isPlotting={isPlotting}
-                setIsPlotting={setIsPlotting}
-                snapEnabled={snapEnabled}
-                setSnapEnabled={setSnapEnabled}
-                toolMode={toolMode}
-                setToolMode={setToolMode}
-                onUndo={handleUndo}
-                onClear={handleClear}
-                canUndo={history.length > 0}
-                routeStyle={routeStyle}
-                containerClassName="top-4"
-                onSwitchBar={() => setShowToolbarInCreate(false)}
-              />
-            </div>
-          )}
+          {/* Desktop: Always show creation toolbar */}
+          <div className="hidden md:block">
+            <RouteCreatorToolbar
+              isPlotting={isPlotting}
+              setIsPlotting={setIsPlotting}
+              snapEnabled={snapEnabled}
+              setSnapEnabled={setSnapEnabled}
+              toolMode={toolMode}
+              setToolMode={setToolMode}
+              onUndo={handleUndo}
+              onClear={handleClear}
+              canUndo={history.length > 0}
+              routeStyle={routeStyle}
+              containerClassName="top-4"
+              onExitCreation={() => {
+                if (waypoints.length > 0) {
+                  setShowDiscardDialog(true);
+                } else {
+                  confirmCancel();
+                }
+              }}
+            />
+          </div>
 
           {/* Floating stats pill — bottom-left */}
           <div className="absolute bottom-6 left-4 z-20 md:bottom-8 md:left-8">

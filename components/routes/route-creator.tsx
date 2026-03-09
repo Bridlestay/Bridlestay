@@ -573,7 +573,7 @@ export function RouteCreatorToolbar({
   routeStyle,
   isMobile = false,
   containerClassName,
-  onSwitchBar,
+  onExitCreation,
   waypointPlacementMode = false,
   onToggleWaypointMode,
 }: {
@@ -589,7 +589,7 @@ export function RouteCreatorToolbar({
   routeStyle?: RouteStyle;
   isMobile?: boolean;
   containerClassName?: string;
-  onSwitchBar?: () => void;
+  onExitCreation?: () => void;
   waypointPlacementMode?: boolean;
   onToggleWaypointMode?: () => void;
 }) {
@@ -835,22 +835,22 @@ export function RouteCreatorToolbar({
             </TooltipContent>
           </Tooltip>
 
-          {/* Switch to navigation bar */}
-          {onSwitchBar && (
+          {/* Exit route creation */}
+          {onExitCreation && (
             <>
               <div className="w-px h-12 bg-gray-200 mx-1" />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={onSwitchBar}
-                    className="flex flex-col items-center justify-center px-3 py-2 rounded-md transition-all hover:bg-gray-100 text-gray-600"
+                    onClick={onExitCreation}
+                    className="flex flex-col items-center justify-center px-3 py-2 rounded-md transition-all hover:bg-red-50 text-gray-600 hover:text-red-600"
                   >
-                    <Map className="h-5 w-5" />
-                    <span className="text-[11px] mt-1 font-semibold tracking-wide">Nav</span>
+                    <X className="h-5 w-5" />
+                    <span className="text-[11px] mt-1 font-semibold tracking-wide">Exit</span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
-                  <p>Switch to navigation tabs</p>
+                  <p>Exit route creation</p>
                 </TooltipContent>
               </Tooltip>
             </>

@@ -37,7 +37,7 @@ export interface SaveRouteFormData {
   title: string;
   description: string;
   visibility: "private" | "link" | "public";
-  difficulty: "unrated" | "easy" | "moderate" | "difficult" | "severe";
+  difficulty: "unrated" | "easy" | "moderate" | "difficult";
   photos: PhotoItem[];
 }
 
@@ -60,7 +60,7 @@ interface SaveRouteModalProps {
     title: string;
     description: string;
     visibility: "private" | "link" | "public";
-    difficulty: "unrated" | "easy" | "moderate" | "difficult" | "severe";
+    difficulty: "unrated" | "easy" | "moderate" | "difficult";
   };
 }
 
@@ -83,7 +83,7 @@ export function SaveRouteModal({
     existingData?.visibility || "private"
   );
   const [difficulty, setDifficulty] = useState<
-    "unrated" | "easy" | "moderate" | "difficult" | "severe"
+    "unrated" | "easy" | "moderate" | "difficult"
   >(existingData?.difficulty || "unrated");
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [saving, setSaving] = useState(false);
@@ -429,7 +429,6 @@ export function SaveRouteModal({
                     "easy",
                     "moderate",
                     "difficult",
-                    "severe",
                   ] as const
                 ).map((level) => (
                   <Button
@@ -443,11 +442,9 @@ export function SaveRouteModal({
                         ? level === "easy"
                           ? "bg-green-600 hover:bg-green-700"
                           : level === "moderate"
-                          ? "bg-blue-600 hover:bg-blue-700"
+                          ? "bg-amber-600 hover:bg-amber-700"
                           : level === "difficult"
                           ? "bg-orange-600 hover:bg-orange-700"
-                          : level === "severe"
-                          ? "bg-red-600 hover:bg-red-700"
                           : ""
                         : ""
                     )}
