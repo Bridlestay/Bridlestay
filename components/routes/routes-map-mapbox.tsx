@@ -799,12 +799,50 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       // Add or update the clustered source
       const sourceId = "route-pins";
       const existingSource = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
-      
+
       if (existingSource) {
+        // Silent update — just swap the data, markers will sync via updatePinMarkers
         existingSource.setData({
           type: "FeatureCollection",
           features,
         });
+        // Sync pin markers without clearing all first
+        setTimeout(() => {
+          if (!map.isStyleLoaded()) return;
+          const visibleFeatures = map.querySourceFeatures(sourceId, {
+            filter: ["!", ["has", "point_count"]],
+          });
+          const seenIds = new Set<string>();
+          visibleFeatures.forEach((f) => {
+            const id = f.properties?.id;
+            if (!id) return;
+            seenIds.add(id);
+            if (pinMarkersRef.current.has(id)) {
+              // Update position if changed
+              const coords = (f.geometry as any).coordinates;
+              pinMarkersRef.current.get(id)!.setLngLat(coords);
+              return;
+            }
+            const coords = (f.geometry as any).coordinates;
+            const el = document.createElement("div");
+            el.innerHTML = `
+              <div style="cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+                <svg width="32" height="42" viewBox="-2 -2 28 36" fill="none">
+                  <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z" fill="${PIN_COLOR}" stroke="${PIN_BORDER}" stroke-width="3"/>
+                  <circle cx="12" cy="11" r="4" fill="${PIN_BORDER}"/>
+                </svg>
+              </div>
+            `;
+            const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+              .setLngLat(coords)
+              .addTo(map);
+            pinMarkersRef.current.set(id, marker);
+          });
+          pinMarkersRef.current.forEach((marker, id) => {
+            if (!seenIds.has(id)) { marker.remove(); pinMarkersRef.current.delete(id); }
+          });
+        }, 100);
+        return; // Skip re-adding layers/listeners
       } else {
         // Add source with clustering
         map.addSource(sourceId, {
@@ -814,8 +852,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             features,
           },
           cluster: true,
-          clusterMaxZoom: 14,
-          clusterRadius: 50,
+          clusterMaxZoom: 13,
+          clusterRadius: 60,
         });
 
         // Cluster circles (dark green - Padoq brand)
@@ -976,11 +1014,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       // Initial update
       setTimeout(updatePinMarkers, 500);
 
-      return () => {
-        // Clean up pin markers
-        pinMarkersRef.current.forEach((marker) => marker.remove());
-        pinMarkersRef.current.clear();
-      };
+      // No cleanup — markers persist and are updated incrementally above
+      // Only clean up when entering creation mode (handled by isCreating guard at top)
     }, [routes, mapLoaded, isCreating, onRouteClick, onRoutePreview, styleLoadCount]);
 
     // Display POI markers
@@ -1779,18 +1814,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             pointer-events: auto;
           ">
             <div style="
-              width: 28px;
-              height: 28px;
-              background: #D97706;
-              border: 3px solid white;
-              border-radius: 50%;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            ">${iconSvg}</div>
-            <div style="
-              margin-top: 2px;
+              margin-bottom: 2px;
               background: #D97706;
               color: white;
               font-size: 9px;
@@ -1803,6 +1827,17 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
               overflow: hidden;
               text-overflow: ellipsis;
             ">W${index + 1}</div>
+            <div style="
+              width: 24px;
+              height: 24px;
+              background: #D97706;
+              border: 3px solid white;
+              border-radius: 50%;
+              box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            ">${iconSvg}</div>
           </div>
         `;
         el.style.cursor = toolModeRef.current === "erase" ? "pointer" : "move";
@@ -1811,6 +1846,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           element: el,
           draggable: true,
           anchor: "bottom",
+          offset: [0, 12], // Shift down so circle center (not bottom edge) sits on the line
         })
           .setLngLat([poi.lng, poi.lat])
           .addTo(mapRef.current!);

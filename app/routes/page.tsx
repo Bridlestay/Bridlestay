@@ -217,14 +217,14 @@ export default function RoutesPage() {
     fetchNearbyProperties();
   }, []);
 
-  // Auto-refresh map pins every 10s when on main map (no route selected, not creating)
+  // Auto-refresh map pins every 5s when on main map (no route selected, not creating)
   useEffect(() => {
     const isMainMap = activeTab === "map" && !isCreating && !selectedRouteId;
     if (!isMainMap) return;
 
     const interval = setInterval(() => {
       fetchExploreRoutes();
-    }, 10000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [activeTab, isCreating, selectedRouteId]);
@@ -394,11 +394,10 @@ export default function RoutesPage() {
 
       if (myRes.ok) {
         const myData = await myRes.json();
-        const myRouteIds = new Set((myData.routes || []).map((r: any) => r.id));
-        // Add user's own routes that aren't already in the list
+        // Only add user's own PUBLIC routes to the map (private routes shouldn't inflate cluster counts)
         const existingIds = new Set(allRoutes.map(r => r.id));
         for (const route of myData.routes || []) {
-          if (!existingIds.has(route.id)) {
+          if (!existingIds.has(route.id) && (route.visibility === "public" || route.is_public)) {
             allRoutes.push(route);
           }
         }
