@@ -28,6 +28,7 @@ import {
   AlertTriangle,
   MessageCircle,
   Pencil,
+  Trash2,
   Image as ImageIcon,
   X,
   ChevronLeft,
@@ -82,6 +83,7 @@ interface RouteDetailDrawerProps {
   onDismiss?: () => void;
   onShowPropertyOnMap?: (propertyId: string, lat: number, lng: number) => void;
   onEditRoute?: (routeId: string, routeData: any) => void;
+  onDeleteRoute?: (routeId: string) => void;
   onFlyToLocation?: (lat: number, lng: number) => void;
   initialWaypointId?: string | null;
   onWaypointFocused?: () => void;
@@ -100,6 +102,7 @@ export function RouteDetailDrawer({
   onDismiss,
   onShowPropertyOnMap,
   onEditRoute,
+  onDeleteRoute,
   onFlyToLocation,
   initialWaypointId,
   onWaypointFocused,
@@ -1013,6 +1016,19 @@ export function RouteDetailDrawer({
                       <DropdownMenuItem onClick={() => onEditRoute(routeId!, route)}>
                         <Pencil className="h-4 w-4 mr-2" />
                         Edit
+                      </DropdownMenuItem>
+                    )}
+                    {(isOwner || isAdmin) && onDeleteRoute && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (confirm("Are you sure you want to delete this route? This cannot be undone.")) {
+                            onDeleteRoute(routeId!);
+                          }
+                        }}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem onClick={() => setReportDialogOpen(true)}>

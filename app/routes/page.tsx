@@ -459,11 +459,15 @@ export default function RoutesPage() {
     setDrawnRouteId(route.id);
     setHighlightedRouteId(route.id);
     setPreviewRoute(route);
-    
+
     // Close any existing drawer
     setDrawerOpen(false);
     setShowBottomSheet(false);
-    
+
+    // Clear cluster browse state — individual pin click exits cluster mode
+    setClusterBrowseRoutes([]);
+    setClusterBrowseIndex(0);
+
     // Store route data for later use
     setSelectedRouteData(route);
     setSelectedRouteId(route.id);
@@ -1696,6 +1700,26 @@ export default function RoutesPage() {
           }}
           onEditRoute={(routeId, routeData) => {
             startEditing(routeId, routeData);
+          }}
+          onDeleteRoute={async (routeId) => {
+            try {
+              const res = await fetch(`/api/routes/${routeId}`, { method: "DELETE" });
+              if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || "Failed to delete route");
+              }
+              toast.success("Route deleted");
+              setDrawerOpen(false);
+              setSelectedRouteId(null);
+              setSelectedRouteData(null);
+              setDrawnRouteId(null);
+              setHighlightedRouteId(null);
+              setPreviewRoute(null);
+              // Refresh routes list
+              fetchExploreRoutes();
+            } catch (error: any) {
+              toast.error(error.message || "Failed to delete route");
+            }
           }}
           onFlyToLocation={(lat, lng) => {
             mapRef.current?.flyTo(lat, lng, 18);

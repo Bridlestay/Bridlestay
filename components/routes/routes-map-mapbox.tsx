@@ -857,6 +857,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             }
             const coords = (f.geometry as any).coordinates;
             const el = document.createElement("div");
+            el.style.zIndex = "3";
             el.innerHTML = `
               <div style="cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
                 <svg width="32" height="42" viewBox="-2 -2 28 36" fill="none">
@@ -1025,6 +1026,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           
           // Create pin marker element (OS Maps–inspired: thick white outline, green fill, white dot)
           const el = document.createElement("div");
+          el.style.zIndex = "3";
           el.innerHTML = `
             <div style="cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
               <svg width="32" height="42" viewBox="-2 -2 28 36" fill="none">
