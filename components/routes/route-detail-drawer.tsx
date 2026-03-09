@@ -1300,7 +1300,7 @@ export function RouteDetailDrawer({
               <div className="flex border-b overflow-x-auto scrollbar-hidden -mx-4 px-4">
                 {([
                   { key: "elevation", label: "Elevation" },
-                  { key: "waypoints", label: "Waypoints", count: fullWaypointList.length },
+                  { key: "waypoints", label: "Waypoints", count: waypoints.length },
                   { key: "hazards", label: "Hazards", count: activeHazards.length },
                   { key: "warnings", label: "Warnings", count: activeWarnings.length },
                   { key: "weather", label: "Weather" },
