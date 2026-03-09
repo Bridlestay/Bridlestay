@@ -53,6 +53,33 @@ function nearestPointOnSegment(
   return { lng: ax + t * dx, lat: ay + t * dy };
 }
 
+// Build the full rendered route line coordinates from snapped segments + spine waypoints
+function getRenderedRouteCoords(
+  waypoints: Array<{ lng: number; lat: number }>,
+  segments: Map<number, [number, number][]>
+): [number, number][] {
+  if (waypoints.length < 2) return waypoints.map((w) => [w.lng, w.lat]);
+  if (segments.size === 0) return waypoints.map((w) => [w.lng, w.lat]);
+
+  const coords: [number, number][] = [];
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const seg = segments.get(i);
+    if (seg && seg.length > 0) {
+      if (coords.length === 0) {
+        coords.push(...seg);
+      } else {
+        coords.push(...seg.slice(1));
+      }
+    } else {
+      if (coords.length === 0) {
+        coords.push([waypoints[i].lng, waypoints[i].lat]);
+      }
+      coords.push([waypoints[i + 1].lng, waypoints[i + 1].lat]);
+    }
+  }
+  return coords;
+}
+
 // Check if coordinates are within Great Britain (England, Scotland, Wales)
 function isWithinGB(lng: number, lat: number): boolean {
   return lat >= GB_BOUNDS.south &&
@@ -559,12 +586,15 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             return;
           }
 
-          // Find nearest point on the route line (using spine waypoints)
+          // Build the actual rendered route line coordinates (snapped road geometry)
+          const routeCoords = getRenderedRouteCoords(wps, snappedSegmentsRef.current);
+
+          // Find nearest point on the rendered route line
           let minDistKm = Infinity;
           let snapLng = lng;
           let snapLat = lat;
-          for (let i = 0; i < wps.length - 1; i++) {
-            const nearest = nearestPointOnSegment(lng, lat, wps[i].lng, wps[i].lat, wps[i + 1].lng, wps[i + 1].lat);
+          for (let i = 0; i < routeCoords.length - 1; i++) {
+            const nearest = nearestPointOnSegment(lng, lat, routeCoords[i][0], routeCoords[i][1], routeCoords[i + 1][0], routeCoords[i + 1][1]);
             const distKm = haversineDistanceSimple(lat, lng, nearest.lat, nearest.lng);
             if (distKm < minDistKm) {
               minDistKm = distKm;
@@ -573,13 +603,13 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             }
           }
 
-          // Must be within 10m (0.01 km) of the route line
-          if (minDistKm > 0.01) {
-            toast.error("Waypoints must be placed within 10m of the route line");
+          // Must be within 50m of the route line
+          if (minDistKm > 0.05) {
+            toast.error("Click closer to the route line to place a waypoint");
             return;
           }
 
-          // Snap the POI to the nearest point on the line
+          // Snap the POI to the nearest point on the actual line
           onCreationPOIAddRef.current?.(snapLat, snapLng);
           return;
         }
@@ -1785,20 +1815,20 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           .setLngLat([poi.lng, poi.lat])
           .addTo(mapRef.current!);
 
-        // Handle drag — snap to nearest point on route line
+        // Handle drag — snap to nearest point on the actual rendered route line
         marker.on("dragend", () => {
           const lngLat = marker.getLngLat();
           const wps = waypointsRef.current;
           if (wps.length >= 2) {
+            const routeCoords = getRenderedRouteCoords(wps, snappedSegmentsRef.current);
             let minDist = Infinity;
             let snapLng = lngLat.lng;
             let snapLat = lngLat.lat;
-            for (let i = 0; i < wps.length - 1; i++) {
-              const nearest = nearestPointOnSegment(lngLat.lng, lngLat.lat, wps[i].lng, wps[i].lat, wps[i + 1].lng, wps[i + 1].lat);
+            for (let i = 0; i < routeCoords.length - 1; i++) {
+              const nearest = nearestPointOnSegment(lngLat.lng, lngLat.lat, routeCoords[i][0], routeCoords[i][1], routeCoords[i + 1][0], routeCoords[i + 1][1]);
               const d = haversineDistanceSimple(lngLat.lat, lngLat.lng, nearest.lat, nearest.lng);
               if (d < minDist) { minDist = d; snapLng = nearest.lng; snapLat = nearest.lat; }
             }
-            // Snap if within 10m, otherwise reject and snap to nearest anyway
             marker.setLngLat([snapLng, snapLat]);
             onCreationPOIUpdateRef.current?.(poi.id, snapLat, snapLng);
           } else {
