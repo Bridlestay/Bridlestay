@@ -53,6 +53,36 @@ function nearestPointOnSegment(
   return { lng: ax + t * dx, lat: ay + t * dy };
 }
 
+// Re-index snapped segments when a waypoint is removed.
+// Segment i connects waypoint[i] to waypoint[i+1], so removing waypoint at
+// removedIndex invalidates segments removedIndex-1 and removedIndex,
+// and all later segments shift down by 1.
+function reindexSegmentsOnRemove(
+  removedIndex: number,
+  segments: Map<number, [number, number][]>
+) {
+  // Delete the segment BEFORE the removed waypoint (prev → removed)
+  if (removedIndex > 0) segments.delete(removedIndex - 1);
+  // Delete the segment AT the removed waypoint (removed → next)
+  segments.delete(removedIndex);
+
+  // Build new map with shifted indices
+  const shifted = new Map<number, [number, number][]>();
+  for (const [key, value] of segments) {
+    if (key < removedIndex) {
+      shifted.set(key, value);
+    } else {
+      // key > removedIndex (we already deleted key === removedIndex)
+      shifted.set(key - 1, value);
+    }
+  }
+
+  segments.clear();
+  for (const [key, value] of shifted) {
+    segments.set(key, value);
+  }
+}
+
 // Build the full rendered route line coordinates from snapped segments + spine waypoints
 function getRenderedRouteCoords(
   waypoints: Array<{ lng: number; lat: number }>,
@@ -1781,6 +1811,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             e.stopPropagation();
             markerClickedRef.current = true;
             if (toolModeRef.current === "erase") {
+              // Re-index snapped segments BEFORE removing the waypoint so
+              // the route line rebuilds correctly with the remaining waypoints.
+              reindexSegmentsOnRemove(index, snappedSegmentsRef.current);
               onWaypointRemoveRef.current?.(wp.id);
             }
           });
