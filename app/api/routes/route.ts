@@ -53,12 +53,6 @@ export async function POST(request: NextRequest) {
     // Calculate distance if not provided
     const distance_km = validated.distance_km || calculateDistanceFromGeometry(validated.geometry);
 
-    // Map difficulty values
-    let mappedDifficulty = validated.difficulty;
-    if (mappedDifficulty === "moderate") mappedDifficulty = "medium";
-    if (mappedDifficulty === "difficult" || mappedDifficulty === "severe") mappedDifficulty = "hard";
-    if (mappedDifficulty === "unrated") mappedDifficulty = undefined;
-
     // Insert route
     const { data: route, error } = await supabase
       .from("routes")
@@ -67,7 +61,7 @@ export async function POST(request: NextRequest) {
         description: validated.description,
         county: validated.county,
         terrain_tags: validated.terrain_tags,
-        difficulty: mappedDifficulty,
+        difficulty: validated.difficulty,
         seasonal_notes: validated.seasonal_notes,
         surface: validated.surface,
         geometry: validated.geometry,

@@ -357,10 +357,10 @@ export function SaveRouteModal({
               >
                 {[
                   {
-                    value: "private" as const,
-                    icon: Lock,
-                    label: "Private",
-                    desc: "Only you can see this route",
+                    value: "public" as const,
+                    icon: Globe,
+                    label: "Public",
+                    desc: "Anyone can see the route",
                   },
                   {
                     value: "link" as const,
@@ -369,10 +369,10 @@ export function SaveRouteModal({
                     desc: "Only people with a link can see",
                   },
                   {
-                    value: "public" as const,
-                    icon: Globe,
-                    label: "Public",
-                    desc: "Anyone can see the route",
+                    value: "private" as const,
+                    icon: Lock,
+                    label: "Private",
+                    desc: "Only you can see this route",
                   },
                 ].map((opt) => (
                   <label

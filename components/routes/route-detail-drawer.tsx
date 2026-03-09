@@ -1012,7 +1012,7 @@ export function RouteDetailDrawer({
                     {(isOwner || isAdmin) && onEditRoute && (
                       <DropdownMenuItem onClick={() => onEditRoute(routeId!, route)}>
                         <Pencil className="h-4 w-4 mr-2" />
-                        Copy & Edit
+                        Edit
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem onClick={() => setReportDialogOpen(true)}>

@@ -114,13 +114,8 @@ export async function PATCH(
     if (body.county) updates.county = body.county;
     if (body.terrain_tags) updates.terrain_tags = body.terrain_tags;
     
-    // Map difficulty values to match database constraint (easy, medium, hard)
-    if (body.difficulty) {
-      let mappedDifficulty = body.difficulty;
-      if (mappedDifficulty === "moderate") mappedDifficulty = "medium";
-      if (mappedDifficulty === "difficult" || mappedDifficulty === "severe") mappedDifficulty = "hard";
-      if (mappedDifficulty === "unrated") mappedDifficulty = null;
-      updates.difficulty = mappedDifficulty;
+    if (body.difficulty !== undefined) {
+      updates.difficulty = body.difficulty;
     }
     
     if (body.seasonal_notes !== undefined) updates.seasonal_notes = body.seasonal_notes;
