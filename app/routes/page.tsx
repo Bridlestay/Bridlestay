@@ -543,6 +543,10 @@ export default function RoutesPage() {
     setMapViewMode(mode);
     setDrawerOpen(false);
     setMobileRouteDetailOpen(false);
+    // Show quick card at bottom for easy navigation back to route detail
+    if (selectedRouteData) {
+      setPreviewRoute(selectedRouteData);
+    }
     // Sync layer settings so the toggle reflects the active view mode
     if (mode === "hazards") {
       setLayerSettings((prev) => ({ ...prev, showHazards: true }));
@@ -1594,6 +1598,17 @@ export default function RoutesPage() {
           }}
           onFlyToLocation={(lat, lng) => {
             mapRef.current?.flyTo(lat, lng, 18);
+            // Close drawer and show quick card for easy navigation back
+            setDrawerOpen(false);
+            setMobileRouteDetailOpen(true);
+            if (selectedRouteData) {
+              setPreviewRoute(selectedRouteData);
+            }
+            // Enable waypoints on map so user can see the waypoint markers
+            setLayerSettings((prev) => ({
+              ...prev,
+              showWaymarkers: true,
+            }));
           }}
           initialWaypointId={initialWaypointId}
           onWaypointFocused={() => {
