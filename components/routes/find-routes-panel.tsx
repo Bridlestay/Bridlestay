@@ -59,11 +59,11 @@ const RATING_OPTIONS = [
 ];
 
 const DIFFICULTY_COLORS: Record<string, string> = {
-  unrated: "bg-gray-100 text-gray-700",
-  easy: "bg-green-100 text-green-700",
-  moderate: "bg-blue-100 text-blue-700",
-  difficult: "bg-orange-100 text-orange-700",
-  severe: "bg-red-100 text-red-700",
+  unrated: "bg-gray-100 text-gray-700 border-gray-300",
+  easy: "bg-green-100 text-green-700 border-green-300",
+  moderate: "bg-blue-100 text-blue-700 border-blue-300",
+  difficult: "bg-orange-100 text-orange-700 border-orange-300",
+  severe: "bg-red-100 text-red-700 border-red-300",
 };
 
 export function FindRoutesPanel({
@@ -478,7 +478,7 @@ export function FindRoutesPanel({
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge
-                        variant="secondary"
+                        variant="outline"
                         className={cn(
                           "text-[10px] h-5",
                           DIFFICULTY_COLORS[route.difficulty] || DIFFICULTY_COLORS.unrated

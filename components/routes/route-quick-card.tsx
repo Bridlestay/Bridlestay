@@ -13,14 +13,14 @@ interface RouteQuickCardProps {
   className?: string;
 }
 
-const DIFFICULTY_STYLES: Record<string, { bg: string; text: string }> = {
-  easy: { bg: "bg-green-100", text: "text-green-800" },
-  moderate: { bg: "bg-amber-100", text: "text-amber-800" },
-  medium: { bg: "bg-amber-100", text: "text-amber-800" },
-  difficult: { bg: "bg-orange-100", text: "text-orange-800" },
-  hard: { bg: "bg-red-100", text: "text-red-800" },
-  severe: { bg: "bg-red-200", text: "text-red-900" },
-  unrated: { bg: "bg-gray-100", text: "text-gray-700" },
+const DIFFICULTY_STYLES: Record<string, { bg: string; text: string; border: string }> = {
+  easy: { bg: "bg-green-100", text: "text-green-800", border: "border-green-300" },
+  moderate: { bg: "bg-amber-100", text: "text-amber-800", border: "border-amber-300" },
+  medium: { bg: "bg-amber-100", text: "text-amber-800", border: "border-amber-300" },
+  difficult: { bg: "bg-orange-100", text: "text-orange-800", border: "border-orange-300" },
+  hard: { bg: "bg-red-100", text: "text-red-800", border: "border-red-300" },
+  severe: { bg: "bg-red-200", text: "text-red-900", border: "border-red-400" },
+  unrated: { bg: "bg-gray-100", text: "text-gray-700", border: "border-gray-300" },
 };
 
 export function RouteQuickCard({ route, onClose, onClick, className }: RouteQuickCardProps) {
@@ -130,10 +130,12 @@ export function RouteQuickCard({ route, onClose, onClick, className }: RouteQuic
           {/* Difficulty Badge */}
           <div className="flex-shrink-0">
             <Badge
+              variant="outline"
               className={cn(
-                "text-[11px] px-2.5 py-0.5 font-semibold capitalize border-0",
+                "text-[11px] px-2.5 py-0.5 font-semibold capitalize",
                 diffStyle.bg,
-                diffStyle.text
+                diffStyle.text,
+                diffStyle.border
               )}
             >
               {difficulty === "unrated" ? "Unrated" : difficulty}

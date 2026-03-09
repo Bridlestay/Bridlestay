@@ -49,11 +49,11 @@ interface RouteBottomSheetProps {
 }
 
 const DIFFICULTY_COLORS: Record<string, string> = {
-  unrated: "bg-gray-100 text-gray-700",
-  easy: "bg-green-100 text-green-700",
-  moderate: "bg-blue-100 text-blue-700",
-  difficult: "bg-orange-100 text-orange-700",
-  severe: "bg-red-100 text-red-700",
+  unrated: "bg-gray-100 text-gray-700 border-gray-300",
+  easy: "bg-green-100 text-green-700 border-green-300",
+  moderate: "bg-blue-100 text-blue-700 border-blue-300",
+  difficult: "bg-orange-100 text-orange-700 border-orange-300",
+  severe: "bg-red-100 text-red-700 border-red-300",
 };
 
 function formatDuration(minutes: number): string {
@@ -159,7 +159,7 @@ export function RouteBottomSheet({
 
                 <div className="flex gap-2 mt-2">
                   <Badge
-                    variant="secondary"
+                    variant="outline"
                     className={cn("text-xs", DIFFICULTY_COLORS[displayRoute.difficulty] || DIFFICULTY_COLORS.unrated)}
                   >
                     {displayRoute.difficulty.charAt(0).toUpperCase() + displayRoute.difficulty.slice(1)}

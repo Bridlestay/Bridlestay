@@ -457,9 +457,11 @@ export function RouteDetailDrawer({
       if (res.ok) {
         const data = await res.json();
         setElevationData(data);
+      } else {
+        console.error("[ELEVATION] Failed to fetch:", res.status, await res.text().catch(() => ""));
       }
-    } catch {
-      // Non-critical
+    } catch (error) {
+      console.error("[ELEVATION] Fetch error:", error);
     } finally {
       setLoadingElevation(false);
     }
@@ -1172,7 +1174,7 @@ export function RouteDetailDrawer({
 
               {/* DIFFICULTY + TIMES RIDDEN */}
               <div className="flex items-center gap-3 flex-wrap">
-                <Badge className={cn("text-xs px-2 py-0.5", getDifficultyInfo(route.difficulty).color)}>
+                <Badge variant="outline" className={cn("text-xs px-2 py-0.5", getDifficultyInfo(route.difficulty).color)}>
                   {getDifficultyInfo(route.difficulty).label}
                 </Badge>
                 {(route.completions_count > 0) && (
@@ -1228,8 +1230,8 @@ export function RouteDetailDrawer({
                   <p className="text-2xl font-bold text-slate-900">
                     {elevationData?.totalAscent
                       ? `${elevationData.totalAscent}`
-                      : route.elevation_gain
-                        ? `${Math.round(route.elevation_gain)}`
+                      : route.elevation_gain_m
+                        ? `${Math.round(route.elevation_gain_m)}`
                         : loadingElevation ? "..." : "---"}
                     <span className="text-sm font-normal text-slate-500 ml-1">m</span>
                   </p>
@@ -1239,8 +1241,8 @@ export function RouteDetailDrawer({
                   <p className="text-2xl font-bold text-slate-900">
                     {elevationData?.totalDescent
                       ? `${elevationData.totalDescent}`
-                      : route.elevation_loss
-                        ? `${Math.round(route.elevation_loss)}`
+                      : route.elevation_loss_m
+                        ? `${Math.round(route.elevation_loss_m)}`
                         : loadingElevation ? "..." : "---"}
                     <span className="text-sm font-normal text-slate-500 ml-1">m</span>
                   </p>
