@@ -18,6 +18,7 @@ import { RouteNavigator } from "@/components/routes/route-navigator";
 import { PostRideReview } from "@/components/routes/post-ride-review";
 import { ElevationProfile } from "@/components/routes/elevation-profile";
 import { ClearRouteDialog, DiscardRouteDialog } from "@/components/routes/confirm-dialog";
+import { QuickAddWaypointDialog, TempRouteWaypoint } from "@/components/routes/quick-add-waypoint-dialog";
 import { RoutesMapHeader } from "@/components/routes/routes-map-header";
 import { MobileTopHeader } from "@/components/routes/mobile-top-header";
 import { MobileBottomNav } from "@/components/routes/mobile-bottom-nav";
@@ -151,6 +152,11 @@ export default function RoutesPage() {
   const [history, setHistory] = useState<Waypoint[][]>([]);
   const [toolMode, setToolMode] = useState<ToolMode>("plot");
   const [showSaveModal, setShowSaveModal] = useState(false);
+
+  // POI waypoints during creation (points of interest placed with Insert/Waypoint tool)
+  const [creationPOIs, setCreationPOIs] = useState<TempRouteWaypoint[]>([]);
+  const [poiDialogOpen, setPoiDialogOpen] = useState(false);
+  const [poiDialogPosition, setPoiDialogPosition] = useState<{ lat: number; lng: number } | null>(null);
 
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -911,8 +917,33 @@ export default function RoutesPage() {
   const confirmClear = useCallback(() => {
     setHistory([]);
     setWaypoints([]);
+    setCreationPOIs([]);
     setRouteType("linear");
     toast.info("Route cleared");
+  }, []);
+
+  // POI waypoint handlers (Insert/Waypoint tool)
+  const handleCreationPOIAdd = useCallback((lat: number, lng: number) => {
+    setPoiDialogPosition({ lat, lng });
+    setPoiDialogOpen(true);
+  }, []);
+
+  const handleCreationPOIConfirm = useCallback((poi: TempRouteWaypoint) => {
+    setCreationPOIs((prev) => [...prev, poi]);
+    setPoiDialogOpen(false);
+    setPoiDialogPosition(null);
+    toast.success(`Waypoint "${poi.name}" added`);
+  }, []);
+
+  const handleCreationPOIUpdate = useCallback((id: string, lat: number, lng: number) => {
+    setCreationPOIs((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, lat, lng } : p))
+    );
+  }, []);
+
+  const handleCreationPOIRemove = useCallback((id: string) => {
+    setCreationPOIs((prev) => prev.filter((p) => p.id !== id));
+    toast.info("Waypoint removed");
   }, []);
 
   // Distance calculation for the floating stats pill
@@ -1007,6 +1038,31 @@ export default function RoutesPage() {
       }
     }
 
+    // Save POI waypoints if any were placed during creation
+    if (creationPOIs.length > 0 && routeId) {
+      try {
+        for (let i = 0; i < creationPOIs.length; i++) {
+          const poi = creationPOIs[i];
+          await fetch(`/api/routes/${routeId}/waypoints`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lat: poi.lat,
+              lng: poi.lng,
+              name: poi.name,
+              tag: poi.tag || "note",
+              icon_type: poi.icon_type,
+              description: poi.description,
+              order_index: i,
+            }),
+          });
+        }
+      } catch (waypointError) {
+        console.error("Failed to save some waypoints:", waypointError);
+        toast.warning("Route saved, but some waypoints failed to save");
+      }
+    }
+
     toast.success(isEditing ? "Route updated!" : "Route saved!");
 
     // Reset state
@@ -1015,6 +1071,7 @@ export default function RoutesPage() {
     setEditingRouteId(null);
     setEditingRouteData(null);
     setWaypoints([]);
+    setCreationPOIs([]);
     setHistory([]);
     setRouteType("linear");
     setToolMode("plot");
@@ -1098,6 +1155,7 @@ export default function RoutesPage() {
     setEditingRouteData(null);
     setIsPlotting(false);
     setWaypoints([]);
+    setCreationPOIs([]);
     setHistory([]);
     setRouteType("linear");
     setToolMode("plot");
@@ -1137,6 +1195,10 @@ export default function RoutesPage() {
               onCircularDetected={handleCircularDetected}
               placingRouteWaypoint={placingWaypoint}
               onRouteWaypointPlaced={handleWaypointPlaced}
+              creationPOIs={creationPOIs}
+              onCreationPOIAdd={handleCreationPOIAdd}
+              onCreationPOIUpdate={handleCreationPOIUpdate}
+              onCreationPOIRemove={handleCreationPOIRemove}
             />
           </div>
 
@@ -1293,6 +1355,15 @@ export default function RoutesPage() {
             if (!open) setPendingTabChange(null);
           }}
           onConfirm={confirmCancel}
+        />
+        <QuickAddWaypointDialog
+          open={poiDialogOpen}
+          onOpenChange={(open) => {
+            setPoiDialogOpen(open);
+            if (!open) setPoiDialogPosition(null);
+          }}
+          position={poiDialogPosition}
+          onAdd={handleCreationPOIConfirm}
         />
       </TooltipProvider>
     );

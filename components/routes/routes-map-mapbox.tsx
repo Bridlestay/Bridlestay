@@ -83,6 +83,23 @@ function isOnWater(map: mapboxgl.Map, point: mapboxgl.Point): boolean {
   return false;
 }
 
+// POI waypoint icon SVGs (used in creation mode markers)
+const POI_ICON_SVGS: Record<string, string> = {
+  viewpoint: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><circle cx="8" cy="6" r="3" fill="none" stroke="white" stroke-width="1.5"/><path d="M1 13c2-4 5-6 7-6s5 2 7 6" fill="none" stroke="white" stroke-width="1.5"/></svg>`,
+  water: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><path d="M8 2C8 2 4 7 4 10a4 4 0 008 0c0-3-4-8-4-8z" fill="white"/></svg>`,
+  hazard: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><path d="M8 1L1 15h14L8 1z" fill="none" stroke="white" stroke-width="1.5"/><text x="8" y="13" text-anchor="middle" fill="white" font-size="8" font-weight="bold">!</text></svg>`,
+  parking: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><text x="8" y="13" text-anchor="middle" fill="white" font-size="13" font-weight="bold">P</text></svg>`,
+  pub: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><path d="M4 2h8v5c0 2-1.5 3-4 3s-4-1-4-3V2z" fill="none" stroke="white" stroke-width="1.3"/><line x1="8" y1="10" x2="8" y2="13" stroke="white" stroke-width="1.3"/><line x1="5" y1="13" x2="11" y2="13" stroke="white" stroke-width="1.3"/></svg>`,
+  gate: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><rect x="2" y="3" width="12" height="10" rx="1" fill="none" stroke="white" stroke-width="1.3"/><line x1="8" y1="3" x2="8" y2="13" stroke="white" stroke-width="1.3"/></svg>`,
+  rest: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><path d="M2 10h12M4 10V6c0-1 1-2 2-2h0c1 0 2 1 2 2v4M10 10V8c0-1 1-1.5 2-1.5s2 .5 2 1.5v2" fill="none" stroke="white" stroke-width="1.3"/></svg>`,
+  historic: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><path d="M3 14V6l5-4 5 4v8H3z" fill="none" stroke="white" stroke-width="1.3"/><rect x="6" y="9" width="4" height="5" fill="none" stroke="white" stroke-width="1"/></svg>`,
+  wildlife: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><circle cx="8" cy="8" r="6" fill="none" stroke="white" stroke-width="1.3"/><circle cx="6" cy="7" r="1" fill="white"/><circle cx="10" cy="7" r="1" fill="white"/></svg>`,
+  bridge: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><path d="M1 10c3-4 4-4 7-4s4 0 7 4" fill="none" stroke="white" stroke-width="1.5"/><line x1="4" y1="6" x2="4" y2="14" stroke="white" stroke-width="1.3"/><line x1="12" y1="6" x2="12" y2="14" stroke="white" stroke-width="1.3"/></svg>`,
+  ford: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><path d="M1 8h14" stroke="white" stroke-width="1.5"/><path d="M1 11c2-1 4 1 6 0s4 1 6 0" fill="none" stroke="white" stroke-width="1.3"/></svg>`,
+  stile: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><line x1="4" y1="2" x2="4" y2="14" stroke="white" stroke-width="1.5"/><line x1="12" y1="2" x2="12" y2="14" stroke="white" stroke-width="1.5"/><line x1="4" y1="8" x2="12" y2="8" stroke="white" stroke-width="1.5"/></svg>`,
+  other: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><circle cx="8" cy="6" r="2.5" fill="none" stroke="white" stroke-width="1.5"/><path d="M8 9v3" stroke="white" stroke-width="1.5"/><circle cx="8" cy="14" r="1" fill="white"/></svg>`,
+};
+
 // Map style options
 const MAP_STYLES = {
   outdoors: "mapbox://styles/mapbox/outdoors-v12", // Shows trails!
@@ -180,6 +197,18 @@ export interface RoutesMapMapboxProps {
   // Route waypoint placement mode (for adding waypoints during route creation)
   placingRouteWaypoint?: boolean;
   onRouteWaypointPlaced?: (lat: number, lng: number) => void;
+  // POI waypoints during route creation (temporary, not yet saved)
+  creationPOIs?: Array<{
+    id: string;
+    lat: number;
+    lng: number;
+    name: string;
+    icon_type?: string;
+    tag?: string;
+  }>;
+  onCreationPOIAdd?: (lat: number, lng: number) => void;
+  onCreationPOIUpdate?: (id: string, lat: number, lng: number) => void;
+  onCreationPOIRemove?: (id: string) => void;
 }
 
 export interface RoutesMapMapboxHandle {
@@ -257,6 +286,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       onHazardPlaced,
       placingRouteWaypoint = false,
       onRouteWaypointPlaced,
+      creationPOIs = [],
+      onCreationPOIAdd,
+      onCreationPOIUpdate,
+      onCreationPOIRemove,
     },
     ref
   ) => {
@@ -293,6 +326,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const onWaypointInsertRef = useRef(onWaypointInsert);
     const onCircularDetectedRef = useRef(onCircularDetected);
     const waypointsRef = useRef(waypoints);
+    const onCreationPOIAddRef = useRef(onCreationPOIAdd);
+    const onCreationPOIUpdateRef = useRef(onCreationPOIUpdate);
+    const onCreationPOIRemoveRef = useRef(onCreationPOIRemove);
+    const creationPOIMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
     isCreatingRef.current = isCreating;
     isPlottingRef.current = isPlotting;
     toolModeRef.current = toolMode;
@@ -303,6 +340,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     onWaypointInsertRef.current = onWaypointInsert;
     onCircularDetectedRef.current = onCircularDetected;
     waypointsRef.current = waypoints;
+    onCreationPOIAddRef.current = onCreationPOIAdd;
+    onCreationPOIUpdateRef.current = onCreationPOIUpdate;
+    onCreationPOIRemoveRef.current = onCreationPOIRemove;
 
     // Expose methods to parent via ref
     useImperativeHandle(ref, () => ({
@@ -510,31 +550,11 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
         const mode = toolModeRef.current;
 
-        // --- INSERT MODE ---
+        // --- INSERT MODE (POI Waypoint) ---
         if (mode === "insert") {
           const { lng, lat } = e.lngLat;
-          const wps = waypointsRef.current;
-          if (wps.length < 2) return;
-
-          // Find nearest segment and compute real-world distance to it
-          let minDistKm = Infinity;
-          let insertIdx = 1;
-          for (let i = 0; i < wps.length - 1; i++) {
-            const nearestPt = nearestPointOnSegment(lng, lat, wps[i].lng, wps[i].lat, wps[i + 1].lng, wps[i + 1].lat);
-            const distKm = haversineDistanceSimple(lat, lng, nearestPt.lat, nearestPt.lng);
-            if (distKm < minDistKm) {
-              minDistKm = distKm;
-              insertIdx = i + 1;
-            }
-          }
-
-          // Only allow insert within 5m (0.005 km) of the route line
-          if (minDistKm > 0.005) {
-            toast.error("Click closer to the route line to insert a waypoint");
-            return;
-          }
-
-          onWaypointInsertRef.current?.(insertIdx, lat, lng);
+          // Trigger the POI add callback — parent will open the QuickAddWaypointDialog
+          onCreationPOIAddRef.current?.(lat, lng);
           return;
         }
 
@@ -1534,26 +1554,41 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           ],
         });
 
-        // Add waypoint markers
+        // Add spine point markers (small dots for intermediate, labeled for S/F)
         waypoints.forEach((wp, index) => {
           const el = document.createElement("div");
           el.className = "waypoint-marker";
-          el.innerHTML = `
-            <div style="
-              width: 24px;
-              height: 24px;
-              background: ${index === 0 ? "#22C55E" : index === waypoints.length - 1 ? "#EF4444" : "#3B82F6"};
-              border: 3px solid white;
-              border-radius: 50%;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 10px;
-              font-weight: bold;
-              color: white;
-            ">${index + 1}</div>
-          `;
+          const isStart = index === 0;
+          const isFinish = index === waypoints.length - 1 && waypoints.length > 1;
+          if (isStart || isFinish) {
+            el.innerHTML = `
+              <div style="
+                width: 26px;
+                height: 26px;
+                background: ${isStart ? "#22C55E" : "#EF4444"};
+                border: 3px solid white;
+                border-radius: 50%;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 11px;
+                font-weight: bold;
+                color: white;
+              ">${isStart ? "S" : "F"}</div>
+            `;
+          } else {
+            el.innerHTML = `
+              <div style="
+                width: 8px;
+                height: 8px;
+                background: #3B82F6;
+                border: 2px solid white;
+                border-radius: 50%;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+              "></div>
+            `;
+          }
           el.style.cursor = toolMode === "erase" ? "pointer" : "move";
 
           const marker = new mapboxgl.Marker({
@@ -1665,6 +1700,83 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         source.setData({ type: "FeatureCollection", features: [] });
       }
     }, [isCreating, waypoints, routeType, toolMode, mapLoaded, styleLoadCount, routeStyle]);
+
+    // Draw POI waypoint markers during creation (amber pins with icons)
+    useEffect(() => {
+      if (!mapRef.current || !mapLoaded) return;
+
+      // Clear existing POI markers
+      creationPOIMarkersRef.current.forEach((m) => m.remove());
+      creationPOIMarkersRef.current.clear();
+
+      if (!isCreating || creationPOIs.length === 0) return;
+
+      creationPOIs.forEach((poi, index) => {
+        const el = document.createElement("div");
+        el.className = "creation-poi-marker";
+        const iconSvg = poi.icon_type ? (POI_ICON_SVGS[poi.icon_type] || POI_ICON_SVGS.other) : POI_ICON_SVGS.other;
+        el.innerHTML = `
+          <div style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: auto;
+          ">
+            <div style="
+              width: 28px;
+              height: 28px;
+              background: #D97706;
+              border: 3px solid white;
+              border-radius: 50%;
+              box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            ">${iconSvg}</div>
+            <div style="
+              margin-top: 2px;
+              background: #D97706;
+              color: white;
+              font-size: 9px;
+              font-weight: 700;
+              padding: 1px 5px;
+              border-radius: 6px;
+              white-space: nowrap;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+              max-width: 80px;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            ">W${index + 1}</div>
+          </div>
+        `;
+        el.style.cursor = toolModeRef.current === "erase" ? "pointer" : "move";
+
+        const marker = new mapboxgl.Marker({
+          element: el,
+          draggable: true,
+          anchor: "bottom",
+        })
+          .setLngLat([poi.lng, poi.lat])
+          .addTo(mapRef.current!);
+
+        // Handle drag
+        marker.on("dragend", () => {
+          const lngLat = marker.getLngLat();
+          onCreationPOIUpdateRef.current?.(poi.id, lngLat.lat, lngLat.lng);
+        });
+
+        // Handle click — erase mode removes, otherwise prevent map click
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          markerClickedRef.current = true;
+          if (toolModeRef.current === "erase") {
+            onCreationPOIRemoveRef.current?.(poi.id);
+          }
+        });
+
+        creationPOIMarkersRef.current.set(poi.id, marker);
+      });
+    }, [isCreating, creationPOIs, mapLoaded, styleLoadCount]);
 
     // Clean up snapped segments when waypoints change or snap is toggled off
     useEffect(() => {

@@ -734,23 +734,23 @@ export function RouteCreatorToolbar({
             </TooltipContent>
           </Tooltip>
 
-          {/* Insert */}
+          {/* Waypoint (POI) */}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={() => handleToolClick("insert")}
                 className={`flex flex-col items-center justify-center px-3 py-2 rounded-md transition-all ${
                   isPlotting && toolMode === "insert"
-                    ? `${activeColor} ${activeTextColor} shadow-sm` 
+                    ? "bg-amber-600 text-white shadow-sm"
                     : "hover:bg-gray-100 text-gray-600"
                 }`}
               >
-                <PlusCircle className="h-5 w-5" />
-                <span className="text-[11px] mt-1 font-semibold tracking-wide">Insert</span>
+                <MapPin className="h-5 w-5" />
+                <span className="text-[11px] mt-1 font-semibold tracking-wide">Waypoint</span>
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              <p>Click on route line to insert a waypoint</p>
+              <p>Click on map to add a named waypoint (POI)</p>
             </TooltipContent>
           </Tooltip>
 
