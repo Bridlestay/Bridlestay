@@ -80,7 +80,7 @@ export function SaveRouteModal({
   const [title, setTitle] = useState(existingData?.title || "");
   const [description, setDescription] = useState(existingData?.description || "");
   const [visibility, setVisibility] = useState<"private" | "link" | "public">(
-    existingData?.visibility || "private"
+    existingData?.visibility || "public"
   );
   const [difficulty, setDifficulty] = useState<
     "unrated" | "easy" | "moderate" | "difficult"

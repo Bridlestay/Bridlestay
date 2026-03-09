@@ -553,8 +553,34 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         // --- INSERT MODE (POI Waypoint) ---
         if (mode === "insert") {
           const { lng, lat } = e.lngLat;
-          // Trigger the POI add callback — parent will open the QuickAddWaypointDialog
-          onCreationPOIAddRef.current?.(lat, lng);
+          const wps = waypointsRef.current;
+          if (wps.length < 2) {
+            toast.error("Plot at least 2 route points before adding waypoints");
+            return;
+          }
+
+          // Find nearest point on the route line (using spine waypoints)
+          let minDistKm = Infinity;
+          let snapLng = lng;
+          let snapLat = lat;
+          for (let i = 0; i < wps.length - 1; i++) {
+            const nearest = nearestPointOnSegment(lng, lat, wps[i].lng, wps[i].lat, wps[i + 1].lng, wps[i + 1].lat);
+            const distKm = haversineDistanceSimple(lat, lng, nearest.lat, nearest.lng);
+            if (distKm < minDistKm) {
+              minDistKm = distKm;
+              snapLng = nearest.lng;
+              snapLat = nearest.lat;
+            }
+          }
+
+          // Must be within 10m (0.01 km) of the route line
+          if (minDistKm > 0.01) {
+            toast.error("Waypoints must be placed within 10m of the route line");
+            return;
+          }
+
+          // Snap the POI to the nearest point on the line
+          onCreationPOIAddRef.current?.(snapLat, snapLng);
           return;
         }
 
@@ -1759,10 +1785,25 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           .setLngLat([poi.lng, poi.lat])
           .addTo(mapRef.current!);
 
-        // Handle drag
+        // Handle drag — snap to nearest point on route line
         marker.on("dragend", () => {
           const lngLat = marker.getLngLat();
-          onCreationPOIUpdateRef.current?.(poi.id, lngLat.lat, lngLat.lng);
+          const wps = waypointsRef.current;
+          if (wps.length >= 2) {
+            let minDist = Infinity;
+            let snapLng = lngLat.lng;
+            let snapLat = lngLat.lat;
+            for (let i = 0; i < wps.length - 1; i++) {
+              const nearest = nearestPointOnSegment(lngLat.lng, lngLat.lat, wps[i].lng, wps[i].lat, wps[i + 1].lng, wps[i + 1].lat);
+              const d = haversineDistanceSimple(lngLat.lat, lngLat.lng, nearest.lat, nearest.lng);
+              if (d < minDist) { minDist = d; snapLng = nearest.lng; snapLat = nearest.lat; }
+            }
+            // Snap if within 10m, otherwise reject and snap to nearest anyway
+            marker.setLngLat([snapLng, snapLat]);
+            onCreationPOIUpdateRef.current?.(poi.id, snapLat, snapLng);
+          } else {
+            onCreationPOIUpdateRef.current?.(poi.id, lngLat.lat, lngLat.lng);
+          }
         });
 
         // Handle click — erase mode removes, otherwise prevent map click
@@ -1778,13 +1819,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       });
     }, [isCreating, creationPOIs, mapLoaded, styleLoadCount]);
 
-    // Clean up snapped segments when waypoints change or snap is toggled off
+    // Clean up snapped segments when waypoints change
+    // NOTE: Turning snap OFF no longer clears existing segments — previously
+    // snapped points stay snapped. Only new points placed with snap off are unsnapped.
     useEffect(() => {
-      if (!snapEnabled) {
-        // Snap turned off — clear all snapped geometry
-        snappedSegmentsRef.current.clear();
-        return;
-      }
       // Remove segments for indices that no longer exist
       const maxIdx = waypoints.length - 2; // max valid segment index
       const segments = snappedSegmentsRef.current;
@@ -1797,7 +1835,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       if (waypoints.length < 2) {
         segments.clear();
       }
-    }, [waypoints, snapEnabled]);
+    }, [waypoints]);
 
     // When snap is toggled ON with existing waypoints, fetch all segments
     useEffect(() => {
