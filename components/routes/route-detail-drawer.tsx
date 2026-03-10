@@ -124,6 +124,7 @@ export function RouteDetailDrawer({
   const [nearbyProperties, setNearbyProperties] = useState<any[]>([]);
   const [hazards, setHazards] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
   const [photos, setPhotos] = useState<any[]>([]);
   const [coverPhoto, setCoverPhoto] = useState<any>(null);
   const [apiDisplayPhotos, setApiDisplayPhotos] = useState<any[]>([]);
@@ -294,6 +295,7 @@ export function RouteDetailDrawer({
 
     const fetchComments = async () => {
       try {
+        setCommentsLoaded(false);
         const res = await fetch(`/api/routes/${routeId}/comments`);
         if (res.ok) {
           const data = await res.json();
@@ -301,6 +303,8 @@ export function RouteDetailDrawer({
         }
       } catch (error) {
         console.error("Failed to fetch comments:", error);
+      } finally {
+        setCommentsLoaded(true);
       }
     };
 
@@ -375,27 +379,28 @@ export function RouteDetailDrawer({
 
   // Auto-open discussion panel when deep-linked to a comment
   useEffect(() => {
-    if (initialCommentId && comments.length > 0) {
-      setActiveFullPanel("discussion");
-      onCommentFocused?.();
-      // Check if the comment still exists
-      const commentExists = comments.some(
-        (c: any) => c.id === initialCommentId
-      );
-      if (!commentExists) {
-        toast.info("This comment has been deleted or removed.");
-        return;
-      }
-      setTimeout(() => {
-        const el = document.getElementById(`comment-${initialCommentId}`);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-          el.classList.add("bg-green-50");
-          setTimeout(() => el.classList.remove("bg-green-50"), 3000);
-        }
-      }, 300);
+    if (!initialCommentId || !commentsLoaded) return;
+
+    setActiveFullPanel("discussion");
+    onCommentFocused?.();
+
+    // Check if the comment still exists
+    const commentExists = comments.some(
+      (c: any) => c.id === initialCommentId
+    );
+    if (!commentExists) {
+      toast.info("This comment has been deleted or removed.");
+      return;
     }
-  }, [initialCommentId, comments]);
+    setTimeout(() => {
+      const el = document.getElementById(`comment-${initialCommentId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("bg-green-50");
+        setTimeout(() => el.classList.remove("bg-green-50"), 3000);
+      }
+    }, 300);
+  }, [initialCommentId, commentsLoaded]);
 
   useEffect(() => {
     if (route && userId) {

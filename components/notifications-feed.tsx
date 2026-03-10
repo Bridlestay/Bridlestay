@@ -33,6 +33,7 @@ interface Notification {
   link: string | null;
   read: boolean;
   created_at: string;
+  comment_deleted?: boolean;
   actor: {
     id: string;
     name: string;
@@ -305,18 +306,30 @@ export function NotificationsFeed() {
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <p
-                      className={cn(
-                        "text-sm leading-snug",
-                        !n.read
-                          ? "text-slate-900 font-medium"
-                          : "text-slate-600"
+                    <div className="flex items-center gap-2">
+                      <p
+                        className={cn(
+                          "text-sm leading-snug",
+                          !n.read
+                            ? "text-slate-900 font-medium"
+                            : "text-slate-600"
+                        )}
+                      >
+                        {n.title}
+                      </p>
+                      {n.comment_deleted && (
+                        <span className="text-[11px] text-red-400 font-medium whitespace-nowrap">
+                          Comment removed
+                        </span>
                       )}
-                    >
-                      {n.title}
-                    </p>
+                    </div>
                     {n.body && (
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                      <p className={cn(
+                        "text-xs mt-0.5 line-clamp-2",
+                        n.comment_deleted
+                          ? "text-muted-foreground/50 line-through"
+                          : "text-muted-foreground"
+                      )}>
                         {n.body}
                       </p>
                     )}

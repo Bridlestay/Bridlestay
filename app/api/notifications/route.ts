@@ -55,11 +55,46 @@ export async function GET(request: Request) {
       }
     }
 
-    // Attach actor data to each notification
-    const enriched = (notifications || []).map((n: any) => ({
-      ...n,
-      actor: n.actor_id ? actorMap[n.actor_id] || null : null,
-    }));
+    // Check for deleted comments in route_comment notifications
+    const commentIds: string[] = [];
+    for (const n of notifications || []) {
+      if (n.type === "route_comment" && n.link) {
+        const match = n.link.match(/[?&]comment=([0-9a-f-]+)/i);
+        if (match) commentIds.push(match[1]);
+      }
+    }
+
+    const deletedCommentIds = new Set<string>();
+    if (commentIds.length > 0) {
+      // Fetch comments that exist and are NOT deleted
+      const { data: existingComments } = await supabase
+        .from("route_comments")
+        .select("id")
+        .in("id", commentIds)
+        .is("deleted_at", null);
+
+      const existingIds = new Set(
+        (existingComments || []).map((c: any) => c.id)
+      );
+      for (const id of commentIds) {
+        if (!existingIds.has(id)) deletedCommentIds.add(id);
+      }
+    }
+
+    // Attach actor data and comment_deleted flag to each notification
+    const enriched = (notifications || []).map((n: any) => {
+      const result: any = {
+        ...n,
+        actor: n.actor_id ? actorMap[n.actor_id] || null : null,
+      };
+      if (n.type === "route_comment" && n.link) {
+        const match = n.link.match(/[?&]comment=([0-9a-f-]+)/i);
+        if (match && deletedCommentIds.has(match[1])) {
+          result.comment_deleted = true;
+        }
+      }
+      return result;
+    });
 
     return NextResponse.json({ notifications: enriched });
   } catch (error: any) {
