@@ -378,6 +378,14 @@ export function RouteDetailDrawer({
     if (initialCommentId && comments.length > 0) {
       setActiveFullPanel("discussion");
       onCommentFocused?.();
+      // Check if the comment still exists
+      const commentExists = comments.some(
+        (c: any) => c.id === initialCommentId
+      );
+      if (!commentExists) {
+        toast.info("This comment has been deleted or removed.");
+        return;
+      }
       setTimeout(() => {
         const el = document.getElementById(`comment-${initialCommentId}`);
         if (el) {

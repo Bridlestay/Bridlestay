@@ -21,6 +21,7 @@ import {
   UserPlus,
   CheckCircle2,
   Loader2,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -155,7 +156,15 @@ export function NotificationsFeed() {
       );
     }
     if (notification.link) {
-      router.push(notification.link);
+      // Rewrite old /routes/{uuid} links to /routes?route={uuid}
+      const oldRouteLink = notification.link.match(
+        /^\/routes\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
+      );
+      if (oldRouteLink) {
+        router.push(`/routes?route=${oldRouteLink[1]}`);
+      } else {
+        router.push(notification.link);
+      }
     }
   };
 
@@ -328,6 +337,14 @@ export function NotificationsFeed() {
           </div>
         )}
       </div>
+
+      {/* Auto-cleanup info */}
+      {notifications.length > 0 && (
+        <div className="flex items-center gap-2 mt-4 px-1 text-xs text-muted-foreground">
+          <Info className="h-3.5 w-3.5 flex-shrink-0" />
+          <span>Read notifications are automatically removed after 30 days.</span>
+        </div>
+      )}
     </>
   );
 }

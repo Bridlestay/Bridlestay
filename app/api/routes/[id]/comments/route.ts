@@ -149,7 +149,9 @@ export async function POST(
           userId: route.owner_user_id,
           type: "route_comment",
           title: `${commenterName} commented on your route`,
-          body: route.title,
+          body: commentBody.length > 100
+            ? commentBody.slice(0, 100) + "..."
+            : commentBody,
           link: `/routes?route=${routeId}&comment=${comment.id}`,
           actorId: user.id,
         });
