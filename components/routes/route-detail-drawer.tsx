@@ -1161,49 +1161,49 @@ export function RouteDetailDrawer({
             <div className={cn("p-4 space-y-4", displayPhotosForCarousel.length > 0 && "pt-6")}>
               {/* AUTHOR + META */}
               {route?.owner && (
-                <Link href={`/profile/${route.owner.id}`} className="flex items-center gap-3 group">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={route.owner.avatar_url || undefined} />
-                    <AvatarFallback className="text-sm bg-green-100 text-green-800">
-                      {route.owner.name?.[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
-                      {route.owner.name}
-                    </span>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      {(route.updated_at || route.created_at) && (
-                        <span>{formatDistanceToNow(new Date(route.updated_at || route.created_at), { addSuffix: true })}</span>
-                      )}
-                      {locationName && (
-                        <>
-                          <span>&middot;</span>
-                          <span className="flex items-center gap-0.5">
-                            <MapPin className="h-3 w-3" />
-                            {locationName}
-                          </span>
-                        </>
-                      )}
+                <div className="flex items-start gap-3">
+                  <Link href={`/profile/${route.owner.id}`} className="flex items-center gap-3 group flex-1 min-w-0">
+                    <Avatar className="h-10 w-10 flex-shrink-0">
+                      <AvatarImage src={route.owner.avatar_url || undefined} />
+                      <AvatarFallback className="text-sm bg-green-100 text-green-800">
+                        {route.owner.name?.[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
+                        {route.owner.name}
+                      </span>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        {(route.updated_at || route.created_at) && (
+                          <span>{formatDistanceToNow(new Date(route.updated_at || route.created_at), { addSuffix: true })}</span>
+                        )}
+                        {locationName && (
+                          <>
+                            <span>&middot;</span>
+                            <span className="flex items-center gap-0.5">
+                              <MapPin className="h-3 w-3" />
+                              {locationName}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </Link>
                   {nearbyProperties.length > 0 && (
                     <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
+                      onClick={() => {
                         document.getElementById("nearby-stays-section")?.scrollIntoView({
                           behavior: "smooth",
                           block: "start",
                         });
                       }}
-                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-green-700 transition-colors flex-shrink-0 ml-auto"
+                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-green-700 transition-colors flex-shrink-0 mt-2.5 pr-1"
                     >
                       <Home className="h-3 w-3" />
-                      {nearbyProperties.length} {nearbyProperties.length === 1 ? "stay" : "stays"} nearby
+                      <span>{nearbyProperties.length} {nearbyProperties.length === 1 ? "stay" : "stays"} nearby</span>
                     </button>
                   )}
-                </Link>
+                </div>
               )}
 
               {/* TITLE + BADGES */}
