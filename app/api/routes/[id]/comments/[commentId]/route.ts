@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextRequest, NextResponse } from "next/server";
 
 // DELETE - Delete a comment (soft delete)
@@ -8,6 +9,7 @@ export async function DELETE(
 ) {
   try {
     const supabase = await createClient();
+    const serviceSupabase = createServiceClient();
     const { id: routeId, commentId } = await params;
 
     const {
@@ -19,11 +21,12 @@ export async function DELETE(
     }
 
     // Check if user owns the comment or is admin
-    const { data: comment, error: fetchError } = await supabase
+    const { data: comment, error: fetchError } = await serviceSupabase
       .from("route_comments")
       .select("user_id")
       .eq("id", commentId)
       .eq("route_id", routeId)
+      .is("deleted_at", null)
       .single();
 
     if (fetchError || !comment) {
@@ -46,8 +49,8 @@ export async function DELETE(
       );
     }
 
-    // Soft delete by setting deleted_at
-    const { error: deleteError } = await supabase
+    // Soft delete by setting deleted_at (use service client to bypass RLS)
+    const { error: deleteError } = await serviceSupabase
       .from("route_comments")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", commentId);

@@ -107,6 +107,7 @@ export default function RoutesPage() {
   const [selectedRouteWaypoints, setSelectedRouteWaypoints] = useState<any[]>([]);
   const [selectedRouteHazards, setSelectedRouteHazards] = useState<any[]>([]);
   const [initialWaypointId, setInitialWaypointId] = useState<string | null>(null);
+  const [initialCommentId, setInitialCommentId] = useState<string | null>(null);
   const [mapViewMode, setMapViewMode] = useState<"waypoints" | "hazards" | null>(null);
 
   // Hazard placement state
@@ -234,41 +235,41 @@ export default function RoutesPage() {
     return () => clearInterval(interval);
   }, [activeTab, isCreating, selectedRouteId]);
 
-  // Handle ?route=ID query param (from notification links)
+  // Handle ?route=ID&comment=ID query params (from notification links)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const routeId = params.get("route");
     if (!routeId || exploreRoutes.length === 0) return;
 
-    // Find the route in loaded data
-    const route = exploreRoutes.find((r) => r.id === routeId);
-    if (route) {
-      // Auto-open the route detail
+    const commentId = params.get("comment");
+
+    const openRoute = (routeData: any) => {
       setDrawnRouteId(routeId);
       setSelectedRouteId(routeId);
-      setSelectedRouteData(route);
+      setSelectedRouteData(routeData);
       setHighlightedRouteId(routeId);
       setDrawerOpen(true);
       setActiveTab("map");
       fetchRouteWaypoints(routeId);
-      // Clear the query param to prevent re-triggering
+      if (commentId) setInitialCommentId(commentId);
       router.replace("/routes", { scroll: false });
+    };
+
+    // Find the route in loaded data
+    const route = exploreRoutes.find((r) => r.id === routeId);
+    if (route) {
+      openRoute(route);
     } else {
       // Route not in explore list — try fetching directly
       fetch(`/api/routes/${routeId}`)
         .then((res) => res.ok ? res.json() : null)
         .then((data) => {
           if (data?.route) {
-            setDrawnRouteId(routeId);
-            setSelectedRouteId(routeId);
-            setSelectedRouteData(data.route);
-            setHighlightedRouteId(routeId);
-            setDrawerOpen(true);
-            setActiveTab("map");
-            fetchRouteWaypoints(routeId);
+            openRoute(data.route);
+          } else {
+            router.replace("/routes", { scroll: false });
           }
-          router.replace("/routes", { scroll: false });
         })
         .catch(() => {
           router.replace("/routes", { scroll: false });
@@ -1820,6 +1821,8 @@ export default function RoutesPage() {
               showWaymarkers: true,
             }));
           }}
+          initialCommentId={initialCommentId}
+          onCommentFocused={() => setInitialCommentId(null)}
           onEnterViewMode={handleEnterViewMode}
           onHazardsLoaded={(hazards: any[]) => setSelectedRouteHazards(hazards)}
           onHazardResolved={(hazardId: string) => {

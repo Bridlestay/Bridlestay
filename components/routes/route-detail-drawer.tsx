@@ -94,6 +94,8 @@ interface RouteDetailDrawerProps {
   onPlaceHazard?: () => void;
   onPlaceWaypoint?: () => void;
   waypointPlacementCoords?: { lat: number; lng: number } | null;
+  initialCommentId?: string | null;
+  onCommentFocused?: () => void;
 }
 
 export function RouteDetailDrawer({
@@ -113,6 +115,8 @@ export function RouteDetailDrawer({
   onPlaceHazard,
   onPlaceWaypoint,
   waypointPlacementCoords,
+  initialCommentId,
+  onCommentFocused,
 }: RouteDetailDrawerProps) {
   // --- Route data ---
   const [route, setRoute] = useState<any>(null);
@@ -368,6 +372,22 @@ export function RouteDetailDrawer({
       }, 300);
     }
   }, [initialWaypointId]);
+
+  // Auto-open discussion panel when deep-linked to a comment
+  useEffect(() => {
+    if (initialCommentId && comments.length > 0) {
+      setActiveFullPanel("discussion");
+      onCommentFocused?.();
+      setTimeout(() => {
+        const el = document.getElementById(`comment-${initialCommentId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.add("bg-green-50");
+          setTimeout(() => el.classList.remove("bg-green-50"), 3000);
+        }
+      }, 300);
+    }
+  }, [initialCommentId, comments]);
 
   useEffect(() => {
     if (route && userId) {

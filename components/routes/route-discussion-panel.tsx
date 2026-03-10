@@ -143,7 +143,8 @@ export function RouteDiscussionPanel({
               return (
                 <div
                   key={comment.id}
-                  className="group flex items-start gap-3"
+                  id={`comment-${comment.id}`}
+                  className="group flex items-start gap-3 rounded-lg transition-colors duration-1000"
                 >
                   <Avatar className="h-8 w-8 flex-shrink-0">
                     <AvatarImage src={comment.user?.avatar_url} />
