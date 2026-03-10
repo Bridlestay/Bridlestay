@@ -1191,7 +1191,7 @@ export function RouteDetailDrawer({
                       )}
                       {nearbyProperties.length > 0 && (
                         <>
-                          <span className="flex-1" />
+                          <span>&middot;</span>
                           <button
                             onClick={() => {
                               document.getElementById("nearby-stays-section")?.scrollIntoView({
@@ -1199,7 +1199,7 @@ export function RouteDetailDrawer({
                                 block: "start",
                               });
                             }}
-                            className="flex items-center gap-1 text-gray-400 hover:text-green-700 transition-colors flex-shrink-0"
+                            className="flex items-center gap-1 hover:text-green-700 transition-colors"
                           >
                             <Home className="h-3 w-3" />
                             <span>{nearbyProperties.length} {nearbyProperties.length === 1 ? "stay" : "stays"} nearby</span>
