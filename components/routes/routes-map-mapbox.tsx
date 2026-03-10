@@ -1821,7 +1821,15 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
               // NOW update waypoint position — triggers re-render with segments already in place
               onWaypointUpdateRef.current?.(wp.id, finalLat, finalLng, snappedToRoad);
             } else {
-              // Snap off or waypoint not found — just update position
+              // Snap off or waypoint not found — clear adjacent snapped segments
+              // so the route line falls back to straight lines through the new position.
+              // Without this, the old snapped geometry still references the old position.
+              const wpsSnap = waypointsRef.current;
+              const snapIdx = wpsSnap.findIndex(w => w.id === wp.id);
+              if (snapIdx >= 0) {
+                if (snapIdx > 0) snappedSegmentsRef.current.delete(snapIdx - 1);
+                if (snapIdx < wpsSnap.length - 1) snappedSegmentsRef.current.delete(snapIdx);
+              }
               onWaypointUpdateRef.current?.(wp.id, lngLat.lat, lngLat.lng);
             }
           });
