@@ -234,6 +234,48 @@ export default function RoutesPage() {
     return () => clearInterval(interval);
   }, [activeTab, isCreating, selectedRouteId]);
 
+  // Handle ?route=ID query param (from notification links)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const routeId = params.get("route");
+    if (!routeId || exploreRoutes.length === 0) return;
+
+    // Find the route in loaded data
+    const route = exploreRoutes.find((r) => r.id === routeId);
+    if (route) {
+      // Auto-open the route detail
+      setDrawnRouteId(routeId);
+      setSelectedRouteId(routeId);
+      setSelectedRouteData(route);
+      setHighlightedRouteId(routeId);
+      setDrawerOpen(true);
+      setActiveTab("map");
+      fetchRouteWaypoints(routeId);
+      // Clear the query param to prevent re-triggering
+      router.replace("/routes", { scroll: false });
+    } else {
+      // Route not in explore list — try fetching directly
+      fetch(`/api/routes/${routeId}`)
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => {
+          if (data?.route) {
+            setDrawnRouteId(routeId);
+            setSelectedRouteId(routeId);
+            setSelectedRouteData(data.route);
+            setHighlightedRouteId(routeId);
+            setDrawerOpen(true);
+            setActiveTab("map");
+            fetchRouteWaypoints(routeId);
+          }
+          router.replace("/routes", { scroll: false });
+        })
+        .catch(() => {
+          router.replace("/routes", { scroll: false });
+        });
+    }
+  }, [exploreRoutes]);
+
   // Fetch POIs when toggle is activated
   useEffect(() => {
     if (layerSettings.showPOIs) {

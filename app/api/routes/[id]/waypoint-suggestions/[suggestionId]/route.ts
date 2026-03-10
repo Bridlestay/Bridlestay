@@ -122,7 +122,7 @@ export async function PATCH(
         type: "suggestion_approved",
         title: "Your waypoint suggestion was approved!",
         body: `"${suggestion.name}" has been added to the route`,
-        link: `/routes/${routeId}`,
+        link: `/routes?route=${routeId}`,
         actorId: user.id,
       });
 
@@ -153,7 +153,7 @@ export async function PATCH(
         body: rejection_reason
           ? `"${suggestion.name}" — ${rejection_reason}`
           : `"${suggestion.name}" was not added to the route`,
-        link: `/routes/${routeId}`,
+        link: `/routes?route=${routeId}`,
         actorId: user.id,
       });
 

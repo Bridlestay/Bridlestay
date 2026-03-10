@@ -89,7 +89,7 @@ export async function POST(
         type: "route_liked",
         title: `${liker?.name || "Someone"} liked your route`,
         body: route.title,
-        link: `/routes/${routeId}`,
+        link: `/routes?route=${routeId}`,
         actorId: user.id,
       });
     }

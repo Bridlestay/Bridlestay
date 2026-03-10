@@ -115,7 +115,7 @@ export async function POST(
       type: "suggestion_received",
       title: `${user.user_metadata?.name || "Someone"} suggested a new waypoint on your route`,
       body: `"${name.trim()}" was suggested for "${route.title}"`,
-      link: `/routes/${routeId}`,
+      link: `/routes?route=${routeId}`,
       actorId: user.id,
     });
 

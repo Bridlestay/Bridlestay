@@ -155,7 +155,7 @@ export async function POST(
         type: "route_review",
         title: `${reviewer?.name || "Someone"} reviewed your route`,
         body: `${"★".repeat(rating)}${"☆".repeat(5 - rating)} — ${review_text?.slice(0, 80) || ""}`,
-        link: `/routes/${params.id}`,
+        link: `/routes?route=${params.id}`,
         actorId: user.id,
       });
     }

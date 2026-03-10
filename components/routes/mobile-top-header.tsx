@@ -32,6 +32,7 @@ import {
   Route,
   X,
   MapPin,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +65,7 @@ export function MobileTopHeader({ onSearch, onPlaceSelect, onRouteSelect, onCrea
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notifCount, setNotifCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTab, setSearchTab] = useState<"places" | "routes">("places");
@@ -128,6 +130,23 @@ export function MobileTopHeader({ onSearch, onPlaceSelect, onRouteSelect, onCrea
 
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    if (!user) return;
+    const fetchNotifCount = async () => {
+      try {
+        const response = await fetch("/api/notifications/unread-count");
+        if (response.ok) {
+          const data = await response.json();
+          setNotifCount(data.count || 0);
+        }
+      } catch { /* Non-critical */ }
+    };
+    fetchNotifCount();
+    const interval = setInterval(fetchNotifCount, 30000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -249,8 +268,11 @@ export function MobileTopHeader({ onSearch, onPlaceSelect, onRouteSelect, onCrea
           {/* Hamburger Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="shrink-0">
+              <Button variant="ghost" size="icon" className="shrink-0 relative">
                 <Menu className="h-6 w-6" />
+                {(unreadCount > 0 || notifCount > 0) && (
+                  <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-white" />
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">
@@ -287,13 +309,26 @@ export function MobileTopHeader({ onSearch, onPlaceSelect, onRouteSelect, onCrea
               {user ? (
                 <>
                   <DropdownMenuItem asChild>
+                    <Link href="/notifications" className="cursor-pointer">
+                      <Bell className="mr-2 h-4 w-4" />
+                      Notifications
+                      {notifCount > 0 && (
+                        <span className="ml-auto flex items-center gap-1.5">
+                          <span className="text-xs text-muted-foreground">{notifCount}</span>
+                          <span className="h-2 w-2 rounded-full bg-green-500" />
+                        </span>
+                      )}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/messages" className="cursor-pointer">
                       <MessageCircle className="mr-2 h-4 w-4" />
                       Messages
                       {unreadCount > 0 && (
-                        <Badge className="ml-auto bg-primary text-white text-xs">
-                          {unreadCount}
-                        </Badge>
+                        <span className="ml-auto flex items-center gap-1.5">
+                          <span className="text-xs text-muted-foreground">{unreadCount}</span>
+                          <span className="h-2 w-2 rounded-full bg-green-500" />
+                        </span>
                       )}
                     </Link>
                   </DropdownMenuItem>

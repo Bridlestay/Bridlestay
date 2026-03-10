@@ -138,7 +138,7 @@ export async function POST(
               body: commentBody.length > 100
                 ? commentBody.slice(0, 100) + "..."
                 : commentBody,
-              link: `/routes/${routeId}`,
+              link: `/routes?route=${routeId}`,
               actorId: user.id,
             });
           }
@@ -150,7 +150,7 @@ export async function POST(
           type: "route_comment",
           title: `${commenterName} commented on your route`,
           body: route.title,
-          link: `/routes/${routeId}`,
+          link: `/routes?route=${routeId}`,
           actorId: user.id,
         });
       }

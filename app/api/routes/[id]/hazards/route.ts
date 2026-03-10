@@ -158,7 +158,7 @@ export async function POST(
         type: "hazard_reported",
         title: `A ${isWarning ? "warning" : "hazard"} was reported on your route`,
         body: `${title} — ${route.title}`,
-        link: `/routes/${routeId}`,
+        link: `/routes?route=${routeId}`,
         actorId: user.id,
       });
     }
