@@ -39,7 +39,6 @@ import {
   Plus,
   Cloud,
   MoreHorizontal,
-  ChevronDown,
 } from "lucide-react";
 import {
   getRouteCentroid,
@@ -1188,6 +1187,22 @@ export function RouteDetailDrawer({
                       )}
                     </div>
                   </div>
+                  {nearbyProperties.length > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        document.getElementById("nearby-stays-section")?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                      }}
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-green-700 transition-colors flex-shrink-0 ml-auto"
+                    >
+                      <Home className="h-3 w-3" />
+                      {nearbyProperties.length} {nearbyProperties.length === 1 ? "stay" : "stays"} nearby
+                    </button>
+                  )}
                 </Link>
               )}
 
@@ -1299,25 +1314,6 @@ export function RouteDetailDrawer({
                   <p className="text-xs text-slate-500 mt-0.5">Descent</p>
                 </div>
               </div>
-
-              {/* Nearby stays hint */}
-              {nearbyProperties.length > 0 && (
-                <button
-                  onClick={() => {
-                    document.getElementById("nearby-stays-section")?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 border border-green-100 hover:bg-green-100 transition-colors text-left"
-                >
-                  <Home className="h-4 w-4 text-green-700 flex-shrink-0" />
-                  <span className="text-sm text-green-800 font-medium">
-                    {nearbyProperties.length} {nearbyProperties.length === 1 ? "stay" : "stays"} nearby
-                  </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-green-600 ml-auto" />
-                </button>
-              )}
 
               <Separator />
 
