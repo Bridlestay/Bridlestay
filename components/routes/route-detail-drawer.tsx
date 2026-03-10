@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { DeleteRouteDialog } from "@/components/routes/confirm-dialog";
 import {
   MapPin,
   Download,
@@ -145,6 +146,9 @@ export function RouteDetailDrawer({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [locationName, setLocationName] = useState<string | null>(null);
+
+  // --- Dialogs ---
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // --- Review flow ---
   const [reviewStep, setReviewStep] = useState<number | null>(null);
@@ -1020,11 +1024,7 @@ export function RouteDetailDrawer({
                     )}
                     {(isOwner || isAdmin) && onDeleteRoute && (
                       <DropdownMenuItem
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete this route? This cannot be undone.")) {
-                            onDeleteRoute(routeId!);
-                          }
-                        }}
+                        onClick={() => setDeleteDialogOpen(true)}
                         className="text-red-600 focus:text-red-600"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
@@ -1693,6 +1693,16 @@ export function RouteDetailDrawer({
         commentId={null}
         userId={userId}
       />
+
+      {/* Delete route confirmation dialog */}
+      {onDeleteRoute && (
+        <DeleteRouteDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          onConfirm={() => onDeleteRoute(routeId!)}
+          routeName={route?.title}
+        />
+      )}
     </div>
   );
 

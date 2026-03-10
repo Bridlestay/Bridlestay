@@ -178,6 +178,7 @@ export interface RoutesMapMapboxProps {
   onRouteClick?: (routeId: string) => void;
   onRoutePreview?: (route: any) => void;
   onClusterClick?: (routeIds: string[], count: number) => void;
+  onVisibleRoutesChange?: (routeIds: string[]) => void;
   center?: { lat: number; lng: number };
   zoom?: number;
   highlightedRouteId?: string | null;
@@ -304,6 +305,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       onRouteClick,
       onRoutePreview,
       onClusterClick,
+      onVisibleRoutesChange,
       center = { lat: 52.2, lng: -2.2 },
       zoom = 10,
       highlightedRouteId,
@@ -400,6 +402,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     waypointsRef.current = waypoints;
     const onClusterClickRef = useRef(onClusterClick);
     onClusterClickRef.current = onClusterClick;
+    const onVisibleRoutesChangeRef = useRef(onVisibleRoutesChange);
+    onVisibleRoutesChangeRef.current = onVisibleRoutesChange;
     onCreationPOIAddRef.current = onCreationPOIAdd;
     onCreationPOIUpdateRef.current = onCreationPOIUpdate;
     onCreationPOIRemoveRef.current = onCreationPOIRemove;
@@ -1102,6 +1106,11 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             pinMarkersRef.current.delete(id);
           }
         });
+
+        // Notify parent about currently visible (unclustered) route IDs
+        if (seenIds.size > 0) {
+          onVisibleRoutesChangeRef.current?.(Array.from(seenIds));
+        }
       };
 
       // Update markers when map moves or zooms
