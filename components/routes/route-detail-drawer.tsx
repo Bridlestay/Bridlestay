@@ -39,6 +39,7 @@ import {
   Plus,
   Cloud,
   MoreHorizontal,
+  ChevronDown,
 } from "lucide-react";
 import {
   getRouteCentroid,
@@ -1299,6 +1300,25 @@ export function RouteDetailDrawer({
                 </div>
               </div>
 
+              {/* Nearby stays hint */}
+              {nearbyProperties.length > 0 && (
+                <button
+                  onClick={() => {
+                    document.getElementById("nearby-stays-section")?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 border border-green-100 hover:bg-green-100 transition-colors text-left"
+                >
+                  <Home className="h-4 w-4 text-green-700 flex-shrink-0" />
+                  <span className="text-sm text-green-800 font-medium">
+                    {nearbyProperties.length} {nearbyProperties.length === 1 ? "stay" : "stays"} nearby
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-green-600 ml-auto" />
+                </button>
+              )}
+
               <Separator />
 
               {/* DISCUSSION — minimal Komoot-style social bar */}
@@ -1643,7 +1663,7 @@ export function RouteDetailDrawer({
               )}
 
               {/* NEARBY STAYS */}
-              <div className="space-y-3">
+              <div id="nearby-stays-section" className="space-y-3">
                 <Separator />
                 <h3 className="font-semibold flex items-center gap-2">
                   <Home className="h-4 w-4" />

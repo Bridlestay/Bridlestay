@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin, Clock, Users, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, Users, X, ChevronLeft, ChevronRight, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getMapboxThumbnailUrl } from "@/lib/routes/route-thumbnail";
 
@@ -38,6 +39,19 @@ export function RouteQuickCard({
   currentIndex,
   totalCount,
 }: RouteQuickCardProps) {
+  const [nearbyCount, setNearbyCount] = useState(0);
+
+  useEffect(() => {
+    if (!route?.id) return;
+    setNearbyCount(0);
+    fetch(`/api/routes/${route.id}/nearby-properties`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.properties) setNearbyCount(data.properties.length);
+      })
+      .catch(() => {});
+  }, [route?.id]);
+
   if (!route) return null;
 
   const hasNavigation = onPrev && onNext && totalCount && totalCount > 1;
@@ -154,6 +168,14 @@ export function RouteQuickCard({
                   <span className="text-xs text-gray-600 flex items-center gap-1">
                     <Users className="h-3 w-3" />
                     {route.completions_count}
+                  </span>
+                )}
+
+                {/* Nearby stays */}
+                {nearbyCount > 0 && (
+                  <span className="text-xs text-gray-600 flex items-center gap-1">
+                    <Home className="h-3 w-3" />
+                    {nearbyCount}
                   </span>
                 )}
               </div>
