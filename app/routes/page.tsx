@@ -922,8 +922,12 @@ export default function RoutesPage() {
     // through positions that no longer exist after undo
     mapRef.current?.clearSnappedSegments();
     setWaypoints(previousState);
-    if (previousState.length < 3 && routeType === "circular") {
+    // Always revert to linear when undoing from circular — the circular
+    // detection doesn't add a waypoint, so undo removes the last plotted
+    // point, which should reopen the route for continued plotting
+    if (routeType === "circular") {
       setRouteType("linear");
+      setIsPlotting(true);
     }
     toast.info("Undone");
   }, [history, routeType]);

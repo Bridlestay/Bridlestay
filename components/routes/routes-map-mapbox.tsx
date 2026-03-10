@@ -2037,8 +2037,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       if (routeType !== "circular" || waypoints.length < 3) return;
 
       const closingKey = waypoints.length - 1;
-      // Don't re-fetch if we already have it
-      if (snappedSegmentsRef.current.has(closingKey)) return;
+      let cancelled = false;
 
       const fetchClosingSegment = async () => {
         const token = mapboxgl.accessToken;
@@ -2050,7 +2049,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           const response = await fetch(
             `https://api.mapbox.com/directions/v5/mapbox/walking/${last.lng},${last.lat};${first.lng},${first.lat}?access_token=${token}&geometries=geojson&overview=full`
           );
+          if (cancelled) return;
           const data = await response.json();
+          if (cancelled) return;
           if (data.routes?.[0]?.geometry?.coordinates) {
             const coords = data.routes[0].geometry.coordinates as [number, number][];
             snappedSegmentsRef.current.set(closingKey, coords);
@@ -2062,6 +2063,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       };
 
       fetchClosingSegment();
+
+      return () => { cancelled = true; };
     }, [routeType, waypoints, resnapTrigger]);
 
     // Update creation route style
