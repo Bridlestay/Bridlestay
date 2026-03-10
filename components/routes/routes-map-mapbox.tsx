@@ -704,61 +704,91 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           }
         }
 
-        if (snapEnabledRef.current && wps.length > 0) {
-          // Use Mapbox Directions API to get road-following route from last waypoint
-          try {
-            const prev = wps[wps.length - 1];
-            const response = await fetch(
-              `https://api.mapbox.com/directions/v5/mapbox/walking/${prev.lng},${prev.lat};${lng},${lat}?access_token=${mapboxgl.accessToken}&geometries=geojson&overview=full`
-            );
-            const data = await response.json();
-            if (data.routes?.[0]?.geometry?.coordinates) {
-              const routeCoords = data.routes[0].geometry.coordinates as [number, number][];
-              const snappedPoint = routeCoords[routeCoords.length - 1];
-              const snappedLat = snappedPoint[1];
-              const snappedLng = snappedPoint[0];
+        if (snapEnabledRef.current) {
+          if (wps.length === 0) {
+            // First waypoint — snap to nearest road using a tiny-offset
+            // Directions call so the start marker sits on a road/path
+            try {
+              const offset = 0.00005; // ~5m offset
+              const response = await fetch(
+                `https://api.mapbox.com/directions/v5/mapbox/walking/${lng},${lat};${lng + offset},${lat}?access_token=${mapboxgl.accessToken}&geometries=geojson&overview=full`
+              );
+              const data = await response.json();
+              if (data.routes?.[0]?.geometry?.coordinates) {
+                const coords = data.routes[0].geometry.coordinates as [number, number][];
+                const snappedStart = coords[0];
+                const snappedLat = snappedStart[1];
+                const snappedLng = snappedStart[0];
 
-              // Check if snapped destination is too far from click (>15m)
-              // If so, the user clicked off-road — place unsnapped instead
-              const snapDrift = haversineDistanceSimple(lat, lng, snappedLat, snappedLng);
-              if (snapDrift > 0.015) {
-                // Off-road click — place directly without snap
-                onWaypointAddRef.current?.(lat, lng, false);
-                return;
-              }
-
-              // Check snapped position against existing waypoints (7.5m min)
-              let tooClose = false;
-              for (const wp of wps) {
-                if (haversineDistanceSimple(wp.lat, wp.lng, snappedLat, snappedLng) < 0.0075) {
-                  tooClose = true;
-                  break;
+                // Check if snapped point is too far from click (>15m = off-road)
+                const snapDrift = haversineDistanceSimple(lat, lng, snappedLat, snappedLng);
+                if (snapDrift > 0.015) {
+                  onWaypointAddRef.current?.(lat, lng, false);
+                  return;
                 }
-              }
-              if (tooClose) {
-                toast.error("Too close to an existing waypoint (min 7.5m apart)");
+
+                onWaypointAddRef.current?.(snappedLat, snappedLng, true, "road");
                 return;
               }
-
-              // For the first segment (wp0→wp1), keep wp0's actual position
-              // as the start of the segment so the line starts at the marker
-              if (wps.length === 1) {
-                routeCoords[0] = [prev.lng, prev.lat];
-              }
-
-              // Store the full road-following segment geometry
-              const segIndex = wps.length - 1;
-              snappedSegmentsRef.current.set(segIndex, routeCoords);
-              onWaypointAddRef.current?.(snappedLat, snappedLng, true, "road");
-              return;
+              onWaypointAddRef.current?.(lat, lng, false);
+            } catch {
+              onWaypointAddRef.current?.(lat, lng, false);
             }
-            // Directions failed — fall back to unsnapped
-            onWaypointAddRef.current?.(lat, lng, false);
-          } catch {
-            onWaypointAddRef.current?.(lat, lng, false);
+          } else {
+            // Subsequent waypoints — route from last waypoint and snap
+            try {
+              const prev = wps[wps.length - 1];
+              const response = await fetch(
+                `https://api.mapbox.com/directions/v5/mapbox/walking/${prev.lng},${prev.lat};${lng},${lat}?access_token=${mapboxgl.accessToken}&geometries=geojson&overview=full`
+              );
+              const data = await response.json();
+              if (data.routes?.[0]?.geometry?.coordinates) {
+                const routeCoords = data.routes[0].geometry.coordinates as [number, number][];
+                const snappedPoint = routeCoords[routeCoords.length - 1];
+                const snappedLat = snappedPoint[1];
+                const snappedLng = snappedPoint[0];
+
+                // Check if snapped destination is too far from click (>15m)
+                // If so, the user clicked off-road — place unsnapped instead
+                const snapDrift = haversineDistanceSimple(lat, lng, snappedLat, snappedLng);
+                if (snapDrift > 0.015) {
+                  onWaypointAddRef.current?.(lat, lng, false);
+                  return;
+                }
+
+                // Check snapped position against existing waypoints (7.5m min)
+                let tooClose = false;
+                for (const wp of wps) {
+                  if (haversineDistanceSimple(wp.lat, wp.lng, snappedLat, snappedLng) < 0.0075) {
+                    tooClose = true;
+                    break;
+                  }
+                }
+                if (tooClose) {
+                  toast.error("Too close to an existing waypoint (min 7.5m apart)");
+                  return;
+                }
+
+                // For the first segment (wp0→wp1), keep wp0's actual position
+                // as the start of the segment so the line starts at the marker
+                if (wps.length === 1) {
+                  routeCoords[0] = [prev.lng, prev.lat];
+                }
+
+                // Store the full road-following segment geometry
+                const segIndex = wps.length - 1;
+                snappedSegmentsRef.current.set(segIndex, routeCoords);
+                onWaypointAddRef.current?.(snappedLat, snappedLng, true, "road");
+                return;
+              }
+              // Directions failed — fall back to unsnapped
+              onWaypointAddRef.current?.(lat, lng, false);
+            } catch {
+              onWaypointAddRef.current?.(lat, lng, false);
+            }
           }
         } else {
-          // No snap or first waypoint — place directly
+          // Snap disabled — place directly
           onWaypointAddRef.current?.(lat, lng);
         }
       });
@@ -1726,7 +1756,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           const el = document.createElement("div");
           el.className = "waypoint-marker";
           const isStart = index === 0;
-          const isFinish = index === waypoints.length - 1 && waypoints.length > 1;
+          // Don't show F marker for circular routes — start = finish
+          const isFinish = index === waypoints.length - 1 && waypoints.length > 1 && routeType !== "circular";
           if (isStart || isFinish) {
             el.innerHTML = `
               <div style="
