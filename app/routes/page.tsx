@@ -918,6 +918,9 @@ export default function RoutesPage() {
     if (history.length === 0) return;
     const previousState = history[history.length - 1];
     setHistory((prev) => prev.slice(0, -1));
+    // Clear snapped segments so stale road geometry doesn't persist
+    // through positions that no longer exist after undo
+    mapRef.current?.clearSnappedSegments();
     setWaypoints(previousState);
     if (previousState.length < 3 && routeType === "circular") {
       setRouteType("linear");

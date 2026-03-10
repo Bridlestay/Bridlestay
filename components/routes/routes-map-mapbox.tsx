@@ -278,6 +278,7 @@ export interface RoutesMapMapboxHandle {
   setMapType: (type: string) => void;
   showPropertyInfoWindow: (propertyId: string) => void;
   getRouteGeometry: () => [number, number][];
+  clearSnappedSegments: () => void;
 }
 
 // Convert Google Maps map types to Mapbox styles
@@ -455,6 +456,12 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         // TODO: Implement property info window
         console.log("showPropertyInfoWindow called:", propertyId);
       },
+      // Clear all snapped segments — used when undoing to prevent stale geometry
+      clearSnappedSegments: () => {
+        snappedSegmentsRef.current.clear();
+        // Trigger re-snap if snap is enabled with existing waypoints
+        setResnapTrigger(prev => prev + 1);
+      },
       // Get the full route geometry (snapped if available, straight-line fallback)
       getRouteGeometry: (): [number, number][] => {
         const wps = waypointsRef.current;
@@ -462,8 +469,12 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
         const segments = snappedSegmentsRef.current;
         if (segments.size === 0) {
-          // No snapped data — return straight lines
-          return wps.map(wp => [wp.lng, wp.lat]);
+          const coords = wps.map(wp => [wp.lng, wp.lat] as [number, number]);
+          // Include closing segment for circular routes
+          if (routeType === "circular" && wps.length > 2) {
+            coords.push([wps[0].lng, wps[0].lat]);
+          }
+          return coords;
         }
 
         // Build full geometry from snapped segments
@@ -471,20 +482,29 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         for (let i = 0; i < wps.length - 1; i++) {
           const seg = segments.get(i);
           if (seg && seg.length > 0) {
-            // Add segment coordinates (skip first point of subsequent segments to avoid duplicates)
             if (coords.length === 0) {
               coords.push(...seg);
             } else {
               coords.push(...seg.slice(1));
             }
           } else {
-            // Fallback to straight line for this segment
             if (coords.length === 0) {
               coords.push([wps[i].lng, wps[i].lat]);
             }
             coords.push([wps[i + 1].lng, wps[i + 1].lat]);
           }
         }
+
+        // Include closing segment for circular routes
+        if (routeType === "circular" && wps.length > 2) {
+          const closingSeg = segments.get(wps.length - 1);
+          if (closingSeg && closingSeg.length > 0) {
+            coords.push(...closingSeg.slice(1));
+          } else {
+            coords.push([wps[0].lng, wps[0].lat]);
+          }
+        }
+
         return coords;
       },
     }));
@@ -765,6 +785,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
     // Track style load count to trigger re-renders of sources/layers
     const [styleLoadCount, setStyleLoadCount] = useState(0);
+    // Counter to trigger re-snapping after segments are cleared (e.g. undo)
+    const [resnapTrigger, setResnapTrigger] = useState(0);
 
     // Update map style when mapType changes
     useEffect(() => {
@@ -1675,9 +1697,14 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           coordinates = waypoints.map((wp) => [wp.lng, wp.lat]);
         }
 
-        // If circular, connect back to start
+        // If circular, connect back to start (use snapped closing segment if available)
         if (routeType === "circular" && waypoints.length > 2) {
-          coordinates.push([waypoints[0].lng, waypoints[0].lat]);
+          const closingSeg = snappedSegmentsRef.current.get(waypoints.length - 1);
+          if (closingSeg && closingSeg.length > 0) {
+            coordinates.push(...closingSeg.slice(1));
+          } else {
+            coordinates.push([waypoints[0].lng, waypoints[0].lat]);
+          }
         }
 
         source.setData({
@@ -1953,9 +1980,13 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     useEffect(() => {
       // Remove segments for indices that no longer exist
       const maxIdx = waypoints.length - 2; // max valid segment index
+      // For circular routes, also allow the closing segment at key (waypoints.length - 1)
+      const maxAllowed = routeType === "circular" && waypoints.length > 2
+        ? waypoints.length - 1
+        : maxIdx;
       const segments = snappedSegmentsRef.current;
       for (const key of Array.from(segments.keys())) {
-        if (key > maxIdx) {
+        if (key > maxAllowed) {
           segments.delete(key);
         }
       }
@@ -1963,7 +1994,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       if (waypoints.length < 2) {
         segments.clear();
       }
-    }, [waypoints]);
+    }, [waypoints, routeType]);
 
     // When snap is toggled ON with existing waypoints, fetch all segments
     useEffect(() => {
@@ -1999,7 +2030,39 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       };
 
       fetchAllSegments();
-    }, [snapEnabled]);
+    }, [snapEnabled, resnapTrigger]);
+
+    // Fetch closing segment for circular routes (last waypoint → first waypoint)
+    useEffect(() => {
+      if (routeType !== "circular" || waypoints.length < 3) return;
+
+      const closingKey = waypoints.length - 1;
+      // Don't re-fetch if we already have it
+      if (snappedSegmentsRef.current.has(closingKey)) return;
+
+      const fetchClosingSegment = async () => {
+        const token = mapboxgl.accessToken;
+        if (!token) return;
+
+        const last = waypoints[waypoints.length - 1];
+        const first = waypoints[0];
+        try {
+          const response = await fetch(
+            `https://api.mapbox.com/directions/v5/mapbox/walking/${last.lng},${last.lat};${first.lng},${first.lat}?access_token=${token}&geometries=geojson&overview=full`
+          );
+          const data = await response.json();
+          if (data.routes?.[0]?.geometry?.coordinates) {
+            const coords = data.routes[0].geometry.coordinates as [number, number][];
+            snappedSegmentsRef.current.set(closingKey, coords);
+            setStyleLoadCount(prev => prev + 1);
+          }
+        } catch {
+          // If fetch fails, the straight-line fallback will be used
+        }
+      };
+
+      fetchClosingSegment();
+    }, [routeType, waypoints, resnapTrigger]);
 
     // Update creation route style
     useEffect(() => {
