@@ -1924,11 +1924,32 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                     const coords = data.routes[0].geometry.coordinates as [number, number][];
                     const snappedEnd = coords[coords.length - 1];
                     // Check if snapped point is within 25m of dragged position
-                    // If too far, the user dragged way off a road — keep unsnapped
                     const snapDist = haversineDistanceSimple(lngLat.lat, lngLat.lng, snappedEnd[1], snappedEnd[0]);
                     if (snapDist < 0.025) { // 25m threshold
                       finalLat = snappedEnd[1];
                       finalLng = snappedEnd[0];
+                      snappedToRoad = true;
+                    }
+                  }
+                } catch { /* keep unsnapped */ }
+              }
+
+              // Fallback: if neighbor-routing didn't snap (point dragged off-road),
+              // try a self-snap — find the nearest road at the dragged position
+              if (!snappedToRoad) {
+                try {
+                  const offsetLng = lngLat.lng + 0.00005;
+                  const res = await fetch(
+                    `https://api.mapbox.com/directions/v5/mapbox/walking/${lngLat.lng},${lngLat.lat};${offsetLng},${lngLat.lat}?access_token=${token}&geometries=geojson&overview=simplified`
+                  );
+                  const data = await res.json();
+                  if (data.routes?.[0]?.geometry?.coordinates) {
+                    const coords = data.routes[0].geometry.coordinates as [number, number][];
+                    const snappedStart = coords[0];
+                    const selfSnapDist = haversineDistanceSimple(lngLat.lat, lngLat.lng, snappedStart[1], snappedStart[0]);
+                    if (selfSnapDist < 0.05) { // 50m — snap to nearest road
+                      finalLat = snappedStart[1];
+                      finalLng = snappedStart[0];
                       snappedToRoad = true;
                     }
                   }

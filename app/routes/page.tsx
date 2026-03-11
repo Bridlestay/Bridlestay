@@ -82,6 +82,15 @@ function distanceAlongCoords(
   return result;
 }
 
+// Simple haversine distance in km between two points
+function haversineSimple(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 const HAZARD_TYPES = [
   { value: "tree_fall", label: "Fallen Tree" },
   { value: "flooding", label: "Flooding" },
@@ -995,10 +1004,29 @@ export default function RoutesPage() {
   const removeWaypoint = useCallback(
     (id: string) => {
       setHistory((prev) => [...prev, waypoints]);
-      setWaypoints((prev) => prev.filter((wp) => wp.id !== id));
+      const remaining = waypoints.filter((wp) => wp.id !== id);
+      setWaypoints(remaining);
+      // If route is circular, check if it should revert to linear
+      if (routeType === "circular") {
+        if (remaining.length < 3) {
+          setRouteType("linear");
+          setIsPlotting(true);
+          toast.info("Route is no longer circular");
+        } else {
+          const first = remaining[0];
+          const last = remaining[remaining.length - 1];
+          const dist = haversineSimple(first.lat, first.lng, last.lat, last.lng);
+          if (dist > 0.05) { // 50m — last point is too far from start
+            setRouteType("linear");
+            setIsPlotting(true);
+            toast.info("Route is no longer circular");
+            return;
+          }
+        }
+      }
       toast.info("Waypoint removed");
     },
-    [waypoints]
+    [waypoints, routeType]
   );
 
   const handleCircularDetected = useCallback(() => {
