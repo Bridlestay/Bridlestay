@@ -624,8 +624,29 @@ export default function RoutesPage() {
     fetchRouteWaypoints(first.id);
   };
 
-  // Placeholder — cluster browse is now locked to the originally clicked cluster
-  const handleVisibleRoutesChange = useCallback((_routeIds: string[]) => {}, []);
+  // When visible routes change (zoom/pan), expand cluster navigation to all visible routes
+  const handleVisibleRoutesChange = useCallback((routeIds: string[]) => {
+    // Only update when actively browsing cluster routes
+    if (clusterBrowseRef.current.length === 0) return;
+
+    const visibleRoutes = exploreRoutes.filter((r) => routeIds.includes(r.id));
+    if (visibleRoutes.length === 0) return;
+
+    // Cap at 50 routes to keep navigation usable
+    const capped = visibleRoutes.slice(0, 50);
+
+    // Only update if the set of routes actually changed
+    const currentIds = new Set(clusterBrowseRef.current.map((r) => r.id));
+    const newIds = new Set(capped.map((r) => r.id));
+    if (currentIds.size === newIds.size && [...currentIds].every((id) => newIds.has(id))) return;
+
+    // Preserve the currently viewed route's position
+    const currentRoute = clusterBrowseRef.current[clusterBrowseIndex];
+    const newIndex = currentRoute ? capped.findIndex((r) => r.id === currentRoute.id) : 0;
+
+    setClusterBrowseRoutes(capped);
+    setClusterBrowseIndex(newIndex >= 0 ? newIndex : 0);
+  }, [exploreRoutes, clusterBrowseIndex]);
 
   // Handle waypoint marker click on map — open drawer to waypoints panel
   const handleWaypointClick = (waypointId: string) => {

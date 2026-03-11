@@ -872,15 +872,22 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       };
     }, [mapType, mapLoaded]);
 
-    // Update cursor based on mode
+    // Update cursor based on mode — use mousemove handler to enforce it
+    // because Mapbox internally resets cursor on hover/drag events
     useEffect(() => {
       if (!mapRef.current) return;
-      
+      const map = mapRef.current;
+
       if (isCreating && isPlotting) {
         const cursors: Record<string, string> = { plot: "crosshair", erase: "not-allowed", insert: "copy" };
-        mapRef.current.getCanvas().style.cursor = cursors[toolMode] || "default";
+        const cursor = cursors[toolMode] || "default";
+        map.getCanvas().style.cursor = cursor;
+        // Continuously enforce cursor on mousemove to prevent Mapbox overriding it
+        const enforceCursor = () => { map.getCanvas().style.cursor = cursor; };
+        map.on("mousemove", enforceCursor);
+        return () => { map.off("mousemove", enforceCursor); };
       } else {
-        mapRef.current.getCanvas().style.cursor = "grab";
+        map.getCanvas().style.cursor = "";
       }
     }, [isCreating, isPlotting, toolMode]);
 
@@ -1154,9 +1161,39 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           }
         });
 
-        // Notify parent about currently visible (unclustered) route IDs
-        if (seenIds.size > 0) {
-          onVisibleRoutesChangeRef.current?.(Array.from(seenIds));
+        // Notify parent about ALL visible route IDs (unclustered + inside clusters)
+        notifyVisibleRoutes(map, sourceId, seenIds);
+      };
+
+      // Gather route IDs from visible clusters + unclustered pins
+      const notifyVisibleRoutes = (map: mapboxgl.Map, srcId: string, unclusteredIds: Set<string>) => {
+        const allIds = new Set(unclusteredIds);
+        const source = map.getSource(srcId) as mapboxgl.GeoJSONSource;
+        if (!source) {
+          if (allIds.size > 0) onVisibleRoutesChangeRef.current?.(Array.from(allIds));
+          return;
+        }
+        // Find visible clusters and expand them
+        const clusterFeatures = map.queryRenderedFeatures(undefined, { layers: ["clusters"] });
+        if (clusterFeatures.length === 0) {
+          if (allIds.size > 0) onVisibleRoutesChangeRef.current?.(Array.from(allIds));
+          return;
+        }
+        let pending = clusterFeatures.length;
+        for (const cf of clusterFeatures) {
+          const clusterId = cf.properties?.cluster_id;
+          if (!clusterId) { pending--; continue; }
+          source.getClusterLeaves(clusterId, 100, 0, (_err, leaves) => {
+            if (leaves) {
+              for (const leaf of leaves) {
+                if (leaf.properties?.id) allIds.add(leaf.properties.id);
+              }
+            }
+            pending--;
+            if (pending === 0 && allIds.size > 0) {
+              onVisibleRoutesChangeRef.current?.(Array.from(allIds));
+            }
+          });
         }
       };
 
