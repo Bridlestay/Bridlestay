@@ -753,9 +753,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                 const snappedLat = snappedStart[1];
                 const snappedLng = snappedStart[0];
 
-                // Check if snapped point is too far from click (>15m = off-road)
+                // Check if snapped point is too far from click (>50m = off-road)
                 const snapDrift = haversineDistanceSimple(lat, lng, snappedLat, snappedLng);
-                if (snapDrift > 0.015) {
+                if (snapDrift > 0.05) {
+                  console.warn("Snap: first point too far from road (", Math.round(snapDrift * 1000), "m), placing unsnapped");
                   onWaypointAddRef.current?.(lat, lng, false);
                   return;
                 }
@@ -763,8 +764,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                 onWaypointAddRef.current?.(snappedLat, snappedLng, true, "road");
                 return;
               }
+              console.warn("Snap: no route found for first waypoint, placing unsnapped");
               onWaypointAddRef.current?.(lat, lng, false);
-            } catch {
+            } catch (err) {
+              console.warn("Snap: API error for first waypoint", err);
               onWaypointAddRef.current?.(lat, lng, false);
             }
           } else {
@@ -781,10 +784,11 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                 const snappedLat = snappedPoint[1];
                 const snappedLng = snappedPoint[0];
 
-                // Check if snapped destination is too far from click (>15m)
+                // Check if snapped destination is too far from click (>50m)
                 // If so, the user clicked off-road — place unsnapped instead
                 const snapDrift = haversineDistanceSimple(lat, lng, snappedLat, snappedLng);
-                if (snapDrift > 0.015) {
+                if (snapDrift > 0.05) {
+                  console.warn("Snap: destination too far from road (", Math.round(snapDrift * 1000), "m), placing unsnapped");
                   onWaypointAddRef.current?.(lat, lng, false);
                   return;
                 }
@@ -815,8 +819,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                 return;
               }
               // Directions failed — fall back to unsnapped
+              console.warn("Snap: no route found for segment, placing unsnapped");
               onWaypointAddRef.current?.(lat, lng, false);
-            } catch {
+            } catch (err) {
+              console.warn("Snap: API error for segment", err);
               onWaypointAddRef.current?.(lat, lng, false);
             }
           }
@@ -2016,13 +2022,46 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
           // Handle click on marker — always set flag to prevent map click from
           // adding a new waypoint on top. In erase mode, remove the waypoint.
-          el.addEventListener("click", (e) => {
+          el.addEventListener("click", async (e) => {
             e.stopPropagation();
             markerClickedRef.current = true;
             if (toolModeRef.current === "erase") {
+              const wps = waypointsRef.current;
+              const wpIdx = wps.findIndex((w) => w.id === wp.id);
+
               // Re-index snapped segments BEFORE removing the waypoint so
               // the route line rebuilds correctly with the remaining waypoints.
-              reindexSegmentsOnRemove(index, snappedSegmentsRef.current);
+              reindexSegmentsOnRemove(
+                wpIdx >= 0 ? wpIdx : index,
+                snappedSegmentsRef.current
+              );
+
+              // If deleted waypoint was between two others and snap is on,
+              // re-fetch the connecting segment so the route stays on-road
+              if (
+                snapEnabledRef.current &&
+                wpIdx > 0 &&
+                wpIdx < wps.length - 1
+              ) {
+                const prev = wps[wpIdx - 1];
+                const next = wps[wpIdx + 1];
+                const token = mapboxgl.accessToken;
+                try {
+                  const res = await fetch(
+                    `https://api.mapbox.com/directions/v5/mapbox/walking/${prev.lng},${prev.lat};${next.lng},${next.lat}?access_token=${token}&geometries=geojson&overview=full`
+                  );
+                  const data = await res.json();
+                  if (data.routes?.[0]?.geometry?.coordinates) {
+                    const coords = data.routes[0].geometry
+                      .coordinates as [number, number][];
+                    // After reindexing, prev→next segment sits at index wpIdx-1
+                    snappedSegmentsRef.current.set(wpIdx - 1, coords);
+                  }
+                } catch {
+                  /* fall back to straight line */
+                }
+              }
+
               onWaypointRemoveRef.current?.(wp.id);
             }
           });
