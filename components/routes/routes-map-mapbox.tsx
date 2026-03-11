@@ -53,6 +53,29 @@ function nearestPointOnSegment(
   return { lng: ax + t * dx, lat: ay + t * dy };
 }
 
+// Compute cumulative distance along route coords up to the nearest projection of a point
+function distanceAlongRoute(
+  pointLng: number, pointLat: number,
+  routeCoords: [number, number][]
+): number {
+  let cumDist = 0;
+  let minProjDist = Infinity;
+  let distAtProjection = 0;
+  for (let i = 0; i < routeCoords.length - 1; i++) {
+    const [aLng, aLat] = routeCoords[i];
+    const [bLng, bLat] = routeCoords[i + 1];
+    const nearest = nearestPointOnSegment(pointLng, pointLat, aLng, aLat, bLng, bLat);
+    const projDist = haversineDistanceSimple(pointLat, pointLng, nearest.lat, nearest.lng);
+    if (projDist < minProjDist) {
+      minProjDist = projDist;
+      const segToNearest = haversineDistanceSimple(aLat, aLng, nearest.lat, nearest.lng);
+      distAtProjection = cumDist + segToNearest;
+    }
+    cumDist += haversineDistanceSimple(aLat, aLng, bLat, bLng);
+  }
+  return distAtProjection;
+}
+
 // Re-index snapped segments when a waypoint is removed.
 // Segment i connects waypoint[i] to waypoint[i+1], so removing waypoint at
 // removedIndex invalidates segments removedIndex-1 and removedIndex,
@@ -267,6 +290,7 @@ export interface RoutesMapMapboxProps {
   onCreationPOIAdd?: (lat: number, lng: number) => void;
   onCreationPOIUpdate?: (id: string, lat: number, lng: number) => void;
   onCreationPOIRemove?: (id: string) => void;
+  onCreationPOIEdit?: (id: string) => void;
 }
 
 export interface RoutesMapMapboxHandle {
@@ -350,6 +374,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       onCreationPOIAdd,
       onCreationPOIUpdate,
       onCreationPOIRemove,
+      onCreationPOIEdit,
     },
     ref
   ) => {
@@ -389,6 +414,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const onCreationPOIAddRef = useRef(onCreationPOIAdd);
     const onCreationPOIUpdateRef = useRef(onCreationPOIUpdate);
     const onCreationPOIRemoveRef = useRef(onCreationPOIRemove);
+    const onCreationPOIEditRef = useRef(onCreationPOIEdit);
     const creationPOIMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
     isCreatingRef.current = isCreating;
     isPlottingRef.current = isPlotting;
@@ -407,6 +433,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     onCreationPOIAddRef.current = onCreationPOIAdd;
     onCreationPOIUpdateRef.current = onCreationPOIUpdate;
     onCreationPOIRemoveRef.current = onCreationPOIRemove;
+    onCreationPOIEditRef.current = onCreationPOIEdit;
 
     // Expose methods to parent via ref
     useImperativeHandle(ref, () => ({
@@ -659,8 +686,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             }
           }
 
-          // Must be within 50m of the route line
-          if (minDistKm > 0.05) {
+          // Snap tolerance scales with zoom — 50m when zoomed in, up to 200m zoomed out
+          const zoom = map.getZoom();
+          const snapToleranceKm = zoom >= 14 ? 0.05 : zoom >= 12 ? 0.1 : 0.2;
+          if (minDistKm > snapToleranceKm) {
             toast.error("Click closer to the route line to place a waypoint");
             return;
           }
@@ -848,7 +877,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       if (!mapRef.current) return;
       
       if (isCreating && isPlotting) {
-        mapRef.current.getCanvas().style.cursor = toolMode === "plot" ? "crosshair" : "default";
+        const cursors: Record<string, string> = { plot: "crosshair", erase: "not-allowed", insert: "copy" };
+        mapRef.current.getCanvas().style.cursor = cursors[toolMode] || "default";
       } else {
         mapRef.current.getCanvas().style.cursor = "grab";
       }
@@ -859,9 +889,26 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
     // Add clustered route pins using Mapbox native clustering
     useEffect(() => {
-      if (!mapRef.current || !mapLoaded || isCreating) return;
+      if (!mapRef.current || !mapLoaded) return;
 
+      // Hide all route pins/clusters when entering creation mode
+      if (isCreating) {
+        const map = mapRef.current;
+        // Remove all pin markers
+        pinMarkersRef.current.forEach((marker) => marker.remove());
+        pinMarkersRef.current.clear();
+        // Hide cluster layers
+        if (map.getLayer("clusters")) map.setLayoutProperty("clusters", "visibility", "none");
+        if (map.getLayer("cluster-count")) map.setLayoutProperty("cluster-count", "visibility", "none");
+        if (map.getLayer("unclustered-point")) map.setLayoutProperty("unclustered-point", "visibility", "none");
+        return;
+      }
+
+      // Restore cluster layer visibility when leaving creation mode
       const map = mapRef.current;
+      if (map.getLayer("clusters")) map.setLayoutProperty("clusters", "visibility", "visible");
+      if (map.getLayer("cluster-count")) map.setLayoutProperty("cluster-count", "visibility", "visible");
+      if (map.getLayer("unclustered-point")) map.setLayoutProperty("unclustered-point", "visibility", "visible");
 
       // Store routes data for later lookup
       routesDataRef.current.clear();
@@ -1931,7 +1978,20 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
       if (!isCreating || creationPOIs.length === 0) return;
 
-      creationPOIs.forEach((poi, index) => {
+      // Sort POIs by distance along route from start for numbering
+      const routeCoords = getRenderedRouteCoords(waypointsRef.current, snappedSegmentsRef.current);
+      const poisWithDist = creationPOIs.map((poi) => ({
+        ...poi,
+        _routeDist: routeCoords.length >= 2 ? distanceAlongRoute(poi.lng, poi.lat, routeCoords) : 0,
+      }));
+      poisWithDist.sort((a, b) => a._routeDist - b._routeDist);
+
+      // Build index lookup: poi.id -> sorted position
+      const sortedIndexMap = new Map<string, number>();
+      poisWithDist.forEach((p, i) => sortedIndexMap.set(p.id, i));
+
+      creationPOIs.forEach((poi) => {
+        const index = sortedIndexMap.get(poi.id) ?? 0;
         const el = document.createElement("div");
         el.className = "creation-poi-marker";
         const iconSvg = poi.icon_type ? (POI_ICON_SVGS[poi.icon_type] || POI_ICON_SVGS.other) : POI_ICON_SVGS.other;
@@ -2001,12 +2061,14 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           }
         });
 
-        // Handle click — erase mode removes, otherwise prevent map click
+        // Handle click — erase mode removes, otherwise open edit dialog
         el.addEventListener("click", (e) => {
           e.stopPropagation();
           markerClickedRef.current = true;
           if (toolModeRef.current === "erase") {
             onCreationPOIRemoveRef.current?.(poi.id);
+          } else {
+            onCreationPOIEditRef.current?.(poi.id);
           }
         });
 

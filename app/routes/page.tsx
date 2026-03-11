@@ -49,6 +49,39 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+// Compute distance along a polyline from start to the nearest projection of a point
+function distanceAlongCoords(
+  pointLng: number, pointLat: number,
+  coords: [number, number][]
+): number {
+  let cumDist = 0;
+  let minProjDist = Infinity;
+  let result = 0;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const haversine = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+  for (let i = 0; i < coords.length - 1; i++) {
+    const [aLng, aLat] = coords[i];
+    const [bLng, bLat] = coords[i + 1];
+    // Project point onto segment
+    const dx = bLng - aLng, dy = bLat - aLat;
+    const lenSq = dx * dx + dy * dy;
+    let t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((pointLng - aLng) * dx + (pointLat - aLat) * dy) / lenSq));
+    const nearLng = aLng + t * dx, nearLat = aLat + t * dy;
+    const projDist = haversine(pointLat, pointLng, nearLat, nearLng);
+    if (projDist < minProjDist) {
+      minProjDist = projDist;
+      result = cumDist + haversine(aLat, aLng, nearLat, nearLng);
+    }
+    cumDist += haversine(aLat, aLng, bLat, bLng);
+  }
+  return result;
+}
+
 const HAZARD_TYPES = [
   { value: "tree_fall", label: "Fallen Tree" },
   { value: "flooding", label: "Flooding" },
@@ -591,29 +624,8 @@ export default function RoutesPage() {
     fetchRouteWaypoints(first.id);
   };
 
-  // When visible routes change on the map (zoom/pan), expand cluster navigation
-  const handleVisibleRoutesChange = useCallback((routeIds: string[]) => {
-    // Only update when actively browsing cluster routes
-    if (clusterBrowseRef.current.length === 0) return;
-
-    const visibleRoutes = exploreRoutes.filter((r) => routeIds.includes(r.id));
-    if (visibleRoutes.length === 0) return;
-
-    // Cap at 50 routes to keep navigation usable
-    const capped = visibleRoutes.slice(0, 50);
-
-    // Only update if the set of routes actually changed
-    const currentIds = new Set(clusterBrowseRef.current.map((r) => r.id));
-    const newIds = new Set(capped.map((r) => r.id));
-    if (currentIds.size === newIds.size && [...currentIds].every((id) => newIds.has(id))) return;
-
-    // Preserve the currently viewed route's position
-    const currentRoute = clusterBrowseRef.current[clusterBrowseIndex];
-    const newIndex = currentRoute ? capped.findIndex((r) => r.id === currentRoute.id) : 0;
-
-    setClusterBrowseRoutes(capped);
-    setClusterBrowseIndex(newIndex >= 0 ? newIndex : 0);
-  }, [exploreRoutes, clusterBrowseIndex]);
+  // Placeholder — cluster browse is now locked to the originally clicked cluster
+  const handleVisibleRoutesChange = useCallback((_routeIds: string[]) => {}, []);
 
   // Handle waypoint marker click on map — open drawer to waypoints panel
   const handleWaypointClick = (waypointId: string) => {
@@ -1038,6 +1050,28 @@ export default function RoutesPage() {
     toast.info("Waypoint removed");
   }, []);
 
+  // Edit an existing creation POI — open dialog pre-filled
+  const [editingPOI, setEditingPOI] = useState<TempRouteWaypoint | null>(null);
+  const handleCreationPOIEdit = useCallback((id: string) => {
+    setCreationPOIs((prev) => {
+      const poi = prev.find((p) => p.id === id);
+      if (poi) {
+        setEditingPOI(poi);
+        setPoiDialogOpen(true);
+      }
+      return prev;
+    });
+  }, []);
+
+  const handleCreationPOIEditConfirm = useCallback((updated: TempRouteWaypoint) => {
+    setCreationPOIs((prev) =>
+      prev.map((p) => (p.id === updated.id ? updated : p))
+    );
+    setEditingPOI(null);
+    setPoiDialogOpen(false);
+    toast.success(`Waypoint "${updated.name}" updated`);
+  }, []);
+
   // Distance calculation for the floating stats pill
   const haversineDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
     const R = 6371;
@@ -1131,10 +1165,17 @@ export default function RoutesPage() {
     }
 
     // Save POI waypoints if any were placed during creation
+    // Sort by distance along route from start so order_index matches proximity to start
     if (creationPOIs.length > 0 && routeId) {
       try {
-        for (let i = 0; i < creationPOIs.length; i++) {
-          const poi = creationPOIs[i];
+        const routeCoords = payload.geometry.coordinates as [number, number][];
+        const sortedPOIs = [...creationPOIs].sort((a, b) => {
+          const distA = distanceAlongCoords(a.lng, a.lat, routeCoords);
+          const distB = distanceAlongCoords(b.lng, b.lat, routeCoords);
+          return distA - distB;
+        });
+        for (let i = 0; i < sortedPOIs.length; i++) {
+          const poi = sortedPOIs[i];
           await fetch(`/api/routes/${routeId}/waypoints`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1291,6 +1332,7 @@ export default function RoutesPage() {
               onCreationPOIAdd={handleCreationPOIAdd}
               onCreationPOIUpdate={handleCreationPOIUpdate}
               onCreationPOIRemove={handleCreationPOIRemove}
+              onCreationPOIEdit={handleCreationPOIEdit}
             />
           </div>
 
@@ -1452,10 +1494,15 @@ export default function RoutesPage() {
           open={poiDialogOpen}
           onOpenChange={(open) => {
             setPoiDialogOpen(open);
-            if (!open) setPoiDialogPosition(null);
+            if (!open) {
+              setPoiDialogPosition(null);
+              setEditingPOI(null);
+            }
           }}
           position={poiDialogPosition}
           onAdd={handleCreationPOIConfirm}
+          editingWaypoint={editingPOI}
+          onUpdate={handleCreationPOIEditConfirm}
         />
       </TooltipProvider>
     );

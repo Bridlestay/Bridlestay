@@ -58,6 +58,8 @@ interface QuickAddWaypointDialogProps {
   onOpenChange: (open: boolean) => void;
   position: { lat: number; lng: number } | null;
   onAdd: (waypoint: TempRouteWaypoint) => void;
+  editingWaypoint?: TempRouteWaypoint | null;
+  onUpdate?: (waypoint: TempRouteWaypoint) => void;
 }
 
 export function QuickAddWaypointDialog({
@@ -65,24 +67,47 @@ export function QuickAddWaypointDialog({
   onOpenChange,
   position,
   onAdd,
+  editingWaypoint,
+  onUpdate,
 }: QuickAddWaypointDialogProps) {
   const [name, setName] = useState("");
   const [tag, setTag] = useState("note");
   const [iconType, setIconType] = useState("");
   const [description, setDescription] = useState("");
+  const isEditing = !!editingWaypoint;
 
   useEffect(() => {
-    if (!open) {
+    if (open && editingWaypoint) {
+      // Pre-fill form with existing waypoint data
+      setName(editingWaypoint.name || "");
+      setTag(editingWaypoint.tag || "note");
+      setIconType(editingWaypoint.icon_type || "");
+      setDescription(editingWaypoint.description || "");
+    } else if (!open) {
       // Reset form when closed
       setName("");
       setTag("note");
       setIconType("");
       setDescription("");
     }
-  }, [open]);
+  }, [open, editingWaypoint]);
 
   const handleAdd = () => {
-    if (!name.trim() || !position) return;
+    if (!name.trim()) return;
+
+    if (isEditing && editingWaypoint && onUpdate) {
+      onUpdate({
+        ...editingWaypoint,
+        name: name.trim(),
+        tag,
+        icon_type: iconType || undefined,
+        description: description.trim() || undefined,
+      });
+      onOpenChange(false);
+      return;
+    }
+
+    if (!position) return;
 
     const waypoint: TempRouteWaypoint = {
       id: `temp-${Date.now()}-${Math.random()}`, // Temporary ID
@@ -102,7 +127,7 @@ export function QuickAddWaypointDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Waypoint to Route</DialogTitle>
+          <DialogTitle>{isEditing ? "Edit Waypoint" : "Add Waypoint to Route"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -170,7 +195,7 @@ export function QuickAddWaypointDialog({
             disabled={!name.trim()}
             className="bg-green-600 hover:bg-green-700 h-9"
           >
-            Add Waypoint
+            {isEditing ? "Save Changes" : "Add Waypoint"}
           </Button>
         </DialogFooter>
       </DialogContent>
