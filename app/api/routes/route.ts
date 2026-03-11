@@ -15,6 +15,7 @@ const RouteSchema = z.object({
   geometry: z.object({
     type: z.literal("LineString"),
     coordinates: z.array(z.tuple([z.number(), z.number()])),
+    spine_points: z.array(z.tuple([z.number(), z.number()])).optional(),
   }),
   near_property_id: z.string().uuid().optional(),
   is_public: z.boolean().default(false),

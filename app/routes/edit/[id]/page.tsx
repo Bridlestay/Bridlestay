@@ -93,9 +93,10 @@ export default function EditRoutePage() {
         setIsOwner(true);
         setOriginalRoute(routeData);
 
-        // Extract waypoints from geometry
-        if (routeData.geometry?.coordinates) {
-          const coords = routeData.geometry.coordinates;
+        // Use original spine points if available, otherwise fall back to full geometry
+        const spinePoints = routeData.geometry?.spine_points;
+        const coords = spinePoints || routeData.geometry?.coordinates;
+        if (coords) {
           const extractedWaypoints: Waypoint[] = coords.map((coord: number[], index: number) => ({
             id: `wp-${Date.now()}-${index}`,
             lat: coord[1],

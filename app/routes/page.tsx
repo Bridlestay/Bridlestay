@@ -1143,6 +1143,9 @@ export default function RoutesPage() {
       geometry: {
         type: "LineString",
         coordinates: mapRef.current?.getRouteGeometry?.() || waypoints.map((wp) => [wp.lng, wp.lat]),
+        // Preserve original user-placed spine points for editing
+        // (the full coordinates contain snapped road geometry with many intermediate points)
+        spine_points: waypoints.map((wp) => [wp.lng, wp.lat]),
       },
       distance_km: createDistanceKm,
       estimated_time_minutes: createRideTimeMinutes,
@@ -1278,8 +1281,10 @@ export default function RoutesPage() {
     setDrawerOpen(false);
     setSelectedRouteId(null);
     
-    // Extract waypoints from route geometry
-    const coords = routeData.geometry?.coordinates || [];
+    // Use original spine points if available (saved since this fix),
+    // otherwise fall back to full geometry coordinates (older routes)
+    const spinePoints = routeData.geometry?.spine_points;
+    const coords = spinePoints || routeData.geometry?.coordinates || [];
     const extractedWaypoints: Waypoint[] = coords.map((coord: number[], index: number) => ({
       id: `wp-${Date.now()}-${index}`,
       lat: coord[1],
