@@ -1923,9 +1923,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                   if (data.routes?.[0]?.geometry?.coordinates) {
                     const coords = data.routes[0].geometry.coordinates as [number, number][];
                     const snappedEnd = coords[coords.length - 1];
-                    // Check if snapped point is within 25m of dragged position
+                    // Check if snapped point is reasonably close to dragged position
                     const snapDist = haversineDistanceSimple(lngLat.lat, lngLat.lng, snappedEnd[1], snappedEnd[0]);
-                    if (snapDist < 0.025) { // 25m threshold
+                    if (snapDist < 0.15) { // 150m — generous for rural areas
                       finalLat = snappedEnd[1];
                       finalLng = snappedEnd[0];
                       snappedToRoad = true;
@@ -1947,13 +1947,21 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                     const coords = data.routes[0].geometry.coordinates as [number, number][];
                     const snappedStart = coords[0];
                     const selfSnapDist = haversineDistanceSimple(lngLat.lat, lngLat.lng, snappedStart[1], snappedStart[0]);
-                    if (selfSnapDist < 0.05) { // 50m — snap to nearest road
+                    if (selfSnapDist < 0.3) { // 300m — find nearest road in rural areas
                       finalLat = snappedStart[1];
                       finalLng = snappedStart[0];
                       snappedToRoad = true;
                     }
                   }
                 } catch { /* keep unsnapped */ }
+              }
+
+              // If snap is on but all attempts failed, revert to original position
+              if (!snappedToRoad) {
+                marker.setLngLat([wp.lng, wp.lat]);
+                // Restore the segments we cleared
+                // (they'll be re-fetched on next render from existing waypoint positions)
+                return;
               }
 
               // Move marker to snapped position immediately for visual feedback
