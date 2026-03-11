@@ -772,9 +772,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                 const snappedLat = snappedStart[1];
                 const snappedLng = snappedStart[0];
 
-                // Check if snapped point is too far from click (>50m = off-road)
+                // Check if snapped point is too far from click (>25m = off-road)
                 const snapDrift = haversineDistanceSimple(lat, lng, snappedLat, snappedLng);
-                if (snapDrift > 0.05) {
+                if (snapDrift > 0.025) {
                   console.warn("Snap: first point too far from road (", Math.round(snapDrift * 1000), "m), placing unsnapped");
                   onWaypointAddRef.current?.(lat, lng, false);
                   return;
@@ -803,10 +803,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                 const snappedLat = snappedPoint[1];
                 const snappedLng = snappedPoint[0];
 
-                // Check if snapped destination is too far from click (>50m)
+                // Check if snapped destination is too far from click (>25m)
                 // If so, the user clicked off-road — place unsnapped instead
                 const snapDrift = haversineDistanceSimple(lat, lng, snappedLat, snappedLng);
-                if (snapDrift > 0.05) {
+                if (snapDrift > 0.025) {
                   console.warn("Snap: destination too far from road (", Math.round(snapDrift * 1000), "m), placing unsnapped");
                   onWaypointAddRef.current?.(lat, lng, false);
                   return;
