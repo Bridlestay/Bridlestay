@@ -222,55 +222,69 @@ export function SavedRoutesPanel({
             <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
           </div>
         ) : displayRoutes.length > 0 ? (
-          <div className="p-4 space-y-3">
-            {displayRoutes.map((route) => (
-              <div
-                key={route.id}
-                className="p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => onRouteClick(route.id)}
-                onMouseEnter={() => onRouteHover?.(route.id)}
-                onMouseLeave={() => onRouteHover?.(null)}
-              >
-                <div className="flex gap-3">
-                  {/* Route snapshot thumbnail */}
-                  <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                    {(() => {
-                      const thumbnailUrl = getRouteThumbnailUrlAuto(route.geometry, {
-                        width: 160,
-                        height: 160,
-                        routeColor: "5E35B1",
-                        routeWeight: 4,
-                      });
-                      return thumbnailUrl ? (
-                        <img
-                          src={thumbnailUrl}
-                          alt={route.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <svg viewBox="0 0 100 100" className="w-12 h-12 text-gray-300">
-                            <path d="M20 60 Q 35 30, 50 50 T 80 40" stroke="currentColor" strokeWidth="4" fill="none"/>
-                          </svg>
-                        </div>
-                      );
-                    })()}
+          <div className="p-4 space-y-4">
+            {displayRoutes.map((route) => {
+              const thumbnailUrl = getRouteThumbnailUrlAuto(route.geometry, {
+                width: 400,
+                height: 200,
+                routeColor: "3B82F6",
+                routeWeight: 4,
+              });
+              return (
+                <div
+                  key={route.id}
+                  className="rounded-xl overflow-hidden border shadow-sm hover:shadow-md transition-all cursor-pointer bg-white"
+                  onClick={() => onRouteClick(route.id)}
+                  onMouseEnter={() => onRouteHover?.(route.id)}
+                  onMouseLeave={() => onRouteHover?.(null)}
+                >
+                  {/* Map preview header */}
+                  <div className="relative h-28 bg-gradient-to-br from-green-50 to-green-100">
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt={route.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <svg viewBox="0 0 100 50" className="w-16 h-8 text-green-300">
+                          <path d="M10 35 Q 25 10, 40 25 T 70 20 T 90 30" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round"/>
+                        </svg>
+                      </div>
+                    )}
+                    {/* Route type badge */}
+                    {route.route_type === "circular" && (
+                      <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm text-white font-medium">
+                        Circular
+                      </span>
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm truncate">{route.title}</h4>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-600">
+                  {/* Content */}
+                  <div className="p-3">
+                    <h4 className="font-semibold text-sm truncate text-gray-900">{route.title}</h4>
+                    <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-500">
                       <span className="flex items-center gap-1">
                         <Ruler className="h-3 w-3" />
                         {route.distance_km?.toFixed(1)} km
                       </span>
-                      {route.estimated_time_minutes && (
+                      <span className="text-gray-300">&middot;</span>
+                      {route.estimated_time_minutes ? (
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {Math.round(route.estimated_time_minutes)}m
                         </span>
-                      )}
+                      ) : route.distance_km ? (
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {(() => {
+                            const mins = Math.round((Number(route.distance_km) / 8) * 60);
+                            return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+                          })()}
+                        </span>
+                      ) : null}
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center justify-between mt-2">
                       <Badge
                         variant="outline"
                         className={cn(
@@ -281,16 +295,16 @@ export function SavedRoutesPanel({
                         {route.difficulty?.charAt(0).toUpperCase() + route.difficulty?.slice(1) || "Unrated"}
                       </Badge>
                       {route.avg_rating > 0 && (
-                        <span className="flex items-center gap-0.5 text-xs">
-                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <span className="flex items-center gap-1 text-xs text-gray-600">
+                          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
                           {route.avg_rating.toFixed(1)}
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
