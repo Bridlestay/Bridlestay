@@ -577,18 +577,10 @@ export function FindRoutesPanel({
 
                       {/* Content */}
                       <div className="p-3.5">
-                        {/* Title + Rating */}
-                        <div className="flex items-start justify-between gap-2">
-                          <h4 className="font-bold text-[15px] leading-tight text-gray-900 line-clamp-1">
-                            {route.title}
-                          </h4>
-                          {route.avg_rating > 0 && (
-                            <span className="flex items-center gap-0.5 text-xs text-gray-600 flex-shrink-0">
-                              <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                              {route.avg_rating.toFixed(1)}
-                            </span>
-                          )}
-                        </div>
+                        {/* Title */}
+                        <h4 className="font-bold text-[15px] leading-tight text-gray-900 line-clamp-1">
+                          {route.title}
+                        </h4>
 
                         {/* Description */}
                         {route.description && (
