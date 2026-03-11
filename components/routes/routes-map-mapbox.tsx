@@ -38,6 +38,25 @@ function haversineDistanceSimple(lat1: number, lng1: number, lat2: number, lng2:
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Check if a Directions API route is unreasonably long compared to straight-line
+// distance (the "routing all the way around" problem). Returns true if detour.
+function isRouteDetour(
+  routeDistanceM: number,
+  fromLat: number, fromLng: number,
+  toLat: number, toLng: number
+): boolean {
+  const straightLineM = haversineDistanceSimple(fromLat, fromLng, toLat, toLng) * 1000;
+  if (straightLineM < 10) return false; // Too short to judge
+  const ratio = routeDistanceM / straightLineM;
+  if (ratio > 5) {
+    console.warn(
+      `Snap: route detour ${ratio.toFixed(1)}x (${Math.round(routeDistanceM)}m route vs ${Math.round(straightLineM)}m straight) — using straight line`
+    );
+    return true;
+  }
+  return false;
+}
+
 // Find nearest point on a line segment (returns lng/lat of closest point)
 function nearestPointOnSegment(
   px: number, py: number,
@@ -806,15 +825,25 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                   return;
                 }
 
+                // Route detour sanity check — if walking route is >5x the
+                // straight-line distance, the API is routing "all the way
+                // around". Still snap the point but use a straight line.
+                const detour = isRouteDetour(
+                  data.routes[0].distance || 0,
+                  prev.lat, prev.lng, snappedLat, snappedLng
+                );
+
                 // For the first segment (wp0→wp1), keep wp0's actual position
                 // as the start of the segment so the line starts at the marker
                 if (wps.length === 1) {
                   routeCoords[0] = [prev.lng, prev.lat];
                 }
 
-                // Store the full road-following segment geometry
-                const segIndex = wps.length - 1;
-                snappedSegmentsRef.current.set(segIndex, routeCoords);
+                // Store road-following geometry only if route is reasonable
+                if (!detour) {
+                  const segIndex = wps.length - 1;
+                  snappedSegmentsRef.current.set(segIndex, routeCoords);
+                }
                 onWaypointAddRef.current?.(snappedLat, snappedLng, true, "road");
                 return;
               }
@@ -1984,8 +2013,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                   const data = await res.json();
                   if (data.routes?.[0]?.geometry?.coordinates) {
                     const coords = data.routes[0].geometry.coordinates as [number, number][];
-                    if (wpIdx - 1 === 0) coords[0] = [prev.lng, prev.lat];
-                    snappedSegmentsRef.current.set(wpIdx - 1, coords);
+                    if (!isRouteDetour(data.routes[0].distance || 0, prev.lat, prev.lng, finalLat, finalLng)) {
+                      if (wpIdx - 1 === 0) coords[0] = [prev.lng, prev.lat];
+                      snappedSegmentsRef.current.set(wpIdx - 1, coords);
+                    }
                   }
                 } catch { /* skip */ }
               }
@@ -1998,8 +2029,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                   const data = await res.json();
                   if (data.routes?.[0]?.geometry?.coordinates) {
                     const coords = data.routes[0].geometry.coordinates as [number, number][];
-                    if (wpIdx === 0) coords[0] = [finalLng, finalLat];
-                    snappedSegmentsRef.current.set(wpIdx, coords);
+                    if (!isRouteDetour(data.routes[0].distance || 0, finalLat, finalLng, next.lat, next.lng)) {
+                      if (wpIdx === 0) coords[0] = [finalLng, finalLat];
+                      snappedSegmentsRef.current.set(wpIdx, coords);
+                    }
                   }
                 } catch { /* skip */ }
               }
@@ -2054,8 +2087,11 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                   if (data.routes?.[0]?.geometry?.coordinates) {
                     const coords = data.routes[0].geometry
                       .coordinates as [number, number][];
-                    // After reindexing, prev→next segment sits at index wpIdx-1
-                    snappedSegmentsRef.current.set(wpIdx - 1, coords);
+                    // Only store if route isn't a detour
+                    if (!isRouteDetour(data.routes[0].distance || 0, prev.lat, prev.lng, next.lat, next.lng)) {
+                      // After reindexing, prev→next segment sits at index wpIdx-1
+                      snappedSegmentsRef.current.set(wpIdx - 1, coords);
+                    }
                   }
                 } catch {
                   /* fall back to straight line */
@@ -2224,9 +2260,11 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             const data = await response.json();
             if (data.routes?.[0]?.geometry?.coordinates) {
               const coords = data.routes[0].geometry.coordinates as [number, number][];
-              // Pin wp0's actual position for the first segment
-              if (i === 0) coords[0] = [from.lng, from.lat];
-              snappedSegmentsRef.current.set(i, coords);
+              if (!isRouteDetour(data.routes[0].distance || 0, from.lat, from.lng, to.lat, to.lng)) {
+                // Pin wp0's actual position for the first segment
+                if (i === 0) coords[0] = [from.lng, from.lat];
+                snappedSegmentsRef.current.set(i, coords);
+              }
             }
           } catch {
             // Skip failed segments
