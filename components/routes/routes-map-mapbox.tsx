@@ -2069,36 +2069,44 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                 snappedSegmentsRef.current
               );
 
-              // If deleted waypoint was between two others and snap is on,
-              // re-fetch the connecting segment so the route stays on-road
-              if (
-                snapEnabledRef.current &&
-                wpIdx > 0 &&
-                wpIdx < wps.length - 1
-              ) {
-                const prev = wps[wpIdx - 1];
-                const next = wps[wpIdx + 1];
+              // Save neighbor refs before removal for async segment fetch
+              const prevWp = wpIdx > 0 ? wps[wpIdx - 1] : null;
+              const nextWp = wpIdx < wps.length - 1 ? wps[wpIdx + 1] : null;
+
+              // Remove waypoint IMMEDIATELY to prevent race condition:
+              // if user clicks undo while async fetch is in progress,
+              // the old handler must not re-remove the restored waypoint.
+              onWaypointRemoveRef.current?.(wp.id);
+
+              // Re-fetch connecting segment async (after removal)
+              if (snapEnabledRef.current && prevWp && nextWp) {
                 const token = mapboxgl.accessToken;
                 try {
                   const res = await fetch(
-                    `https://api.mapbox.com/directions/v5/mapbox/walking/${prev.lng},${prev.lat};${next.lng},${next.lat}?access_token=${token}&geometries=geojson&overview=full`
+                    `https://api.mapbox.com/directions/v5/mapbox/walking/${prevWp.lng},${prevWp.lat};${nextWp.lng},${nextWp.lat}?access_token=${token}&geometries=geojson&overview=full`
                   );
                   const data = await res.json();
                   if (data.routes?.[0]?.geometry?.coordinates) {
-                    const coords = data.routes[0].geometry
-                      .coordinates as [number, number][];
-                    // Only store if route isn't a detour
-                    if (!isRouteDetour(data.routes[0].distance || 0, prev.lat, prev.lng, next.lat, next.lng)) {
-                      // After reindexing, prev→next segment sits at index wpIdx-1
-                      snappedSegmentsRef.current.set(wpIdx - 1, coords);
+                    // Verify waypoints haven't changed (undo may have fired)
+                    const currentWps = waypointsRef.current;
+                    const stillValid =
+                      currentWps.some((w) => w.id === prevWp.id) &&
+                      currentWps.some((w) => w.id === nextWp.id) &&
+                      !currentWps.some((w) => w.id === wp.id);
+                    if (stillValid) {
+                      const coords = data.routes[0].geometry
+                        .coordinates as [number, number][];
+                      if (!isRouteDetour(data.routes[0].distance || 0, prevWp.lat, prevWp.lng, nextWp.lat, nextWp.lng)) {
+                        const prevIdx = currentWps.findIndex((w) => w.id === prevWp.id);
+                        snappedSegmentsRef.current.set(prevIdx, coords);
+                        setStyleLoadCount((prev) => prev + 1);
+                      }
                     }
                   }
                 } catch {
                   /* fall back to straight line */
                 }
               }
-
-              onWaypointRemoveRef.current?.(wp.id);
             }
           });
 
