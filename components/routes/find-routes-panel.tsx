@@ -16,13 +16,12 @@ import {
 } from "@/components/ui/select";
 import {
   X,
-  Clock,
-  Ruler,
   Star,
   Share2,
   Navigation,
   Search,
   Bookmark,
+  ImageIcon,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -412,23 +411,31 @@ export function FindRoutesPanel({
         ) : displayRoutes.length > 0 ? (
           <div className="p-4 space-y-4">
             {displayRoutes.map((route) => {
-              const thumbnailUrl = getRouteThumbnailUrlAuto(route.geometry, {
+              const thumbnailUrl = route.cover_photo_url || getRouteThumbnailUrlAuto(route.geometry, {
                 width: 400,
                 height: 200,
                 routeColor: "3B82F6",
                 routeWeight: 4,
               });
               const isSaved = savedRouteIds.has(route.id);
+              const rideTimeMins = route.estimated_time_minutes
+                ? Math.round(route.estimated_time_minutes)
+                : route.distance_km
+                  ? Math.round((Number(route.distance_km) / 8) * 60)
+                  : 0;
+              const rideTimeStr = rideTimeMins >= 60
+                ? `${Math.floor(rideTimeMins / 60)}h ${rideTimeMins % 60 > 0 ? `${rideTimeMins % 60}m` : ""}`
+                : `${rideTimeMins}m`;
               return (
                 <div
                   key={route.id}
-                  className="rounded-xl overflow-hidden border shadow-sm hover:shadow-md transition-all cursor-pointer bg-white"
+                  className="rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer bg-white border border-gray-100"
                   onClick={() => onRouteClick(route.id)}
                   onMouseEnter={() => onRouteHover?.(route.id)}
                   onMouseLeave={() => onRouteHover?.(null)}
                 >
-                  {/* Map preview header */}
-                  <div className="relative h-28 bg-gradient-to-br from-green-50 to-green-100">
+                  {/* Photo / Map preview */}
+                  <div className="relative h-32 group">
                     {thumbnailUrl ? (
                       <img
                         src={thumbnailUrl}
@@ -436,17 +443,17 @@ export function FindRoutesPanel({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <svg viewBox="0 0 100 50" className="w-16 h-8 text-green-300">
-                          <path d="M10 35 Q 25 10, 40 25 T 70 20 T 90 30" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round"/>
-                        </svg>
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
+                        <ImageIcon className="h-10 w-10 text-green-300" />
                       </div>
                     )}
+                    {/* Bottom gradient */}
+                    <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
                     {/* Bookmark button */}
                     <button
                       onClick={(e) => toggleSaveRoute(route.id, e)}
                       className={cn(
-                        "absolute top-2 right-2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-md",
+                        "absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-md",
                         isSaved
                           ? "bg-green-600 text-white hover:bg-green-700"
                           : "bg-white/80 backdrop-blur-sm text-gray-500 hover:bg-white hover:text-gray-700"
@@ -457,56 +464,65 @@ export function FindRoutesPanel({
                     </button>
                     {/* Route type badge */}
                     {route.route_type === "circular" && (
-                      <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm text-white font-medium">
+                      <span className="absolute top-2.5 left-2.5 text-[10px] px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm text-white font-medium">
                         Circular
                       </span>
                     )}
+                    {/* Distance on image */}
+                    <span className="absolute bottom-2.5 left-2.5 text-xs px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-sm text-gray-700 font-medium shadow-sm">
+                      {Number(route.distance_km || 0).toFixed(1)} km
+                    </span>
                   </div>
-                  {/* Content */}
-                  <div className="p-3">
+
+                  {/* Content area */}
+                  <div className="p-3.5">
+                    {/* Title + Rating */}
                     <div className="flex items-start justify-between gap-2">
-                      <h4 className="font-semibold text-sm truncate text-gray-900">{route.title}</h4>
-                      {route.visibility === "private" && (
-                        <Badge variant="outline" className="text-[10px] h-4 flex-shrink-0">
-                          Private
-                        </Badge>
+                      <h4 className="font-bold text-[15px] leading-tight text-gray-900 line-clamp-1">{route.title}</h4>
+                      {route.avg_rating > 0 && (
+                        <span className="flex items-center gap-0.5 text-xs text-gray-600 flex-shrink-0">
+                          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                          {route.avg_rating.toFixed(1)}
+                        </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <Ruler className="h-3 w-3" />
-                        {route.distance_km?.toFixed(1)} km
-                      </span>
-                      <span className="text-gray-300">&middot;</span>
-                      {route.estimated_time_minutes ? (
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {Math.round(route.estimated_time_minutes)}m
-                        </span>
-                      ) : route.distance_km ? (
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {(() => {
-                            const mins = Math.round((Number(route.distance_km) / 8) * 60);
-                            return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
-                          })()}
-                        </span>
-                      ) : null}
+
+                    {/* Description preview */}
+                    {route.description && (
+                      <p className="text-xs text-gray-500 line-clamp-1 mt-1">{route.description}</p>
+                    )}
+
+                    {/* Stats row — matching detail card style */}
+                    <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-100">
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-gray-900">
+                          {Number(route.distance_km || 0).toFixed(1)}
+                          <span className="text-xs font-normal text-gray-400 ml-0.5">km</span>
+                        </p>
+                        <p className="text-[10px] text-gray-400">Distance</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-gray-900">
+                          {rideTimeStr}
+                        </p>
+                        <p className="text-[10px] text-gray-400">Est. Ride Time</p>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between mt-2">
+
+                    {/* Difficulty badge + county */}
+                    <div className="flex items-center justify-between mt-3">
                       <Badge
                         variant="outline"
                         className={cn(
-                          "text-[10px] h-5",
+                          "text-[10px] h-5 font-medium",
                           DIFFICULTY_COLORS[route.difficulty] || DIFFICULTY_COLORS.unrated
                         )}
                       >
                         {route.difficulty?.charAt(0).toUpperCase() + route.difficulty?.slice(1) || "Unrated"}
                       </Badge>
-                      {route.avg_rating > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-gray-600">
-                          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                          {route.avg_rating.toFixed(1)}
+                      {route.county && (
+                        <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
+                          {route.county}
                         </span>
                       )}
                     </div>
