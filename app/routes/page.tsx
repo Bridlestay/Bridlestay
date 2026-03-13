@@ -1428,29 +1428,15 @@ export default function RoutesPage() {
                 canUndo={history.length > 0}
                 routeStyle={routeStyle}
                 isMobile={true}
+                onExitCreation={() => {
+                  if (waypoints.length > 0) {
+                    setShowDiscardDialog(true);
+                  } else {
+                    confirmCancel();
+                  }
+                }}
               />
             </div>
-
-            {/* Mobile FAB for map settings */}
-            <MobileFabMenu
-              onOpenSettings={() => setShowLayerPanel(true)}
-              onLocateMe={handleLocateMe}
-            />
-
-            {/* Mobile Bottom Nav */}
-            <MobileBottomNav
-              activeTab={activeTab}
-              onTabChange={handleMobileTabChange}
-              isRecording={isRecording}
-              onRecordClick={() => {
-                if (isRecording) {
-                  setIsRecording(false);
-                } else {
-                  setIsRecording(true);
-                  setRecordedPath([]);
-                }
-              }}
-            />
           </div>
 
           {/* Desktop: Always show creation toolbar */}
