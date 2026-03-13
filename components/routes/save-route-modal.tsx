@@ -258,7 +258,7 @@ export function SaveRouteModal({
         </button>
 
         {/* Scrollable content */}
-        <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
           {/* Stats grid — matches route detail card style */}
           <div className="px-6 pt-6 pb-4">
             <div className="grid grid-cols-2 gap-3">
@@ -575,10 +575,10 @@ export function SaveRouteModal({
         </div>
 
         {/* Fixed bottom actions */}
-        <div className="border-t bg-white px-6 py-4 flex gap-3">
+        <div className="border-t bg-white px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex gap-3">
           <Button
             variant="outline"
-            className="flex-1"
+            className="flex-1 hidden md:flex"
             onClick={onClose}
             disabled={saving}
           >
