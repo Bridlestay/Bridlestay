@@ -1704,17 +1704,14 @@ export default function RoutesPage() {
               setRecordedPath([]);
             }
           }}
-          visible={!previewRoute && !drawerOpen}
+          visible={!previewRoute && !drawerOpen && activeTab !== "find" && activeTab !== "saved"}
         />
 
         {/* Mobile FAB Menu (+ button for settings) */}
         <MobileFabMenu
           onOpenSettings={() => setShowLayerPanel(true)}
           onLocateMe={handleLocateMe}
-          visible={!previewRoute && !drawerOpen && (
-            (activeTab === "map") ||
-            ((activeTab === "find" || activeTab === "saved") && !mobilePanelOpen)
-          )}
+          visible={!previewRoute && !drawerOpen && activeTab === "map"}
         />
 
         {/* Saved Routes Panel */}

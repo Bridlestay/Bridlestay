@@ -247,24 +247,25 @@ export function FindRoutesPanel({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop (desktop only — mobile is full-screen) */}
       <div
-        className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-all duration-300"
+        className="fixed inset-0 z-40 hidden md:block bg-black/40 backdrop-blur-sm transition-all duration-300"
         onClick={onClose}
       />
 
-      {/* Centered Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      {/* Full-screen sheet (mobile) / Centered Modal (desktop) */}
+      <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4 pointer-events-none">
         <div
           className={cn(
-            "pointer-events-auto bg-white rounded-2xl shadow-2xl relative",
-            "w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden",
-            "animate-in zoom-in-95 slide-in-from-bottom-4 fade-in duration-300",
-            "md:max-h-[80vh]"
+            "pointer-events-auto bg-white shadow-2xl relative flex flex-col overflow-hidden",
+            "w-full h-[100dvh] rounded-none",
+            "animate-in slide-in-from-bottom fade-in duration-300",
+            "md:rounded-2xl md:max-w-2xl md:max-h-[80vh] md:h-auto",
+            "md:animate-in md:zoom-in-95 md:slide-in-from-bottom-4 md:fade-in md:duration-300"
           )}
         >
           {/* Sticky Header */}
-          <div className="shrink-0 border-b bg-white rounded-t-2xl">
+          <div className="shrink-0 border-b bg-white md:rounded-t-2xl">
             {/* Title + Share + Close */}
             <div className="flex items-center justify-between px-5 pt-5 pb-3">
               <h2 className="text-lg font-semibold text-gray-900">

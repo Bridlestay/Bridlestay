@@ -28,7 +28,7 @@ const DIFFICULTY_STYLES: Record<string, { bg: string; text: string; border: stri
   unrated: { bg: "bg-gray-100", text: "text-gray-700", border: "border-gray-300" },
 };
 
-function SingleCard({ route, onClick }: { route: any; onClick: () => void }) {
+function SingleCard({ route, onClick, onClose }: { route: any; onClick: () => void; onClose?: () => void }) {
   const [nearbyCount, setNearbyCount] = useState(0);
 
   useEffect(() => {
@@ -61,9 +61,21 @@ function SingleCard({ route, onClick }: { route: any; onClick: () => void }) {
 
   return (
     <div
-      className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-2xl transition-shadow duration-200"
+      className="relative bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-2xl transition-shadow duration-200"
       onClick={onClick}
     >
+      {/* Close button — top-right of card */}
+      {onClose && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          className="absolute top-0 right-0 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-bl-xl rounded-tr-2xl flex items-center justify-center hover:bg-gray-100 transition-colors"
+        >
+          <X className="h-3.5 w-3.5 text-gray-500" />
+        </button>
+      )}
       <div className="flex items-center gap-3 p-3">
         {/* Route Thumbnail */}
         {thumbnailUrl && (
@@ -211,19 +223,7 @@ export function RouteQuickCard({
           className
         )}
       >
-        <div className="relative">
-          {/* Close button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="absolute top-0 right-0 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-bl-xl rounded-tr-2xl flex items-center justify-center hover:bg-gray-100 transition-colors"
-          >
-            <X className="h-3.5 w-3.5 text-gray-500" />
-          </button>
-          <SingleCard route={route} onClick={onClick} />
-        </div>
+        <SingleCard route={route} onClick={onClick} onClose={onClose} />
       </div>
     );
   }
@@ -238,17 +238,6 @@ export function RouteQuickCard({
         className
       )}
     >
-      {/* Close button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-        className="absolute top-0 right-4 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors md:right-0 md:rounded-bl-xl md:rounded-tr-2xl md:rounded-tl-none md:rounded-br-none md:shadow-none"
-      >
-        <X className="h-3.5 w-3.5 text-gray-500" />
-      </button>
-
       {/* Scrollable carousel */}
       <div
         ref={scrollRef}
@@ -270,6 +259,7 @@ export function RouteQuickCard({
           >
             <SingleCard
               route={r}
+              onClose={onClose}
               onClick={() => {
                 if (idx !== activeIdx) {
                   setActiveIdx(idx);
