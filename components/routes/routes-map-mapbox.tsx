@@ -97,6 +97,17 @@ function distanceAlongRoute(
 
 // Re-index snapped segments when a waypoint is removed.
 // Segment i connects waypoint[i] to waypoint[i+1], so removing waypoint at
+// Deep-copy snapped segments for undo history (before mutations)
+function snapshotSegments(
+  segments: Map<number, [number, number][]>
+): Map<number, [number, number][]> {
+  return new Map(
+    Array.from(segments.entries()).map(
+      ([k, v]) => [k, [...v]] as [number, [number, number][]]
+    )
+  );
+}
+
 // removedIndex invalidates segments removedIndex-1 and removedIndex,
 // and all later segments shift down by 1.
 function reindexSegmentsOnRemove(
@@ -238,8 +249,8 @@ export interface RoutesMapMapboxProps {
   routeStyle?: RouteStyle;
   toolMode?: ToolMode;
   onWaypointAdd?: (lat: number, lng: number, snapped?: boolean, pathType?: string) => void;
-  onWaypointUpdate?: (id: string, lat: number, lng: number, snapped?: boolean) => void;
-  onWaypointRemove?: (id: string) => void;
+  onWaypointUpdate?: (id: string, lat: number, lng: number, snapped?: boolean, segmentsSnapshot?: Map<number, [number, number][]>) => void;
+  onWaypointRemove?: (id: string, segmentsSnapshot?: Map<number, [number, number][]>) => void;
   onWaypointInsert?: (index: number, lat: number, lng: number, snapped?: boolean, pathType?: string) => void;
   onCircularDetected?: (isCircular: boolean) => void;
   // Layer settings (compatibility props - some not yet implemented)
@@ -515,11 +526,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       },
       // Snapshot current snapped segments (deep copy for undo history)
       getSnappedSegments: () => {
-        return new Map(
-          Array.from(snappedSegmentsRef.current.entries()).map(
-            ([k, v]) => [k, [...v]] as [number, [number, number][]]
-          )
-        );
+        return snapshotSegments(snappedSegmentsRef.current);
       },
       // Restore snapped segments from a previous snapshot
       restoreSnappedSegments: (segments: Map<number, [number, number][]>) => {
@@ -1948,10 +1955,13 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             const wps = waypointsRef.current;
             const wpIdx = wps.findIndex(w => w.id === wp.id);
 
+            // Snapshot segments BEFORE any mutation so undo captures pre-drag state
+            const preDragSegments = snapshotSegments(snappedSegmentsRef.current);
+
             if (snapEnabledRef.current && wpIdx >= 0) {
               const token = mapboxgl.accessToken;
               if (!token) {
-                onWaypointUpdateRef.current?.(wp.id, lngLat.lat, lngLat.lng);
+                onWaypointUpdateRef.current?.(wp.id, lngLat.lat, lngLat.lng, false, preDragSegments);
                 return;
               }
 
@@ -2056,7 +2066,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
               }
 
               // NOW update waypoint position — triggers re-render with segments already in place
-              onWaypointUpdateRef.current?.(wp.id, finalLat, finalLng, snappedToRoad);
+              onWaypointUpdateRef.current?.(wp.id, finalLat, finalLng, snappedToRoad, preDragSegments);
             } else {
               // Snap off or waypoint not found — clear adjacent snapped segments
               // so the route line falls back to straight lines through the new position.
@@ -2067,7 +2077,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                 if (snapIdx > 0) snappedSegmentsRef.current.delete(snapIdx - 1);
                 if (snapIdx < wpsSnap.length - 1) snappedSegmentsRef.current.delete(snapIdx);
               }
-              onWaypointUpdateRef.current?.(wp.id, lngLat.lat, lngLat.lng);
+              onWaypointUpdateRef.current?.(wp.id, lngLat.lat, lngLat.lng, false, preDragSegments);
             }
           });
 
@@ -2079,6 +2089,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             if (toolModeRef.current === "erase") {
               const wps = waypointsRef.current;
               const wpIdx = wps.findIndex((w) => w.id === wp.id);
+
+              // Snapshot segments BEFORE mutation so undo history
+              // captures the exact pre-erase state
+              const preEraseSegments = snapshotSegments(snappedSegmentsRef.current);
 
               // Re-index snapped segments BEFORE removing the waypoint so
               // the route line rebuilds correctly with the remaining waypoints.
@@ -2094,7 +2108,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
               // Remove waypoint IMMEDIATELY to prevent race condition:
               // if user clicks undo while async fetch is in progress,
               // the old handler must not re-remove the restored waypoint.
-              onWaypointRemoveRef.current?.(wp.id);
+              // Pass pre-erase segments so undo history stores the correct state.
+              onWaypointRemoveRef.current?.(wp.id, preEraseSegments);
 
               // Re-fetch connecting segment async (after removal)
               if (snapEnabledRef.current && prevWp && nextWp) {

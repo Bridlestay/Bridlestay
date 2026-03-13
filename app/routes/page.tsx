@@ -956,11 +956,19 @@ export default function RoutesPage() {
     if (map) map.setZoom((map.getZoom() || 10) - 1);
   };
 
-  // Snapshot current state for undo history (waypoints + snapped segments)
-  const pushHistory = useCallback(() => {
-    const segments = mapRef.current?.getSnappedSegments() ?? new Map();
-    setHistory((prev) => [...prev, { waypoints, segments }]);
-  }, [waypoints]);
+  // Snapshot current state for undo history (waypoints + snapped segments).
+  // When segments are mutated before the callback (erase/drag), pass the
+  // pre-mutation snapshot so history captures the true previous state.
+  const pushHistory = useCallback(
+    (segmentsSnapshot?: Map<number, [number, number][]>) => {
+      const segments =
+        segmentsSnapshot ??
+        mapRef.current?.getSnappedSegments() ??
+        new Map();
+      setHistory((prev) => [...prev, { waypoints, segments }]);
+    },
+    [waypoints]
+  );
 
   // Waypoint management
   const addWaypoint = useCallback(
@@ -1000,8 +1008,8 @@ export default function RoutesPage() {
   );
 
   const updateWaypoint = useCallback(
-    (id: string, lat: number, lng: number, snapped = false) => {
-      pushHistory();
+    (id: string, lat: number, lng: number, snapped = false, segmentsSnapshot?: Map<number, [number, number][]>) => {
+      pushHistory(segmentsSnapshot);
       setWaypoints((prev) =>
         prev.map((wp) => (wp.id === id ? { ...wp, lat, lng, snapped } : wp))
       );
@@ -1010,8 +1018,8 @@ export default function RoutesPage() {
   );
 
   const removeWaypoint = useCallback(
-    (id: string) => {
-      pushHistory();
+    (id: string, segmentsSnapshot?: Map<number, [number, number][]>) => {
+      pushHistory(segmentsSnapshot);
       const remaining = waypoints.filter((wp) => wp.id !== id);
       setWaypoints(remaining);
       // If route is circular, check if it should revert to linear
