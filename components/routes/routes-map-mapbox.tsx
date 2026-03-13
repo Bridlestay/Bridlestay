@@ -771,8 +771,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         }
 
         // Circular route detection: if user clicks near the start point
-        // after plotting a meaningful route (5+ waypoints), close the loop
-        if (wps.length >= 5) {
+        // after plotting 3+ waypoints, close the loop
+        if (wps.length >= 3) {
           const first = wps[0];
           const distToStart = haversineDistanceSimple(first.lat, first.lng, lat, lng);
           if (distToStart < 0.015) { // Within ~15m of start
@@ -1957,6 +1957,24 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
             // Snapshot segments BEFORE any mutation so undo captures pre-drag state
             const preDragSegments = snapshotSegments(snappedSegmentsRef.current);
+
+            // Drag-to-close: if the last waypoint is dragged within 15m of the start,
+            // snap it onto the start and trigger circular route detection
+            if (wpIdx === wps.length - 1 && wps.length >= 3 && wpIdx > 0) {
+              const first = wps[0];
+              const distToStart = haversineDistanceSimple(lngLat.lat, lngLat.lng, first.lat, first.lng);
+              if (distToStart < 0.015) { // 15m
+                // Animate the F marker snapping to S position
+                marker.setLngLat([first.lng, first.lat]);
+                // Update waypoint to start position then trigger circular
+                onWaypointUpdateRef.current?.(wp.id, first.lat, first.lng, wp.snapped, preDragSegments);
+                // Small delay so the snap animation is visible before circular triggers
+                setTimeout(() => {
+                  onCircularDetectedRef.current?.(true);
+                }, 150);
+                return;
+              }
+            }
 
             if (snapEnabledRef.current && wpIdx >= 0) {
               const token = mapboxgl.accessToken;

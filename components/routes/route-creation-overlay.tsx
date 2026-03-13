@@ -34,17 +34,19 @@ export function RouteStatsPill({
   return (
     <div
       className={cn(
-        "bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-slate-200 px-4 py-2 flex items-center gap-3 text-sm",
+        "bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-slate-200",
+        "px-2.5 py-1.5 flex items-center gap-2 text-xs",
+        "md:px-4 md:py-2 md:gap-3 md:text-sm",
         className
       )}
     >
-      <span className="flex items-center gap-1.5 text-slate-700 font-medium">
-        <Ruler className="h-3.5 w-3.5 text-slate-400" />
+      <span className="flex items-center gap-1 text-slate-700 font-medium md:gap-1.5">
+        <Ruler className="h-3 w-3 text-slate-400 md:h-3.5 md:w-3.5" />
         {formatDistance(distanceKm)}
       </span>
-      <span className="w-px h-4 bg-slate-200" />
-      <span className="flex items-center gap-1.5 text-slate-700 font-medium">
-        <Clock className="h-3.5 w-3.5 text-slate-400" />
+      <span className="w-px h-3 bg-slate-200 md:h-4" />
+      <span className="flex items-center gap-1 text-slate-700 font-medium md:gap-1.5">
+        <Clock className="h-3 w-3 text-slate-400 md:h-3.5 md:w-3.5" />
         {formatTime(rideTimeMinutes)}
       </span>
     </div>

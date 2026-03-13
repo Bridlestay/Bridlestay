@@ -1464,30 +1464,15 @@ export default function RoutesPage() {
           </div>
 
           {/* Floating stats pill — bottom-left */}
-          <div className="absolute bottom-6 left-4 z-20 md:bottom-8 md:left-8">
+          <div className="absolute bottom-4 left-3 z-20 md:bottom-8 md:left-8">
             <RouteStatsPill
               distanceKm={createDistanceKm}
               rideTimeMinutes={createRideTimeMinutes}
             />
           </div>
 
-          {/* Floating save button + cancel — bottom-center */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 md:bottom-8">
-            {waypoints.length > 0 && (
-              <Button
-                variant="outline"
-                className="bg-white/95 backdrop-blur-sm shadow-lg rounded-full px-5 h-11 text-sm font-medium text-slate-600 hover:text-red-600 hover:border-red-300"
-                onClick={() => {
-                  if (waypoints.length > 0) {
-                    setShowDiscardDialog(true);
-                  } else {
-                    confirmCancel();
-                  }
-                }}
-              >
-                Cancel
-              </Button>
-            )}
+          {/* Floating save button — bottom-right */}
+          <div className="absolute bottom-4 right-3 z-20 md:bottom-8 md:right-8">
             <SaveRouteButton
               waypointCount={waypoints.length}
               onClick={() => setShowSaveModal(true)}
