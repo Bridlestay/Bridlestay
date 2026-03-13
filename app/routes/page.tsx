@@ -197,7 +197,9 @@ export default function RoutesPage() {
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [routeType, setRouteType] = useState<"circular" | "linear">("linear");
-  const [history, setHistory] = useState<Waypoint[][]>([]);
+  const [history, setHistory] = useState<
+    { waypoints: Waypoint[]; segments: Map<number, [number, number][]> }[]
+  >([]);
   const [toolMode, setToolMode] = useState<ToolMode>("plot");
   const [showSaveModal, setShowSaveModal] = useState(false);
 
@@ -954,10 +956,16 @@ export default function RoutesPage() {
     if (map) map.setZoom((map.getZoom() || 10) - 1);
   };
 
+  // Snapshot current state for undo history (waypoints + snapped segments)
+  const pushHistory = useCallback(() => {
+    const segments = mapRef.current?.getSnappedSegments() ?? new Map();
+    setHistory((prev) => [...prev, { waypoints, segments }]);
+  }, [waypoints]);
+
   // Waypoint management
   const addWaypoint = useCallback(
     (lat: number, lng: number, snapped = false, pathType?: string) => {
-      setHistory((prev) => [...prev, waypoints]);
+      pushHistory();
       const newWaypoint: Waypoint = {
         id: `wp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         lat,
@@ -973,7 +981,7 @@ export default function RoutesPage() {
 
   const insertWaypoint = useCallback(
     (index: number, lat: number, lng: number, snapped = false, pathType?: string) => {
-      setHistory((prev) => [...prev, waypoints]);
+      pushHistory();
       const newWaypoint: Waypoint = {
         id: `wp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         lat,
@@ -993,7 +1001,7 @@ export default function RoutesPage() {
 
   const updateWaypoint = useCallback(
     (id: string, lat: number, lng: number, snapped = false) => {
-      setHistory((prev) => [...prev, waypoints]);
+      pushHistory();
       setWaypoints((prev) =>
         prev.map((wp) => (wp.id === id ? { ...wp, lat, lng, snapped } : wp))
       );
@@ -1003,7 +1011,7 @@ export default function RoutesPage() {
 
   const removeWaypoint = useCallback(
     (id: string) => {
-      setHistory((prev) => [...prev, waypoints]);
+      pushHistory();
       const remaining = waypoints.filter((wp) => wp.id !== id);
       setWaypoints(remaining);
       // If route is circular, check if it should revert to linear
@@ -1036,7 +1044,7 @@ export default function RoutesPage() {
       toast.success("Route closed! Now a circular route.");
     } else {
       if (waypoints.length > 0) {
-        setHistory((prev) => [...prev, waypoints]);
+        pushHistory();
         setWaypoints((prev) => prev.slice(0, -1));
         setRouteType("linear");
         toast.info("Route reopened - continue plotting");
@@ -1048,10 +1056,10 @@ export default function RoutesPage() {
     if (history.length === 0) return;
     const previousState = history[history.length - 1];
     setHistory((prev) => prev.slice(0, -1));
-    // Clear snapped segments so stale road geometry doesn't persist
-    // through positions that no longer exist after undo
-    mapRef.current?.clearSnappedSegments();
-    setWaypoints(previousState);
+    // Restore exact waypoints AND snapped segments from history snapshot
+    // — no re-fetching from Mapbox, so the route looks exactly as it did
+    mapRef.current?.restoreSnappedSegments(previousState.segments);
+    setWaypoints(previousState.waypoints);
     // Always revert to linear when undoing from circular — the circular
     // detection doesn't add a waypoint, so undo removes the last plotted
     // point, which should reopen the route for continued plotting

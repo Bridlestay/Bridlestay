@@ -1012,7 +1012,7 @@ export function RouteDetailDrawer({
                   </div>
                 ))
               ) : (
-                <div className="flex items-center justify-center h-full bg-gradient-to-br from-green-50 to-green-100 rounded-t-2xl">
+                <div className="flex items-center justify-center h-full bg-gradient-to-br from-green-50 to-green-100">
                   <div className="text-center">
                     <ImageIcon className="h-12 w-12 text-green-300 mx-auto" />
                     <p className="text-sm text-green-400 mt-2">No photos yet</p>
@@ -1154,11 +1154,8 @@ export function RouteDetailDrawer({
           </div>
 
           {/* ==================== CONTENT AREA ==================== */}
-          <div className={cn(
-            "relative z-10 bg-white",
-            displayPhotosForCarousel.length > 0 && "rounded-t-2xl -mt-4"
-          )}>
-            <div className={cn("p-4 space-y-4", displayPhotosForCarousel.length > 0 && "pt-6")}>
+          <div className="relative z-10 bg-white rounded-t-2xl -mt-4">
+            <div className="p-4 pt-6 space-y-4">
               {/* AUTHOR + META */}
               {route?.owner && (
                 <div className="flex gap-3">

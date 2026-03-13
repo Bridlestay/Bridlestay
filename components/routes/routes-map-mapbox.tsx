@@ -323,6 +323,8 @@ export interface RoutesMapMapboxHandle {
   showPropertyInfoWindow: (propertyId: string) => void;
   getRouteGeometry: () => [number, number][];
   clearSnappedSegments: () => void;
+  getSnappedSegments: () => Map<number, [number, number][]>;
+  restoreSnappedSegments: (segments: Map<number, [number, number][]>) => void;
 }
 
 // Convert Google Maps map types to Mapbox styles
@@ -506,11 +508,27 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         // TODO: Implement property info window
         console.log("showPropertyInfoWindow called:", propertyId);
       },
-      // Clear all snapped segments — used when undoing to prevent stale geometry
+      // Clear all snapped segments and trigger re-snap
       clearSnappedSegments: () => {
         snappedSegmentsRef.current.clear();
-        // Trigger re-snap if snap is enabled with existing waypoints
         setResnapTrigger(prev => prev + 1);
+      },
+      // Snapshot current snapped segments (deep copy for undo history)
+      getSnappedSegments: () => {
+        return new Map(
+          Array.from(snappedSegmentsRef.current.entries()).map(
+            ([k, v]) => [k, [...v]] as [number, [number, number][]]
+          )
+        );
+      },
+      // Restore snapped segments from a previous snapshot
+      restoreSnappedSegments: (segments: Map<number, [number, number][]>) => {
+        snappedSegmentsRef.current.clear();
+        segments.forEach((coords, key) => {
+          snappedSegmentsRef.current.set(key, coords);
+        });
+        // Trigger re-render to update the displayed line
+        setStyleLoadCount(prev => prev + 1);
       },
       // Get the full route geometry (snapped if available, straight-line fallback)
       getRouteGeometry: (): [number, number][] => {
