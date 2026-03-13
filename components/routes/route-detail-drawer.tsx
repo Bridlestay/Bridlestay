@@ -1759,20 +1759,23 @@ export function RouteDetailDrawer({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop (desktop only — mobile is full-screen) */}
       <div
-        className={cn("fixed inset-0 z-40 transition-all duration-300", "bg-black/40 backdrop-blur-sm")}
+        className={cn("fixed inset-0 z-40 transition-all duration-300", "hidden md:block bg-black/40 backdrop-blur-sm")}
         onClick={onDismiss || onClose}
       />
 
-      {/* Centered Modal Card */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      {/* Centered Modal Card (desktop) / Full-screen sheet (mobile) */}
+      <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4 pointer-events-none">
         <div
           className={cn(
-            "pointer-events-auto bg-white rounded-2xl shadow-2xl relative",
-            "w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden",
-            "animate-in zoom-in-95 slide-in-from-bottom-4 fade-in duration-300",
-            "md:max-h-[80vh]",
+            "pointer-events-auto bg-white shadow-2xl relative flex flex-col overflow-hidden",
+            // Mobile: full-screen sheet from bottom
+            "w-full h-[100dvh] rounded-none",
+            "animate-in slide-in-from-bottom fade-in duration-300",
+            // Desktop: centered card
+            "md:rounded-2xl md:max-w-2xl md:max-h-[80vh] md:h-auto",
+            "md:animate-in md:zoom-in-95 md:slide-in-from-bottom-4 md:fade-in md:duration-300",
           )}
         >
           {/* Scrollable Content */}

@@ -8,9 +8,10 @@ import { cn } from "@/lib/utils";
 interface MobileFabMenuProps {
   onOpenSettings: () => void;
   onLocateMe: () => void;
+  visible?: boolean;
 }
 
-export function MobileFabMenu({ onOpenSettings, onLocateMe }: MobileFabMenuProps) {
+export function MobileFabMenu({ onOpenSettings, onLocateMe, visible = true }: MobileFabMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const menuItems = [
@@ -31,7 +32,10 @@ export function MobileFabMenu({ onOpenSettings, onLocateMe }: MobileFabMenuProps
   ];
 
   return (
-    <div className="fixed bottom-20 right-4 z-40 md:hidden">
+    <div className={cn(
+      "fixed bottom-20 right-4 z-40 md:hidden transition-all duration-300 ease-in-out",
+      visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 pointer-events-none"
+    )}>
       {/* Menu items - appear when FAB is open (icons only, no text) */}
       <div
         className={cn(

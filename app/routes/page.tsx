@@ -1692,8 +1692,8 @@ export default function RoutesPage() {
         </div>
 
         {/* Mobile Bottom Navigation */}
-        <MobileBottomNav 
-          activeTab={activeTab} 
+        <MobileBottomNav
+          activeTab={activeTab}
           onTabChange={handleMobileTabChange}
           isRecording={isRecording}
           onRecordClick={() => {
@@ -1704,18 +1704,18 @@ export default function RoutesPage() {
               setRecordedPath([]);
             }
           }}
+          visible={!previewRoute && !drawerOpen}
         />
 
-        {/* Mobile FAB Menu (+ button for settings) - only show when map is visible */}
-        {/* Show when: map tab with no open panels, or viewing route with details collapsed */}
-        {((activeTab === "map" && !drawerOpen) || 
-          (activeTab === "map" && drawerOpen && !mobileRouteDetailOpen) ||
-          ((activeTab === "find" || activeTab === "saved") && !mobilePanelOpen)) && (
-          <MobileFabMenu 
-            onOpenSettings={() => setShowLayerPanel(true)}
-            onLocateMe={handleLocateMe}
-          />
-        )}
+        {/* Mobile FAB Menu (+ button for settings) */}
+        <MobileFabMenu
+          onOpenSettings={() => setShowLayerPanel(true)}
+          onLocateMe={handleLocateMe}
+          visible={!previewRoute && !drawerOpen && (
+            (activeTab === "map") ||
+            ((activeTab === "find" || activeTab === "saved") && !mobilePanelOpen)
+          )}
+        />
 
         {/* Saved Routes Panel */}
         <SavedRoutesPanel
@@ -1749,16 +1749,7 @@ export default function RoutesPage() {
           </div>
         )}
 
-        {/* Mobile Options button - shown when viewing route with details collapsed */}
-        {drawerOpen && !mobileRouteDetailOpen && (
-          <div className="md:hidden fixed bottom-20 left-0 right-0 pb-2 z-30">
-            <MobilePanelToggle
-              mode="options"
-              onClick={() => setMobileRouteDetailOpen(true)}
-              alwaysVisible={true}
-            />
-          </div>
-        )}
+        {/* Mobile: dismiss full-screen detail → shows quick card instead */}
 
         {/* Layer controls (bottom right) - FAB buttons hidden on mobile, panel visible on both */}
         <MapLayerControls
@@ -1776,31 +1767,25 @@ export default function RoutesPage() {
           <RouteQuickCard
             route={previewRoute}
             onClose={handleClosePreview}
-            onClick={() => handleRouteClick(previewRoute.id)}
-            onPrev={clusterBrowseRoutes.length > 1 ? () => {
-              const newIdx = (clusterBrowseIndex - 1 + clusterBrowseRoutes.length) % clusterBrowseRoutes.length;
-              setClusterBrowseIndex(newIdx);
-              const route = clusterBrowseRoutes[newIdx];
-              setPreviewRoute(route);
-              setDrawnRouteId(route.id);
-              setHighlightedRouteId(route.id);
-              setSelectedRouteData(route);
-              setSelectedRouteId(route.id);
-              fetchRouteWaypoints(route.id);
-            } : undefined}
-            onNext={clusterBrowseRoutes.length > 1 ? () => {
-              const newIdx = (clusterBrowseIndex + 1) % clusterBrowseRoutes.length;
-              setClusterBrowseIndex(newIdx);
-              const route = clusterBrowseRoutes[newIdx];
-              setPreviewRoute(route);
-              setDrawnRouteId(route.id);
-              setHighlightedRouteId(route.id);
-              setSelectedRouteData(route);
-              setSelectedRouteId(route.id);
-              fetchRouteWaypoints(route.id);
-            } : undefined}
+            onClick={() => handleRouteClick(
+              clusterBrowseRoutes.length > 1
+                ? clusterBrowseRoutes[clusterBrowseIndex]?.id || previewRoute.id
+                : previewRoute.id
+            )}
+            routes={clusterBrowseRoutes.length > 1 ? clusterBrowseRoutes : undefined}
             currentIndex={clusterBrowseIndex}
-            totalCount={clusterBrowseRoutes.length}
+            onIndexChange={(idx) => {
+              setClusterBrowseIndex(idx);
+              const r = clusterBrowseRoutes[idx];
+              if (r) {
+                setPreviewRoute(r);
+                setDrawnRouteId(r.id);
+                setHighlightedRouteId(r.id);
+                setSelectedRouteData(r);
+                setSelectedRouteId(r.id);
+                fetchRouteWaypoints(r.id);
+              }
+            }}
           />
         )}
 

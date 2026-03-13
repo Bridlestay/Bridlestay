@@ -9,9 +9,10 @@ interface MobileBottomNavProps {
   onTabChange: (tab: RouteTab) => void;
   isRecording?: boolean;
   onRecordClick?: () => void;
+  visible?: boolean;
 }
 
-export function MobileBottomNav({ activeTab, onTabChange, isRecording, onRecordClick }: MobileBottomNavProps) {
+export function MobileBottomNav({ activeTab, onTabChange, isRecording, onRecordClick, visible = true }: MobileBottomNavProps) {
   // Order: Map, Find, Record (center), Saved, Create
   const leftTabs = [
     { id: "map" as RouteTab, label: "Map", icon: Map },
@@ -24,7 +25,10 @@ export function MobileBottomNav({ activeTab, onTabChange, isRecording, onRecordC
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 md:hidden">
+    <nav className={cn(
+      "fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 md:hidden transition-transform duration-300 ease-in-out",
+      visible ? "translate-y-0" : "translate-y-full"
+    )}>
       <div className="flex items-center justify-around h-14">
         {/* Left tabs: Map, Find */}
         {leftTabs.map((tab) => {
