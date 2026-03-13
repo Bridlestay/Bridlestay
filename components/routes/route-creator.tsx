@@ -616,7 +616,7 @@ export function RouteCreatorToolbar({
           onClick={() => handleToolClick("plot")}
           className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all ${
             isPlotting && toolMode === "plot"
-              ? `${activeColor} ${activeTextColor}` 
+              ? `${activeColor} ${activeTextColor}`
               : "text-gray-600"
           }`}
         >
@@ -624,12 +624,40 @@ export function RouteCreatorToolbar({
           <span className="text-[10px] mt-0.5 font-medium">Plot</span>
         </button>
 
+        {/* Erase */}
+        <button
+          onClick={() => handleToolClick("erase")}
+          className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all ${
+            isPlotting && toolMode === "erase"
+              ? `${activeColor} ${activeTextColor}`
+              : "text-gray-600"
+          }`}
+        >
+          <Eraser className="h-5 w-5" />
+          <span className="text-[10px] mt-0.5 font-medium">Erase</span>
+        </button>
+
+        {/* Waypoint */}
+        {onToggleWaypointMode && (
+          <button
+            onClick={onToggleWaypointMode}
+            className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all ${
+              waypointPlacementMode
+                ? `${activeColor} ${activeTextColor}`
+                : "text-gray-600"
+            }`}
+          >
+            <MapPin className="h-5 w-5" />
+            <span className="text-[10px] mt-0.5 font-medium">Waypoint</span>
+          </button>
+        )}
+
         {/* Snap */}
         <button
           onClick={() => setSnapEnabled(!snapEnabled)}
           className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all ${
-            snapEnabled 
-              ? `${activeColor} ${activeTextColor}` 
+            snapEnabled
+              ? `${activeColor} ${activeTextColor}`
               : "text-gray-600"
           }`}
         >
@@ -649,35 +677,7 @@ export function RouteCreatorToolbar({
           <span className="text-[10px] mt-0.5 font-medium">Undo</span>
         </button>
 
-        {/* Remove (Erase) */}
-        <button
-          onClick={() => handleToolClick("erase")}
-          className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all ${
-            isPlotting && toolMode === "erase"
-              ? `${activeColor} ${activeTextColor}`
-              : "text-gray-600"
-          }`}
-        >
-          <Eraser className="h-5 w-5" />
-          <span className="text-[10px] mt-0.5 font-medium">Remove</span>
-        </button>
-
-        {/* Add Waypoint */}
-        {onToggleWaypointMode && (
-          <button
-            onClick={onToggleWaypointMode}
-            className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all ${
-              waypointPlacementMode
-                ? `${activeColor} ${activeTextColor}`
-                : "text-gray-600"
-            }`}
-          >
-            <MapPin className="h-5 w-5" />
-            <span className="text-[10px] mt-0.5 font-medium">Waypoint</span>
-          </button>
-        )}
-
-        {/* More (3 dots for additional options) */}
+        {/* Clear */}
         <button
           onClick={onClear}
           className="flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all text-gray-600"
@@ -685,6 +685,17 @@ export function RouteCreatorToolbar({
           <Trash2 className="h-5 w-5" />
           <span className="text-[10px] mt-0.5 font-medium">Clear</span>
         </button>
+
+        {/* Exit */}
+        {onExitCreation && (
+          <button
+            onClick={onExitCreation}
+            className="flex flex-col items-center justify-center px-2 py-1.5 rounded-md transition-all text-gray-600 hover:text-red-600"
+          >
+            <X className="h-5 w-5" />
+            <span className="text-[10px] mt-0.5 font-medium">Exit</span>
+          </button>
+        )}
       </div>
     );
   }

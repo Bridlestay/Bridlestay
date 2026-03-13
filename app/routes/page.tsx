@@ -621,18 +621,22 @@ export default function RoutesPage() {
     const routes = exploreRoutes.filter((r) => routeIds.includes(r.id));
     if (routes.length === 0) return;
 
+    // Preserve the currently viewed route if it's in this cluster
+    const currentId = previewRoute?.id || selectedRouteId;
+    const preservedIndex = currentId ? routes.findIndex((r) => r.id === currentId) : -1;
+    const startIndex = preservedIndex >= 0 ? preservedIndex : 0;
+    const startRoute = routes[startIndex];
+
     setClusterBrowseRoutes(routes);
-    setClusterBrowseIndex(0);
-    // Show the first route as a preview with navigation
-    const first = routes[0];
-    setPreviewRoute(first);
-    setDrawnRouteId(first.id);
-    setHighlightedRouteId(first.id);
-    setSelectedRouteData(first);
-    setSelectedRouteId(first.id);
+    setClusterBrowseIndex(startIndex);
+    setPreviewRoute(startRoute);
+    setDrawnRouteId(startRoute.id);
+    setHighlightedRouteId(startRoute.id);
+    setSelectedRouteData(startRoute);
+    setSelectedRouteId(startRoute.id);
     setDrawerOpen(false);
     setShowBottomSheet(false);
-    fetchRouteWaypoints(first.id);
+    fetchRouteWaypoints(startRoute.id);
   };
 
   // When visible routes change (zoom/pan), expand cluster navigation to all visible routes
@@ -1704,14 +1708,14 @@ export default function RoutesPage() {
               setRecordedPath([]);
             }
           }}
-          visible={!previewRoute && !drawerOpen && activeTab !== "find" && activeTab !== "saved"}
+          visible={!previewRoute && !drawerOpen && !isCreating && activeTab !== "find" && activeTab !== "saved"}
         />
 
         {/* Mobile FAB Menu (+ button for settings) */}
         <MobileFabMenu
           onOpenSettings={() => setShowLayerPanel(true)}
           onLocateMe={handleLocateMe}
-          visible={!previewRoute && !drawerOpen && activeTab === "map"}
+          visible={!previewRoute && !drawerOpen && !isCreating && activeTab === "map"}
         />
 
         {/* Saved Routes Panel */}
