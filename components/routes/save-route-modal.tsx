@@ -232,15 +232,23 @@ export function SaveRouteModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4 pointer-events-none">
+      {/* Backdrop — desktop only */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm hidden md:block pointer-events-auto"
         onClick={onClose}
       />
 
-      {/* Modal card */}
-      <div className="relative w-full max-w-2xl mx-4 max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      {/* Modal card — full-screen on mobile, centered on desktop */}
+      <div
+        className={cn(
+          "pointer-events-auto bg-white shadow-2xl relative flex flex-col overflow-hidden",
+          "w-full h-[100dvh] rounded-none",
+          "animate-in slide-in-from-bottom fade-in duration-300",
+          "md:rounded-2xl md:max-w-2xl md:max-h-[85vh] md:h-auto",
+          "md:animate-in md:zoom-in-95 md:slide-in-from-bottom-4 md:fade-in md:duration-300"
+        )}
+      >
         {/* Close button */}
         <button
           onClick={onClose}
@@ -250,7 +258,7 @@ export function SaveRouteModal({
         </button>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {/* Stats grid — matches route detail card style */}
           <div className="px-6 pt-6 pb-4">
             <div className="grid grid-cols-2 gap-3">
