@@ -1966,6 +1966,29 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
               if (distToStart < 0.015) { // 15m
                 // Animate the F marker snapping to S position
                 marker.setLngLat([first.lng, first.lat]);
+
+                // If snap is enabled, fetch the road-following segment from the
+                // previous waypoint to the start so the closing line follows the road
+                if (snapEnabledRef.current) {
+                  const token = mapboxgl.accessToken;
+                  if (token) {
+                    const prev = wps[wpIdx - 1];
+                    try {
+                      const res = await fetch(
+                        `https://api.mapbox.com/directions/v5/mapbox/walking/${prev.lng},${prev.lat};${first.lng},${first.lat}?access_token=${token}&geometries=geojson&overview=full`
+                      );
+                      const data = await res.json();
+                      if (data.routes?.[0]?.geometry?.coordinates) {
+                        const coords = data.routes[0].geometry.coordinates as [number, number][];
+                        if (!isRouteDetour(data.routes[0].distance || 0, prev.lat, prev.lng, first.lat, first.lng)) {
+                          // Store as the segment from prev → last (which is now at start position)
+                          snappedSegmentsRef.current.set(wpIdx - 1, coords);
+                        }
+                      }
+                    } catch { /* proceed without snapped segment */ }
+                  }
+                }
+
                 // Update waypoint to start position then trigger circular
                 onWaypointUpdateRef.current?.(wp.id, first.lat, first.lng, wp.snapped, preDragSegments);
                 // Small delay so the snap animation is visible before circular triggers
