@@ -1012,10 +1012,12 @@ export function RouteDetailDrawer({
                   </div>
                 ))
               ) : (
-                <div className="flex items-center justify-center h-full bg-gradient-to-br from-green-50 to-green-100">
-                  <div className="text-center">
-                    <ImageIcon className="h-12 w-12 text-green-300 mx-auto" />
-                    <p className="text-sm text-green-400 mt-2">No photos yet</p>
+                <div className="p-4 h-full">
+                  <div className="flex items-center justify-center h-full bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
+                    <div className="text-center">
+                      <ImageIcon className="h-12 w-12 text-green-300 mx-auto" />
+                      <p className="text-sm text-green-400 mt-2">No photos yet</p>
+                    </div>
                   </div>
                 </div>
               )}

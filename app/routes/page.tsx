@@ -1511,6 +1511,7 @@ export default function RoutesPage() {
 
           {/* Save Route Modal */}
           <SaveRouteModal
+            key={isEditing ? `edit-${editingRouteId}` : "create"}
             open={showSaveModal}
             onClose={() => setShowSaveModal(false)}
             onSave={handleModalSave}

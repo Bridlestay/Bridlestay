@@ -17,7 +17,8 @@
       "Bash(\"c:\\\\Users\\\\Richard\\\\OneDrive\\\\Desktop\\\\Git Bridlestay\\\\Bridlestay\\\\changelogs\\\\2026-03-01.md\":*)",
       "Bash(ls:*)",
       "Bash(\"c:\\\\Users\\\\Richard\\\\OneDrive\\\\Desktop\\\\Git Bridlestay\\\\Bridlestay\\\\components\\\\routes\\\\edit-waypoint-dialog.tsx\":*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(npx next lint)"
     ]
   }
 }
