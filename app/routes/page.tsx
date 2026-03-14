@@ -364,7 +364,11 @@ export default function RoutesPage() {
   // Handle tab changes
   useEffect(() => {
     if (activeTab === "create") {
-      startCreating();
+      // Don't call startCreating if we're already editing — startEditing
+      // sets activeTab to "create" and we don't want to reset editing state
+      if (!isEditing) {
+        startCreating();
+      }
     } else {
       if (isCreating && waypoints.length > 0) {
         // Don't auto-cancel if there's a pending tab change dialog

@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Clock, Users, X, Home } from "lucide-react";
+import { Clock, Users, X, Home, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getMapboxThumbnailUrl } from "@/lib/routes/route-thumbnail";
 
@@ -228,7 +228,19 @@ export function RouteQuickCard({
     );
   }
 
-  // Multi-route: swipeable peek carousel on mobile, same centered on desktop
+  // Navigate to prev/next route
+  const goTo = (idx: number) => {
+    setActiveIdx(idx);
+    onIndexChange?.(idx);
+    if (scrollRef.current) {
+      const cardWidth = scrollRef.current.firstElementChild
+        ? (scrollRef.current.firstElementChild as HTMLElement).offsetWidth
+        : 0;
+      scrollRef.current.scrollTo({ left: idx * cardWidth, behavior: "smooth" });
+    }
+  };
+
+  // Multi-route: swipeable peek carousel on mobile, arrows + card on desktop
   return (
     <div
       className={cn(
@@ -238,24 +250,49 @@ export function RouteQuickCard({
         className
       )}
     >
-      {/* Scrollable carousel */}
+      {/* Desktop: arrow navigation */}
+      <div className="hidden md:flex items-center gap-2">
+        <button
+          onClick={() => goTo((activeIdx - 1 + allRoutes.length) % allRoutes.length)}
+          className="flex-shrink-0 w-9 h-9 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+        >
+          <ChevronLeft className="h-5 w-5 text-gray-600" />
+        </button>
+
+        <div className="flex-1 min-w-0">
+          <SingleCard
+            route={allRoutes[activeIdx]}
+            onClose={onClose}
+            onClick={onClick}
+          />
+        </div>
+
+        <button
+          onClick={() => goTo((activeIdx + 1) % allRoutes.length)}
+          className="flex-shrink-0 w-9 h-9 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+        >
+          <ChevronRight className="h-5 w-5 text-gray-600" />
+        </button>
+      </div>
+
+      {/* Desktop: page indicator */}
+      <div className="hidden md:flex items-center justify-center mt-2">
+        <span className="text-xs text-gray-500 bg-white/90 backdrop-blur-sm px-2.5 py-0.5 rounded-full shadow-sm">
+          {activeIdx + 1} of {allRoutes.length}
+        </span>
+      </div>
+
+      {/* Mobile: swipeable peek carousel */}
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hidden px-[8%] md:px-0 md:overflow-visible md:gap-0"
+        className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hidden px-[8%] md:hidden"
         style={{ scrollPaddingLeft: "8%", scrollPaddingRight: "8%" }}
       >
         {allRoutes.map((r, idx) => (
           <div
             key={r.id || idx}
-            className={cn(
-              "flex-shrink-0 snap-center",
-              // Mobile: 85% width so adjacent cards peek
-              "w-[85%]",
-              // Desktop: full width, hide non-active
-              "md:w-full",
-              idx !== activeIdx && "md:hidden"
-            )}
+            className="flex-shrink-0 snap-center w-[85%]"
           >
             <SingleCard
               route={r}
@@ -273,22 +310,13 @@ export function RouteQuickCard({
         ))}
       </div>
 
-      {/* Dot indicators */}
+      {/* Mobile: dot indicators */}
       {allRoutes.length > 1 && (
-        <div className="flex items-center justify-center gap-1.5 mt-2">
+        <div className="flex md:hidden items-center justify-center gap-1.5 mt-2">
           {allRoutes.map((_, idx) => (
             <button
               key={idx}
-              onClick={() => {
-                setActiveIdx(idx);
-                onIndexChange?.(idx);
-                if (scrollRef.current) {
-                  const cardWidth = scrollRef.current.firstElementChild
-                    ? (scrollRef.current.firstElementChild as HTMLElement).offsetWidth
-                    : 0;
-                  scrollRef.current.scrollTo({ left: idx * cardWidth, behavior: "smooth" });
-                }
-              }}
+              onClick={() => goTo(idx)}
               className={cn(
                 "h-1.5 rounded-full transition-all duration-300",
                 idx === activeIdx
