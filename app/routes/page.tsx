@@ -150,6 +150,7 @@ export default function RoutesPage() {
   const [selectedRouteHazards, setSelectedRouteHazards] = useState<any[]>([]);
   const [initialWaypointId, setInitialWaypointId] = useState<string | null>(null);
   const [initialCommentId, setInitialCommentId] = useState<string | null>(null);
+  const [initialInfoTab, setInitialInfoTab] = useState<"elevation" | "waypoints" | "hazards" | "warnings" | "variants" | "weather" | "nearby-stays" | null>(null);
   const [mapViewMode, setMapViewMode] = useState<"waypoints" | "hazards" | null>(null);
 
   // Hazard placement state
@@ -1838,6 +1839,14 @@ export default function RoutesPage() {
                 ? clusterBrowseRoutes[clusterBrowseIndex]?.id || previewRoute.id
                 : previewRoute.id
             )}
+            onOpenSection={(section) => {
+              setInitialInfoTab(section as any);
+              handleRouteClick(
+                clusterBrowseRoutes.length > 1
+                  ? clusterBrowseRoutes[clusterBrowseIndex]?.id || previewRoute.id
+                  : previewRoute.id
+              );
+            }}
             routes={clusterBrowseRoutes.length > 1 ? clusterBrowseRoutes : undefined}
             currentIndex={clusterBrowseIndex}
             onIndexChange={(idx) => {
@@ -2018,6 +2027,8 @@ export default function RoutesPage() {
           onForkVariant={(parentId, parentData) => {
             startForkingVariant(parentId, parentData);
           }}
+          initialInfoTab={initialInfoTab}
+          onInitialInfoTabConsumed={() => setInitialInfoTab(null)}
         />
         )}
 

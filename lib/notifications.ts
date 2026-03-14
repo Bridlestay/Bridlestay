@@ -22,7 +22,8 @@ export type NotificationType =
   | "listing_approved"
   | "report_filed"
   | "host_application"
-  | "damage_claim";
+  | "damage_claim"
+  | "route_variant";
 
 interface CreateNotificationParams {
   userId: string;

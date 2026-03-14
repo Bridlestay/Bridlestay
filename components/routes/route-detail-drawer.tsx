@@ -100,6 +100,8 @@ interface RouteDetailDrawerProps {
   onCommentFocused?: () => void;
   onViewVariantRoute?: (routeId: string) => void;
   onForkVariant?: (routeId: string, routeData: any) => void;
+  initialInfoTab?: "elevation" | "waypoints" | "hazards" | "warnings" | "variants" | "weather" | "nearby-stays" | null;
+  onInitialInfoTabConsumed?: () => void;
 }
 
 export function RouteDetailDrawer({
@@ -123,6 +125,8 @@ export function RouteDetailDrawer({
   onCommentFocused,
   onViewVariantRoute,
   onForkVariant,
+  initialInfoTab,
+  onInitialInfoTabConsumed,
 }: RouteDetailDrawerProps) {
   // --- Route data ---
   const [route, setRoute] = useState<any>(null);
@@ -452,6 +456,23 @@ export function RouteDetailDrawer({
       setIsOwner(route.owner_user_id === userId);
     }
   }, [route, userId]);
+
+  // Handle initialInfoTab from mini card section clicks
+  useEffect(() => {
+    if (!initialInfoTab || !open || !route) return;
+    if (initialInfoTab === "nearby-stays") {
+      // Scroll to nearby stays section after render
+      setTimeout(() => {
+        document.getElementById("nearby-stays-section")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 400);
+    } else {
+      setActiveInfoTab(initialInfoTab);
+    }
+    onInitialInfoTabConsumed?.();
+  }, [initialInfoTab, open, route]);
 
   // Weather fetch
   useEffect(() => {

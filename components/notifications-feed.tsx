@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   Loader2,
   Info,
+  Shuffle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +65,7 @@ const NOTIFICATION_ICONS: Record<string, any> = {
   report_filed: Flag,
   host_application: UserPlus,
   damage_claim: AlertTriangle,
+  route_variant: Shuffle,
 };
 
 const NOTIFICATION_COLORS: Record<string, string> = {
@@ -86,6 +88,7 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   refund_processed: "text-blue-600 bg-blue-50",
   listing_review: "text-amber-500 bg-amber-50",
   listing_approved: "text-green-600 bg-green-50",
+  route_variant: "text-green-600 bg-green-50",
   report_filed: "text-red-500 bg-red-50",
   host_application: "text-blue-600 bg-blue-50",
   damage_claim: "text-orange-600 bg-orange-50",

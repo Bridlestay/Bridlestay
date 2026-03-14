@@ -11,6 +11,7 @@ interface RouteQuickCardProps {
   route: any;
   onClose: () => void;
   onClick: () => void;
+  onOpenSection?: (section: string) => void;
   className?: string;
   // For browsing multiple routes (e.g., after cluster click)
   routes?: any[];
@@ -28,7 +29,7 @@ const DIFFICULTY_STYLES: Record<string, { bg: string; text: string; border: stri
   unrated: { bg: "bg-gray-100", text: "text-gray-700", border: "border-gray-300" },
 };
 
-function SingleCard({ route, onClick, onClose }: { route: any; onClick: () => void; onClose?: () => void }) {
+function SingleCard({ route, onClick, onClose, onOpenSection }: { route: any; onClick: () => void; onClose?: () => void; onOpenSection?: (section: string) => void }) {
   const [nearbyCount, setNearbyCount] = useState(0);
   const [variantCount, setVariantCount] = useState(0);
 
@@ -141,16 +142,30 @@ function SingleCard({ route, onClick, onClose }: { route: any; onClick: () => vo
               </span>
             )}
             {nearbyCount > 0 && (
-              <span className="text-xs text-gray-600 flex items-center gap-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenSection?.("nearby-stays");
+                }}
+                className="text-xs text-gray-600 flex items-center gap-1 hover:text-green-600 transition-colors rounded px-0.5 -mx-0.5"
+                title="Nearby stays"
+              >
                 <Home className="h-3 w-3" />
                 {nearbyCount}
-              </span>
+              </button>
             )}
             {variantCount > 0 && (
-              <span className="text-xs text-gray-600 flex items-center gap-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenSection?.("variants");
+                }}
+                className="text-xs text-gray-600 flex items-center gap-1 hover:text-green-600 transition-colors rounded px-0.5 -mx-0.5"
+                title="Route variants"
+              >
                 <Shuffle className="h-3 w-3" />
                 {variantCount}
-              </span>
+              </button>
             )}
           </div>
         </div>
@@ -186,6 +201,7 @@ export function RouteQuickCard({
   route,
   onClose,
   onClick,
+  onOpenSection,
   className,
   routes,
   currentIndex = 0,
@@ -244,7 +260,7 @@ export function RouteQuickCard({
           className
         )}
       >
-        <SingleCard route={route} onClick={onClick} onClose={onClose} />
+        <SingleCard route={route} onClick={onClick} onClose={onClose} onOpenSection={onOpenSection} />
       </div>
     );
   }
@@ -285,6 +301,7 @@ export function RouteQuickCard({
             route={allRoutes[activeIdx]}
             onClose={onClose}
             onClick={onClick}
+            onOpenSection={onOpenSection}
           />
         </div>
 
@@ -318,6 +335,7 @@ export function RouteQuickCard({
             <SingleCard
               route={r}
               onClose={onClose}
+              onOpenSection={onOpenSection}
               onClick={() => {
                 if (idx !== activeIdx) {
                   setActiveIdx(idx);

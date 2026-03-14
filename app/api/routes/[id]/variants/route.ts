@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { createNotification } from "@/lib/notifications";
 
 // GET - Get variants for a route
 export async function GET(
@@ -138,13 +139,13 @@ export async function POST(
     // Ensure consistent ordering (older route = route_a)
     const { data: routeA } = await supabase
       .from("routes")
-      .select("id, created_at")
+      .select("id, created_at, owner_user_id, title")
       .eq("id", routeId)
       .single();
 
     const { data: routeB } = await supabase
       .from("routes")
-      .select("id, created_at")
+      .select("id, created_at, owner_user_id, title")
       .eq("id", variant_route_id)
       .single();
 
@@ -182,6 +183,29 @@ export async function POST(
       }
       console.error("[VARIANTS] Insert error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Notify the parent route's owner that someone created a variant
+    // Parent = routeA (older), variant = routeB (newer)
+    const parentRoute = isAOlder ? routeA : routeB;
+    const variantRoute = isAOlder ? routeB : routeA;
+    if (parentRoute.owner_user_id) {
+      // Get the variant creator's name
+      const { data: creator } = await supabase
+        .from("users")
+        .select("name")
+        .eq("id", user.id)
+        .single();
+      const creatorName = creator?.name || "Someone";
+
+      createNotification({
+        userId: parentRoute.owner_user_id,
+        type: "route_variant",
+        title: `${creatorName} created a variant of your route`,
+        body: parentRoute.title || "Untitled Route",
+        link: `/routes?route=${variantRoute.id}`,
+        actorId: user.id,
+      });
     }
 
     return NextResponse.json({ link }, { status: 201 });
