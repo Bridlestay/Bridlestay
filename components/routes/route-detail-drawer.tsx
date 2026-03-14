@@ -470,6 +470,13 @@ export function RouteDetailDrawer({
       }, 400);
     } else {
       setActiveInfoTab(initialInfoTab);
+      // Scroll to the tabs section so it's visible
+      setTimeout(() => {
+        document.getElementById("info-tabs-section")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 400);
     }
     onInitialInfoTabConsumed?.();
   }, [initialInfoTab, open, route]);
@@ -1444,7 +1451,7 @@ export function RouteDetailDrawer({
               <Separator />
 
               {/* Tab header bar */}
-              <div className="flex justify-center border-b overflow-x-auto scrollbar-hidden -mx-4 px-4">
+              <div id="info-tabs-section" className="flex justify-center border-b overflow-x-auto scrollbar-hidden -mx-4 px-4">
                 {([
                   { key: "elevation", label: "Elevation" },
                   { key: "waypoints", label: "Waypoints", count: waypoints.length },
