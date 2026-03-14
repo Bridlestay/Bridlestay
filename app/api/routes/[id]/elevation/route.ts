@@ -81,29 +81,37 @@ export async function GET(
       }
     }
 
-    // Combine all coordinates for a single API call
+    // Combine all coordinates
     const allLats = [...sampledLats, ...waypointCoords.map((w) => w.lat)];
     const allLngs = [...sampledLngs, ...waypointCoords.map((w) => w.lng)];
 
-    // Call open-meteo elevation API (free, no key needed)
-    // API supports up to ~10000 points per request
-    const elevationUrl = `https://api.open-meteo.com/v1/elevation?latitude=${allLats.join(",")}&longitude=${allLngs.join(",")}`;
-    const elevRes = await fetch(elevationUrl);
+    // Fetch elevation in batches to avoid URL length limits
+    const BATCH_SIZE = 80;
+    const allElevations: number[] = [];
 
-    if (!elevRes.ok) {
-      console.error(
-        "[ELEVATION] open-meteo error:",
-        elevRes.status,
-        await elevRes.text()
-      );
-      return NextResponse.json(
-        { error: "Failed to fetch elevation data" },
-        { status: 502 }
-      );
+    for (let i = 0; i < allLats.length; i += BATCH_SIZE) {
+      const batchLats = allLats.slice(i, i + BATCH_SIZE);
+      const batchLngs = allLngs.slice(i, i + BATCH_SIZE);
+      const elevationUrl = `https://api.open-meteo.com/v1/elevation?latitude=${batchLats.join(",")}&longitude=${batchLngs.join(",")}`;
+      const elevRes = await fetch(elevationUrl);
+
+      if (!elevRes.ok) {
+        console.error(
+          "[ELEVATION] open-meteo error (batch",
+          Math.floor(i / BATCH_SIZE) + 1,
+          "):",
+          elevRes.status,
+          await elevRes.text()
+        );
+        return NextResponse.json(
+          { error: "Failed to fetch elevation data" },
+          { status: 502 }
+        );
+      }
+
+      const elevData = await elevRes.json();
+      allElevations.push(...(elevData.elevation || []));
     }
-
-    const elevData = await elevRes.json();
-    const allElevations: number[] = elevData.elevation || [];
 
     // Split back into profile and waypoint elevations
     const profileElevations = allElevations.slice(0, sampledLats.length);

@@ -415,6 +415,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const markersRef = useRef<mapboxgl.Marker[]>([]);
     const pinMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
     const poiMarkersRef = useRef<mapboxgl.Marker[]>([]);
+    const propertyMarkersRef = useRef<mapboxgl.Marker[]>([]);
     const popupRef = useRef<mapboxgl.Popup | null>(null);
     const waypointMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
     const routeWaypointMarkersRef = useRef<mapboxgl.Marker[]>([]);
@@ -1377,6 +1378,112 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         poiMarkersRef.current = [];
       };
     }, [pois, mapLoaded, onPoiClick]);
+
+    // Draw property pin markers
+    useEffect(() => {
+      if (!mapRef.current || !mapLoaded) return;
+      const map = mapRef.current;
+
+      // Clear existing property markers
+      propertyMarkersRef.current.forEach((marker) => marker.remove());
+      propertyMarkersRef.current = [];
+
+      if (!propertyPins || propertyPins.length === 0) return;
+
+      propertyPins.forEach((property) => {
+        if (!property.latitude || !property.longitude) return;
+
+        const el = document.createElement("div");
+        el.className = "mapbox-property-marker";
+        el.innerHTML = `
+          <div style="
+            width: 32px;
+            height: 32px;
+            background: #2E8B57;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+          ">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          </div>
+        `;
+        el.style.cursor = "pointer";
+
+        const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
+          .setLngLat([property.longitude, property.latitude])
+          .addTo(map);
+
+        // Add click handler with popup
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (popupRef.current) popupRef.current.remove();
+
+          const priceDisplay = property.nightly_price_pennies
+            ? `£${(property.nightly_price_pennies / 100).toFixed(0)}/night`
+            : "";
+          const ratingDisplay = property.average_rating
+            ? `★ ${property.average_rating.toFixed(1)}${property.review_count ? ` (${property.review_count})` : ""}`
+            : "";
+
+          const popup = new mapboxgl.Popup({
+            closeButton: true,
+            closeOnClick: true,
+            maxWidth: "260px",
+            offset: 20,
+          });
+
+          popup.setLngLat([property.longitude, property.latitude])
+            .setHTML(`
+              <div style="
+                padding: 12px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              ">
+                <h3 style="
+                  margin: 0 0 4px 0;
+                  font-size: 15px;
+                  font-weight: 600;
+                  color: #1f2937;
+                ">${property.name}</h3>
+                ${property.city ? `
+                  <p style="
+                    margin: 0 0 6px 0;
+                    font-size: 13px;
+                    color: #6b7280;
+                  ">${property.city}${property.county ? `, ${property.county}` : ""}</p>
+                ` : ""}
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                  ${priceDisplay ? `<span style="font-size: 14px; font-weight: 600; color: #2E8B57;">${priceDisplay}</span>` : ""}
+                  ${ratingDisplay ? `<span style="font-size: 13px; color: #f59e0b;">${ratingDisplay}</span>` : ""}
+                </div>
+                ${property.max_horses ? `
+                  <p style="
+                    margin: 6px 0 0 0;
+                    font-size: 12px;
+                    color: #6b7280;
+                  ">Up to ${property.max_horses} horse${property.max_horses > 1 ? "s" : ""}</p>
+                ` : ""}
+              </div>
+            `)
+            .addTo(map);
+
+          popupRef.current = popup;
+        });
+
+        propertyMarkersRef.current.push(marker);
+      });
+
+      return () => {
+        propertyMarkersRef.current.forEach((marker) => marker.remove());
+        propertyMarkersRef.current = [];
+      };
+    }, [propertyPins, mapLoaded]);
 
     // Draw route waypoint markers (from selected route)
     useEffect(() => {
