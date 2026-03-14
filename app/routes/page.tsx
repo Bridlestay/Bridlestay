@@ -1828,8 +1828,8 @@ export default function RoutesPage() {
           className="hidden md:flex"
         />
 
-        {/* Route Quick Card - appears when a pin is clicked */}
-        {previewRoute && !drawerOpen && (
+        {/* Route Quick Card - appears when a pin is clicked, hidden when Find/Saved panels are open */}
+        {previewRoute && !drawerOpen && activeTab !== "find" && activeTab !== "saved" && (
           <RouteQuickCard
             route={previewRoute}
             onClose={handleClosePreview}

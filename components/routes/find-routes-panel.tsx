@@ -23,7 +23,7 @@ import {
   Bookmark,
   ImageIcon,
   SlidersHorizontal,
-  GitBranch,
+  Shuffle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -80,6 +80,7 @@ export function FindRoutesPanel({
   );
   const [minRating, setMinRating] = useState("0");
   const [routeType, setRouteType] = useState<string[]>([]);
+  const [showVariants, setShowVariants] = useState(false);
   const [routes, setRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("recommended");
@@ -219,6 +220,7 @@ export function FindRoutesPanel({
     setSelectedDifficulties([]);
     setMinRating("0");
     setRouteType([]);
+    setShowVariants(false);
     setSearchQuery("");
   };
 
@@ -227,22 +229,28 @@ export function FindRoutesPanel({
     distanceRange[1] < 40 ||
     selectedDifficulties.length > 0 ||
     minRating !== "0" ||
-    routeType.length > 0;
+    routeType.length > 0 ||
+    showVariants;
 
   const activeFilterCount =
     (distanceRange[0] > 0 || distanceRange[1] < 40 ? 1 : 0) +
     (selectedDifficulties.length > 0 ? 1 : 0) +
     (minRating !== "0" ? 1 : 0) +
-    (routeType.length > 0 ? 1 : 0);
+    (routeType.length > 0 ? 1 : 0) +
+    (showVariants ? 1 : 0);
 
   // Filter by search query
-  const displayRoutes = searchQuery.trim()
+  let displayRoutes = searchQuery.trim()
     ? routes.filter(
         (r) =>
           r.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           r.description?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : routes;
+
+  if (showVariants) {
+    displayRoutes = displayRoutes.filter((r) => !!r.variant_of_id);
+  }
 
   if (!isOpen) return null;
 
@@ -472,6 +480,13 @@ export function FindRoutesPanel({
                       />
                       <span className="text-sm">Point to point</span>
                     </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <Checkbox
+                        checked={showVariants}
+                        onCheckedChange={(checked) => setShowVariants(!!checked)}
+                      />
+                      <span className="text-sm">Variants</span>
+                    </label>
                   </div>
                 </div>
 
@@ -573,8 +588,8 @@ export function FindRoutesPanel({
                             </span>
                           )}
                           {route.variant_of_id && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/80 backdrop-blur-sm text-white font-medium flex items-center gap-1">
-                              <GitBranch className="h-3 w-3" />
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-600/80 backdrop-blur-sm text-white font-medium flex items-center gap-1">
+                              <Shuffle className="h-3 w-3" />
                               Variant
                             </span>
                           )}

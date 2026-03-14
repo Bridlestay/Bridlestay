@@ -39,7 +39,7 @@ import {
   Plus,
   Cloud,
   MoreHorizontal,
-  GitBranch,
+  Shuffle,
 } from "lucide-react";
 import {
   getRouteCentroid,
@@ -75,6 +75,7 @@ import { WaypointTimeline } from "./waypoint-timeline";
 import { AddWaypointDialog } from "./add-waypoint-dialog";
 import { EditWaypointView } from "./edit-waypoint-view";
 import { SuggestEditWaypointDialog } from "./suggest-edit-waypoint-dialog";
+import { getRouteThumbnailUrlAuto } from "@/lib/routes/route-thumbnail";
 
 // --- Main Component ---
 
@@ -1389,7 +1390,7 @@ export function RouteDetailDrawer({
               <Separator />
 
               {/* Tab header bar */}
-              <div className="flex border-b overflow-x-auto scrollbar-hidden -mx-4 px-4">
+              <div className="flex justify-center border-b overflow-x-auto scrollbar-hidden -mx-4 px-4">
                 {([
                   { key: "elevation", label: "Elevation" },
                   { key: "waypoints", label: "Waypoints", count: waypoints.length },
@@ -1637,7 +1638,7 @@ export function RouteDetailDrawer({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full text-sm border border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300 py-2.5 transition-colors"
+                        className="w-full text-sm border border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 py-2.5 transition-colors"
                         onClick={() => onForkVariant(routeId!, route)}
                       >
                         <Pencil className="h-4 w-4 mr-1.5" /> Create Route Variant
@@ -1652,46 +1653,73 @@ export function RouteDetailDrawer({
                         <p className="text-xs text-slate-500">
                           {variants.length} variant{variants.length !== 1 ? "s" : ""} of this route with different paths
                         </p>
-                        <div className="grid grid-cols-1 gap-2.5">
-                          {variants.map((v: any) => (
-                            <button
-                              key={v.id}
-                              onClick={() => {
-                                onViewVariantRoute?.(v.id);
-                              }}
-                              className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-green-300 hover:bg-green-50/50 transition-all text-left group"
-                            >
-                              <div className="flex-shrink-0 w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center">
-                                <GitBranch className="h-4 w-4 text-purple-600" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-slate-900 truncate group-hover:text-green-700">
-                                  {v.title || "Untitled Route"}
-                                </p>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-xs text-slate-500">
+                        <div className="grid grid-cols-1 gap-3">
+                          {variants.map((v: any) => {
+                            const thumbUrl = getRouteThumbnailUrlAuto(v.geometry, {
+                              width: 400,
+                              height: 200,
+                              routeColor: "3B82F6",
+                              routeWeight: 4,
+                            });
+                            const rideTimeMins = v.distance_km
+                              ? Math.round((Number(v.distance_km) / 8) * 60)
+                              : 0;
+                            const rideTimeStr =
+                              rideTimeMins >= 60
+                                ? `${Math.floor(rideTimeMins / 60)}h ${rideTimeMins % 60 > 0 ? `${rideTimeMins % 60}m` : ""}`
+                                : `${rideTimeMins}m`;
+                            return (
+                              <div
+                                key={v.id}
+                                className="rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer bg-white border border-gray-100"
+                                onClick={() => onViewVariantRoute?.(v.id)}
+                              >
+                                <div className="relative h-28">
+                                  {thumbUrl ? (
+                                    <img
+                                      src={thumbUrl}
+                                      alt={v.title}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
+                                      <ImageIcon className="h-8 w-8 text-green-300" />
+                                    </div>
+                                  )}
+                                  <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+                                  <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full bg-green-600/80 backdrop-blur-sm text-white font-medium flex items-center gap-1">
+                                    <Shuffle className="h-3 w-3" />
+                                    Variant
+                                  </span>
+                                  <span className="absolute bottom-2 left-2 text-xs px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-sm text-gray-700 font-medium shadow-sm">
                                     {Number(v.distance_km || 0).toFixed(1)} km
                                   </span>
                                   {v.similarity_score && (
-                                    <span className="text-xs text-purple-600 font-medium">
+                                    <span className="absolute bottom-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-green-600/80 backdrop-blur-sm text-white font-medium">
                                       {Math.round(v.similarity_score)}% similar
                                     </span>
                                   )}
-                                  {v.owner?.name && (
-                                    <span className="text-xs text-slate-400 truncate">
-                                      by {v.owner.name}
-                                    </span>
-                                  )}
+                                </div>
+                                <div className="p-3">
+                                  <h4 className="font-bold text-sm leading-tight text-gray-900 line-clamp-1">
+                                    {v.title || "Untitled Route"}
+                                  </h4>
+                                  <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                                    <span>{Number(v.distance_km || 0).toFixed(1)} km</span>
+                                    <span>{rideTimeStr}</span>
+                                    {v.owner?.name && (
+                                      <span className="truncate">by {v.owner.name}</span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                              <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-green-600 flex-shrink-0" />
-                            </button>
-                          ))}
+                            );
+                          })}
                         </div>
                       </>
                     ) : (
                       <div className="flex flex-col items-center justify-center py-10 text-center">
-                        <GitBranch className="h-8 w-8 text-slate-300 mb-2" />
+                        <Shuffle className="h-8 w-8 text-slate-300 mb-2" />
                         <p className="text-sm text-slate-500">No variants yet</p>
                         <p className="text-xs text-slate-400 mt-1">
                           Similar routes will appear here as variants

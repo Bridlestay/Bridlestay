@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X, Search, ImageIcon, GitBranch } from "lucide-react";
+import { X, Search, ImageIcon, Shuffle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getRouteThumbnailUrlAuto } from "@/lib/routes/route-thumbnail";
 
@@ -44,6 +44,7 @@ export function SavedRoutesPanel({
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("date_created");
   const [routeType, setRouteType] = useState<string[]>([]);
+  const [showVariants, setShowVariants] = useState(false);
   const [myRoutes, setMyRoutes] = useState<any[]>([]);
   const [bookmarkedRoutes, setBookmarkedRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,6 +91,10 @@ export function SavedRoutesPanel({
 
     if (routeType.length > 0) {
       filtered = filtered.filter((r) => routeType.includes(r.route_type));
+    }
+
+    if (showVariants) {
+      filtered = filtered.filter((r) => !!r.variant_of_id);
     }
 
     if (sortBy === "date_created") {
@@ -221,10 +226,18 @@ export function SavedRoutesPanel({
                   />
                   <span className="text-sm">Point to point</span>
                 </label>
-                {(routeType.length > 0 || searchQuery) && (
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <Checkbox
+                    checked={showVariants}
+                    onCheckedChange={(checked) => setShowVariants(!!checked)}
+                  />
+                  <span className="text-sm">Variants</span>
+                </label>
+                {(routeType.length > 0 || searchQuery || showVariants) && (
                   <button
                     onClick={() => {
                       setRouteType([]);
+                      setShowVariants(false);
                       setSearchQuery("");
                     }}
                     className="text-sm text-primary hover:underline ml-auto"
@@ -291,8 +304,8 @@ export function SavedRoutesPanel({
                             </span>
                           )}
                           {route.variant_of_id && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/80 backdrop-blur-sm text-white font-medium flex items-center gap-1">
-                              <GitBranch className="h-3 w-3" />
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-600/80 backdrop-blur-sm text-white font-medium flex items-center gap-1">
+                              <Shuffle className="h-3 w-3" />
                               Variant
                             </span>
                           )}

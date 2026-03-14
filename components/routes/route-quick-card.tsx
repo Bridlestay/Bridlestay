@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Clock, Users, X, Home, ChevronLeft, ChevronRight, GitBranch } from "lucide-react";
+import { Clock, Users, X, Home, ChevronLeft, ChevronRight, Shuffle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getMapboxThumbnailUrl } from "@/lib/routes/route-thumbnail";
 
@@ -141,7 +141,7 @@ function SingleCard({ route, onClick, onClose }: { route: any; onClick: () => vo
             )}
             {variantCount > 0 && (
               <span className="text-xs text-gray-600 flex items-center gap-1">
-                <GitBranch className="h-3 w-3" />
+                <Shuffle className="h-3 w-3" />
                 {variantCount}
               </span>
             )}

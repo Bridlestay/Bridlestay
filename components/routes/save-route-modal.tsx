@@ -29,7 +29,7 @@ import {
   GripVertical,
   Trash2,
   Loader2,
-  GitBranch,
+  Shuffle,
 } from "lucide-react";
 
 // --- Types ---
@@ -383,7 +383,7 @@ export function SaveRouteModal({
           {/* Variant info banner */}
           {variantOfName && (
             <div className="mx-6 mb-3 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-2.5">
-              <GitBranch className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <Shuffle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-blue-800">
                 <span className="font-medium">Variant of {variantOfName}</span>
                 <p className="text-blue-600 text-xs mt-0.5">
@@ -397,7 +397,7 @@ export function SaveRouteModal({
           {!isEditing && !variantOfName && similarMatch && (
             <div className="mx-6 mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
               <div className="flex items-start gap-2.5">
-                <GitBranch className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <Shuffle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 text-sm">
                   <p className="text-amber-800">
                     This route shares{" "}
