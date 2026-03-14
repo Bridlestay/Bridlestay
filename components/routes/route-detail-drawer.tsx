@@ -39,6 +39,7 @@ import {
   Plus,
   Cloud,
   MoreHorizontal,
+  GitBranch,
 } from "lucide-react";
 import {
   getRouteCentroid,
@@ -96,6 +97,8 @@ interface RouteDetailDrawerProps {
   waypointPlacementCoords?: { lat: number; lng: number } | null;
   initialCommentId?: string | null;
   onCommentFocused?: () => void;
+  onViewVariantRoute?: (routeId: string) => void;
+  onForkVariant?: (routeId: string, routeData: any) => void;
 }
 
 export function RouteDetailDrawer({
@@ -117,6 +120,8 @@ export function RouteDetailDrawer({
   waypointPlacementCoords,
   initialCommentId,
   onCommentFocused,
+  onViewVariantRoute,
+  onForkVariant,
 }: RouteDetailDrawerProps) {
   // --- Route data ---
   const [route, setRoute] = useState<any>(null);
@@ -144,7 +149,7 @@ export function RouteDetailDrawer({
 
   // --- Panel view ---
   const [activeFullPanel, setActiveFullPanel] = useState<"discussion" | "reviews" | "waypoints" | "photos" | null>(null);
-  const [activeInfoTab, setActiveInfoTab] = useState<"elevation" | "waypoints" | "hazards" | "warnings" | "weather">("elevation");
+  const [activeInfoTab, setActiveInfoTab] = useState<"elevation" | "waypoints" | "hazards" | "warnings" | "variants" | "weather">("elevation");
 
   // --- Photo carousel ---
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
@@ -179,6 +184,10 @@ export function RouteDetailDrawer({
   const [warnings, setWarnings] = useState<any[]>([]);
   const [showAllWarnings, setShowAllWarnings] = useState(false);
   const [userVotedWarnings, setUserVotedWarnings] = useState<Set<string>>(new Set());
+
+  // --- Variants ---
+  const [variants, setVariants] = useState<any[]>([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
 
   // --- Dialogs ---
   const [hazardDialogOpen, setHazardDialogOpen] = useState(false);
@@ -348,6 +357,21 @@ export function RouteDetailDrawer({
       }
     };
 
+    const fetchVariants = async () => {
+      setLoadingVariants(true);
+      try {
+        const res = await fetch(`/api/routes/${routeId}/variants`);
+        if (res.ok) {
+          const data = await res.json();
+          setVariants(data.variants || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch variants:", error);
+      } finally {
+        setLoadingVariants(false);
+      }
+    };
+
     fetchRoute();
     fetchWaypoints();
     fetchNearbyProperties();
@@ -358,6 +382,7 @@ export function RouteDetailDrawer({
     fetchFavoriteStatus();
     fetchPhotos();
     fetchCompletions();
+    fetchVariants();
   }, [routeId, open, userId]);
 
   useEffect(() => {
@@ -1370,6 +1395,7 @@ export function RouteDetailDrawer({
                   { key: "waypoints", label: "Waypoints", count: waypoints.length },
                   { key: "hazards", label: "Hazards", count: activeHazards.length },
                   { key: "warnings", label: "Warnings", count: activeWarnings.length },
+                  { key: "variants", label: "Variants", count: variants.length },
                   { key: "weather", label: "Weather" },
                 ] as const).map((tab) => (
                   <button
@@ -1601,6 +1627,77 @@ export function RouteDetailDrawer({
                     >
                       <Plus className="h-4 w-4 mr-1.5" /> Post a warning
                     </Button>
+                  </div>
+                )}
+
+                {/* VARIANTS tab */}
+                {activeInfoTab === "variants" && (
+                  <div className="space-y-3">
+                    {onForkVariant && route && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-sm border border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300 py-2.5 transition-colors"
+                        onClick={() => onForkVariant(routeId!, route)}
+                      >
+                        <Pencil className="h-4 w-4 mr-1.5" /> Create Route Variant
+                      </Button>
+                    )}
+                    {loadingVariants ? (
+                      <div className="flex items-center justify-center py-10">
+                        <div className="animate-spin h-5 w-5 border-2 border-green-600 border-t-transparent rounded-full" />
+                      </div>
+                    ) : variants.length > 0 ? (
+                      <>
+                        <p className="text-xs text-slate-500">
+                          {variants.length} variant{variants.length !== 1 ? "s" : ""} of this route with different paths
+                        </p>
+                        <div className="grid grid-cols-1 gap-2.5">
+                          {variants.map((v: any) => (
+                            <button
+                              key={v.id}
+                              onClick={() => {
+                                onViewVariantRoute?.(v.id);
+                              }}
+                              className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-green-300 hover:bg-green-50/50 transition-all text-left group"
+                            >
+                              <div className="flex-shrink-0 w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center">
+                                <GitBranch className="h-4 w-4 text-purple-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-900 truncate group-hover:text-green-700">
+                                  {v.title || "Untitled Route"}
+                                </p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="text-xs text-slate-500">
+                                    {Number(v.distance_km || 0).toFixed(1)} km
+                                  </span>
+                                  {v.similarity_score && (
+                                    <span className="text-xs text-purple-600 font-medium">
+                                      {Math.round(v.similarity_score)}% similar
+                                    </span>
+                                  )}
+                                  {v.owner?.name && (
+                                    <span className="text-xs text-slate-400 truncate">
+                                      by {v.owner.name}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-green-600 flex-shrink-0" />
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-10 text-center">
+                        <GitBranch className="h-8 w-8 text-slate-300 mb-2" />
+                        <p className="text-sm text-slate-500">No variants yet</p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Similar routes will appear here as variants
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 

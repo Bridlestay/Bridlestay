@@ -40,7 +40,8 @@ export async function GET() {
         avg_rating,
         review_count,
         created_at,
-        owner_user_id
+        owner_user_id,
+        variant_of_id
       `)
       .in("id", routeIds)
       .order("created_at", { ascending: false });

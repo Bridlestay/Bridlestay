@@ -126,6 +126,8 @@ export async function PATCH(
     if (body.visibility !== undefined) updates.visibility = body.visibility;
     if (body.route_type !== undefined) updates.route_type = body.route_type;
     if (body.estimated_time_minutes !== undefined) updates.estimated_time_minutes = body.estimated_time_minutes;
+    if (body.show_on_explore !== undefined) updates.show_on_explore = body.show_on_explore;
+    if (body.variant_of_id !== undefined) updates.variant_of_id = body.variant_of_id;
 
     // If geometry is updated, recalculate distance
     if (body.geometry) {

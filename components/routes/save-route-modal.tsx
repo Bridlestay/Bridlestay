@@ -29,9 +29,16 @@ import {
   GripVertical,
   Trash2,
   Loader2,
+  GitBranch,
 } from "lucide-react";
 
 // --- Types ---
+
+export interface SimilarityMatch {
+  route_id: string;
+  title: string;
+  similarity_score: number;
+}
 
 export interface SaveRouteFormData {
   title: string;
@@ -39,6 +46,8 @@ export interface SaveRouteFormData {
   visibility: "private" | "link" | "public";
   difficulty: "unrated" | "easy" | "moderate" | "difficult";
   photos: PhotoItem[];
+  saveAsStandalone?: boolean;
+  similarMatch?: SimilarityMatch | null;
 }
 
 interface PhotoItem {
@@ -62,6 +71,9 @@ interface SaveRouteModalProps {
     visibility: "private" | "link" | "public";
     difficulty: "unrated" | "easy" | "moderate" | "difficult";
   };
+  geometry?: { type: string; coordinates: [number, number][] };
+  editingRouteId?: string | null;
+  variantOfName?: string;
 }
 
 // --- Save Route Modal ---
@@ -75,6 +87,9 @@ export function SaveRouteModal({
   routeType,
   isEditing = false,
   existingData,
+  geometry,
+  editingRouteId,
+  variantOfName,
 }: SaveRouteModalProps) {
   // Form state
   const [title, setTitle] = useState(existingData?.title || "");
@@ -90,6 +105,11 @@ export function SaveRouteModal({
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
+  // Similarity detection
+  const [similarMatch, setSimilarMatch] = useState<SimilarityMatch | null>(null);
+  const [saveAsStandalone, setSaveAsStandalone] = useState(false);
+  const [checkingSimilarity, setCheckingSimilarity] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync form state when existingData changes (safety net for editing)
@@ -101,6 +121,45 @@ export function SaveRouteModal({
       setDifficulty(existingData.difficulty || "unrated");
     }
   }, [existingData]);
+
+  // Check for similar routes when modal opens (only for new routes)
+  useEffect(() => {
+    if (!open || isEditing || !geometry?.coordinates?.length) return;
+    if (variantOfName) return; // Already a fork — skip similarity check
+
+    let cancelled = false;
+    setCheckingSimilarity(true);
+    setSimilarMatch(null);
+    setSaveAsStandalone(false);
+
+    fetch("/api/routes/check-similarity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        geometry,
+        exclude_route_id: editingRouteId,
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.best_match) {
+          setSimilarMatch({
+            route_id: data.best_match.route_id,
+            title: data.best_match.title,
+            similarity_score: data.best_match.similarity_score,
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setCheckingSimilarity(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isEditing, geometry, editingRouteId, variantOfName]);
 
   // --- Formatting helpers ---
   const formatDistance = (km: number) => {
@@ -230,6 +289,8 @@ export function SaveRouteModal({
         visibility,
         difficulty,
         photos,
+        saveAsStandalone,
+        similarMatch: !saveAsStandalone ? similarMatch : null,
       });
     } catch (error: any) {
       console.error("Save route error:", error);
@@ -318,6 +379,61 @@ export function SaveRouteModal({
               </Badge>
             </div>
           </div>
+
+          {/* Variant info banner */}
+          {variantOfName && (
+            <div className="mx-6 mb-3 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-2.5">
+              <GitBranch className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-800">
+                <span className="font-medium">Variant of {variantOfName}</span>
+                <p className="text-blue-600 text-xs mt-0.5">
+                  This route will be linked as a variant of the original.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Similarity detection banner */}
+          {!isEditing && !variantOfName && similarMatch && (
+            <div className="mx-6 mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="flex items-start gap-2.5">
+                <GitBranch className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 text-sm">
+                  <p className="text-amber-800">
+                    This route shares{" "}
+                    <span className="font-semibold">
+                      {similarMatch.similarity_score}%
+                    </span>{" "}
+                    of its path with{" "}
+                    <span className="font-semibold">
+                      &ldquo;{similarMatch.title}&rdquo;
+                    </span>{" "}
+                    and will appear in its variants.
+                  </p>
+                  {!saveAsStandalone ? (
+                    <button
+                      type="button"
+                      onClick={() => setSaveAsStandalone(true)}
+                      className="text-xs text-amber-600 hover:text-amber-800 underline mt-1"
+                    >
+                      Save as standalone instead
+                    </button>
+                  ) : (
+                    <p className="text-xs text-green-700 mt-1 flex items-center gap-1">
+                      Will save as a standalone route.{" "}
+                      <button
+                        type="button"
+                        onClick={() => setSaveAsStandalone(false)}
+                        className="underline hover:text-green-900"
+                      >
+                        Undo
+                      </button>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="border-t border-slate-100" />
 

@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Clock, Users, X, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, Users, X, Home, ChevronLeft, ChevronRight, GitBranch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getMapboxThumbnailUrl } from "@/lib/routes/route-thumbnail";
 
@@ -30,14 +30,22 @@ const DIFFICULTY_STYLES: Record<string, { bg: string; text: string; border: stri
 
 function SingleCard({ route, onClick, onClose }: { route: any; onClick: () => void; onClose?: () => void }) {
   const [nearbyCount, setNearbyCount] = useState(0);
+  const [variantCount, setVariantCount] = useState(0);
 
   useEffect(() => {
     if (!route?.id) return;
     setNearbyCount(0);
+    setVariantCount(0);
     fetch(`/api/routes/${route.id}/nearby-properties`)
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
         if (data?.properties) setNearbyCount(data.properties.length);
+      })
+      .catch(() => {});
+    fetch(`/api/routes/${route.id}/variants`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.variants) setVariantCount(data.variants.length);
       })
       .catch(() => {});
   }, [route?.id]);
@@ -129,6 +137,12 @@ function SingleCard({ route, onClick, onClose }: { route: any; onClick: () => vo
               <span className="text-xs text-gray-600 flex items-center gap-1">
                 <Home className="h-3 w-3" />
                 {nearbyCount}
+              </span>
+            )}
+            {variantCount > 0 && (
+              <span className="text-xs text-gray-600 flex items-center gap-1">
+                <GitBranch className="h-3 w-3" />
+                {variantCount}
               </span>
             )}
           </div>

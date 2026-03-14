@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Star, MapPin, Ruler, TrendingUp, Clock, AlertCircle, Lock, Link2, Globe } from "lucide-react";
+import { Star, MapPin, Ruler, TrendingUp, Clock, AlertCircle, Lock, Link2, Globe, GitBranch } from "lucide-react";
 import Image from "next/image";
 
 interface RouteCardProps {
@@ -149,6 +149,13 @@ export function RouteCard({ route, onClick, showVisibility = false }: RouteCardP
                 🚶 {Math.floor((route.distance_km / 5) * 60)}m
               </Badge>
             </>
+          )}
+
+          {route.variant_of_id && (
+            <Badge variant="outline" className="gap-1 text-purple-600 border-purple-300 bg-purple-50">
+              <GitBranch className="h-3 w-3" />
+              Variant
+            </Badge>
           )}
 
           {route.county && (

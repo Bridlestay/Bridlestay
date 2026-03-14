@@ -25,7 +25,9 @@ export async function GET() {
         geometry,
         avg_rating,
         review_count,
-        created_at
+        created_at,
+        variant_of_id,
+        show_on_explore
       `)
       .eq("owner_user_id", user.id)
       .order("created_at", { ascending: false });

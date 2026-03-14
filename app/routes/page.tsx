@@ -193,6 +193,8 @@ export default function RoutesPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editingRouteId, setEditingRouteId] = useState<string | null>(null);
   const [editingRouteData, setEditingRouteData] = useState<any>(null);
+  const [variantOfName, setVariantOfName] = useState<string | undefined>();
+  const [variantOfRouteId, setVariantOfRouteId] = useState<string | null>(null);
   const [isPlotting, setIsPlotting] = useState(false);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
@@ -499,7 +501,9 @@ export default function RoutesPage() {
         }
       }
 
-      setExploreRoutes(allRoutes);
+      // Filter out variants (show_on_explore = false) from map pins
+      const visibleRoutes = allRoutes.filter(r => r.show_on_explore !== false);
+      setExploreRoutes(visibleRoutes);
     } catch (error) {
       console.error("Failed to fetch routes:", error);
     }
@@ -1272,6 +1276,43 @@ export default function RoutesPage() {
       }
     }
 
+    // Handle variant linking (for new routes only)
+    if (!isEditing && routeId) {
+      const matchToLink = formData.similarMatch;
+      const isFork = !!variantOfRouteId;
+
+      if (isFork || (matchToLink && !formData.saveAsStandalone)) {
+        const parentId = variantOfRouteId || matchToLink?.route_id;
+        const score = matchToLink?.similarity_score || 100;
+        const source = isFork ? "fork" : "auto";
+
+        try {
+          // Create variant link
+          await fetch(`/api/routes/${parentId}/variants`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              variant_route_id: routeId,
+              similarity_score: score,
+              source,
+            }),
+          });
+
+          // Set show_on_explore to false for the variant
+          await fetch(`/api/routes/${routeId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              show_on_explore: false,
+              variant_of_id: parentId,
+            }),
+          });
+        } catch (variantError) {
+          console.error("Failed to link variant:", variantError);
+        }
+      }
+    }
+
     toast.success(isEditing ? "Route updated!" : "Route saved!");
 
     // Reset state
@@ -1279,6 +1320,8 @@ export default function RoutesPage() {
     setIsEditing(false);
     setEditingRouteId(null);
     setEditingRouteData(null);
+    setVariantOfName(undefined);
+    setVariantOfRouteId(null);
     setWaypoints([]);
     setCreationPOIs([]);
     setHistory([]);
@@ -1323,6 +1366,8 @@ export default function RoutesPage() {
     setIsEditing(false);
     setEditingRouteId(null);
     setEditingRouteData(null);
+    setVariantOfName(undefined);
+    setVariantOfRouteId(null);
     setIsPlotting(true);
     setToolMode("plot");
     setShowBottomSheet(false);
@@ -1359,11 +1404,44 @@ export default function RoutesPage() {
     setDrawnRouteId(routeId);
   };
 
+  const startForkingVariant = (parentRouteId: string, parentRouteData: any) => {
+    // Close the drawer first
+    setDrawerOpen(false);
+    setSelectedRouteId(null);
+
+    // Extract spine points from parent route
+    const spinePoints = parentRouteData.geometry?.spine_points;
+    const coords = spinePoints || parentRouteData.geometry?.coordinates || [];
+    const extractedWaypoints: Waypoint[] = coords.map((coord: number[], index: number) => ({
+      id: `wp-${Date.now()}-${index}`,
+      lat: coord[1],
+      lng: coord[0],
+      snapped: false,
+    }));
+
+    // Set up creation mode (NOT editing) with parent's waypoints
+    setWaypoints(extractedWaypoints);
+    setRouteType(parentRouteData.route_type === "circular" ? "circular" : "linear");
+    setIsCreating(true);
+    setIsEditing(false);
+    setEditingRouteId(null);
+    setEditingRouteData(null);
+    setIsPlotting(true);
+    setToolMode("plot");
+    setActiveTab("create");
+
+    // Set variant metadata so save modal knows this is a fork
+    setVariantOfName(parentRouteData.title || "Untitled Route");
+    setVariantOfRouteId(parentRouteId);
+  };
+
   const cancelCreating = () => {
     setIsCreating(false);
     setIsEditing(false);
     setEditingRouteId(null);
     setEditingRouteData(null);
+    setVariantOfName(undefined);
+    setVariantOfRouteId(null);
     setIsPlotting(false);
     setWaypoints([]);
     setCreationPOIs([]);
@@ -1524,6 +1602,18 @@ export default function RoutesPage() {
                   }
                 : undefined
             }
+            geometry={
+              showSaveModal
+                ? {
+                    type: "LineString",
+                    coordinates:
+                      mapRef.current?.getRouteGeometry?.() ||
+                      waypoints.map((wp) => [wp.lng, wp.lat]),
+                  }
+                : undefined
+            }
+            editingRouteId={editingRouteId}
+            variantOfName={variantOfName}
           />
         </div>
 
@@ -1910,6 +2000,16 @@ export default function RoutesPage() {
             );
           }}
           onPlaceHazard={handleStartPlacingHazard}
+          onViewVariantRoute={(variantId) => {
+            // Switch the drawer to show the variant route
+            setSelectedRouteId(variantId);
+            setSelectedRouteData(null);
+            setDrawnRouteId(variantId);
+            setHighlightedRouteId(variantId);
+          }}
+          onForkVariant={(parentId, parentData) => {
+            startForkingVariant(parentId, parentData);
+          }}
         />
         )}
 

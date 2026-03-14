@@ -23,6 +23,7 @@ import {
   Bookmark,
   ImageIcon,
   SlidersHorizontal,
+  GitBranch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -564,12 +565,20 @@ export function FindRoutesPanel({
                             )}
                           />
                         </button>
-                        {/* Circular badge */}
-                        {route.route_type === "circular" && (
-                          <span className="absolute top-2.5 left-2.5 text-[10px] px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm text-white font-medium">
-                            Circular
-                          </span>
-                        )}
+                        {/* Circular / Variant badges */}
+                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                          {route.route_type === "circular" && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm text-white font-medium">
+                              Circular
+                            </span>
+                          )}
+                          {route.variant_of_id && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/80 backdrop-blur-sm text-white font-medium flex items-center gap-1">
+                              <GitBranch className="h-3 w-3" />
+                              Variant
+                            </span>
+                          )}
+                        </div>
                         {/* Distance pill */}
                         <span className="absolute bottom-2.5 left-2.5 text-xs px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-sm text-gray-700 font-medium shadow-sm">
                           {Number(route.distance_km || 0).toFixed(1)} km
