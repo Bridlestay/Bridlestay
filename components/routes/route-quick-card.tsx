@@ -105,6 +105,13 @@ function SingleCard({ route, onClick, onClose }: { route: any; onClick: () => vo
             {route.title || "Untitled Route"}
           </h3>
 
+          {route.variant_of_id && (
+            <span className="text-[11px] text-gray-400 flex items-center gap-1 mt-0.5">
+              <Shuffle className="h-3 w-3" />
+              Route variant
+            </span>
+          )}
+
           {route.owner?.name && (
             <div className="flex items-center gap-1.5 mt-0.5">
               <Avatar className="h-4 w-4">

@@ -189,6 +189,7 @@ export function RouteDetailDrawer({
   // --- Variants ---
   const [variants, setVariants] = useState<any[]>([]);
   const [loadingVariants, setLoadingVariants] = useState(false);
+  const [parentRoute, setParentRoute] = useState<{ id: string; title: string } | null>(null);
 
   // --- Dialogs ---
   const [hazardDialogOpen, setHazardDialogOpen] = useState(false);
@@ -385,6 +386,24 @@ export function RouteDetailDrawer({
     fetchCompletions();
     fetchVariants();
   }, [routeId, open, userId]);
+
+  // Fetch parent route name if this is a variant
+  useEffect(() => {
+    if (!route?.variant_of_id) {
+      setParentRoute(null);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/routes/${route.variant_of_id}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (!cancelled && data?.route) {
+          setParentRoute({ id: data.route.id, title: data.route.title || "Untitled Route" });
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [route?.variant_of_id]);
 
   useEffect(() => {
     if (routeId && open && route && !loadingWaypoints) {
@@ -1070,7 +1089,7 @@ export function RouteDetailDrawer({
                       <MoreHorizontal className="h-4 w-4" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem onClick={handleDownloadGPX}>
                       <Download className="h-4 w-4 mr-2" />
                       Export GPX
@@ -1078,7 +1097,13 @@ export function RouteDetailDrawer({
                     {(isOwner || isAdmin) && onEditRoute && (
                       <DropdownMenuItem onClick={() => onEditRoute(routeId!, route)}>
                         <Pencil className="h-4 w-4 mr-2" />
-                        Edit
+                        Edit Your Route
+                      </DropdownMenuItem>
+                    )}
+                    {!isOwner && !isAdmin && onForkVariant && route && (
+                      <DropdownMenuItem onClick={() => onForkVariant(routeId!, route)}>
+                        <Shuffle className="h-4 w-4 mr-2" />
+                        Create Variant
                       </DropdownMenuItem>
                     )}
                     {(isOwner || isAdmin) && onDeleteRoute && (
@@ -1237,6 +1262,14 @@ export function RouteDetailDrawer({
               {/* TITLE + BADGES */}
               <div>
                 <h1 className="text-xl font-bold text-gray-900 leading-tight">{route.title}</h1>
+                {parentRoute && (
+                  <button
+                    onClick={() => onViewVariantRoute?.(parentRoute.id)}
+                    className="text-sm text-gray-400 hover:text-green-600 transition-colors mt-0.5 text-left"
+                  >
+                    Variant of <span className="underline">{parentRoute.title}</span>
+                  </button>
+                )}
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   {route.featured && <Badge className="text-xs bg-amber-500">Featured</Badge>}
                   {isOwner && <Badge variant="outline" className="text-xs">Your Route</Badge>}
@@ -1648,13 +1681,72 @@ export function RouteDetailDrawer({
                       <div className="flex items-center justify-center py-10">
                         <div className="animate-spin h-5 w-5 border-2 border-green-600 border-t-transparent rounded-full" />
                       </div>
-                    ) : variants.length > 0 ? (
+                    ) : (variants.length > 0 || parentRoute) ? (
                       <>
                         <p className="text-xs text-slate-500">
-                          {variants.length} variant{variants.length !== 1 ? "s" : ""} of this route with different paths
+                          {route?.variant_of_id
+                            ? `Original route and ${variants.filter((v: any) => v.id !== route?.variant_of_id).length} other variant${variants.filter((v: any) => v.id !== route?.variant_of_id).length !== 1 ? "s" : ""}`
+                            : `${variants.length} variant${variants.length !== 1 ? "s" : ""} of this route with different paths`
+                          }
                         </p>
                         <div className="grid grid-cols-1 gap-3">
-                          {variants.map((v: any) => {
+                          {/* Show parent/original route card first if this is a variant */}
+                          {parentRoute && (() => {
+                            const parentVariant = variants.find((v: any) => v.id === parentRoute.id);
+                            if (!parentVariant) return null;
+                            const thumbUrl = getRouteThumbnailUrlAuto(parentVariant.geometry, {
+                              width: 400, height: 200, routeColor: "166534", routeWeight: 4,
+                            });
+                            const rideTimeMins = parentVariant.distance_km
+                              ? Math.round((Number(parentVariant.distance_km) / 8) * 60) : 0;
+                            const rideTimeStr = rideTimeMins >= 60
+                              ? `${Math.floor(rideTimeMins / 60)}h ${rideTimeMins % 60 > 0 ? `${rideTimeMins % 60}m` : ""}` : `${rideTimeMins}m`;
+                            return (
+                              <div
+                                key={parentVariant.id}
+                                className="rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer bg-white border-2 border-green-400 ring-1 ring-green-200"
+                                onClick={() => onViewVariantRoute?.(parentVariant.id)}
+                              >
+                                <div className="relative h-28">
+                                  {thumbUrl ? (
+                                    <img src={thumbUrl} alt={parentVariant.title} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
+                                      <ImageIcon className="h-8 w-8 text-green-300" />
+                                    </div>
+                                  )}
+                                  <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+                                  <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full bg-green-700/90 backdrop-blur-sm text-white font-semibold flex items-center gap-1">
+                                    Original
+                                  </span>
+                                  <span className="absolute bottom-2 left-2 text-xs px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-sm text-gray-700 font-medium shadow-sm">
+                                    {Number(parentVariant.distance_km || 0).toFixed(1)} km
+                                  </span>
+                                  {parentVariant.similarity_score > 0 && (
+                                    <span className="absolute bottom-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-green-600/80 backdrop-blur-sm text-white font-medium">
+                                      {Math.round(parentVariant.similarity_score)}% similar
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="p-3">
+                                  <h4 className="font-bold text-sm leading-tight text-gray-900 line-clamp-1">
+                                    {parentVariant.title || "Untitled Route"}
+                                  </h4>
+                                  <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                                    <span>{Number(parentVariant.distance_km || 0).toFixed(1)} km</span>
+                                    <span>{rideTimeStr}</span>
+                                    {parentVariant.owner?.name && (
+                                      <span className="truncate">by {parentVariant.owner.name}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                          {/* Other variant cards (exclude the parent if shown above) */}
+                          {variants
+                            .filter((v: any) => !(parentRoute && v.id === parentRoute.id))
+                            .map((v: any) => {
                             const thumbUrl = getRouteThumbnailUrlAuto(v.geometry, {
                               width: 400,
                               height: 200,
@@ -1668,10 +1760,14 @@ export function RouteDetailDrawer({
                               rideTimeMins >= 60
                                 ? `${Math.floor(rideTimeMins / 60)}h ${rideTimeMins % 60 > 0 ? `${rideTimeMins % 60}m` : ""}`
                                 : `${rideTimeMins}m`;
+                            const isOriginal = !v.variant_of_id;
                             return (
                               <div
                                 key={v.id}
-                                className="rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer bg-white border border-gray-100"
+                                className={cn(
+                                  "rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer bg-white",
+                                  isOriginal ? "border-2 border-green-400 ring-1 ring-green-200" : "border border-gray-100"
+                                )}
                                 onClick={() => onViewVariantRoute?.(v.id)}
                               >
                                 <div className="relative h-28">
@@ -1687,14 +1783,16 @@ export function RouteDetailDrawer({
                                     </div>
                                   )}
                                   <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
-                                  <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full bg-green-600/80 backdrop-blur-sm text-white font-medium flex items-center gap-1">
-                                    <Shuffle className="h-3 w-3" />
-                                    Variant
+                                  <span className={cn(
+                                    "absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full backdrop-blur-sm text-white font-semibold flex items-center gap-1",
+                                    isOriginal ? "bg-green-700/90" : "bg-green-600/80 font-medium"
+                                  )}>
+                                    {isOriginal ? "Original" : <><Shuffle className="h-3 w-3" /> Variant</>}
                                   </span>
                                   <span className="absolute bottom-2 left-2 text-xs px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-sm text-gray-700 font-medium shadow-sm">
                                     {Number(v.distance_km || 0).toFixed(1)} km
                                   </span>
-                                  {v.similarity_score && (
+                                  {v.similarity_score > 0 && (
                                     <span className="absolute bottom-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-green-600/80 backdrop-blur-sm text-white font-medium">
                                       {Math.round(v.similarity_score)}% similar
                                     </span>

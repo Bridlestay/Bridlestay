@@ -2000,12 +2000,20 @@ export default function RoutesPage() {
             );
           }}
           onPlaceHazard={handleStartPlacingHazard}
-          onViewVariantRoute={(variantId) => {
+          onViewVariantRoute={async (variantId) => {
             // Switch the drawer to show the variant route
             setSelectedRouteId(variantId);
-            setSelectedRouteData(null);
             setDrawnRouteId(variantId);
             setHighlightedRouteId(variantId);
+            // Fetch full route data so mini card works on dismiss
+            const fullRoute = await fetchRouteData(variantId);
+            setSelectedRouteData(fullRoute);
+            fetchRouteWaypoints(variantId);
+            if (fullRoute?.geometry?.coordinates?.length > 0) {
+              setTimeout(() => {
+                mapRef.current?.fitBounds(fullRoute.geometry.coordinates);
+              }, 100);
+            }
           }}
           onForkVariant={(parentId, parentData) => {
             startForkingVariant(parentId, parentData);

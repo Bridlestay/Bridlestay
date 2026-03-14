@@ -49,7 +49,8 @@ export async function GET(
         owner_user_id,
         created_at,
         elevation_gain_m,
-        elevation_loss_m
+        elevation_loss_m,
+        variant_of_id
       `
       )
       .in("id", variantIds);
