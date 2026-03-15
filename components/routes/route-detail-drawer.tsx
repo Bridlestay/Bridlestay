@@ -40,6 +40,8 @@ import {
   Cloud,
   MoreHorizontal,
   Shuffle,
+  Check,
+  Clock,
 } from "lucide-react";
 import {
   getRouteCentroid,
@@ -168,6 +170,16 @@ export function RouteDetailDrawer({
   // --- Review flow ---
   const [reviewStep, setReviewStep] = useState<number | null>(null);
   const [routeCompletions, setRouteCompletions] = useState<any[]>([]);
+
+  // --- Ride tally ---
+  const [rideStatus, setRideStatus] = useState<{
+    hasRidden: boolean;
+    rideCount: number;
+    canRideAgain: boolean;
+    cooldownEndsAt: string | null;
+    hasReview: boolean;
+  } | null>(null);
+  const [rideCooldownText, setRideCooldownText] = useState("");
 
   // --- Elevation ---
   const [elevationData, setElevationData] = useState<{
@@ -388,6 +400,7 @@ export function RouteDetailDrawer({
     fetchFavoriteStatus();
     fetchPhotos();
     fetchCompletions();
+    fetchRideStatus();
     fetchVariants();
   }, [routeId, open, userId]);
 
@@ -481,6 +494,32 @@ export function RouteDetailDrawer({
     onInitialInfoTabConsumed?.();
   }, [initialInfoTab, open, route]);
 
+  // Cooldown countdown timer
+  useEffect(() => {
+    if (!rideStatus?.cooldownEndsAt) {
+      setRideCooldownText("");
+      return;
+    }
+    const updateCooldown = () => {
+      const end = new Date(rideStatus.cooldownEndsAt!).getTime();
+      const now = Date.now();
+      const diff = end - now;
+      if (diff <= 0) {
+        setRideCooldownText("");
+        setRideStatus((prev) =>
+          prev ? { ...prev, canRideAgain: true, cooldownEndsAt: null } : prev
+        );
+        return;
+      }
+      const hours = Math.floor(diff / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      setRideCooldownText(hours > 0 ? `${hours}h ${mins}m` : `${mins}m`);
+    };
+    updateCooldown();
+    const timer = setInterval(updateCooldown, 60000);
+    return () => clearInterval(timer);
+  }, [rideStatus?.cooldownEndsAt]);
+
   // Weather fetch
   useEffect(() => {
     if (!route || !open) {
@@ -557,6 +596,68 @@ export function RouteDetailDrawer({
       }
     } catch {
       // Non-critical
+    }
+  };
+
+  const fetchRideStatus = async () => {
+    if (!routeId || !userId) return;
+    try {
+      const res = await fetch(`/api/routes/${routeId}/ride`);
+      if (res.ok) {
+        const data = await res.json();
+        setRideStatus(data);
+      }
+    } catch {
+      // Non-critical
+    }
+  };
+
+  const handleLogRide = async () => {
+    if (!routeId || !userId) return;
+
+    // First ride and no review yet → open review form
+    if (!rideStatus?.hasRidden) {
+      if (isOwner) {
+        // Owners skip review, just log the ride
+        try {
+          const res = await fetch(`/api/routes/${routeId}/ride`, {
+            method: "POST",
+          });
+          if (res.ok) {
+            const data = await res.json();
+            toast.success(data.message);
+            fetchRideStatus();
+            fetchCompletions();
+          }
+        } catch {
+          toast.error("Failed to log ride");
+        }
+      } else {
+        // Non-owners get review form on first ride
+        setReviewStep(1);
+      }
+      return;
+    }
+
+    // Already ridden — log another ride (tally)
+    try {
+      const res = await fetch(`/api/routes/${routeId}/ride`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(data.message);
+        fetchRideStatus();
+        fetchCompletions();
+      } else if (res.status === 429) {
+        const data = await res.json();
+        toast.error("Cooldown active — try again later");
+        setRideStatus((prev) =>
+          prev ? { ...prev, canRideAgain: false, cooldownEndsAt: data.cooldownEndsAt } : prev
+        );
+      }
+    } catch {
+      toast.error("Failed to log ride");
     }
   };
 
@@ -1013,7 +1114,7 @@ export function RouteDetailDrawer({
           routeCompletions={routeCompletions}
           activeWarnings={activeWarnings}
           userHasCompletion={userHasCompletion}
-          onComplete={() => setReviewStep(null)}
+          onComplete={() => { setReviewStep(null); fetchRideStatus(); }}
           onCompletionsRefresh={fetchCompletions}
           onVoteClearWarning={handleVoteClearWarning}
         />
@@ -1885,21 +1986,7 @@ export function RouteDetailDrawer({
                 </>
               )}
 
-              {/* I'VE RIDDEN THIS ROUTE! */}
-              {userId && !isOwner && (
-                <Button
-                  onClick={() => setReviewStep(1)}
-                  variant={userHasCompletion ? "outline" : "default"}
-                  className={cn(
-                    "w-full rounded-xl h-12 font-semibold text-base shadow-sm",
-                    userHasCompletion
-                      ? "border-green-600 text-green-700 hover:bg-green-50"
-                      : "bg-green-600 hover:bg-green-700 text-white"
-                  )}
-                >
-                  {userHasCompletion ? "Update my review" : "I've ridden this route!"}
-                </Button>
-              )}
+              {/* "I've ridden this route" button moved to bottom bar */}
 
               {/* Terrain Tags (fallback when no photos — tags shown on photo hero otherwise) */}
               {displayPhotosForCarousel.length === 0 && (route.terrain_tags?.length > 0 || route.surface) && (
@@ -2034,7 +2121,7 @@ export function RouteDetailDrawer({
             {drawerContent}
           </div>
 
-          {/* Bottom Action Bar — Save + Navigate (only on main route view) */}
+          {/* Bottom Action Bar — Save + Ridden + Navigate (only on main route view) */}
           {!loading && reviewStep === null && activeFullPanel === null && !editingWaypointId && route && (
             <div className="shrink-0 border-t bg-white px-5 py-3 flex items-center justify-between gap-3">
               <Button
@@ -2049,6 +2136,48 @@ export function RouteDetailDrawer({
                 <Bookmark className={cn("h-4 w-4", favorited && "fill-current")} />
                 {favorited ? "Saved" : "Save"}
               </Button>
+
+              {/* Ridden button — center */}
+              {userId && (
+                <Button
+                  size="sm"
+                  onClick={handleLogRide}
+                  disabled={rideStatus?.hasRidden && !rideStatus?.canRideAgain}
+                  variant={
+                    !rideStatus?.hasRidden
+                      ? "default"
+                      : rideStatus?.canRideAgain
+                        ? "outline"
+                        : "ghost"
+                  }
+                  className={cn(
+                    "gap-1.5 rounded-full text-xs",
+                    !rideStatus?.hasRidden
+                      ? "bg-green-600 hover:bg-green-700 text-white"
+                      : rideStatus?.canRideAgain
+                        ? "border-green-600 text-green-700 hover:bg-green-50"
+                        : "text-gray-400 cursor-not-allowed"
+                  )}
+                >
+                  {!rideStatus?.hasRidden ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Ridden
+                    </>
+                  ) : !rideStatus?.canRideAgain ? (
+                    <>
+                      <Clock className="h-3.5 w-3.5" />
+                      {rideCooldownText || "Cooldown"}
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Ridden {rideStatus.rideCount}x
+                    </>
+                  )}
+                </Button>
+              )}
+
               <Button
                 size="sm"
                 disabled

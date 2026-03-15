@@ -9,6 +9,7 @@ export async function GET(
     const supabase = await createClient();
     const { id } = await params;
     const routeId = id;
+    const countOnly = request.nextUrl.searchParams.get("count_only") === "true";
 
     // Get the route
     const { data: route, error: routeError } = await supabase
@@ -43,6 +44,23 @@ export async function GET(
     const maxLat = centerLat + latOffset;
     const minLng = centerLng - lngOffset;
     const maxLng = centerLng + lngOffset;
+
+    // Count-only mode for mini card — just need the number, skip heavy joins
+    if (countOnly) {
+      const { count, error: countError } = await supabase
+        .from("properties")
+        .select("id", { count: "exact", head: true })
+        .eq("published", true)
+        .not("lat", "is", null)
+        .not("lng", "is", null)
+        .gte("lat", minLat)
+        .lte("lat", maxLat)
+        .gte("lng", minLng)
+        .lte("lng", maxLng);
+
+      if (countError) throw countError;
+      return NextResponse.json({ count: count || 0 });
+    }
 
     // Get properties in the area (published only) - use correct column names lat/lng
     const { data: properties, error: propertiesError } = await supabase

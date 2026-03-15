@@ -270,14 +270,14 @@ export default function RoutesPage() {
     fetchNearbyProperties();
   }, []);
 
-  // Auto-refresh map pins every 5s when on main map (no route selected, not creating)
+  // Auto-refresh map pins every 1.5s when on main map (no route selected, not creating)
   useEffect(() => {
     const isMainMap = activeTab === "map" && !isCreating && !selectedRouteId;
     if (!isMainMap) return;
 
     const interval = setInterval(() => {
       fetchExploreRoutes();
-    }, 5000);
+    }, 1500);
 
     return () => clearInterval(interval);
   }, [activeTab, isCreating, selectedRouteId]);

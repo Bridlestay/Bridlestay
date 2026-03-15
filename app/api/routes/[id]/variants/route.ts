@@ -10,6 +10,18 @@ export async function GET(
   try {
     const supabase = await createClient();
     const { id: routeId } = await params;
+    const countOnly = request.nextUrl.searchParams.get("count_only") === "true";
+
+    // Count-only mode for mini card — just need the number
+    if (countOnly) {
+      const { count, error } = await supabase
+        .from("route_variants")
+        .select("id", { count: "exact", head: true })
+        .or(`route_a_id.eq.${routeId},route_b_id.eq.${routeId}`);
+
+      if (error) throw error;
+      return NextResponse.json({ count: count || 0 });
+    }
 
     // Get variant links where this route is either side
     const { data: variantLinks, error: linksError } = await supabase

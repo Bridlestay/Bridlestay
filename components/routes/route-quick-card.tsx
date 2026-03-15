@@ -37,16 +37,16 @@ function SingleCard({ route, onClick, onClose, onOpenSection }: { route: any; on
     if (!route?.id) return;
     setNearbyCount(0);
     setVariantCount(0);
-    fetch(`/api/routes/${route.id}/nearby-properties`)
+    fetch(`/api/routes/${route.id}/nearby-properties?count_only=true`)
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
-        if (data?.properties) setNearbyCount(data.properties.length);
+        if (data?.count != null) setNearbyCount(data.count);
       })
       .catch(() => {});
-    fetch(`/api/routes/${route.id}/variants`)
+    fetch(`/api/routes/${route.id}/variants?count_only=true`)
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
-        if (data?.variants) setVariantCount(data.variants.length);
+        if (data?.count != null) setVariantCount(data.count);
       })
       .catch(() => {});
   }, [route?.id]);
