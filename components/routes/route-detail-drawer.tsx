@@ -494,7 +494,7 @@ export function RouteDetailDrawer({
     onInitialInfoTabConsumed?.();
   }, [initialInfoTab, open, route]);
 
-  // Cooldown countdown timer
+  // Cooldown countdown timer — ticks every second for live feel
   useEffect(() => {
     if (!rideStatus?.cooldownEndsAt) {
       setRideCooldownText("");
@@ -513,10 +513,17 @@ export function RouteDetailDrawer({
       }
       const hours = Math.floor(diff / 3600000);
       const mins = Math.floor((diff % 3600000) / 60000);
-      setRideCooldownText(hours > 0 ? `${hours}h ${mins}m` : `${mins}m`);
+      const secs = Math.floor((diff % 60000) / 1000);
+      if (hours > 0) {
+        setRideCooldownText(`${hours}h ${mins}m ${secs}s`);
+      } else if (mins > 0) {
+        setRideCooldownText(`${mins}m ${secs}s`);
+      } else {
+        setRideCooldownText(`${secs}s`);
+      }
     };
     updateCooldown();
-    const timer = setInterval(updateCooldown, 60000);
+    const timer = setInterval(updateCooldown, 1000);
     return () => clearInterval(timer);
   }, [rideStatus?.cooldownEndsAt]);
 
