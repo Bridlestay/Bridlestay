@@ -1806,20 +1806,22 @@ export default function RoutesPage() {
 
         {/* View mode: clicking a route pin re-opens the route detail drawer */}
 
-        {/* Mobile Top Header (hamburger, search, profile) - visible on mobile */}
-        <MobileTopHeader />
+        {/* Mobile Top Header (hamburger, search, profile) - hidden during navigation */}
+        {!isNavigating && <MobileTopHeader />}
 
         {/* Desktop Map Header with hamburger menu (only visible when map tab is active) */}
-        {activeTab === "map" && (
+        {activeTab === "map" && !isNavigating && (
           <div className="hidden md:block">
             <RoutesMapHeader />
           </div>
         )}
 
-        {/* Desktop Navigation tabs - hidden on mobile */}
-        <div className="hidden md:block">
-          <RoutesNavTabs activeTab={activeTab} onTabChange={setActiveTab} />
-        </div>
+        {/* Desktop Navigation tabs - hidden on mobile and during navigation */}
+        {!isNavigating && (
+          <div className="hidden md:block">
+            <RoutesNavTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          </div>
+        )}
 
         {/* Mobile Bottom Navigation */}
         <MobileBottomNav
@@ -1834,14 +1836,14 @@ export default function RoutesPage() {
               setRecordedPath([]);
             }
           }}
-          visible={!previewRoute && !drawerOpen && !isCreating && activeTab !== "find" && activeTab !== "saved"}
+          visible={!previewRoute && !drawerOpen && !isCreating && !isNavigating && activeTab !== "find" && activeTab !== "saved"}
         />
 
         {/* Mobile FAB Menu (+ button for settings) */}
         <MobileFabMenu
           onOpenSettings={() => setShowLayerPanel(true)}
           onLocateMe={handleLocateMe}
-          visible={!previewRoute && !drawerOpen && !isCreating && activeTab === "map"}
+          visible={!previewRoute && !drawerOpen && !isCreating && !isNavigating && activeTab === "map"}
         />
 
         {/* Saved Routes Panel */}

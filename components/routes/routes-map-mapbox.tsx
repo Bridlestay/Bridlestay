@@ -2542,32 +2542,40 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
       const { lat, lng, heading } = userPosition;
 
-      // Create or update user dot marker
+      // Create or update user arrow marker
       if (!userDotMarkerRef.current) {
         const el = document.createElement("div");
-        el.className = "user-location-dot";
+        el.className = "user-location-arrow";
         el.innerHTML = `
-          <div style="
-            width: 18px; height: 18px;
-            background: #3B82F6;
-            border: 3px solid white;
-            border-radius: 50%;
-            box-shadow: 0 0 0 2px rgba(59,130,246,0.3), 0 2px 8px rgba(0,0,0,0.3);
-            position: relative;
-          ">
-            <div style="
-              position: absolute; inset: -8px;
+          <div style="position: relative; width: 44px; height: 44px;">
+            <div class="user-arrow-pulse" style="
+              position: absolute; inset: 0;
               border: 2px solid rgba(59,130,246,0.2);
               border-radius: 50%;
               animation: userDotPulse 2s ease-out infinite;
             "></div>
+            <div class="user-arrow-body" style="
+              position: absolute; inset: 6px;
+              display: flex; align-items: center; justify-content: center;
+            ">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="14" fill="#3B82F6" stroke="white" stroke-width="3"/>
+                <path d="M16 6 L22 20 L16 17 L10 20 Z" fill="white"/>
+              </svg>
+            </div>
           </div>
         `;
-        userDotMarkerRef.current = new mapboxgl.Marker({ element: el })
+        userDotMarkerRef.current = new mapboxgl.Marker({
+          element: el,
+          rotationAlignment: "map",
+          pitchAlignment: "map",
+        })
           .setLngLat([lng, lat])
+          .setRotation(heading || 0)
           .addTo(mapRef.current!);
       } else {
         userDotMarkerRef.current.setLngLat([lng, lat]);
+        userDotMarkerRef.current.setRotation(heading || 0);
       }
 
       // Follow mode — centre map on user and rotate to heading
