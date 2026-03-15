@@ -104,6 +104,7 @@ interface RouteDetailDrawerProps {
   onForkVariant?: (routeId: string, routeData: any) => void;
   initialInfoTab?: "elevation" | "waypoints" | "hazards" | "warnings" | "variants" | "weather" | "nearby-stays" | null;
   onInitialInfoTabConsumed?: () => void;
+  onStartNavigation?: (routeId: string, routeData: any) => void;
 }
 
 export function RouteDetailDrawer({
@@ -129,6 +130,7 @@ export function RouteDetailDrawer({
   onForkVariant,
   initialInfoTab,
   onInitialInfoTabConsumed,
+  onStartNavigation,
 }: RouteDetailDrawerProps) {
   // --- Route data ---
   const [route, setRoute] = useState<any>(null);
@@ -2187,8 +2189,14 @@ export function RouteDetailDrawer({
 
               <Button
                 size="sm"
-                disabled
-                className="gap-1.5 rounded-full bg-green-600 text-white opacity-50 cursor-not-allowed"
+                onClick={() => onStartNavigation?.(routeId!, route)}
+                disabled={!onStartNavigation}
+                className={cn(
+                  "gap-1.5 rounded-full",
+                  onStartNavigation
+                    ? "bg-green-600 hover:bg-green-700 text-white"
+                    : "bg-green-600 text-white opacity-50 cursor-not-allowed"
+                )}
               >
                 <Navigation className="h-4 w-4" />
                 Navigate

@@ -227,6 +227,8 @@ export default function RoutesPage() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [navigatingRoute, setNavigatingRoute] = useState<any | null>(null);
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number; heading: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const locateWatchRef = useRef<number | null>(null);
 
   // Post-ride review
   const [showReviewDialog, setShowReviewDialog] = useState(false);
@@ -896,27 +898,50 @@ export default function RoutesPage() {
     mapRef.current?.highlightRoute(routeId);
   };
 
-  // Start following a route
-  const handleStartNavigation = async (routeId: string) => {
-    const route = await fetchRouteData(routeId);
-    if (route) {
-      setNavigatingRoute(route);
-      setIsNavigating(true);
-      setShowBottomSheet(false);
-      setDrawerOpen(false);
-      toast.success("Navigation started! Follow the route on the map.");
-    }
-  };
-
-  // Handle navigation completion
-  const handleNavigationComplete = () => {
+  // Handle navigation completion (auto-called when rider reaches endpoint)
+  const handleNavigationComplete = (stats: { distance_km: number; duration_seconds: number; avg_speed_kmh: number }) => {
     setIsNavigating(false);
     setRideStats({
-      distance_km: navigatingRoute?.distance_km || 0,
-      duration_minutes: 45, // Would come from actual tracking
-      avg_speed_kmh: 12,
+      distance_km: stats.distance_km,
+      duration_minutes: Math.round(stats.duration_seconds / 60),
+      avg_speed_kmh: stats.avg_speed_kmh,
     });
+    toast.success("Route completed! Ride logged automatically.");
     setShowReviewDialog(true);
+  };
+
+  // Handle start navigation from detail drawer
+  const handleStartNavigation = async (routeId: string, routeData: any) => {
+    // Fetch full route with hazards/waypoints if needed
+    let fullRoute = routeData;
+    if (!fullRoute?.geometry?.coordinates) {
+      fullRoute = await fetchRouteData(routeId);
+    }
+    if (!fullRoute?.geometry?.coordinates?.length) {
+      toast.error("Route has no geometry data");
+      return;
+    }
+
+    // Fetch waypoints and hazards for the route
+    const [waypointsRes, hazardsRes] = await Promise.all([
+      fetch(`/api/routes/${routeId}/waypoints`).then((r) => r.ok ? r.json() : null).catch(() => null),
+      fetch(`/api/routes/${routeId}/hazards`).then((r) => r.ok ? r.json() : null).catch(() => null),
+    ]);
+
+    setNavigatingRoute({
+      ...fullRoute,
+      id: routeId,
+      waypoints: waypointsRes?.waypoints || [],
+      hazards: (hazardsRes?.hazards || []).filter((h: any) => h.status === "active"),
+    });
+    setIsNavigating(true);
+    setDrawerOpen(false);
+    setMobileRouteDetailOpen(false);
+
+    // Start GPS if not already locating
+    if (!isLocating) {
+      handleLocateMe();
+    }
   };
 
   // Submit post-ride review
@@ -933,20 +958,51 @@ export default function RoutesPage() {
     }
   };
 
-  // Map controls
+  // Map controls — locate me (GPS dot)
   const handleLocateMe = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          mapRef.current?.panTo(pos.coords.latitude, pos.coords.longitude);
-          mapRef.current?.setZoom(15);
-        },
-        () => {
-          toast.error("Could not get your location");
-        }
-      );
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your device");
+      return;
     }
+
+    // If already locating, just re-centre on current position
+    if (isLocating && userPosition) {
+      mapRef.current?.flyTo(userPosition.lat, userPosition.lng, 16);
+      return;
+    }
+
+    // Start GPS watching
+    setIsLocating(true);
+    locateWatchRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude, heading } = pos.coords;
+        setUserPosition({ lat: latitude, lng: longitude, heading: heading || 0 });
+        // On first fix, centre map
+        if (!userPosition) {
+          mapRef.current?.flyTo(latitude, longitude, 16);
+        }
+      },
+      (error) => {
+        console.error("GPS error:", error);
+        toast.error("Could not get your location");
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 10000,
+      }
+    );
   };
+
+  // Cleanup locate watch on unmount
+  useEffect(() => {
+    return () => {
+      if (locateWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(locateWatchRef.current);
+      }
+    };
+  }, []);
 
   const handleFullscreen = () => {
     const elem = document.documentElement;
@@ -1569,6 +1625,8 @@ export default function RoutesPage() {
               onSettingsChange={setLayerSettings}
               onZoomIn={handleZoomIn}
               onZoomOut={handleZoomOut}
+              onLocateMe={handleLocateMe}
+              isLocating={isLocating}
             />
           </div>
 
@@ -1578,6 +1636,8 @@ export default function RoutesPage() {
             onSettingsChange={setLayerSettings}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
+            onLocateMe={handleLocateMe}
+            isLocating={isLocating}
             showPanel={showLayerPanel}
             onPanelChange={setShowLayerPanel}
             className="hidden"
@@ -1824,6 +1884,8 @@ export default function RoutesPage() {
           onSettingsChange={setLayerSettings}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
+          onLocateMe={handleLocateMe}
+          isLocating={isLocating}
           showPanel={showLayerPanel}
           onPanelChange={setShowLayerPanel}
           className="hidden md:flex"
@@ -2029,6 +2091,7 @@ export default function RoutesPage() {
           }}
           initialInfoTab={initialInfoTab}
           onInitialInfoTabConsumed={() => setInitialInfoTab(null)}
+          onStartNavigation={handleStartNavigation}
         />
         )}
 

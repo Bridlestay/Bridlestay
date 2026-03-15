@@ -19,6 +19,7 @@ import {
   Home,
   Palette,
   Landmark,
+  Crosshair,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +46,8 @@ interface MapLayerControlsProps {
   onSettingsChange: (settings: LayerSettings) => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
+  onLocateMe?: () => void;
+  isLocating?: boolean;
   className?: string;
   showPanel?: boolean;
   onPanelChange?: (open: boolean) => void;
@@ -55,6 +58,8 @@ export function MapLayerControls({
   onSettingsChange,
   onZoomIn,
   onZoomOut,
+  onLocateMe,
+  isLocating = false,
   className,
   showPanel: externalShowPanel,
   onPanelChange,
@@ -85,6 +90,23 @@ export function MapLayerControls({
     <>
       {/* Floating control buttons - bottom right */}
       <div className={cn("absolute bottom-20 right-4 flex flex-col gap-2 z-20", className)}>
+        {/* Locate me button */}
+        {onLocateMe && (
+          <Button
+            variant="secondary"
+            size="icon"
+            className={cn(
+              "h-11 w-11 rounded-full shadow-lg",
+              isLocating
+                ? "bg-green-50 hover:bg-green-100 border border-green-200"
+                : "bg-white hover:bg-gray-100"
+            )}
+            onClick={onLocateMe}
+          >
+            <Crosshair className={cn("h-5 w-5", isLocating ? "text-green-600" : "text-gray-700")} />
+          </Button>
+        )}
+
         {/* Layer toggle button */}
         <Button
           variant="secondary"

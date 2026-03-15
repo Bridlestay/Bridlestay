@@ -59,7 +59,7 @@ interface RouteNavigatorProps {
   };
   isActive: boolean;
   onClose: () => void;
-  onComplete: () => void;
+  onComplete: (stats: { distance_km: number; duration_seconds: number; avg_speed_kmh: number }) => void;
   onPositionUpdate?: (lat: number, lng: number, heading: number) => void;
 }
 
@@ -111,9 +111,12 @@ export function RouteNavigator({
     roadCrossingAlerts: true,
     offRouteAlerts: true,
   });
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [completed, setCompleted] = useState(false);
 
   const watchIdRef = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const wakeLockRef = useRef<any>(null);
   const startTimeRef = useRef<number>(Date.now());
   const lastPositionRef = useRef<{ lat: number; lng: number } | null>(null);
   const announcedHazardsRef = useRef<Set<string>>(new Set());
@@ -255,14 +258,25 @@ export function RouteNavigator({
     // Check if completed (near end point)
     const endCoord = route.geometry.coordinates[route.geometry.coordinates.length - 1];
     const distToEnd = getDistance(latitude, longitude, endCoord[1], endCoord[0]);
-    if (distToEnd < 30) {
+    if (distToEnd < 30 && !completed) {
+      setCompleted(true);
       speak("You have arrived at your destination. Well done!");
-      toast.success("🎉 Route completed!", { duration: 10000 });
-      onComplete();
-    }
-  }, [isPaused, getDistance, getDistanceToRoute, isOffRoute, route, settings, speak, playAlert, onPositionUpdate, onComplete]);
 
-  // Start GPS tracking
+      // Auto-log ride tally
+      fetch(`/api/routes/${route.id}/ride`, { method: "POST" }).catch(() => {});
+
+      const durationSecs = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      const distKm = distanceTraveled / 1000;
+      const avgSpeed = durationSecs > 0 ? (distKm / durationSecs) * 3600 : 0;
+      onComplete({
+        distance_km: distKm,
+        duration_seconds: durationSecs,
+        avg_speed_kmh: avgSpeed,
+      });
+    }
+  }, [isPaused, getDistance, getDistanceToRoute, isOffRoute, route, settings, speak, playAlert, onPositionUpdate, onComplete, completed, distanceTraveled]);
+
+  // Start GPS tracking + wake lock + offline detection
   useEffect(() => {
     if (!isActive) return;
 
@@ -272,6 +286,20 @@ export function RouteNavigator({
     }
 
     startTimeRef.current = Date.now();
+    setCompleted(false);
+
+    // Request wake lock to keep screen on
+    if ("wakeLock" in navigator) {
+      (navigator as any).wakeLock.request("screen")
+        .then((lock: any) => { wakeLockRef.current = lock; })
+        .catch(() => {});
+    }
+
+    // Offline detection
+    const handleOffline = () => setIsOffline(true);
+    const handleOnline = () => setIsOffline(false);
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       handlePositionUpdate,
@@ -298,6 +326,13 @@ export function RouteNavigator({
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
       clearInterval(timer);
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
+      // Release wake lock
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {});
+        wakeLockRef.current = null;
+      }
     };
   }, [isActive, handlePositionUpdate, isPaused]);
 
@@ -376,6 +411,17 @@ export function RouteNavigator({
             <span>{route.distance_km.toFixed(1)} km</span>
           </div>
         </div>
+
+        {/* Offline warning */}
+        {isOffline && (
+          <div className="mx-4 mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600" />
+            <div>
+              <p className="text-sm font-medium text-amber-800">Limited Connectivity</p>
+              <p className="text-xs text-amber-600">Map tiles may not load. GPS tracking still active.</p>
+            </div>
+          </div>
+        )}
 
         {/* Off route warning */}
         {isOffRoute && (

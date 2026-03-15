@@ -424,6 +424,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const hazardPopupsRef = useRef<mapboxgl.Popup[]>([]);
     const placementMarkerRef = useRef<mapboxgl.Marker | null>(null);
     const startEndMarkersRef = useRef<mapboxgl.Marker[]>([]);
+    const userDotMarkerRef = useRef<mapboxgl.Marker | null>(null);
+    const userFollowingRef = useRef(false);
     // Flag to prevent map click from firing when a marker was clicked
     const markerClickedRef = useRef(false);
     // Snapped route segments: stores road-following geometry per segment
@@ -2525,6 +2527,61 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       }
     }, [displayRouteColor, displayRouteThickness, displayRouteOpacity, mapLoaded, styleLoadCount]);
 
+    // User position dot + follow mode
+    useEffect(() => {
+      if (!mapRef.current || !mapLoaded) return;
+
+      if (!userPosition) {
+        // Remove dot if position cleared
+        if (userDotMarkerRef.current) {
+          userDotMarkerRef.current.remove();
+          userDotMarkerRef.current = null;
+        }
+        return;
+      }
+
+      const { lat, lng, heading } = userPosition;
+
+      // Create or update user dot marker
+      if (!userDotMarkerRef.current) {
+        const el = document.createElement("div");
+        el.className = "user-location-dot";
+        el.innerHTML = `
+          <div style="
+            width: 18px; height: 18px;
+            background: #3B82F6;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.3), 0 2px 8px rgba(0,0,0,0.3);
+            position: relative;
+          ">
+            <div style="
+              position: absolute; inset: -8px;
+              border: 2px solid rgba(59,130,246,0.2);
+              border-radius: 50%;
+              animation: userDotPulse 2s ease-out infinite;
+            "></div>
+          </div>
+        `;
+        userDotMarkerRef.current = new mapboxgl.Marker({ element: el })
+          .setLngLat([lng, lat])
+          .addTo(mapRef.current!);
+      } else {
+        userDotMarkerRef.current.setLngLat([lng, lat]);
+      }
+
+      // Follow mode — centre map on user and rotate to heading
+      if (followUser) {
+        userFollowingRef.current = true;
+        mapRef.current.easeTo({
+          center: [lng, lat],
+          bearing: heading || 0,
+          zoom: Math.max(mapRef.current.getZoom(), 16),
+          duration: 500,
+        });
+      }
+    }, [userPosition, followUser, mapLoaded]);
+
     // Loading state
     if (loadError) {
       return (
@@ -2583,6 +2640,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           }
           .mapboxgl-popup-close-button:hover {
             background: #f3f4f6;
+          }
+          @keyframes userDotPulse {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2.5); opacity: 0; }
           }
         `}</style>
       </div>
