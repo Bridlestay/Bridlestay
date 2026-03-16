@@ -961,8 +961,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
 
-      // Hide all route pins/clusters when entering creation mode
-      if (isCreating) {
+      // Hide all route pins/clusters when entering creation mode or navigating
+      if (isCreating || followUser) {
         const map = mapRef.current;
         // Remove all pin markers
         pinMarkersRef.current.forEach((marker) => marker.remove());
@@ -1273,7 +1273,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
       // No cleanup — markers persist and are updated incrementally above
       // Only clean up when entering creation mode (handled by isCreating guard at top)
-    }, [routes, mapLoaded, isCreating, onRouteClick, onRoutePreview, styleLoadCount]);
+    }, [routes, mapLoaded, isCreating, followUser, onRouteClick, onRoutePreview, styleLoadCount]);
 
     // Display POI markers
     useEffect(() => {
