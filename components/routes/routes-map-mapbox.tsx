@@ -1864,45 +1864,14 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             ],
           });
 
-          // Add START marker (green)
-          const startEl = document.createElement("div");
-          startEl.innerHTML = `
-            <div style="
-              width: 28px;
-              height: 28px;
-              background: #22C55E;
-              border: 3px solid white;
-              border-radius: 50%;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 12px;
-              font-weight: bold;
-              color: white;
-            ">S</div>
-          `;
-          // Hide markers during navigation
-          if (followUser) startEl.style.display = "none";
-          const startMarker = new mapboxgl.Marker({ element: startEl })
-            .setLngLat([coords[0][0], coords[0][1]])
-            .addTo(mapRef.current!);
-          startEndMarkersRef.current.push(startMarker);
-
-          // Add END marker (red) - only if different from start
-          const endCoord = coords[coords.length - 1];
-          const startCoord = coords[0];
-          const isSamePoint = Math.abs(endCoord[0] - startCoord[0]) < 0.0001 &&
-                             Math.abs(endCoord[1] - startCoord[1]) < 0.0001;
-
-          if (!isSamePoint) {
-            const endEl = document.createElement("div");
-            if (followUser) endEl.style.display = "none";
-            endEl.innerHTML = `
+          // Add START/END markers only when NOT navigating
+          if (!followUser) {
+            const startEl = document.createElement("div");
+            startEl.innerHTML = `
               <div style="
                 width: 28px;
                 height: 28px;
-                background: #EF4444;
+                background: #22C55E;
                 border: 3px solid white;
                 border-radius: 50%;
                 box-shadow: 0 2px 6px rgba(0,0,0,0.3);
@@ -1912,12 +1881,42 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
                 font-size: 12px;
                 font-weight: bold;
                 color: white;
-              ">E</div>
+              ">S</div>
             `;
-            const endMarker = new mapboxgl.Marker({ element: endEl })
-              .setLngLat([endCoord[0], endCoord[1]])
+            const startMarker = new mapboxgl.Marker({ element: startEl })
+              .setLngLat([coords[0][0], coords[0][1]])
               .addTo(mapRef.current!);
-            startEndMarkersRef.current.push(endMarker);
+            startEndMarkersRef.current.push(startMarker);
+
+            // Add END marker (red) - only if different from start
+            const endCoord = coords[coords.length - 1];
+            const startCoord = coords[0];
+            const isSamePoint = Math.abs(endCoord[0] - startCoord[0]) < 0.0001 &&
+                               Math.abs(endCoord[1] - startCoord[1]) < 0.0001;
+
+            if (!isSamePoint) {
+              const endEl = document.createElement("div");
+              endEl.innerHTML = `
+                <div style="
+                  width: 28px;
+                  height: 28px;
+                  background: #EF4444;
+                  border: 3px solid white;
+                  border-radius: 50%;
+                  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 12px;
+                  font-weight: bold;
+                  color: white;
+                ">E</div>
+              `;
+              const endMarker = new mapboxgl.Marker({ element: endEl })
+                .setLngLat([endCoord[0], endCoord[1]])
+                .addTo(mapRef.current!);
+              startEndMarkersRef.current.push(endMarker);
+            }
           }
         }
       } else {
@@ -2594,15 +2593,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       }
     }, [userPosition, followUser, mapLoaded]);
 
-    // Hide S/E markers + thicken route line during navigation (followUser)
+    // Thicken route line during navigation (followUser)
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
-
-      // Hide/show S/E markers
-      startEndMarkersRef.current.forEach((m) => {
-        const el = m.getElement();
-        if (el) el.style.display = followUser ? "none" : "";
-      });
 
       // Thicken route line with outline during navigation
       const map = mapRef.current;

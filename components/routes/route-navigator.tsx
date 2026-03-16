@@ -585,33 +585,45 @@ export function RouteNavigator({
 
       {/* Bottom card — Google Maps style */}
       <div
-        className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.12)] transition-all duration-300"
+        className="fixed inset-x-0 bottom-0 z-50 transition-all duration-300"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Centered drag handle */}
-        <button
-          className="w-full flex justify-center pt-2.5 pb-1"
-          onClick={() => setDrawerExpanded(!drawerExpanded)}
+        {/* PAUSED extension — amber section above the white card */}
+        <div
+          className="overflow-hidden transition-all duration-300 ease-in-out"
+          style={{ maxHeight: isPaused ? "60px" : "0px" }}
         >
-          <div className="w-8 h-1 bg-gray-300 rounded-full" />
-        </button>
-
-        {/* PAUSED indicator */}
-        {isPaused && (
-          <div className="mx-4 mb-2 bg-amber-100 border border-amber-300 rounded-lg px-3 py-1.5 flex items-center justify-center gap-2">
-            <Pause className="h-3.5 w-3.5 text-amber-700" />
-            <span className="text-xs font-semibold text-amber-700 uppercase tracking-wide">
-              Paused
+          <div
+            className="bg-amber-400 rounded-t-2xl px-4 py-3 flex items-center justify-between"
+            onClick={togglePause}
+          >
+            <div className="flex items-center gap-2">
+              <Pause className="h-4 w-4 text-amber-900" />
+              <span className="text-sm font-bold text-amber-900 uppercase tracking-wide">
+                Paused
+              </span>
+            </div>
+            <span className="text-xs font-semibold text-amber-800">
+              Tap to resume
             </span>
-            <button
-              onClick={togglePause}
-              className="ml-2 text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full hover:bg-green-200 transition-colors"
-            >
-              Resume
-            </button>
           </div>
-        )}
+        </div>
+
+        {/* White card */}
+        <div
+          className={cn(
+            "bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.12)]",
+            !isPaused && "rounded-t-2xl"
+          )}
+        >
+          {/* Centered drag handle */}
+          <button
+            className="w-full flex justify-center pt-2.5 pb-1"
+            onClick={() => setDrawerExpanded(!drawerExpanded)}
+          >
+            <div className="w-8 h-1 bg-gray-300 rounded-full" />
+          </button>
 
         {/* Main stats row */}
         <div className="px-4 pb-4 flex items-center justify-between">
@@ -707,6 +719,7 @@ export function RouteNavigator({
               </span>
             </button>
           </div>
+        </div>
         </div>
       </div>
 
