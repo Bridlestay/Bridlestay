@@ -2578,17 +2578,69 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         userDotMarkerRef.current.setRotation(heading || 0);
       }
 
-      // Follow mode — centre map on user and rotate to heading
+      // Follow mode — centre map on user, rotate to heading, tilt 45°
       if (followUser) {
         userFollowingRef.current = true;
         mapRef.current.easeTo({
           center: [lng, lat],
           bearing: heading || 0,
-          zoom: Math.max(mapRef.current.getZoom(), 16),
+          pitch: 45,
+          zoom: Math.max(mapRef.current.getZoom(), 17),
           duration: 500,
         });
       }
     }, [userPosition, followUser, mapLoaded]);
+
+    // Hide S/E markers + thicken route line during navigation (followUser)
+    useEffect(() => {
+      if (!mapRef.current || !mapLoaded) return;
+
+      // Hide/show S/E markers
+      startEndMarkersRef.current.forEach((m) => {
+        const el = m.getElement();
+        if (el) el.style.display = followUser ? "none" : "";
+      });
+
+      // Thicken route line with outline during navigation
+      const map = mapRef.current;
+      if (followUser) {
+        // Add outline layer behind the main route line
+        if (!map.getLayer("routes-line-outline") && map.getSource("routes")) {
+          map.addLayer(
+            {
+              id: "routes-line-outline",
+              type: "line",
+              source: "routes",
+              layout: { "line-join": "round", "line-cap": "round" },
+              paint: {
+                "line-color": "#1E40AF",
+                "line-width": 12,
+                "line-opacity": 0.8,
+              },
+            },
+            "routes-line"
+          );
+        }
+        // Thicken the main route line
+        if (map.getLayer("routes-line")) {
+          map.setPaintProperty("routes-line", "line-width", 8);
+          map.setPaintProperty("routes-line", "line-color", "#3B82F6");
+          map.setPaintProperty("routes-line", "line-opacity", 1);
+        }
+      } else {
+        // Remove outline and restore line style
+        if (map.getLayer("routes-line-outline")) {
+          map.removeLayer("routes-line-outline");
+        }
+        if (map.getLayer("routes-line")) {
+          map.setPaintProperty("routes-line", "line-width", displayRouteThickness);
+          map.setPaintProperty("routes-line", "line-color", displayRouteColor);
+          map.setPaintProperty("routes-line", "line-opacity", displayRouteOpacity / 100);
+        }
+        // Reset pitch when leaving follow mode
+        map.easeTo({ pitch: 0, duration: 500 });
+      }
+    }, [followUser, mapLoaded, displayRouteThickness, displayRouteColor, displayRouteOpacity]);
 
     // Loading state
     if (loadError) {
