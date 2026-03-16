@@ -1882,6 +1882,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
               color: white;
             ">S</div>
           `;
+          // Hide markers during navigation
+          if (followUser) startEl.style.display = "none";
           const startMarker = new mapboxgl.Marker({ element: startEl })
             .setLngLat([coords[0][0], coords[0][1]])
             .addTo(mapRef.current!);
@@ -1890,11 +1892,12 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           // Add END marker (red) - only if different from start
           const endCoord = coords[coords.length - 1];
           const startCoord = coords[0];
-          const isSamePoint = Math.abs(endCoord[0] - startCoord[0]) < 0.0001 && 
+          const isSamePoint = Math.abs(endCoord[0] - startCoord[0]) < 0.0001 &&
                              Math.abs(endCoord[1] - startCoord[1]) < 0.0001;
-          
+
           if (!isSamePoint) {
             const endEl = document.createElement("div");
+            if (followUser) endEl.style.display = "none";
             endEl.innerHTML = `
               <div style="
                 width: 28px;
@@ -1921,7 +1924,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         // Clear route display
         source.setData({ type: "FeatureCollection", features: [] });
       }
-    }, [selectedRouteId, selectedRouteData, routes, mapLoaded, styleLoadCount]);
+    }, [selectedRouteId, selectedRouteData, routes, mapLoaded, styleLoadCount, followUser]);
 
     // Draw creation route from waypoints
     useEffect(() => {

@@ -2187,12 +2187,13 @@ export function RouteDetailDrawer({
                 </Button>
               )}
 
+              {/* Navigate — mobile only (GPS navigation doesn't work on desktop) */}
               <Button
                 size="sm"
                 onClick={() => onStartNavigation?.(routeId!, route)}
                 disabled={!onStartNavigation}
                 className={cn(
-                  "gap-1.5 rounded-full",
+                  "gap-1.5 rounded-full md:hidden",
                   onStartNavigation
                     ? "bg-green-600 hover:bg-green-700 text-white"
                     : "bg-green-600 text-white opacity-50 cursor-not-allowed"

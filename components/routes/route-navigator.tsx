@@ -293,7 +293,7 @@ export function RouteNavigator({
       const endCoord =
         route.geometry.coordinates[route.geometry.coordinates.length - 1];
       const distToEnd = getDistance(latitude, longitude, endCoord[1], endCoord[0]);
-      if (distToEnd < 30 && !completed) {
+      if (distToEnd < 20 && !completed) {
         setCompleted(true);
         speak("You have arrived at your destination. Well done!");
 
@@ -420,7 +420,11 @@ export function RouteNavigator({
 
   // Submit hazard/warning report
   const handleSubmitReport = async () => {
-    if (!selectedReportType || !userPosition) return;
+    if (!selectedReportType) return;
+    if (!userPosition) {
+      toast.error("Waiting for GPS location. Please try again in a moment.");
+      return;
+    }
 
     setReportSubmitting(true);
     try {
@@ -613,16 +617,11 @@ export function RouteNavigator({
         <div className="px-4 pb-4 flex items-center justify-between">
           <div className="flex-1 min-w-0">
             {/* Estimated time remaining — large green text like Google Maps */}
-            <div className="flex items-baseline gap-2">
-              <span className="text-xl font-bold text-green-600">
-                {estimatedSecondsRemaining
-                  ? formatTimeRemaining(estimatedSecondsRemaining)
-                  : formatDistance(distanceRemainingM)}
-              </span>
-              {!isPaused && settings.audioEnabled && (
-                <span className="text-green-600 text-sm">{"\u{1F33F}"}</span>
-              )}
-            </div>
+            <span className="text-xl font-bold text-green-600">
+              {estimatedSecondsRemaining
+                ? formatTimeRemaining(estimatedSecondsRemaining)
+                : formatDistance(distanceRemainingM)}
+            </span>
             {/* Distance remaining and ETA */}
             <p className="text-xs text-gray-500 mt-0.5">
               {estimatedSecondsRemaining
@@ -661,8 +660,11 @@ export function RouteNavigator({
           </div>
         </div>
 
-        {/* Expanded actions — revealed on drag up */}
-        {drawerExpanded && (
+        {/* Expanded actions — revealed on drag up with smooth animation */}
+        <div
+          className="overflow-hidden transition-all duration-300 ease-in-out"
+          style={{ maxHeight: drawerExpanded ? "200px" : "0px" }}
+        >
           <div className="border-t border-gray-100 px-4 py-3 space-y-1">
             <button
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-left"
@@ -681,7 +683,6 @@ export function RouteNavigator({
                   ...s,
                   audioEnabled: !s.audioEnabled,
                 }));
-                setDrawerExpanded(false);
               }}
             >
               {settings.audioEnabled ? (
@@ -706,7 +707,7 @@ export function RouteNavigator({
               </span>
             </button>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Report sheet — quick picker */}
