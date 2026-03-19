@@ -915,6 +915,9 @@ export default function RoutesPage() {
   const handleNavigationComplete = (stats: { distance_km: number; duration_seconds: number; avg_speed_kmh: number }) => {
     setIsNavigating(false);
     setNavSegmentIndex(0);
+    setDrawnRouteId(null);
+    setPreviewRoute(null);
+    setSelectedRouteId(null);
     setRideStats({
       distance_km: stats.distance_km,
       duration_minutes: Math.round(stats.duration_seconds / 60),
@@ -1988,6 +1991,9 @@ export default function RoutesPage() {
               setIsNavigating(false);
               setNavigatingRoute(null);
               setNavSegmentIndex(0);
+              setDrawnRouteId(null);
+              setPreviewRoute(null);
+              setSelectedRouteId(null);
             }}
             onComplete={handleNavigationComplete}
             onPositionUpdate={(lat, lng, heading, segmentIndex) => {
