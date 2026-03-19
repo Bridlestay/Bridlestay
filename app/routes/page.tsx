@@ -226,6 +226,7 @@ export default function RoutesPage() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [navigatingRoute, setNavigatingRoute] = useState<any | null>(null);
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number; heading: number } | null>(null);
+  const [navSegmentIndex, setNavSegmentIndex] = useState(0);
   const [isLocating, setIsLocating] = useState(false);
   const locateWatchRef = useRef<number | null>(null);
 
@@ -913,6 +914,7 @@ export default function RoutesPage() {
   // Handle navigation completion (auto-called when rider reaches endpoint)
   const handleNavigationComplete = (stats: { distance_km: number; duration_seconds: number; avg_speed_kmh: number }) => {
     setIsNavigating(false);
+    setNavSegmentIndex(0);
     setRideStats({
       distance_km: stats.distance_km,
       duration_minutes: Math.round(stats.duration_seconds / 60),
@@ -1455,6 +1457,12 @@ export default function RoutesPage() {
   };
 
   const startCreating = () => {
+    // Stop locate-me GPS watch to prevent map re-centering during creation
+    if (locateWatchRef.current !== null) {
+      navigator.geolocation.clearWatch(locateWatchRef.current);
+      locateWatchRef.current = null;
+      setIsLocating(false);
+    }
     setIsCreating(true);
     setIsEditing(false);
     setEditingRouteId(null);
@@ -1779,6 +1787,7 @@ export default function RoutesPage() {
             displayRouteOpacity={layerSettings.routeOpacity}
             userPosition={userPosition}
             followUser={isNavigating}
+            navSegmentIndex={isNavigating ? navSegmentIndex : undefined}
             recordedPath={recordedPath}
             pois={layerSettings.showPOIs ? pois : []}
             routeWaypoints={
@@ -1978,10 +1987,14 @@ export default function RoutesPage() {
             onClose={() => {
               setIsNavigating(false);
               setNavigatingRoute(null);
+              setNavSegmentIndex(0);
             }}
             onComplete={handleNavigationComplete}
-            onPositionUpdate={(lat, lng, heading) => {
+            onPositionUpdate={(lat, lng, heading, segmentIndex) => {
               setUserPosition({ lat, lng, heading });
+              if (segmentIndex !== undefined) {
+                setNavSegmentIndex(segmentIndex);
+              }
             }}
           />
         )}

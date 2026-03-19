@@ -37,7 +37,6 @@ const DIFFICULTY_OPTIONS = [
   { value: "easy", label: "Easy", emoji: "😊", color: "bg-green-100 text-green-700 border-green-300" },
   { value: "moderate", label: "Moderate", emoji: "🙂", color: "bg-blue-100 text-blue-700 border-blue-300" },
   { value: "difficult", label: "Difficult", emoji: "😤", color: "bg-orange-100 text-orange-700 border-orange-300" },
-  { value: "severe", label: "Severe", emoji: "😰", color: "bg-red-100 text-red-700 border-red-300" },
 ];
 
 export function PostRideReview({
@@ -93,7 +92,7 @@ export function PostRideReview({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-center mb-4">
             <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
@@ -166,7 +165,7 @@ export function PostRideReview({
           {/* Difficulty rating */}
           <div>
             <Label className="text-sm font-medium mb-2 block">How difficult did you find it?</Label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {DIFFICULTY_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}

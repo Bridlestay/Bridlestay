@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Star, MapPin, Ruler, TrendingUp, Clock, AlertCircle, Lock, Link2, Globe, Shuffle } from "lucide-react";
+import { Star, MapPin, Ruler, TrendingUp, AlertCircle, Lock, Link2, Globe, Shuffle } from "lucide-react";
 import Image from "next/image";
 
 interface RouteCardProps {
@@ -130,7 +130,7 @@ export function RouteCard({ route, onClick, showVisibility = false }: RouteCardP
         </p>
 
         {/* Metadata */}
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="flex flex-wrap gap-1.5 mb-3">
           <Badge
             variant="outline"
             className={getDifficultyInfo(route.difficulty).color}
@@ -139,14 +139,18 @@ export function RouteCard({ route, onClick, showVisibility = false }: RouteCardP
           </Badge>
 
           {route.distance_km && (
+            <Badge variant="outline" className="gap-1">
+              {route.distance_km.toFixed(1)} km
+            </Badge>
+          )}
+
+          {route.distance_km && (
             <>
               <Badge variant="outline" className="gap-1 text-blue-600 border-blue-300">
-                <Clock className="h-3 w-3" />
-                🐴 {Math.floor((route.distance_km / 12) * 60)}m
+                🐴 {Math.floor((route.distance_km / 12) * 60)} min
               </Badge>
               <Badge variant="outline" className="gap-1 text-green-600 border-green-300">
-                <Clock className="h-3 w-3" />
-                🚶 {Math.floor((route.distance_km / 5) * 60)}m
+                🚶 {Math.floor((route.distance_km / 5) * 60)} min
               </Badge>
             </>
           )}
@@ -164,11 +168,11 @@ export function RouteCard({ route, onClick, showVisibility = false }: RouteCardP
               {route.county}
             </Badge>
           )}
-          
+
           {route.elevation_gain_m && route.elevation_gain_m > 0 && (
             <Badge variant="outline" className="gap-1">
               <TrendingUp className="h-3 w-3" />
-              {route.elevation_gain_m}m
+              {route.elevation_gain_m}m gain
             </Badge>
           )}
         </div>

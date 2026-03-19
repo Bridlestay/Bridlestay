@@ -60,7 +60,7 @@ interface RouteNavigatorProps {
     duration_seconds: number;
     avg_speed_kmh: number;
   }) => void;
-  onPositionUpdate?: (lat: number, lng: number, heading: number) => void;
+  onPositionUpdate?: (lat: number, lng: number, heading: number, snappedSegmentIndex?: number) => void;
 }
 
 interface NavigationSettings {
@@ -159,18 +159,55 @@ export function RouteNavigator({
     []
   );
 
-  // Find distance to route
-  const getDistanceToRoute = useCallback(
-    (lat: number, lng: number) => {
-      if (!route.geometry?.coordinates) return Infinity;
-      let minDist = Infinity;
-      for (const coord of route.geometry.coordinates) {
-        const dist = getDistance(lat, lng, coord[1], coord[0]);
-        if (dist < minDist) minDist = dist;
+  // Find nearest point on route — returns snapped position + distance to route
+  const snapToRoute = useCallback(
+    (lat: number, lng: number): { lat: number; lng: number; distance: number; segmentIndex: number } => {
+      if (!route.geometry?.coordinates || route.geometry.coordinates.length < 2) {
+        return { lat, lng, distance: Infinity, segmentIndex: 0 };
       }
-      return minDist;
+
+      let minDist = Infinity;
+      let snappedLat = lat;
+      let snappedLng = lng;
+      let bestSegment = 0;
+
+      const coords = route.geometry.coordinates;
+      for (let i = 0; i < coords.length - 1; i++) {
+        const [aLng, aLat] = coords[i];
+        const [bLng, bLat] = coords[i + 1];
+
+        // Project point onto segment
+        const dx = bLng - aLng;
+        const dy = bLat - aLat;
+        const lenSq = dx * dx + dy * dy;
+        let t = 0;
+        if (lenSq > 0) {
+          t = ((lng - aLng) * dx + (lat - aLat) * dy) / lenSq;
+          t = Math.max(0, Math.min(1, t));
+        }
+        const projLng = aLng + t * dx;
+        const projLat = aLat + t * dy;
+
+        const dist = getDistance(lat, lng, projLat, projLng);
+        if (dist < minDist) {
+          minDist = dist;
+          snappedLat = projLat;
+          snappedLng = projLng;
+          bestSegment = i;
+        }
+      }
+
+      return { lat: snappedLat, lng: snappedLng, distance: minDist, segmentIndex: bestSegment };
     },
     [route.geometry, getDistance]
+  );
+
+  // Find distance to route (uses snapToRoute)
+  const getDistanceToRoute = useCallback(
+    (lat: number, lng: number) => {
+      return snapToRoute(lat, lng).distance;
+    },
+    [snapToRoute]
   );
 
   // Speak announcement
@@ -197,14 +234,20 @@ export function RouteNavigator({
         heading && heading > 0 ? heading : lastHeadingRef.current;
       if (heading && heading > 0) lastHeadingRef.current = heading;
 
+      // Snap to route if within 15m — like Google Maps road snapping
+      const snap = snapToRoute(latitude, longitude);
+      const SNAP_THRESHOLD_M = 15;
+      const displayLat = snap.distance <= SNAP_THRESHOLD_M ? snap.lat : latitude;
+      const displayLng = snap.distance <= SNAP_THRESHOLD_M ? snap.lng : longitude;
+
       setUserPosition({
-        lat: latitude,
-        lng: longitude,
+        lat: displayLat,
+        lng: displayLng,
         heading: effectiveHeading,
       });
-      onPositionUpdate?.(latitude, longitude, effectiveHeading);
+      onPositionUpdate?.(displayLat, displayLng, effectiveHeading, snap.segmentIndex);
 
-      // Calculate distance traveled
+      // Calculate distance traveled (use raw GPS for accuracy)
       if (lastPositionRef.current) {
         const dist = getDistance(
           lastPositionRef.current.lat,
@@ -220,10 +263,9 @@ export function RouteNavigator({
         lastPositionRef.current = { lat: latitude, lng: longitude };
       }
 
-      // Check if off route
-      const distToRoute = getDistanceToRoute(latitude, longitude);
+      // Check if off route (use raw GPS, not snapped position)
       const wasOffRoute = isOffRoute;
-      const nowOffRoute = distToRoute > 50;
+      const nowOffRoute = snap.distance > 50;
       setIsOffRoute(nowOffRoute);
 
       if (nowOffRoute && !wasOffRoute && settings.offRouteAlerts) {
@@ -317,7 +359,7 @@ export function RouteNavigator({
     [
       isPaused,
       getDistance,
-      getDistanceToRoute,
+      snapToRoute,
       isOffRoute,
       route,
       settings,
@@ -485,44 +527,18 @@ export function RouteNavigator({
     }
   };
 
-  // Format time for ETA display
-  const formatTimeRemaining = (seconds: number) => {
-    if (seconds < 60) return "< 1 min";
-    const h = Math.floor(seconds / 3600);
-    const m = Math.ceil((seconds % 3600) / 60);
-    if (h > 0) return `${h} hr ${m} min`;
-    return `${m} min`;
-  };
-
   // Format distance
   const formatDistance = (metres: number) => {
     if (metres >= 1000) return `${(metres / 1000).toFixed(1)} km`;
     return `${Math.round(metres)}m`;
   };
 
-  // Format clock time
-  const formatETA = (secondsRemaining: number) => {
-    const eta = new Date(Date.now() + secondsRemaining * 1000);
-    return eta.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
-
-  // Calculate estimated time remaining based on avg speed
+  // Calculate remaining distance
   const distanceRemainingM = Math.max(
     0,
     route.distance_km * 1000 - distanceTraveled
   );
   const distanceRemainingKm = distanceRemainingM / 1000;
-
-  // Avg speed from actual travel (kicks in after 200m)
-  const avgSpeedKmh =
-    distanceTraveled > 200 && elapsedTime > 0
-      ? (distanceTraveled / 1000 / elapsedTime) * 3600
-      : null;
-
-  const estimatedSecondsRemaining =
-    avgSpeedKmh && avgSpeedKmh > 0
-      ? (distanceRemainingKm / avgSpeedKmh) * 3600
-      : null;
 
   // Drag handle touch events
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -652,18 +668,13 @@ export function RouteNavigator({
         {/* Main stats row */}
         <div className="px-4 pb-4 flex items-center justify-between">
           <div className="flex-1 min-w-0">
-            {/* Estimated time remaining — large green text like Google Maps */}
+            {/* Remaining distance — large green text */}
             <span className="text-xl font-bold text-green-600">
-              {estimatedSecondsRemaining
-                ? formatTimeRemaining(estimatedSecondsRemaining)
-                : formatDistance(distanceRemainingM)}
+              {distanceRemainingKm >= 1
+                ? `${distanceRemainingKm.toFixed(1)} km`
+                : `${Math.round(distanceRemainingM)}m`}
             </span>
-            {/* Distance remaining and ETA */}
-            <p className="text-xs text-gray-500 mt-0.5">
-              {estimatedSecondsRemaining
-                ? `${formatDistance(distanceRemainingM)} \u00B7 ${formatETA(estimatedSecondsRemaining)}`
-                : `${route.distance_km.toFixed(1)} km total`}
-            </p>
+            <p className="text-xs text-gray-500 mt-0.5">remaining</p>
           </div>
 
           {/* Controls */}

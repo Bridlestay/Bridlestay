@@ -261,9 +261,10 @@ export interface RoutesMapMapboxProps {
   displayRouteColor?: string;
   displayRouteThickness?: number;
   displayRouteOpacity?: number;
-  // Navigation/recording (not yet implemented)
+  // Navigation/recording
   userPosition?: { lat: number; lng: number; heading: number } | null;
   followUser?: boolean;
+  navSegmentIndex?: number;
   recordedPath?: { lat: number; lng: number }[];
   // POI (Points of Interest)
   pois?: Array<{
@@ -388,6 +389,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       displayRouteOpacity = 80,
       userPosition,
       followUser = false,
+      navSegmentIndex,
       recordedPath = [],
       pois = [],
       onPoiClick,
@@ -2549,10 +2551,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         const el = document.createElement("div");
         el.className = "user-location-arrow";
         el.innerHTML = `
-          <div style="position: relative; width: 44px; height: 44px;">
+          <div style="position: relative; width: 60px; height: 60px;">
             <div class="user-arrow-pulse" style="
               position: absolute; inset: 0;
-              border: 2px solid rgba(59,130,246,0.2);
+              border: 3px solid rgba(59,130,246,0.25);
               border-radius: 50%;
               animation: userDotPulse 2s ease-out infinite;
             "></div>
@@ -2560,9 +2562,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
               position: absolute; inset: 6px;
               display: flex; align-items: center; justify-content: center;
             ">
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                <circle cx="16" cy="16" r="14" fill="#3B82F6" stroke="white" stroke-width="3"/>
-                <path d="M16 6 L22 20 L16 17 L10 20 Z" fill="white"/>
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="21" fill="#3B82F6" stroke="white" stroke-width="4"/>
+                <path d="M24 8 L34 32 L24 26 L14 32 Z" fill="white"/>
               </svg>
             </div>
           </div>
@@ -2610,7 +2612,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
               layout: { "line-join": "round", "line-cap": "round" },
               paint: {
                 "line-color": "#1E40AF",
-                "line-width": 12,
+                "line-width": 14,
                 "line-opacity": 0.8,
               },
             },
@@ -2619,7 +2621,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         }
         // Thicken the main route line
         if (map.getLayer("routes-line")) {
-          map.setPaintProperty("routes-line", "line-width", 8);
+          map.setPaintProperty("routes-line", "line-width", 10);
           map.setPaintProperty("routes-line", "line-color", "#3B82F6");
           map.setPaintProperty("routes-line", "line-opacity", 1);
         }
@@ -2627,6 +2629,13 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         // Remove outline and restore line style
         if (map.getLayer("routes-line-outline")) {
           map.removeLayer("routes-line-outline");
+        }
+        // Remove traveled layer
+        if (map.getLayer("routes-traveled-line")) {
+          map.removeLayer("routes-traveled-line");
+        }
+        if (map.getSource("routes-traveled")) {
+          map.removeSource("routes-traveled");
         }
         if (map.getLayer("routes-line")) {
           map.setPaintProperty("routes-line", "line-width", displayRouteThickness);
@@ -2637,6 +2646,61 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         map.easeTo({ pitch: 0, duration: 500 });
       }
     }, [followUser, mapLoaded, displayRouteThickness, displayRouteColor, displayRouteOpacity]);
+
+    // Route progress — grey out traveled portion during navigation
+    useEffect(() => {
+      if (!mapRef.current || !mapLoaded || !followUser || navSegmentIndex === undefined || !userPosition) return;
+
+      const map = mapRef.current;
+
+      // Get the route coordinates from the "routes" source
+      const routesSource = map.getSource("routes") as mapboxgl.GeoJSONSource | undefined;
+      if (!routesSource) return;
+
+      // We need the actual route geometry — get it from the routes prop
+      const routeData = routes?.[0];
+      if (!routeData?.geometry?.coordinates) return;
+
+      const coords = routeData.geometry.coordinates as [number, number][];
+      if (navSegmentIndex >= coords.length - 1) return;
+
+      // Build traveled portion: coords[0..segmentIndex] + snapped user position
+      const traveledCoords = coords.slice(0, navSegmentIndex + 1);
+      traveledCoords.push([userPosition.lng, userPosition.lat]);
+
+      const traveledGeoJSON = {
+        type: "FeatureCollection" as const,
+        features: [{
+          type: "Feature" as const,
+          properties: {},
+          geometry: {
+            type: "LineString" as const,
+            coordinates: traveledCoords,
+          },
+        }],
+      };
+
+      // Create or update the traveled source/layer
+      if (map.getSource("routes-traveled")) {
+        (map.getSource("routes-traveled") as mapboxgl.GeoJSONSource).setData(traveledGeoJSON);
+      } else {
+        map.addSource("routes-traveled", {
+          type: "geojson",
+          data: traveledGeoJSON,
+        });
+        map.addLayer({
+          id: "routes-traveled-line",
+          type: "line",
+          source: "routes-traveled",
+          layout: { "line-join": "round", "line-cap": "round" },
+          paint: {
+            "line-color": "#9CA3AF",
+            "line-width": 10,
+            "line-opacity": 0.7,
+          },
+        });
+      }
+    }, [followUser, navSegmentIndex, userPosition, mapLoaded, routes]);
 
     // Loading state
     if (loadError) {

@@ -6,7 +6,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,10 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import {
   Menu,
-  Search,
   User,
   LogOut,
   Settings,
@@ -30,17 +27,11 @@ import {
   HelpCircle,
   AlertTriangle,
   Route,
-  Map,
   Bell,
 } from "lucide-react";
 
-interface RoutesMapHeaderProps {
-  onSearch?: (query: string) => void;
-}
-
-export function RoutesMapHeader({ onSearch }: RoutesMapHeaderProps) {
+export function RoutesMapHeader() {
   const [user, setUser] = useState<any>(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifCount, setNotifCount] = useState(0);
   const router = useRouter();
@@ -109,10 +100,6 @@ export function RoutesMapHeader({ onSearch }: RoutesMapHeaderProps) {
     router.refresh();
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSearch?.(searchQuery);
-  };
 
   return (
     <div className="absolute top-4 left-4 z-30 flex items-center gap-2">
@@ -265,23 +252,6 @@ export function RoutesMapHeader({ onSearch }: RoutesMapHeaderProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Search Bar */}
-      <form onSubmit={handleSearchSubmit} className="hidden md:flex items-center gap-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Search for places and routes"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              onSearch?.(e.target.value);
-            }}
-            className="pl-10 w-64 h-10 bg-white shadow-lg border"
-          />
-        </div>
-        
-      </form>
 
       {/* Profile Picture */}
       {user && (
