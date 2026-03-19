@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -93,6 +93,14 @@ export function FindRoutesPanel({
   const [featuredLoading, setFeaturedLoading] = useState(true);
   const [featuredIndex, setFeaturedIndex] = useState(0);
 
+  // Geocoded search location
+  const [searchLocation, setSearchLocation] = useState<{
+    lat: number;
+    lng: number;
+    name: string;
+  } | null>(null);
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
   // Saved tab state
   const [myRoutes, setMyRoutes] = useState<any[]>([]);
   const [bookmarkedRoutes, setBookmarkedRoutes] = useState<any[]>([]);
@@ -179,7 +187,24 @@ export function FindRoutesPanel({
     minRating,
     routeType,
     activeTab,
+    searchLocation,
   ]);
+
+  // Debounced text search — refetch when query changes (400ms delay)
+  useEffect(() => {
+    if (!isOpen || activeTab === "saved") return;
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+    searchDebounceRef.current = setTimeout(() => {
+      fetchRoutes();
+    }, 400);
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   // Fetch saved routes when Saved tab is active
   useEffect(() => {
@@ -211,21 +236,34 @@ export function FindRoutesPanel({
   const fetchRoutes = async () => {
     setLoading(true);
     try {
+      const params: Record<string, any> = {
+        minDistance: distanceRange[0],
+        maxDistance: distanceRange[1] >= 40 ? 1000 : distanceRange[1],
+        difficulties:
+          selectedDifficulties.length > 0
+            ? selectedDifficulties
+            : undefined,
+        minRating: parseFloat(minRating) || undefined,
+        routeTypes: routeType.length > 0 ? routeType : undefined,
+        sortBy,
+      };
+
+      // If search query exists, send as text search
+      if (searchQuery.trim()) {
+        params.q = searchQuery.trim();
+      }
+
+      // If geocoded location exists, send lat/lng for proximity search
+      if (searchLocation) {
+        params.lat = searchLocation.lat;
+        params.lng = searchLocation.lng;
+        params.searchRadius = 30;
+      }
+
       const res = await fetch("/api/routes/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          visibility: "public",
-          minDistance: distanceRange[0],
-          maxDistance: distanceRange[1] >= 40 ? 1000 : distanceRange[1],
-          difficulties:
-            selectedDifficulties.length > 0
-              ? selectedDifficulties
-              : undefined,
-          minRating: parseFloat(minRating) || undefined,
-          routeTypes: routeType.length > 0 ? routeType : undefined,
-          sortBy,
-        }),
+        body: JSON.stringify(params),
       });
 
       if (res.ok) {
@@ -241,10 +279,46 @@ export function FindRoutesPanel({
   };
 
 
+  const geocodeSearch = async (query: string) => {
+    if (!query.trim()) {
+      setSearchLocation(null);
+      return;
+    }
+    try {
+      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&country=gb,ie&limit=1&types=place,locality,neighborhood,postcode,district,region`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.features?.length > 0) {
+          const [lng, lat] = data.features[0].center;
+          const name = data.features[0].place_name;
+          setSearchLocation({ lat, lng, name });
+          toast.success(`Showing routes near ${data.features[0].text}`);
+          return;
+        }
+      }
+      // No geocode match — just do text search
+      setSearchLocation(null);
+    } catch {
+      setSearchLocation(null);
+    }
+  };
+
+  const handleSearchSubmit = () => {
+    geocodeSearch(searchQuery);
+  };
+
   const handleNearMe = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        () => {
+        (position) => {
+          setSearchLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            name: "Your location",
+          });
           toast.success("Finding routes near you...");
         },
         () => {
@@ -293,13 +367,8 @@ export function FindRoutesPanel({
       : savedSource;
     isLoadingDisplay = savedLoading;
   } else {
-    displayRoutes = searchQuery.trim()
-      ? routes.filter(
-          (r) =>
-            r.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            r.description?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : routes;
+    // API handles text search + filters server-side, no client-side filtering needed
+    displayRoutes = routes;
     isLoadingDisplay = loading;
   }
 
@@ -352,10 +421,35 @@ export function FindRoutesPanel({
                 <Input
                   placeholder="Search for places and routes"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    // Clear geocoded location when user clears search
+                    if (!e.target.value.trim()) {
+                      setSearchLocation(null);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSearchSubmit();
+                    }
+                  }}
                   className="pl-9 h-9"
                 />
               </div>
+              {searchLocation && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium border border-green-200">
+                    <Navigation className="h-3 w-3" />
+                    Near {searchLocation.name}
+                    <button
+                      onClick={() => setSearchLocation(null)}
+                      className="ml-0.5 hover:text-green-900"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -627,7 +721,7 @@ export function FindRoutesPanel({
                     <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     {featuredRoutes
                       .slice(featuredIndex, featuredIndex + 2)
                       .concat(
@@ -640,18 +734,28 @@ export function FindRoutesPanel({
                         const thumbnailUrl =
                           route.cover_photo_url ||
                           getRouteThumbnailUrlAuto(route.geometry, {
-                            width: 300,
-                            height: 160,
+                            width: 400,
+                            height: 200,
                             routeColor: "3B82F6",
                             routeWeight: 4,
                           });
+                        const isSaved = savedRouteIds.has(route.id);
+                        const rideTimeMins = route.estimated_time_minutes
+                          ? Math.round(route.estimated_time_minutes)
+                          : route.distance_km
+                            ? Math.round((Number(route.distance_km) / 8) * 60)
+                            : 0;
+                        const rideTimeStr =
+                          rideTimeMins >= 60
+                            ? `${Math.floor(rideTimeMins / 60)}h ${rideTimeMins % 60 > 0 ? `${rideTimeMins % 60}m` : ""}`
+                            : `${rideTimeMins}m`;
                         return (
                           <div
                             key={route.id}
-                            className="rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer bg-white border border-gray-100"
+                            className="rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer bg-white border border-gray-100"
                             onClick={() => onRouteClick(route.id)}
                           >
-                            <div className="relative h-24">
+                            <div className="relative h-36">
                               {thumbnailUrl ? (
                                 <img
                                   src={thumbnailUrl}
@@ -660,22 +764,75 @@ export function FindRoutesPanel({
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
-                                  <ImageIcon className="h-6 w-6 text-green-300" />
+                                  <ImageIcon className="h-10 w-10 text-green-300" />
                                 </div>
                               )}
-                              <span className="absolute bottom-1.5 left-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-white/90 text-gray-700 font-medium">
+                              <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+                              <button
+                                onClick={(e) => toggleSaveRoute(route.id, e)}
+                                className={cn(
+                                  "absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-md",
+                                  isSaved
+                                    ? "bg-green-600 text-white hover:bg-green-700"
+                                    : "bg-white/80 backdrop-blur-sm text-gray-500 hover:bg-white hover:text-gray-700"
+                                )}
+                                title={isSaved ? "Remove from saved" : "Save route"}
+                              >
+                                <Bookmark
+                                  className={cn(
+                                    "h-4 w-4",
+                                    isSaved && "fill-current"
+                                  )}
+                                />
+                              </button>
+                              <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                                {route.route_type === "circular" && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm text-white font-medium">
+                                    Circular
+                                  </span>
+                                )}
+                                {route.variant_of_id && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-600/80 backdrop-blur-sm text-white font-medium flex items-center gap-1">
+                                    <Shuffle className="h-3 w-3" />
+                                    Variant
+                                  </span>
+                                )}
+                              </div>
+                              <span className="absolute bottom-2.5 left-2.5 text-xs px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-sm text-gray-700 font-medium shadow-sm">
                                 {Number(route.distance_km || 0).toFixed(1)} km
                               </span>
                             </div>
-                            <div className="p-2.5">
-                              <h4 className="font-semibold text-xs leading-tight text-gray-900 line-clamp-1">
+                            <div className="p-3.5">
+                              <h4 className="font-bold text-[15px] leading-tight text-gray-900 line-clamp-1">
                                 {route.title}
                               </h4>
-                              <div className="flex items-center gap-1.5 mt-1.5">
+                              {route.description && (
+                                <p className="text-xs text-gray-500 line-clamp-1 mt-1">
+                                  {route.description}
+                                </p>
+                              )}
+                              <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-100">
+                                <div className="text-center">
+                                  <p className="text-lg font-bold text-gray-900">
+                                    {Number(route.distance_km || 0).toFixed(1)}
+                                    <span className="text-xs font-normal text-gray-400 ml-0.5">
+                                      km
+                                    </span>
+                                  </p>
+                                  <p className="text-[10px] text-gray-400">Distance</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-lg font-bold text-gray-900">
+                                    {rideTimeStr}
+                                  </p>
+                                  <p className="text-[10px] text-gray-400">Est. Ride Time</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between mt-3">
                                 <Badge
                                   variant="outline"
                                   className={cn(
-                                    "text-[9px] h-4 font-medium px-1.5",
+                                    "text-[10px] h-5 font-medium",
                                     DIFFICULTY_COLORS[route.difficulty] ||
                                       DIFFICULTY_COLORS.unrated
                                   )}
@@ -685,6 +842,11 @@ export function FindRoutesPanel({
                                     .toUpperCase() +
                                     route.difficulty?.slice(1) || "Unrated"}
                                 </Badge>
+                                {route.county && (
+                                  <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
+                                    {route.county}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>

@@ -181,3 +181,52 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
+
+// DELETE /api/admin/routes — permanently delete a route (admin only)
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { data: userData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (userData?.role !== "admin") {
+      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { routeId } = body;
+
+    if (!routeId) {
+      return NextResponse.json({ error: "routeId is required" }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from("routes")
+      .delete()
+      .eq("id", routeId);
+
+    if (error) {
+      console.error("[ADMIN_ROUTES_DELETE] Error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, routeId });
+  } catch (error: any) {
+    console.error("[ADMIN_ROUTES_DELETE] Error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete route" },
+      { status: 500 }
+    );
+  }
+}

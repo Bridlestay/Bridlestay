@@ -23,8 +23,19 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Search,
@@ -40,6 +51,7 @@ import {
   MoreVertical,
   ExternalLink,
   User,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -99,6 +111,8 @@ export function AdminRouteManager() {
   const [sortBy, setSortBy] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Route | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchRoutes = async () => {
     setLoading(true);
@@ -207,6 +221,31 @@ export function AdminRouteManager() {
       setSortDir("desc");
     }
     setPage(1);
+  };
+
+  const deleteRoute = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/admin/routes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ routeId: deleteTarget.id }),
+      });
+      if (res.ok) {
+        setRoutes((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+        setTotal((prev) => prev - 1);
+        toast.success(`"${deleteTarget.title}" deleted`);
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to delete route");
+      }
+    } catch {
+      toast.error("Failed to delete route");
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -354,7 +393,7 @@ export function AdminRouteManager() {
                       <TableCell>
                         <div>
                           <Link
-                            href={`/routes?view=${route.id}`}
+                            href={`/routes?route=${route.id}`}
                             className="font-medium text-sm line-clamp-1 hover:text-primary hover:underline transition-colors"
                           >
                             {route.title}
@@ -497,7 +536,7 @@ export function AdminRouteManager() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
-                              <Link href={`/routes?view=${route.id}`}>
+                              <Link href={`/routes?route=${route.id}`}>
                                 <ExternalLink className="mr-2 h-4 w-4" />
                                 View Route
                               </Link>
@@ -507,6 +546,14 @@ export function AdminRouteManager() {
                                 <User className="mr-2 h-4 w-4" />
                                 Inspect User
                               </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => setDeleteTarget(route)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Route
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -582,6 +629,33 @@ export function AdminRouteManager() {
           exposure.
         </p>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Route</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete{" "}
+              <strong>&quot;{deleteTarget?.title}&quot;</strong> by{" "}
+              {deleteTarget?.owner_name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteRoute}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleting ? "Deleting..." : "Delete Route"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
