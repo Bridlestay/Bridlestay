@@ -71,19 +71,23 @@ export async function GET(request: NextRequest) {
 
     // Get owner names
     const ownerIds = [...new Set((routes || []).map((r) => r.owner_user_id).filter(Boolean))];
-    let ownerMap = new Map<string, string>();
+    let ownerMap = new Map<string, { name: string; avatar_url: string | null }>();
     if (ownerIds.length > 0) {
       const { data: owners } = await supabase
         .from("users")
-        .select("id, name")
+        .select("id, name, avatar_url")
         .in("id", ownerIds);
-      owners?.forEach((o) => ownerMap.set(o.id, o.name));
+      owners?.forEach((o) => ownerMap.set(o.id, { name: o.name, avatar_url: o.avatar_url }));
     }
 
-    const routesWithOwner = (routes || []).map((route) => ({
-      ...route,
-      owner_name: ownerMap.get(route.owner_user_id) || "Unknown",
-    }));
+    const routesWithOwner = (routes || []).map((route) => {
+      const owner = ownerMap.get(route.owner_user_id);
+      return {
+        ...route,
+        owner_name: owner?.name || "Unknown",
+        owner_avatar_url: owner?.avatar_url || null,
+      };
+    });
 
     return NextResponse.json({
       routes: routesWithOwner,

@@ -20,6 +20,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
   Search,
   ChevronLeft,
   ChevronRight,
@@ -30,9 +37,14 @@ import {
   RotateCcw,
   Star,
   ArrowUpDown,
+  MoreVertical,
+  ExternalLink,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface Route {
   id: string;
@@ -44,7 +56,9 @@ interface Route {
   review_count: number | null;
   is_public: boolean;
   created_at: string;
+  owner_user_id: string;
   owner_name: string;
+  owner_avatar_url: string | null;
   impression_count: number | null;
   admin_boost_multiplier: number | null;
   last_featured_at: string | null;
@@ -75,6 +89,7 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 };
 
 export function AdminRouteManager() {
+  const router = useRouter();
   const [routes, setRoutes] = useState<Route[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -300,20 +315,21 @@ export function AdminRouteManager() {
                   </button>
                 </TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right">Boost</TableHead>
+                <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12">
+                  <TableCell colSpan={8} className="text-center py-12">
                     <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto" />
                   </TableCell>
                 </TableRow>
               ) : routes.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={8}
                     className="text-center py-12 text-gray-500"
                   >
                     No routes found
@@ -337,9 +353,12 @@ export function AdminRouteManager() {
                     >
                       <TableCell>
                         <div>
-                          <p className="font-medium text-sm line-clamp-1">
+                          <Link
+                            href={`/routes?view=${route.id}`}
+                            className="font-medium text-sm line-clamp-1 hover:text-primary hover:underline transition-colors"
+                          >
                             {route.title}
-                          </p>
+                          </Link>
                           <div className="flex items-center gap-1.5 mt-1">
                             <Badge
                               variant="outline"
@@ -363,9 +382,23 @@ export function AdminRouteManager() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm text-gray-600">
-                          {route.owner_name}
-                        </span>
+                        <Link
+                          href={`/profile/${route.owner_user_id}`}
+                          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                        >
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage
+                              src={route.owner_avatar_url || undefined}
+                              alt={route.owner_name}
+                            />
+                            <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+                              {route.owner_name?.charAt(0).toUpperCase() || "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm text-gray-600 hover:text-primary transition-colors">
+                            {route.owner_name}
+                          </span>
+                        </Link>
                       </TableCell>
                       <TableCell>
                         {route.avg_rating ? (
@@ -449,6 +482,34 @@ export function AdminRouteManager() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              disabled={isUpdating}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/routes?view=${route.id}`}>
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                View Route
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/profile/${route.owner_user_id}`}>
+                                <User className="mr-2 h-4 w-4" />
+                                Inspect User
+                              </Link>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );

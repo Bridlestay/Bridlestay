@@ -23,6 +23,7 @@ import { InspectDashboard } from "@/components/admin/inspect-dashboard";
 import { BadgesDashboard } from "@/components/admin/badges-dashboard";
 import { ReferralsDashboard } from "@/components/admin/referrals-dashboard";
 import { AdminDamageClaims } from "@/components/admin/admin-damage-claims";
+import { AdminRouteManager } from "@/components/admin/admin-route-manager";
 import { 
   BarChart3, 
   Shield, 
@@ -41,6 +42,7 @@ import {
   Inspect,
   Trophy,
   Gift,
+  Route,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
@@ -511,6 +513,10 @@ export function AdminDashboard({ user }: { user: any }) {
         <TabsTrigger value="news" className="gap-2">
           <Newspaper className="h-4 w-4" />
           News
+        </TabsTrigger>
+        <TabsTrigger value="routes" className="gap-2">
+          <Route className="h-4 w-4" />
+          Routes
         </TabsTrigger>
       </TabsList>
 
@@ -1015,6 +1021,10 @@ export function AdminDashboard({ user }: { user: any }) {
 
       <TabsContent value="claims" className="space-y-6">
         <AdminDamageClaims />
+      </TabsContent>
+
+      <TabsContent value="routes" className="space-y-6">
+        <AdminRouteManager />
       </TabsContent>
     </Tabs>
 
