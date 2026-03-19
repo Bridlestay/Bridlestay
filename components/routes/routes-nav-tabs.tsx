@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Map, Bookmark, Search, Pencil } from "lucide-react";
+import { Search, Pencil, Circle } from "lucide-react";
 
 export type RouteTab = "map" | "saved" | "find" | "create";
 
@@ -12,16 +12,13 @@ interface RoutesNavTabsProps {
   hideInCreateMode?: boolean;
 }
 
-// Tab order: Map, Find Routes, Saved Routes, Create Route
-const tabs: { id: RouteTab; label: string; icon: typeof Map }[] = [
-  { id: "map", label: "Map", icon: Map },
+// Desktop tabs: Find Routes, Record, Create Route (no Map, no Saved)
+const tabs: { id: RouteTab; label: string; icon: typeof Search }[] = [
   { id: "find", label: "Find Routes", icon: Search },
-  { id: "saved", label: "Saved Routes", icon: Bookmark },
   { id: "create", label: "Create Route", icon: Pencil },
 ];
 
 export function RoutesNavTabs({ activeTab, onTabChange, className, hideInCreateMode }: RoutesNavTabsProps) {
-  // Hide tabs when in create mode (only show header in sidebar)
   if (hideInCreateMode) return null;
 
   return (
@@ -61,4 +58,3 @@ export function RoutesNavTabs({ activeTab, onTabChange, className, hideInCreateM
     </div>
   );
 }
-

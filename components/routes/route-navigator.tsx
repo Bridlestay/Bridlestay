@@ -377,15 +377,39 @@ export function RouteNavigator({
     watchIdRef.current = navigator.geolocation.watchPosition(
       handlePositionUpdate,
       (error) => {
-        console.error("GPS error:", error);
-        toast.error(
-          "GPS signal lost. Please ensure location services are enabled."
-        );
+        console.error("GPS error:", error.code, error.message);
+        if (error.code === 1) {
+          toast.error(
+            "Location permission denied. Please allow location access in your browser settings."
+          );
+        } else if (error.code === 2) {
+          toast.error(
+            "Unable to determine location. Please check GPS is enabled on your device."
+          );
+        } else if (error.code === 3) {
+          // Timeout — retry with lower accuracy for Android compatibility
+          if (watchIdRef.current !== null) {
+            navigator.geolocation.clearWatch(watchIdRef.current);
+          }
+          watchIdRef.current = navigator.geolocation.watchPosition(
+            handlePositionUpdate,
+            () => {
+              toast.error(
+                "GPS signal lost. Please ensure location services are enabled."
+              );
+            },
+            {
+              enableHighAccuracy: false,
+              maximumAge: 3000,
+              timeout: 30000,
+            }
+          );
+        }
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 1000,
-        timeout: 10000,
+        maximumAge: 2000,
+        timeout: 15000,
       }
     );
 

@@ -10,7 +10,6 @@ import { RouteStatsPill, SaveRouteButton } from "@/components/routes/route-creat
 import { SaveRouteModal, SaveRouteFormData } from "@/components/routes/save-route-modal";
 import { MapLayerControls, LayerSettings } from "@/components/routes/map-layer-controls";
 import { RoutesNavTabs, RouteTab } from "@/components/routes/routes-nav-tabs";
-import { SavedRoutesPanel } from "@/components/routes/saved-routes-panel";
 import { FindRoutesPanel } from "@/components/routes/find-routes-panel";
 import { RouteBottomSheet } from "@/components/routes/route-bottom-sheet";
 import { RouteQuickCard } from "@/components/routes/route-quick-card";
@@ -583,6 +582,19 @@ export default function RoutesPage() {
     }
   };
 
+  // Handle click from Find panel — fly to route and show quick card
+  const handleFindRouteClick = async (routeId: string) => {
+    // Switch to map view and close Find panel
+    setActiveTab("map");
+    setMobilePanelOpen(false);
+
+    // Fetch full route data
+    const fullRoute = await fetchRouteData(routeId);
+    if (fullRoute) {
+      handleRoutePreview(fullRoute);
+    }
+  };
+
   // Handle quick card click OR direct "View details" - open full modal
   const handleRouteClick = async (routeId: string) => {
     // Close the quick card
@@ -983,14 +995,38 @@ export default function RoutesPage() {
         }
       },
       (error) => {
-        console.error("GPS error:", error);
-        toast.error("Could not get your location");
+        console.error("GPS error:", error.code, error.message);
+        if (error.code === 1) {
+          toast.error("Location permission denied. Please allow location access in your browser settings.");
+        } else if (error.code === 3) {
+          // Timeout — retry with lower accuracy for Android compatibility
+          if (locateWatchRef.current !== null) {
+            navigator.geolocation.clearWatch(locateWatchRef.current);
+          }
+          locateWatchRef.current = navigator.geolocation.watchPosition(
+            (pos) => {
+              const { latitude, longitude, heading } = pos.coords;
+              setUserPosition({ lat: latitude, lng: longitude, heading: heading || 0 });
+              if (!userPosition) {
+                mapRef.current?.flyTo(latitude, longitude, 16);
+              }
+            },
+            () => {
+              toast.error("Could not get your location");
+              setIsLocating(false);
+            },
+            { enableHighAccuracy: false, maximumAge: 5000, timeout: 30000 }
+          );
+          return;
+        } else {
+          toast.error("Could not get your location");
+        }
         setIsLocating(false);
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 10000,
+        maximumAge: 3000,
+        timeout: 15000,
       }
     );
   };
@@ -1836,7 +1872,7 @@ export default function RoutesPage() {
               setRecordedPath([]);
             }
           }}
-          visible={!previewRoute && !drawerOpen && !isCreating && !isNavigating && activeTab !== "find" && activeTab !== "saved"}
+          visible={!previewRoute && !drawerOpen && !isCreating && !isNavigating && activeTab !== "find"}
         />
 
         {/* Mobile FAB Menu (+ button for settings) */}
@@ -1846,29 +1882,19 @@ export default function RoutesPage() {
           visible={!previewRoute && !drawerOpen && !isCreating && !isNavigating && activeTab === "map"}
         />
 
-        {/* Saved Routes Panel */}
-        <SavedRoutesPanel
-          isOpen={activeTab === "saved"}
-          onClose={() => setActiveTab("map")}
-          onRouteClick={handleRouteDetails}
-          onRouteHover={handleRouteHover}
-          mobilePanelOpen={mobilePanelOpen}
-          onMobilePanelToggle={setMobilePanelOpen}
-        />
-
         {/* Find Routes Panel */}
         <FindRoutesPanel
           isOpen={activeTab === "find"}
           onClose={() => setActiveTab("map")}
-          onRouteClick={handleRouteDetails}
+          onRouteClick={handleFindRouteClick}
           onRouteHover={handleRouteHover}
           onRoutesFound={(routes) => setExploreRoutes(routes)}
           mobilePanelOpen={mobilePanelOpen}
           onMobilePanelToggle={setMobilePanelOpen}
         />
 
-        {/* Mobile Options button - shown when panel is collapsed on Find/Saved tabs */}
-        {(activeTab === "find" || activeTab === "saved") && !mobilePanelOpen && (
+        {/* Mobile Options button - shown when panel is collapsed on Find tab */}
+        {activeTab === "find" && !mobilePanelOpen && (
           <div className="md:hidden fixed bottom-20 left-0 right-0 pb-2 z-30">
             <MobilePanelToggle
               mode="options"
@@ -1894,7 +1920,7 @@ export default function RoutesPage() {
         />
 
         {/* Route Quick Card - appears when a pin is clicked, hidden when Find/Saved panels are open */}
-        {previewRoute && !drawerOpen && activeTab !== "find" && activeTab !== "saved" && (
+        {previewRoute && !drawerOpen && activeTab !== "find" && (
           <RouteQuickCard
             route={previewRoute}
             onClose={handleClosePreview}

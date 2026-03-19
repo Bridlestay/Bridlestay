@@ -17,7 +17,6 @@ import {
 import {
   X,
   Star,
-  Share2,
   Navigation,
   Search,
   Bookmark,
@@ -87,6 +86,12 @@ export function FindRoutesPanel({
   const [savedRouteIds, setSavedRouteIds] = useState<Set<string>>(new Set());
   const [filtersOpen, setFiltersOpen] = useState(false);
 
+  // Saved tab state
+  const [myRoutes, setMyRoutes] = useState<any[]>([]);
+  const [bookmarkedRoutes, setBookmarkedRoutes] = useState<any[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
+  const [savedSubTab, setSavedSubTab] = useState<"my-routes" | "bookmarked">("my-routes");
+
   // Fetch user's saved routes on mount
   useEffect(() => {
     const fetchSavedRoutes = async () => {
@@ -136,7 +141,7 @@ export function FindRoutesPanel({
   };
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && activeTab !== "saved") {
       fetchRoutes();
     }
   }, [
@@ -148,6 +153,33 @@ export function FindRoutesPanel({
     routeType,
     activeTab,
   ]);
+
+  // Fetch saved routes when Saved tab is active
+  useEffect(() => {
+    if (!isOpen || activeTab !== "saved") return;
+    const fetchSaved = async () => {
+      setSavedLoading(true);
+      try {
+        const [myRes, favRes] = await Promise.all([
+          fetch("/api/routes/my-routes"),
+          fetch("/api/routes/favorites"),
+        ]);
+        if (myRes.ok) {
+          const data = await myRes.json();
+          setMyRoutes(data.routes || []);
+        }
+        if (favRes.ok) {
+          const data = await favRes.json();
+          setBookmarkedRoutes(data.routes || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch saved routes:", error);
+      } finally {
+        setSavedLoading(false);
+      }
+    };
+    fetchSaved();
+  }, [isOpen, activeTab]);
 
   const fetchRoutes = async () => {
     setLoading(true);
@@ -182,25 +214,6 @@ export function FindRoutesPanel({
     }
   };
 
-  const handleShare = async () => {
-    const params = new URLSearchParams();
-    if (distanceRange[0] > 0)
-      params.set("minDist", String(distanceRange[0]));
-    if (distanceRange[1] < 40)
-      params.set("maxDist", String(distanceRange[1]));
-    if (selectedDifficulties.length)
-      params.set("diff", selectedDifficulties.join(","));
-    if (minRating !== "0") params.set("rating", minRating);
-
-    const url = `${window.location.origin}/routes?${params.toString()}`;
-
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link copied to clipboard!");
-    } catch {
-      toast.error("Failed to copy link");
-    }
-  };
 
   const handleNearMe = () => {
     if (navigator.geolocation) {
@@ -240,13 +253,29 @@ export function FindRoutesPanel({
     (showVariants ? 1 : 0);
 
   // Filter by search query
-  let displayRoutes = searchQuery.trim()
-    ? routes.filter(
-        (r) =>
-          r.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          r.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : routes;
+  let displayRoutes: any[];
+  let isLoadingDisplay: boolean;
+
+  if (activeTab === "saved") {
+    const savedSource = savedSubTab === "my-routes" ? myRoutes : bookmarkedRoutes;
+    displayRoutes = searchQuery.trim()
+      ? savedSource.filter(
+          (r) =>
+            r.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            r.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : savedSource;
+    isLoadingDisplay = savedLoading;
+  } else {
+    displayRoutes = searchQuery.trim()
+      ? routes.filter(
+          (r) =>
+            r.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            r.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : routes;
+    isLoadingDisplay = loading;
+  }
 
   if (showVariants) {
     displayRoutes = displayRoutes.filter((r) => !!r.variant_of_id);
@@ -281,15 +310,6 @@ export function FindRoutesPanel({
                 Find Routes
               </h2>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleShare}
-                  className="gap-1 h-8"
-                >
-                  <Share2 className="h-4 w-4" />
-                  Share
-                </Button>
                 <button
                   onClick={onClose}
                   className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
@@ -315,63 +335,68 @@ export function FindRoutesPanel({
 
           {/* Scrollable Content */}
           <div className="flex-1 min-h-0 overflow-y-auto">
-            {/* Controls: Sort + Tabs + Filters toggle */}
+            {/* Controls: Tabs + Sort + Filters toggle */}
             <div className="px-5 py-3 space-y-3 border-b">
-              {/* Sort + Filter toggle */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">Sort:</span>
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-40 h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="most_popular">
-                        Most popular
-                      </SelectItem>
-                      <SelectItem value="highest_rated">
-                        Highest rated
-                      </SelectItem>
-                      <SelectItem value="newest">Newest</SelectItem>
-                      <SelectItem value="shortest">Shortest</SelectItem>
-                      <SelectItem value="longest">Longest</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <button
-                  onClick={() => setFiltersOpen(!filtersOpen)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all",
-                    filtersOpen || hasFilters
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  )}
-                >
-                  <SlidersHorizontal className="h-3.5 w-3.5" />
-                  Filters
-                  {activeFilterCount > 0 && (
-                    <span className="bg-green-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </button>
-              </div>
-
               {/* Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="w-full">
                   <TabsTrigger value="recommended" className="flex-1">
-                    Recommended Routes
+                    Recommended
                   </TabsTrigger>
                   <TabsTrigger value="all" className="flex-1">
-                    All Routes
+                    All
+                  </TabsTrigger>
+                  <TabsTrigger value="saved" className="flex-1">
+                    Saved
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
+
+              {/* Sort + Filter toggle — hidden on Saved tab */}
+              {activeTab !== "saved" && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">Sort:</span>
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="w-40 h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="most_popular">
+                          Most popular
+                        </SelectItem>
+                        <SelectItem value="highest_rated">
+                          Highest rated
+                        </SelectItem>
+                        <SelectItem value="newest">Newest</SelectItem>
+                        <SelectItem value="shortest">Shortest</SelectItem>
+                        <SelectItem value="longest">Longest</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <button
+                    onClick={() => setFiltersOpen(!filtersOpen)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all",
+                      filtersOpen || hasFilters
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    )}
+                  >
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                    Filters
+                    {activeFilterCount > 0 && (
+                      <span className="bg-green-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Collapsible Filters */}
-            {filtersOpen && (
+            {filtersOpen && activeTab !== "saved" && (
               <div className="px-5 py-3 space-y-4 border-b bg-gray-50/50">
                 {/* Route Length */}
                 <div>
@@ -513,8 +538,36 @@ export function FindRoutesPanel({
               </div>
             )}
 
+            {/* Saved sub-tabs (My Routes / Bookmarked) */}
+            {activeTab === "saved" && (
+              <div className="px-5 pt-3 flex gap-2">
+                <button
+                  onClick={() => setSavedSubTab("my-routes")}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                    savedSubTab === "my-routes"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  )}
+                >
+                  My Routes
+                </button>
+                <button
+                  onClick={() => setSavedSubTab("bookmarked")}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                    savedSubTab === "bookmarked"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  )}
+                >
+                  Bookmarked
+                </button>
+              </div>
+            )}
+
             {/* Route Cards Grid */}
-            {loading ? (
+            {isLoadingDisplay ? (
               <div className="flex items-center justify-center py-16">
                 <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
               </div>
