@@ -202,12 +202,20 @@ export function MobileTopHeader() {
                     </DropdownMenuItem>
                   )}
                   {user.role === "admin" && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin/dashboard" className="cursor-pointer text-primary font-semibold">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Admin Dashboard
-                      </Link>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin/dashboard" className="cursor-pointer text-primary font-semibold">
+                          <Settings className="mr-2 h-4 w-4" />
+                          Admin Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin/routes" className="cursor-pointer text-primary">
+                          <Route className="mr-2 h-4 w-4" />
+                          Route Management
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>

@@ -82,9 +82,13 @@ export function FindRoutesPanel({
   const [showVariants, setShowVariants] = useState(false);
   const [routes, setRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("recommended");
+  const [activeTab, setActiveTab] = useState("all");
   const [savedRouteIds, setSavedRouteIds] = useState<Set<string>>(new Set());
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // Featured routes state
+  const [featuredRoutes, setFeaturedRoutes] = useState<any[]>([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
 
   // Saved tab state
   const [myRoutes, setMyRoutes] = useState<any[]>([]);
@@ -139,6 +143,26 @@ export function FindRoutesPanel({
       toast.error("Failed to update saved routes");
     }
   };
+
+  // Fetch featured routes when panel opens
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchFeatured = async () => {
+      setFeaturedLoading(true);
+      try {
+        const res = await fetch("/api/routes/featured?limit=3");
+        if (res.ok) {
+          const data = await res.json();
+          setFeaturedRoutes(data.featured || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch featured routes:", error);
+      } finally {
+        setFeaturedLoading(false);
+      }
+    };
+    fetchFeatured();
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && activeTab !== "saved") {
@@ -198,7 +222,6 @@ export function FindRoutesPanel({
           minRating: parseFloat(minRating) || undefined,
           routeTypes: routeType.length > 0 ? routeType : undefined,
           sortBy,
-          recommended: activeTab === "recommended",
         }),
       });
 
@@ -340,11 +363,8 @@ export function FindRoutesPanel({
               {/* Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="w-full">
-                  <TabsTrigger value="recommended" className="flex-1">
-                    Recommended
-                  </TabsTrigger>
                   <TabsTrigger value="all" className="flex-1">
-                    All
+                    All Routes
                   </TabsTrigger>
                   <TabsTrigger value="saved" className="flex-1">
                     Saved
@@ -563,6 +583,85 @@ export function FindRoutesPanel({
                 >
                   Bookmarked
                 </button>
+              </div>
+            )}
+
+            {/* Featured Routes — pinned section at top of All tab */}
+            {activeTab === "all" && featuredRoutes.length > 0 && !searchQuery.trim() && (
+              <div className="px-5 pt-4 pb-2">
+                <div className="flex items-center gap-2 mb-3">
+                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                  <h3 className="text-sm font-semibold text-gray-900">Featured Routes</h3>
+                </div>
+                {featuredLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : (
+                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory">
+                    {featuredRoutes.map((route) => {
+                      const thumbnailUrl =
+                        route.cover_photo_url ||
+                        getRouteThumbnailUrlAuto(route.geometry, {
+                          width: 300,
+                          height: 160,
+                          routeColor: "3B82F6",
+                          routeWeight: 4,
+                        });
+                      return (
+                        <div
+                          key={route.id}
+                          className="flex-shrink-0 w-[200px] snap-start rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer bg-white border border-gray-100"
+                          onClick={() => onRouteClick(route.id)}
+                        >
+                          <div className="relative h-24">
+                            {thumbnailUrl ? (
+                              <img
+                                src={thumbnailUrl}
+                                alt={route.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
+                                <ImageIcon className="h-6 w-6 text-green-300" />
+                              </div>
+                            )}
+                            <span className="absolute bottom-1.5 left-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-white/90 text-gray-700 font-medium">
+                              {Number(route.distance_km || 0).toFixed(1)} km
+                            </span>
+                          </div>
+                          <div className="p-2.5">
+                            <h4 className="font-semibold text-xs leading-tight text-gray-900 line-clamp-1">
+                              {route.title}
+                            </h4>
+                            <div className="flex items-center gap-1.5 mt-1.5">
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-[9px] h-4 font-medium px-1.5",
+                                  DIFFICULTY_COLORS[route.difficulty] ||
+                                    DIFFICULTY_COLORS.unrated
+                                )}
+                              >
+                                {route.difficulty
+                                  ?.charAt(0)
+                                  .toUpperCase() +
+                                  route.difficulty?.slice(1) || "Unrated"}
+                              </Badge>
+                              {route.avg_rating > 0 && (
+                                <span className="text-[10px] text-gray-500 flex items-center gap-0.5">
+                                  <Star className="h-2.5 w-2.5 fill-yellow-400 text-yellow-400" />
+                                  {Number(route.avg_rating).toFixed(1)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="border-b border-gray-100 mt-3" />
               </div>
             )}
 
