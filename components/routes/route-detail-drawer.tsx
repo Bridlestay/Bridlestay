@@ -3,6 +3,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,7 +47,6 @@ import {
   MoreHorizontal,
   Shuffle,
   Check,
-  Clock,
 } from "lucide-react";
 import {
   getRouteCentroid,
@@ -2148,43 +2153,42 @@ export function RouteDetailDrawer({
 
               {/* Ridden button — center */}
               {userId && (
-                <Button
-                  size="sm"
-                  onClick={handleLogRide}
-                  disabled={rideStatus?.hasRidden && !rideStatus?.canRideAgain}
-                  variant={
-                    !rideStatus?.hasRidden
-                      ? "default"
-                      : rideStatus?.canRideAgain
-                        ? "outline"
-                        : "ghost"
-                  }
-                  className={cn(
-                    "gap-1.5 rounded-full text-xs",
-                    !rideStatus?.hasRidden
-                      ? "bg-green-600 hover:bg-green-700 text-white"
-                      : rideStatus?.canRideAgain
-                        ? "border-green-600 text-green-700 hover:bg-green-50"
-                        : "text-gray-400 cursor-not-allowed"
-                  )}
-                >
-                  {!rideStatus?.hasRidden ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Ridden
-                    </>
-                  ) : !rideStatus?.canRideAgain ? (
-                    <>
-                      <Clock className="h-3.5 w-3.5" />
-                      {rideCooldownText || "Cooldown"}
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Ridden {rideStatus.rideCount}x
-                    </>
-                  )}
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button
+                          size="sm"
+                          onClick={handleLogRide}
+                          disabled={rideStatus?.hasRidden && !rideStatus?.canRideAgain}
+                          variant={
+                            !rideStatus?.hasRidden
+                              ? "default"
+                              : rideStatus?.canRideAgain
+                                ? "outline"
+                                : "ghost"
+                          }
+                          className={cn(
+                            "gap-1.5 rounded-full text-xs",
+                            !rideStatus?.hasRidden
+                              ? "bg-green-600 hover:bg-green-700 text-white"
+                              : rideStatus?.canRideAgain
+                                ? "border-green-600 text-green-700 hover:bg-green-50"
+                                : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          )}
+                        >
+                          <Check className="h-4 w-4" />
+                          Ridden
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {rideStatus?.hasRidden && !rideStatus?.canRideAgain && rideCooldownText && (
+                      <TooltipContent side="top">
+                        <p>Can&apos;t ride again for {rideCooldownText}</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               )}
 
               {/* Navigate — mobile only (GPS navigation doesn't work on desktop) */}
