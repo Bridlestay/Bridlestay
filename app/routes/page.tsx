@@ -172,20 +172,33 @@ export default function RoutesPage() {
   const [previewRoute, setPreviewRoute] = useState<any | null>(null);
 
   // Layer settings - paths hidden by default in explore mode
-  const [layerSettings, setLayerSettings] = useState<LayerSettings>({
-    mapType: "topographic",
-    showBridleways: false, // Hidden in explore mode
-    showFootpaths: false,
-    showByways: false,
-    showRestrictedByways: false,
-    showWaymarkers: false,
-    showHazards: false,
-    showProperties: true,
-    showPOIs: false,
-    routeColor: "#3B82F6", // Blue
-    routeThickness: 4,
-    routeOpacity: 80,
-    monochrome: false,
+  const [layerSettings, setLayerSettings] = useState<LayerSettings>(() => {
+    const defaults = {
+      routeColor: "#3B82F6",
+      routeThickness: 4,
+      routeOpacity: 80,
+    };
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("padoq_route_style_defaults");
+        if (saved) Object.assign(defaults, JSON.parse(saved));
+      } catch {}
+    }
+    return {
+      mapType: "topographic",
+      showBridleways: false,
+      showFootpaths: false,
+      showByways: false,
+      showRestrictedByways: false,
+      showWaymarkers: false,
+      showHazards: false,
+      showProperties: true,
+      showPOIs: false,
+      routeColor: defaults.routeColor,
+      routeThickness: defaults.routeThickness,
+      routeOpacity: defaults.routeOpacity,
+      monochrome: false,
+    };
   });
 
   // Create/Edit Route state

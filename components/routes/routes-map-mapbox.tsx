@@ -937,6 +937,15 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       };
     }, [mapType, mapLoaded]);
 
+    // Monochrome mode — apply CSS grayscale filter to the map canvas
+    useEffect(() => {
+      if (!mapContainerRef.current) return;
+      const canvas = mapContainerRef.current.querySelector(".mapboxgl-canvas") as HTMLElement;
+      if (canvas) {
+        canvas.style.filter = monochrome ? "grayscale(100%)" : "none";
+      }
+    }, [monochrome, mapLoaded]);
+
     // Update cursor based on mode — use mousemove handler to enforce it
     // because Mapbox internally resets cursor on hover/drag events
     useEffect(() => {

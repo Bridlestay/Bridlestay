@@ -26,8 +26,19 @@ import {
   Palette,
   Landmark,
   Crosshair,
+  Save,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+const ROUTE_STYLE_DEFAULTS = {
+  routeColor: "#3B82F6",
+  routeThickness: 4,
+  routeOpacity: 80,
+};
+
+const ROUTE_STYLE_STORAGE_KEY = "padoq_route_style_defaults";
 
 export type MapType = "standard" | "topographic" | "aerial";
 
@@ -263,17 +274,6 @@ export function MapLayerControls({
                       onCheckedChange={(v) => updateSetting("showRestrictedByways", v)}
                     />
                   </div>
-                  <div className="flex items-center justify-between opacity-50">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-1 bg-green-600 rounded" />
-                      <span className="text-sm">Footpaths</span>
-                      <span className="text-xs text-gray-400">(Hidden)</span>
-                    </div>
-                    <Switch
-                      checked={settings.showFootpaths}
-                      onCheckedChange={(v) => updateSetting("showFootpaths", v)}
-                    />
-                  </div>
                 </div>
               </div>
 
@@ -418,6 +418,43 @@ export function MapLayerControls({
                       opacity: settings.routeOpacity / 100,
                     }}
                   />
+                </div>
+
+                {/* Set as default / Reset */}
+                <div className="flex items-center gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-1.5 text-xs h-8"
+                    onClick={() => {
+                      const defaults = {
+                        routeColor: settings.routeColor,
+                        routeThickness: settings.routeThickness,
+                        routeOpacity: settings.routeOpacity,
+                      };
+                      localStorage.setItem(ROUTE_STYLE_STORAGE_KEY, JSON.stringify(defaults));
+                      toast.success("Route style saved as default");
+                    }}
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    Set as default
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 text-xs h-8 text-gray-500 hover:text-gray-700"
+                    onClick={() => {
+                      const saved = localStorage.getItem(ROUTE_STYLE_STORAGE_KEY);
+                      const defaults = saved ? JSON.parse(saved) : ROUTE_STYLE_DEFAULTS;
+                      updateSetting("routeColor", defaults.routeColor);
+                      updateSetting("routeThickness", defaults.routeThickness);
+                      updateSetting("routeOpacity", defaults.routeOpacity);
+                      toast.success("Route style reset");
+                    }}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Reset
+                  </Button>
                 </div>
               </div>
 
