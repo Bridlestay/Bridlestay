@@ -494,11 +494,11 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         const bounds = new mapboxgl.LngLatBounds();
         coordinates.forEach(([lng, lat]) => bounds.extend([lng, lat]));
 
-        // Generous padding so the route sits comfortably in the centre
+        // Generous padding — bottom accounts for the route mini card overlay (~170px)
         const isMobile = window.innerWidth < 768;
         const defaultPadding = isMobile
-          ? { top: 120, bottom: 200, left: 60, right: 60 }
-          : { top: 100, bottom: 100, left: 480, right: 100 };
+          ? { top: 100, bottom: 250, left: 50, right: 50 }
+          : { top: 80, bottom: 220, left: 100, right: 100 };
 
         try {
           mapRef.current.fitBounds(bounds, {
