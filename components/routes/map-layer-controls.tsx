@@ -7,6 +7,12 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Layers,
   Map as MapIcon,
   Mountain,
@@ -89,55 +95,85 @@ export function MapLayerControls({
   return (
     <>
       {/* Floating control buttons - bottom right */}
-      <div className={cn("absolute bottom-20 right-4 flex flex-col gap-2 z-20", className)}>
-        {/* Locate me button */}
-        {onLocateMe && (
-          <Button
-            variant="secondary"
-            size="icon"
-            className={cn(
-              "h-11 w-11 rounded-full shadow-lg",
-              isLocating
-                ? "bg-green-50 hover:bg-green-100 border border-green-200"
-                : "bg-white hover:bg-gray-100"
-            )}
-            onClick={onLocateMe}
-          >
-            <Crosshair className={cn("h-5 w-5", isLocating ? "text-green-600" : "text-gray-700")} />
-          </Button>
-        )}
+      <TooltipProvider delayDuration={300}>
+        <div className={cn("absolute bottom-20 right-4 flex flex-col gap-2 z-20", className)}>
+          {/* Locate me button */}
+          {onLocateMe && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className={cn(
+                    "h-11 w-11 rounded-full shadow-lg",
+                    isLocating
+                      ? "bg-green-50 hover:bg-green-100 border border-green-200"
+                      : "bg-white hover:bg-gray-100"
+                  )}
+                  onClick={onLocateMe}
+                >
+                  <Crosshair className={cn("h-5 w-5", isLocating ? "text-green-600" : "text-gray-700")} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>{isLocating ? "Re-centre on location" : "Find my location"}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
 
-        {/* Layer toggle button */}
-        <Button
-          variant="secondary"
-          size="icon"
-          className="h-11 w-11 rounded-full shadow-lg bg-white hover:bg-gray-100"
-          onClick={() => setShowLayerPanel(!showLayerPanel)}
-        >
-          <Layers className="h-5 w-5 text-gray-700" />
-        </Button>
+          {/* Layer toggle button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-11 w-11 rounded-full shadow-lg bg-white hover:bg-gray-100"
+                onClick={() => setShowLayerPanel(!showLayerPanel)}
+              >
+                <Layers className="h-5 w-5 text-gray-700" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>Map settings</p>
+            </TooltipContent>
+          </Tooltip>
 
-        {/* Zoom controls */}
-        <div className="flex flex-col bg-white rounded-full shadow-lg overflow-hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 rounded-none hover:bg-gray-100"
-            onClick={onZoomIn}
-          >
-            <Plus className="h-4 w-4 text-gray-700" />
-          </Button>
-          <div className="h-px bg-gray-200" />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 rounded-none hover:bg-gray-100"
-            onClick={onZoomOut}
-          >
-            <Minus className="h-4 w-4 text-gray-700" />
-          </Button>
+          {/* Zoom controls */}
+          <div className="flex flex-col w-11 bg-white rounded-full shadow-lg overflow-hidden">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-11 rounded-none hover:bg-gray-100"
+                  onClick={onZoomIn}
+                >
+                  <Plus className="h-4 w-4 text-gray-700" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>Zoom in</p>
+              </TooltipContent>
+            </Tooltip>
+            <div className="h-px bg-gray-200" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-11 rounded-none hover:bg-gray-100"
+                  onClick={onZoomOut}
+                >
+                  <Minus className="h-4 w-4 text-gray-700" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>Zoom out</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
-      </div>
+      </TooltipProvider>
 
       {/* Layer settings panel - slides up from bottom on mobile, side panel on desktop */}
       {showLayerPanel && (

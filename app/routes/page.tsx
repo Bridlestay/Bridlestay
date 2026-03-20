@@ -966,6 +966,8 @@ export default function RoutesPage() {
   };
 
   // Map controls — locate me (GPS dot)
+  const locateCenteredRef = useRef(false);
+
   const handleLocateMe = () => {
     if (!navigator.geolocation) {
       toast.error("Geolocation is not supported by your device");
@@ -978,51 +980,62 @@ export default function RoutesPage() {
       return;
     }
 
-    // Start GPS watching
+    // Start GPS — use getCurrentPosition first for an immediate fix (works
+    // reliably on desktop WiFi/IP geolocation), then start watchPosition
+    // for continuous updates.
     setIsLocating(true);
-    locateWatchRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude, heading } = pos.coords;
-        setUserPosition({ lat: latitude, lng: longitude, heading: heading || 0 });
-        // On first fix, centre map
-        if (!userPosition) {
-          mapRef.current?.flyTo(latitude, longitude, 16);
-        }
-      },
-      (error) => {
-        console.error("GPS error:", error.code, error.message);
-        if (error.code === 1) {
-          toast.error("Location permission denied. Please allow location access in your browser settings.");
-        } else if (error.code === 3) {
-          // Timeout — retry with lower accuracy for Android compatibility
-          if (locateWatchRef.current !== null) {
-            navigator.geolocation.clearWatch(locateWatchRef.current);
-          }
-          locateWatchRef.current = navigator.geolocation.watchPosition(
-            (pos) => {
-              const { latitude, longitude, heading } = pos.coords;
-              setUserPosition({ lat: latitude, lng: longitude, heading: heading || 0 });
-              if (!userPosition) {
-                mapRef.current?.flyTo(latitude, longitude, 16);
-              }
-            },
-            () => {
-              toast.error("Could not get your location");
-              setIsLocating(false);
-            },
-            { enableHighAccuracy: false, maximumAge: 5000, timeout: 30000 }
-          );
-          return;
-        } else {
-          toast.error("Could not get your location");
-        }
-        setIsLocating(false);
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 3000,
-        timeout: 15000,
+    locateCenteredRef.current = false;
+
+    const onPosition = (pos: GeolocationPosition) => {
+      const { latitude, longitude, heading } = pos.coords;
+      setUserPosition({ lat: latitude, lng: longitude, heading: heading || 0 });
+      if (!locateCenteredRef.current) {
+        locateCenteredRef.current = true;
+        mapRef.current?.flyTo(latitude, longitude, 16);
       }
+    };
+
+    const startWatch = (highAccuracy: boolean) => {
+      locateWatchRef.current = navigator.geolocation.watchPosition(
+        onPosition,
+        (error) => {
+          console.error("GPS watch error:", error.code, error.message);
+          if (highAccuracy && error.code === 3) {
+            // Timeout with high accuracy — retry with low accuracy (desktop fallback)
+            if (locateWatchRef.current !== null) {
+              navigator.geolocation.clearWatch(locateWatchRef.current);
+            }
+            startWatch(false);
+            return;
+          }
+          if (!locateCenteredRef.current) {
+            toast.error(
+              error.code === 1
+                ? "Location permission denied. Please allow location access in your browser settings."
+                : "Could not get your location"
+            );
+            setIsLocating(false);
+          }
+        },
+        {
+          enableHighAccuracy: highAccuracy,
+          maximumAge: highAccuracy ? 3000 : 10000,
+          timeout: highAccuracy ? 15000 : 30000,
+        }
+      );
+    };
+
+    // One-shot first for immediate fix (especially reliable on desktop)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        onPosition(pos);
+        startWatch(true);
+      },
+      () => {
+        // getCurrentPosition failed — fall back to watchPosition directly
+        startWatch(true);
+      },
+      { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 }
     );
   };
 
