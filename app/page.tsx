@@ -37,15 +37,15 @@ export default async function HomePage() {
       <Header />
       <main className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative h-[600px] flex items-center justify-center bg-gradient-to-br from-green-900 via-green-800 to-green-700">
+      <section className="relative min-h-[auto] py-12 md:h-[600px] flex items-center justify-center bg-gradient-to-br from-green-900 via-green-800 to-green-700">
         <div className="absolute inset-0 bg-black/20" />
         <div className="relative z-10 container mx-auto px-4 text-center text-white">
-          <h1 className="font-serif text-5xl md:text-7xl font-bold mb-6">
+          <h1 className="font-serif text-4xl md:text-7xl font-bold mb-4 md:mb-6">
             Discover Your Perfect
             <br />
             Equestrian Escape
           </h1>
-          <p className="text-xl md:text-2xl mb-12 text-green-50">
+          <p className="text-lg md:text-2xl mb-6 md:mb-12 text-green-50">
             Explore the UK&apos;s finest countryside stays for you and your horses
           </p>
           <div className="max-w-4xl mx-auto">
@@ -55,9 +55,9 @@ export default async function HomePage() {
       </section>
 
       {/* Why padoq */}
-      <section className="py-16 bg-background border-b">
+      <section className="py-10 md:py-16 bg-background border-b">
         <div className="container mx-auto px-4">
-          <h2 className="font-serif text-3xl font-bold text-center mb-12">
+          <h2 className="font-serif text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">
             Why Choose padoq?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -102,9 +102,9 @@ export default async function HomePage() {
       </section>
 
       {/* Featured Properties */}
-      <section className="py-16">
+      <section className="py-10 md:py-16">
         <div className="container mx-auto px-4">
-          <h2 className="font-serif text-4xl font-bold mb-8">
+          <h2 className="font-serif text-2xl md:text-4xl font-bold mb-6 md:mb-8">
             Featured Properties
           </h2>
           {properties && properties.length > 0 ? (
@@ -127,11 +127,11 @@ export default async function HomePage() {
       </section>
 
       {/* Routes Teaser */}
-      <section className="py-16 bg-secondary/30">
+      <section className="py-10 md:py-16 bg-secondary/30">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center gap-12">
+          <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
             <div className="flex-1">
-              <h2 className="font-serif text-4xl font-bold mb-4">
+              <h2 className="font-serif text-2xl md:text-4xl font-bold mb-4">
                 Explore Riding Routes
               </h2>
               <p className="text-lg text-muted-foreground mb-6">
@@ -194,10 +194,10 @@ export default async function HomePage() {
       </section>
 
       {/* Host CTA */}
-      <section className="py-20 bg-primary text-primary-foreground">
+      <section className="py-12 md:py-20 bg-primary text-primary-foreground">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
-            <h2 className="font-serif text-4xl md:text-5xl font-bold mb-6">
+            <h2 className="font-serif text-3xl md:text-5xl font-bold mb-4 md:mb-6">
               Share Your Property with Equestrians
             </h2>
             <p className="text-xl mb-8 opacity-90 leading-relaxed">

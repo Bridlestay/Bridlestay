@@ -136,7 +136,10 @@ function SingleCard({ route, onClick, onClose, onOpenSection }: { route: any; on
               {rideTimeStr}
             </span>
             {(route.completions_count !== undefined && route.completions_count > 0) && (
-              <span className="text-xs text-gray-600 flex items-center gap-1">
+              <span
+                className="text-xs text-gray-600 flex items-center gap-1"
+                title={`${route.completions_count} ${route.completions_count === 1 ? "person has" : "people have"} completed this route`}
+              >
                 <Users className="h-3 w-3" />
                 {route.completions_count}
               </span>

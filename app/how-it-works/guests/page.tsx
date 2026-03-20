@@ -10,14 +10,14 @@ export default function GuestsGuidePage() {
     <>
       <Header />
       <main className="min-h-screen bg-muted/30">
-        <div className="container mx-auto px-4 py-12 max-w-5xl">
+        <div className="container mx-auto px-4 py-8 md:py-12 max-w-5xl">
           {/* Hero Section */}
-          <div className="text-center mb-16">
+          <div className="text-center mb-10 md:mb-16">
             <Badge className="mb-4 text-base px-4 py-1">For Guests</Badge>
-            <h1 className="font-serif text-5xl font-bold mb-4">
+            <h1 className="font-serif text-3xl md:text-5xl font-bold mb-4">
               How padoq Works for Guests
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Book unique equestrian accommodation across the UK in 5 simple steps
             </p>
           </div>
@@ -34,7 +34,7 @@ export default function GuestsGuidePage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <Search className="h-6 w-6 text-primary" />
-                  <h2 className="font-serif text-3xl font-bold">Search for Properties</h2>
+                  <h2 className="font-serif text-2xl md:text-3xl font-bold">Search for Properties</h2>
                 </div>
                 <p className="text-muted-foreground text-lg mb-4">
                   Find the perfect property for you and your horses using our powerful search filters.
@@ -83,7 +83,7 @@ export default function GuestsGuidePage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <Home className="h-6 w-6 text-primary" />
-                  <h2 className="font-serif text-3xl font-bold">Browse & Compare</h2>
+                  <h2 className="font-serif text-2xl md:text-3xl font-bold">Browse & Compare</h2>
                 </div>
                 <p className="text-muted-foreground text-lg mb-4">
                   Review property details, photos, amenities, and reviews to find your ideal stay.
@@ -137,7 +137,7 @@ export default function GuestsGuidePage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <MessageCircle className="h-6 w-6 text-primary" />
-                  <h2 className="font-serif text-3xl font-bold">Contact the Host (Optional)</h2>
+                  <h2 className="font-serif text-2xl md:text-3xl font-bold">Contact the Host (Optional)</h2>
                 </div>
                 <p className="text-muted-foreground text-lg mb-4">
                   Have questions? Message the host before booking to ensure the property meets your needs.
@@ -187,7 +187,7 @@ export default function GuestsGuidePage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <CreditCard className="h-6 w-6 text-primary" />
-                  <h2 className="font-serif text-3xl font-bold">Book & Pay Securely</h2>
+                  <h2 className="font-serif text-2xl md:text-3xl font-bold">Book & Pay Securely</h2>
                 </div>
                 <p className="text-muted-foreground text-lg mb-4">
                   Select your dates, enter guest and horse details, and complete your secure payment.
@@ -254,7 +254,7 @@ export default function GuestsGuidePage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-4xl">🐴</span>
-                  <h2 className="font-serif text-3xl font-bold">Enjoy Your Stay!</h2>
+                  <h2 className="font-serif text-2xl md:text-3xl font-bold">Enjoy Your Stay!</h2>
                 </div>
                 <p className="text-muted-foreground text-lg mb-4">
                   Arrive, settle in with your horses, and enjoy your equestrian adventure.

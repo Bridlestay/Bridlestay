@@ -95,7 +95,7 @@ function SearchPageContent() {
         </div>
 
         {/* Controls */}
-        <div className="sticky top-0 z-20 bg-background border-b">
+        <div className="sticky top-16 z-20 bg-background border-b">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center justify-between gap-4">
               <p className="text-sm text-muted-foreground">

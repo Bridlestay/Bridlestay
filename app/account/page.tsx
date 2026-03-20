@@ -74,7 +74,7 @@ export default async function AccountPage() {
       <main className="min-h-screen bg-muted/30 py-12">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="mb-8">
-            <h1 className="font-serif text-4xl font-bold mb-2">
+            <h1 className="font-serif text-2xl md:text-4xl font-bold mb-2">
               Account Settings
             </h1>
             <p className="text-muted-foreground">

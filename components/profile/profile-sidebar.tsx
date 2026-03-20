@@ -22,14 +22,14 @@ export function ProfileSidebar({ activeSection }: ProfileSidebarProps) {
 
   return (
     <div className="lg:col-span-1">
-      <h1 className="font-serif text-4xl font-bold mb-8">Profile</h1>
-      <nav className="space-y-2">
+      <h1 className="font-serif text-2xl md:text-4xl font-bold mb-4 md:mb-8">Profile</h1>
+      <nav className="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0 lg:space-y-2">
         {sections.map((section) => (
           <Link
             key={section.id}
             href={section.href}
             className={cn(
-              "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+              "flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg transition-colors whitespace-nowrap text-sm lg:text-base",
               activeSection === section.id
                 ? "bg-muted font-medium"
                 : "hover:bg-muted/50"

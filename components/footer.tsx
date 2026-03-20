@@ -4,10 +4,10 @@ import { Facebook, Instagram } from "lucide-react";
 export function Footer() {
   return (
     <footer className="bg-muted/30 border-t mt-auto">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8">
           {/* Company */}
-          <div>
+          <div className="col-span-2 md:col-span-1">
             <h3 className="font-serif font-semibold text-lg mb-4">padoq</h3>
             <p className="text-sm text-muted-foreground mb-4">
               The UK&apos;s complete horse app - stays, routes, and community

@@ -28,6 +28,7 @@ import {
   Crosshair,
   Save,
   RotateCcw,
+  Navigation2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -64,7 +65,9 @@ interface MapLayerControlsProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onLocateMe?: () => void;
+  onResetNorth?: () => void;
   isLocating?: boolean;
+  mapBearing?: number;
   className?: string;
   showPanel?: boolean;
   onPanelChange?: (open: boolean) => void;
@@ -76,7 +79,9 @@ export function MapLayerControls({
   onZoomIn,
   onZoomOut,
   onLocateMe,
+  onResetNorth,
   isLocating = false,
+  mapBearing = 0,
   className,
   showPanel: externalShowPanel,
   onPanelChange,
@@ -108,6 +113,28 @@ export function MapLayerControls({
       {/* Floating control buttons - bottom right */}
       <TooltipProvider delayDuration={300}>
         <div className={cn("absolute bottom-20 right-4 flex flex-col gap-2 z-20", className)}>
+          {/* Face North button — only visible when map is rotated */}
+          {onResetNorth && Math.abs(mapBearing) > 1 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-11 w-11 rounded-full shadow-lg bg-white hover:bg-gray-100"
+                  onClick={onResetNorth}
+                >
+                  <Navigation2
+                    className="h-5 w-5 text-red-500 transition-transform duration-300"
+                    style={{ transform: `rotate(${-mapBearing}deg)` }}
+                  />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>Face north</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+
           {/* Locate me button */}
           {onLocateMe && (
             <Tooltip>

@@ -69,12 +69,12 @@ export default async function NewsPage() {
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
         {/* Hero Section */}
         <div className="border-b bg-background">
-          <div className="container mx-auto px-4 py-12">
+          <div className="container mx-auto px-4 py-8 md:py-12">
             <div className="max-w-3xl">
-              <h1 className="font-serif text-5xl font-bold mb-4">
+              <h1 className="font-serif text-3xl md:text-5xl font-bold mb-4">
                 padoq News
               </h1>
-              <p className="text-xl text-muted-foreground">
+              <p className="text-lg md:text-xl text-muted-foreground">
                 Stay informed with the latest updates, features, and stories from the padoq community
               </p>
             </div>

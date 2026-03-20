@@ -11,17 +11,17 @@ export default function HelpPage() {
     <>
       <Header />
       <main className="min-h-screen bg-muted/30">
-        <div className="container mx-auto px-4 py-12 max-w-5xl">
+        <div className="container mx-auto px-4 py-8 md:py-12 max-w-5xl">
           {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="font-serif text-5xl font-bold mb-4">Help Center</h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <div className="text-center mb-8 md:mb-12">
+            <h1 className="font-serif text-3xl md:text-5xl font-bold mb-4">Help Center</h1>
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Find answers to common questions about booking, hosting, and using padoq
             </p>
           </div>
 
           {/* Quick Links */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
             <Card className="hover:shadow-lg transition-shadow flex flex-col">
               <CardHeader>
                 <Users className="h-8 w-8 text-primary mb-2" />
@@ -75,7 +75,7 @@ export default function HelpPage() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <Users className="h-6 w-6 text-primary" />
-                  <CardTitle className="text-2xl">Booking & Reservations</CardTitle>
+                  <CardTitle className="text-xl md:text-2xl">Booking & Reservations</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -205,7 +205,7 @@ export default function HelpPage() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <CreditCard className="h-6 w-6 text-primary" />
-                  <CardTitle className="text-2xl">Payments & Pricing</CardTitle>
+                  <CardTitle className="text-xl md:text-2xl">Payments & Pricing</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -341,7 +341,7 @@ export default function HelpPage() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <Home className="h-6 w-6 text-primary" />
-                  <CardTitle className="text-2xl">Hosting on padoq</CardTitle>
+                  <CardTitle className="text-xl md:text-2xl">Hosting on padoq</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -485,7 +485,7 @@ export default function HelpPage() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <AlertCircle className="h-6 w-6 text-primary" />
-                  <CardTitle className="text-2xl">Damage & Claims</CardTitle>
+                  <CardTitle className="text-xl md:text-2xl">Damage & Claims</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -563,7 +563,7 @@ export default function HelpPage() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <Shield className="h-6 w-6 text-primary" />
-                  <CardTitle className="text-2xl">Safety & Support</CardTitle>
+                  <CardTitle className="text-xl md:text-2xl">Safety & Support</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -631,7 +631,7 @@ export default function HelpPage() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <Shield className="h-6 w-6 text-primary" />
-                <CardTitle className="text-2xl">Community Guidelines & Safety</CardTitle>
+                <CardTitle className="text-xl md:text-2xl">Community Guidelines & Safety</CardTitle>
               </div>
             </CardHeader>
             <CardContent>

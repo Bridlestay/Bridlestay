@@ -241,6 +241,7 @@ export default function RoutesPage() {
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number; heading: number } | null>(null);
   const [navSegmentIndex, setNavSegmentIndex] = useState(0);
   const [isLocating, setIsLocating] = useState(false);
+  const [mapBearing, setMapBearing] = useState(0);
   const locateWatchRef = useRef<number | null>(null);
 
   // Post-ride review
@@ -1082,6 +1083,30 @@ export default function RoutesPage() {
     if (map) map.setZoom((map.getZoom() || 10) - 1);
   };
 
+  const handleResetNorth = () => {
+    const map = mapRef.current?.getMap();
+    if (map) map.easeTo({ bearing: 0, pitch: 0, duration: 500 });
+  };
+
+  // Track map bearing for the Face North button
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    const attach = () => {
+      const map = mapRef.current?.getMap();
+      if (!map) {
+        // Retry — map may not be ready yet
+        const t = setTimeout(attach, 500);
+        cleanup = () => clearTimeout(t);
+        return;
+      }
+      const onRotate = () => setMapBearing(map.getBearing());
+      map.on("rotate", onRotate);
+      cleanup = () => map.off("rotate", onRotate);
+    };
+    attach();
+    return () => cleanup?.();
+  }, []);
+
   // Snapshot current state for undo history (waypoints + snapped segments).
   // When segments are mutated before the callback (erase/drag), pass the
   // pre-mutation snapshot so history captures the true previous state.
@@ -1689,7 +1714,9 @@ export default function RoutesPage() {
               onZoomIn={handleZoomIn}
               onZoomOut={handleZoomOut}
               onLocateMe={handleLocateMe}
+              onResetNorth={handleResetNorth}
               isLocating={isLocating}
+              mapBearing={mapBearing}
             />
           </div>
 
@@ -1700,7 +1727,9 @@ export default function RoutesPage() {
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             onLocateMe={handleLocateMe}
+            onResetNorth={handleResetNorth}
             isLocating={isLocating}
+            mapBearing={mapBearing}
             showPanel={showLayerPanel}
             onPanelChange={setShowLayerPanel}
             className="hidden"
@@ -1942,7 +1971,9 @@ export default function RoutesPage() {
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
           onLocateMe={handleLocateMe}
+          onResetNorth={handleResetNorth}
           isLocating={isLocating}
+          mapBearing={mapBearing}
           showPanel={showLayerPanel}
           onPanelChange={setShowLayerPanel}
           className="hidden md:flex"

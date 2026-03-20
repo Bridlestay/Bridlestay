@@ -20,7 +20,7 @@ export default async function MessagesPage() {
       <main className="bg-background py-8">
         <div className="container mx-auto px-4 pb-24">
           <div className="mb-6">
-            <h1 className="font-serif text-4xl font-bold mb-2">Messages</h1>
+            <h1 className="font-serif text-2xl md:text-4xl font-bold mb-2">Messages</h1>
             <p className="text-muted-foreground">
               Communicate with hosts and guests
             </p>

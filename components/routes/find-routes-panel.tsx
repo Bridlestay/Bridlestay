@@ -793,7 +793,10 @@ export function FindRoutesPanel({
                                   </span>
                                 )}
                                 {route.variant_of_id && (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-600/80 backdrop-blur-sm text-white font-medium flex items-center gap-1">
+                                  <span
+                                    className="text-[10px] px-2 py-0.5 rounded-full bg-green-600/80 backdrop-blur-sm text-white font-medium flex items-center gap-1"
+                                    title="This is a variant of an original route"
+                                  >
                                     <Shuffle className="h-3 w-3" />
                                     Variant
                                   </span>

@@ -494,10 +494,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         const bounds = new mapboxgl.LngLatBounds();
         coordinates.forEach(([lng, lat]) => bounds.extend([lng, lat]));
 
-        // Generous padding — bottom accounts for the route mini card overlay (~170px)
+        // Generous padding — bottom accounts for mini card + iOS browser chrome
         const isMobile = window.innerWidth < 768;
         const defaultPadding = isMobile
-          ? { top: 100, bottom: 250, left: 50, right: 50 }
+          ? { top: 80, bottom: 320, left: 40, right: 40 }
           : { top: 80, bottom: 220, left: 100, right: 100 };
 
         try {
@@ -2555,10 +2555,20 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
       const { lat, lng, heading } = userPosition;
 
+      // Scale user marker based on zoom level
+      const scaleUserMarker = (zoom: number, el: HTMLElement) => {
+        let scale = 1;
+        if (zoom < 7) scale = 0.4;
+        else if (zoom < 10) scale = 0.6;
+        else if (zoom < 13) scale = 0.8;
+        el.style.transform = `scale(${scale})`;
+      };
+
       // Create or update user arrow marker
       if (!userDotMarkerRef.current) {
         const el = document.createElement("div");
         el.className = "user-location-arrow";
+        el.style.transition = "transform 0.3s ease";
         el.innerHTML = `
           <div style="position: relative; width: 60px; height: 60px;">
             <div class="user-arrow-pulse" style="
@@ -2578,6 +2588,14 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             </div>
           </div>
         `;
+
+        // Scale on zoom changes
+        const handleZoom = () => {
+          if (mapRef.current) scaleUserMarker(mapRef.current.getZoom(), el);
+        };
+        mapRef.current!.on("zoom", handleZoom);
+        scaleUserMarker(mapRef.current!.getZoom(), el);
+
         userDotMarkerRef.current = new mapboxgl.Marker({
           element: el,
           rotationAlignment: "map",
@@ -2589,6 +2607,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       } else {
         userDotMarkerRef.current.setLngLat([lng, lat]);
         userDotMarkerRef.current.setRotation(heading || 0);
+        // Update scale for current zoom
+        const el = userDotMarkerRef.current.getElement();
+        if (el && mapRef.current) scaleUserMarker(mapRef.current.getZoom(), el);
       }
 
       // Follow mode — centre map on user, rotate to heading, tilt 45°

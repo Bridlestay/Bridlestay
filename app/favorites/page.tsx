@@ -46,8 +46,8 @@ export default async function FavoritesPage() {
             {/* Header */}
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-2">
-                <Heart className="h-8 w-8 fill-red-500 text-red-500" />
-                <h1 className="font-serif text-4xl font-bold">My Favorites</h1>
+                <Heart className="h-6 w-6 md:h-8 md:w-8 fill-red-500 text-red-500 flex-shrink-0" />
+                <h1 className="font-serif text-2xl md:text-4xl font-bold">My Favorites</h1>
               </div>
               <p className="text-muted-foreground">
                 {favoritedProperties.length === 0

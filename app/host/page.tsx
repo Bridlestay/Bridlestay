@@ -92,14 +92,14 @@ export default function HostPage() {
       <Header />
       <main className="min-h-screen bg-background">
       {/* Hero */}
-      <section className="bg-gradient-to-br from-green-900 via-green-800 to-green-700 text-white py-20">
+      <section className="bg-gradient-to-br from-green-900 via-green-800 to-green-700 text-white py-12 md:py-20">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="font-serif text-5xl md:text-6xl font-bold mb-6">
+          <h1 className="font-serif text-3xl md:text-6xl font-bold mb-4 md:mb-6">
             Share Your Property
             <br />
             with Equestrians
           </h1>
-          <p className="text-xl md:text-2xl mb-8 opacity-90">
+          <p className="text-lg md:text-2xl mb-6 md:mb-8 opacity-90">
             Earn extra income while welcoming horse lovers to your countryside property
           </p>
           <Button 
@@ -122,9 +122,9 @@ export default function HostPage() {
       </section>
 
       {/* Benefits */}
-      <section className="py-16">
+      <section className="py-10 md:py-16">
         <div className="container mx-auto px-4">
-          <h2 className="font-serif text-4xl font-bold text-center mb-12">
+          <h2 className="font-serif text-2xl md:text-4xl font-bold text-center mb-8 md:mb-12">
             Why Host with padoq?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -171,9 +171,9 @@ export default function HostPage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-16 bg-muted/30">
+      <section className="py-10 md:py-16 bg-muted/30">
         <div className="container mx-auto px-4">
-          <h2 className="font-serif text-4xl font-bold text-center mb-12">
+          <h2 className="font-serif text-2xl md:text-4xl font-bold text-center mb-8 md:mb-12">
             How It Works
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -251,7 +251,7 @@ export default function HostPage() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
-            <h2 className="font-serif text-4xl font-bold text-center mb-8">
+            <h2 className="font-serif text-2xl md:text-4xl font-bold text-center mb-8">
               Transparent Pricing
             </h2>
             <Card>
@@ -304,12 +304,12 @@ export default function HostPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 bg-primary text-primary-foreground">
+      <section className="py-10 md:py-16 bg-primary text-primary-foreground">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="font-serif text-4xl font-bold mb-6">
+          <h2 className="font-serif text-2xl md:text-4xl font-bold mb-4 md:mb-6">
             Ready to Start Hosting?
           </h2>
-          <p className="text-xl mb-8 opacity-90">
+          <p className="text-lg md:text-xl mb-6 md:mb-8 opacity-90">
             Join padoq today and start earning from your property
           </p>
           <Button 

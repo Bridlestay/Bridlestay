@@ -31,8 +31,8 @@ export default async function ClaimsPage() {
       <main className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
-            <h1 className="font-serif text-4xl font-bold mb-2 flex items-center gap-3">
-              <AlertTriangle className="h-8 w-8" />
+            <h1 className="font-serif text-2xl md:text-4xl font-bold mb-2 flex items-center gap-3">
+              <AlertTriangle className="h-6 w-6 md:h-8 md:w-8 flex-shrink-0" />
               Damage & Cleaning Claims
             </h1>
             <p className="text-muted-foreground">

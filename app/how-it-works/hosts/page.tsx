@@ -10,14 +10,14 @@ export default function HostsGuidePage() {
     <>
       <Header />
       <main className="min-h-screen bg-muted/30">
-        <div className="container mx-auto px-4 py-12 max-w-5xl">
+        <div className="container mx-auto px-4 py-8 md:py-12 max-w-5xl">
           {/* Hero Section */}
-          <div className="text-center mb-16">
+          <div className="text-center mb-10 md:mb-16">
             <Badge className="mb-4 text-base px-4 py-1 bg-green-600">For Hosts</Badge>
-            <h1 className="font-serif text-5xl font-bold mb-4">
+            <h1 className="font-serif text-3xl md:text-5xl font-bold mb-4">
               How padoq Works for Hosts
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Turn your equestrian property into a successful hospitality business in 6 simple steps
             </p>
           </div>
@@ -34,7 +34,7 @@ export default function HostsGuidePage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <PlusCircle className="h-6 w-6 text-primary" />
-                  <h2 className="font-serif text-3xl font-bold">Create Your Listing</h2>
+                  <h2 className="font-serif text-2xl md:text-3xl font-bold">Create Your Listing</h2>
                 </div>
                 <p className="text-muted-foreground text-lg mb-4">
                   Sign up as a host and create a detailed listing for your property.
@@ -97,7 +97,7 @@ export default function HostsGuidePage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <Camera className="h-6 w-6 text-primary" />
-                  <h2 className="font-serif text-3xl font-bold">Add High-Quality Photos</h2>
+                  <h2 className="font-serif text-2xl md:text-3xl font-bold">Add High-Quality Photos</h2>
                 </div>
                 <p className="text-muted-foreground text-lg mb-4">
                   Great photos are essential for attracting guests. Show off what makes your property special.
@@ -149,7 +149,7 @@ export default function HostsGuidePage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <Tag className="h-6 w-6 text-primary" />
-                  <h2 className="font-serif text-3xl font-bold">Set Your Pricing & Rules</h2>
+                  <h2 className="font-serif text-2xl md:text-3xl font-bold">Set Your Pricing & Rules</h2>
                 </div>
                 <p className="text-muted-foreground text-lg mb-4">
                   Define your nightly rates, fees, and booking requirements to maximize your earnings.
@@ -232,7 +232,7 @@ export default function HostsGuidePage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <CreditCard className="h-6 w-6 text-primary" />
-                  <h2 className="font-serif text-3xl font-bold">Connect Your Bank Account</h2>
+                  <h2 className="font-serif text-2xl md:text-3xl font-bold">Connect Your Bank Account</h2>
                 </div>
                 <p className="text-muted-foreground text-lg mb-4">
                   Set up Stripe Connect to receive payouts securely and automatically.
@@ -299,7 +299,7 @@ export default function HostsGuidePage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <Calendar className="h-6 w-6 text-primary" />
-                  <h2 className="font-serif text-3xl font-bold">Manage Your Calendar</h2>
+                  <h2 className="font-serif text-2xl md:text-3xl font-bold">Manage Your Calendar</h2>
                 </div>
                 <p className="text-muted-foreground text-lg mb-4">
                   Keep your availability up to date to avoid double bookings and maximize occupancy.
@@ -352,7 +352,7 @@ export default function HostsGuidePage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <MessageCircle className="h-6 w-6 text-primary" />
-                  <h2 className="font-serif text-3xl font-bold">Welcome Your Guests</h2>
+                  <h2 className="font-serif text-2xl md:text-3xl font-bold">Welcome Your Guests</h2>
                 </div>
                 <p className="text-muted-foreground text-lg mb-4">
                   Provide excellent hospitality to earn great reviews and build your reputation.
