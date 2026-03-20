@@ -490,21 +490,21 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       },
       fitBounds: (coordinates: [number, number][], padding?: { top?: number; right?: number; bottom?: number; left?: number }) => {
         if (!mapRef.current || coordinates.length === 0) return;
-        
+
         const bounds = new mapboxgl.LngLatBounds();
         coordinates.forEach(([lng, lat]) => bounds.extend([lng, lat]));
-        
-        // Use smaller padding for mobile to avoid "cannot fit" error
+
+        // Generous padding so the route sits comfortably in the centre
         const isMobile = window.innerWidth < 768;
-        const defaultPadding = isMobile 
-          ? { top: 100, bottom: 150, left: 40, right: 40 }
-          : { top: 80, bottom: 80, left: 450, right: 80 };
-        
+        const defaultPadding = isMobile
+          ? { top: 120, bottom: 200, left: 60, right: 60 }
+          : { top: 100, bottom: 100, left: 480, right: 100 };
+
         try {
           mapRef.current.fitBounds(bounds, {
             padding: padding || defaultPadding,
             duration: 1000,
-            maxZoom: 14,
+            maxZoom: 15,
           });
         } catch (e) {
           // Fallback: just fly to center of bounds
@@ -1110,7 +1110,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           filter: ["!", ["has", "point_count"]],
           paint: {
             "circle-color": "transparent",
-            "circle-radius": 20,
+            "circle-radius": 30,
           },
         });
 
@@ -1203,8 +1203,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           const el = document.createElement("div");
           el.style.zIndex = "3";
           el.innerHTML = `
-            <div style="cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
-              <svg width="32" height="42" viewBox="-2 -2 28 36" fill="none">
+            <div style="cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); padding: 8px;">
+              <svg width="36" height="47" viewBox="-2 -2 28 36" fill="none">
                 <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z" fill="${PIN_COLOR}" stroke="${PIN_BORDER}" stroke-width="3"/>
                 <circle cx="12" cy="11" r="4" fill="${PIN_BORDER}"/>
               </svg>

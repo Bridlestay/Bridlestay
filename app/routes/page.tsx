@@ -721,12 +721,7 @@ export default function RoutesPage() {
     // Zoom map to fit route
     if (selectedRouteData?.geometry?.coordinates?.length > 0) {
       setTimeout(() => {
-        mapRef.current?.fitBounds(selectedRouteData.geometry.coordinates, {
-          top: 60,
-          bottom: 80,
-          left: 20,
-          right: 20,
-        });
+        mapRef.current?.fitBounds(selectedRouteData.geometry.coordinates);
       }, 200);
     }
   };
@@ -794,12 +789,7 @@ export default function RoutesPage() {
     // Zoom to fit route so user can see where to click
     if (selectedRouteData?.geometry?.coordinates?.length > 0) {
       setTimeout(() => {
-        mapRef.current?.fitBounds(selectedRouteData.geometry.coordinates, {
-          top: 80,
-          bottom: 80,
-          left: 20,
-          right: 20,
-        });
+        mapRef.current?.fitBounds(selectedRouteData.geometry.coordinates);
       }, 200);
     }
   };
@@ -1722,6 +1712,7 @@ export default function RoutesPage() {
             }
             editingRouteId={editingRouteId}
             variantOfName={variantOfName}
+            variantOfRouteId={variantOfRouteId}
           />
         </div>
 

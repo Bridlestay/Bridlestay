@@ -217,6 +217,26 @@ export function RouteRecorder({
     };
   }, [isRecording, handlePosition, isPaused]);
 
+  // Photo reminder toast — fires 2 minutes into recording
+  useEffect(() => {
+    if (!isRecording || isPaused) return;
+    const PHOTO_REMINDER_KEY = "padoq_hide_photo_reminder";
+    if (typeof window !== "undefined" && localStorage.getItem(PHOTO_REMINDER_KEY) === "true") return;
+
+    const timer = setTimeout(() => {
+      toast("Don\u2019t forget to take photos along the way!", {
+        description: "Photos help other riders discover your route.",
+        duration: 8000,
+        action: {
+          label: "Don\u2019t remind me",
+          onClick: () => localStorage.setItem(PHOTO_REMINDER_KEY, "true"),
+        },
+      });
+    }, 120000); // 2 minutes
+
+    return () => clearTimeout(timer);
+  }, [isRecording, isPaused]);
+
   // Calculate average speed
   useEffect(() => {
     if (elapsedSeconds > 0 && distanceKm > 0) {

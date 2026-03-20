@@ -30,6 +30,7 @@ import {
   Trash2,
   Loader2,
   Shuffle,
+  Copy,
 } from "lucide-react";
 
 // --- Types ---
@@ -74,6 +75,7 @@ interface SaveRouteModalProps {
   geometry?: { type: string; coordinates: [number, number][] };
   editingRouteId?: string | null;
   variantOfName?: string;
+  variantOfRouteId?: string | null;
 }
 
 // --- Save Route Modal ---
@@ -90,6 +92,7 @@ export function SaveRouteModal({
   geometry,
   editingRouteId,
   variantOfName,
+  variantOfRouteId,
 }: SaveRouteModalProps) {
   // Form state
   const [title, setTitle] = useState(existingData?.title || "");
@@ -110,7 +113,30 @@ export function SaveRouteModal({
   const [saveAsStandalone, setSaveAsStandalone] = useState(false);
   const [checkingSimilarity, setCheckingSimilarity] = useState(false);
 
+  const [copyingDescription, setCopyingDescription] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Copy description from parent route (variant flow)
+  const handleCopyParentDescription = useCallback(async () => {
+    if (!variantOfRouteId) return;
+    setCopyingDescription(true);
+    try {
+      const res = await fetch(`/api/routes/${variantOfRouteId}`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      const parentDesc = data.route?.description || "";
+      if (parentDesc) {
+        setDescription(parentDesc);
+        toast.success("Description copied from original route");
+      } else {
+        toast.info("Original route has no description");
+      }
+    } catch {
+      toast.error("Failed to fetch original route");
+    } finally {
+      setCopyingDescription(false);
+    }
+  }, [variantOfRouteId]);
 
   // Sync form state when existingData changes (safety net for editing)
   useEffect(() => {
@@ -461,9 +487,28 @@ export function SaveRouteModal({
 
             {/* Description */}
             <div className="space-y-1.5">
-              <Label htmlFor="save-route-desc" className="text-sm font-medium">
-                Description
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="save-route-desc" className="text-sm font-medium">
+                  Description
+                </Label>
+                {variantOfRouteId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopyParentDescription}
+                    disabled={copyingDescription}
+                    className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 gap-1"
+                  >
+                    {copyingDescription ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                    Copy from original
+                  </Button>
+                )}
+              </div>
               <Textarea
                 id="save-route-desc"
                 value={description}
