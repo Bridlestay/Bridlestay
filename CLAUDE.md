@@ -257,7 +257,7 @@ After every implementation, before presenting the summary to the user, perform t
 
 ### 3. Documentation Alignment
 - Confirm changes are consistent with CLAUDE.md rules
-- If a UI component was changed, verify it follows the Padoq design language (green accents, shadcn/ui, Airbnb-inspired)
+- If a UI component was changed, verify it follows the Padoq design language (see memory file `design_language.md` for complete reference — serif headings, cream backgrounds, agricultural green, specific spacing/card/badge patterns)
 - Ensure API changes follow existing patterns (error handling, response format, auth checks)
 
 ### 4. Test Alignment
@@ -294,6 +294,10 @@ After completing work, always do the following in order:
 |---------|---------|
 | `/discuss` | Enter strategic discussion mode for planning and architecture decisions |
 | `/uxamine` | Deep UI/UX examination of a component, page, or flow |
+| `/audit` | Deep code audit of a specific area (e.g. `/audit payments`) — finds bugs, TODOs, security issues |
+| `/fix` | Targeted bug squash — investigate root cause, implement fix, build, commit, push |
+| `/polish` | UI refinement pass — compare against Padoq design language, fix visual consistency |
+| `/ship` | Post-change workflow — build, changelog, commit, push (automates the mandatory workflow) |
 
 Command definitions are in `.claude/commands/`.
 
