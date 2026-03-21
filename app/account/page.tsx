@@ -44,9 +44,9 @@ export default async function AccountPage() {
     .eq("guest_id", user.id);
 
   const { count: reviewsCount } = await supabase
-    .from("reviews")
+    .from("property_reviews")
     .select("*", { count: "exact", head: true })
-    .eq("guest_id", user.id);
+    .eq("reviewer_id", user.id);
 
   let propertiesCount = 0;
   let hostProfile = null;

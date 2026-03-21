@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
     // Check if review already exists
     const { data: existingReview } = await supabase
-      .from("reviews")
+      .from("property_reviews")
       .select("id")
       .eq("booking_id", bookingId)
       .single();
@@ -77,13 +77,13 @@ export async function POST(request: Request) {
 
     // Create review
     const { data: review, error: reviewError } = await supabase
-      .from("reviews")
+      .from("property_reviews")
       .insert({
         booking_id: bookingId,
         property_id: booking.property_id,
-        guest_id: user.id,
-        rating,
-        body: reviewBody,
+        reviewer_id: user.id,
+        overall_rating: rating,
+        review_text: reviewBody,
       })
       .select()
       .single();

@@ -80,14 +80,14 @@ export async function GET(request: NextRequest) {
 
       // Reviews written by user
       supabase
-        .from("reviews")
+        .from("property_reviews")
         .select("*, properties(name)")
-        .eq("user_id", userId),
+        .eq("reviewer_id", userId),
 
       // Reviews received (on user's properties)
       supabase
-        .from("reviews")
-        .select("*, properties!inner(id, name, host_id), users:user_id(name)")
+        .from("property_reviews")
+        .select("*, properties!inner(id, name, host_id), reviewer:reviewer_id(name)")
         .eq("properties.host_id", userId),
 
       // Messages (sent and received)

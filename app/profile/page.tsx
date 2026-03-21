@@ -44,9 +44,9 @@ export default async function ProfilePage({
     .order("end_date", { ascending: false });
 
   const { count: reviewsCount } = await supabase
-    .from("reviews")
+    .from("property_reviews")
     .select("*", { count: "exact", head: true })
-    .eq("guest_id", user.id);
+    .eq("reviewer_id", user.id);
 
   const { count: horsesCount } = await supabase
     .from("user_horses")

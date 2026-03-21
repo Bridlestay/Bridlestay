@@ -732,10 +732,10 @@ function UserReportsSection() {
           
         case 'review':
           const { data: reviewData } = await supabase
-            .from("reviews")
+            .from("property_reviews")
             .select(`
               *,
-              guest:users!reviews_guest_id_fkey (id, name, avatar_url, email),
+              reviewer:reviewer_id (id, name, avatar_url, email),
               property:properties (id, name)
             `)
             .eq("id", report.content_id)

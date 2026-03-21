@@ -67,8 +67,8 @@ export async function GET(request: NextRequest) {
 
       // All reviews for this property
       supabase
-        .from("reviews")
-        .select("*, user:user_id(id, name, avatar_url)")
+        .from("property_reviews")
+        .select("*, reviewer:reviewer_id(id, name, avatar_url)")
         .eq("property_id", propertyId)
         .order("created_at", { ascending: false }),
 
