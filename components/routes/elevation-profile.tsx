@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 // SVG coordinate padding — gives curves room to overshoot without clipping
 const SVG_Y_TOP = 5;
-const SVG_Y_BOTTOM = 72;
+const SVG_Y_BOTTOM = 55;
 const SVG_Y_RANGE = SVG_Y_BOTTOM - SVG_Y_TOP;
 
 // Map elevation to padded SVG y coordinate
@@ -192,11 +192,11 @@ export function ElevationProfile({
     return catmullRomToSvg(svgPoints);
   }, [svgPoints]);
 
-  // Generate SVG area fill path (gradient below line, stops partway)
+  // Generate SVG area fill path (gradient below line, fades before bottom)
   const svgAreaPath = useMemo(() => {
     if (svgPoints.length < 2) return "";
-    // Area extends from the line down to 95 (leaving some space above 100)
-    const areaBottom = 95;
+    // Area extends from the line down to 85 — gradient fades to transparent within this
+    const areaBottom = 85;
     const curvePath = catmullRomToSvg(svgPoints);
     const lastPt = svgPoints[svgPoints.length - 1];
     const firstPt = svgPoints[0];
@@ -472,8 +472,9 @@ export function ElevationProfile({
             >
               <defs>
                 <linearGradient id="elevationGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#267347" stopOpacity="0.35" />
-                  <stop offset="60%" stopColor="#267347" stopOpacity="0.08" />
+                  <stop offset="0%" stopColor="#267347" stopOpacity="0.3" />
+                  <stop offset="40%" stopColor="#267347" stopOpacity="0.1" />
+                  <stop offset="65%" stopColor="#267347" stopOpacity="0" />
                   <stop offset="100%" stopColor="#267347" stopOpacity="0" />
                 </linearGradient>
               </defs>
