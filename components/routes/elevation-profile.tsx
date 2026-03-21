@@ -3,6 +3,33 @@
 import { useState, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
+// Catmull-Rom spline → cubic Bezier SVG path
+function catmullRomToSvg(
+  points: { x: number; y: number }[],
+  tension = 0.3
+): string {
+  if (points.length < 2) return "";
+  if (points.length === 2) return `M${points[0].x},${points[0].y} L${points[1].x},${points[1].y}`;
+
+  let d = `M${points[0].x},${points[0].y}`;
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(i - 1, 0)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(i + 2, points.length - 1)];
+
+    const cp1x = p1.x + ((p2.x - p0.x) * tension) / 3;
+    const cp1y = p1.y + ((p2.y - p0.y) * tension) / 3;
+    const cp2x = p2.x - ((p3.x - p1.x) * tension) / 3;
+    const cp2y = p2.y - ((p3.y - p1.y) * tension) / 3;
+
+    d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+  }
+
+  return d;
+}
+
 interface WaypointItem {
   id: string;
   name: string;
@@ -69,7 +96,6 @@ export function ElevationProfile({
   onHazardClick,
 }: ElevationProfileProps) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const [hoverMarker, setHoverMarker] = useState<{ xPercent: number; y: number; elevation: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isFloating = markerStyle === "floating";
 
@@ -136,34 +162,32 @@ export function ElevationProfile({
     };
   }, [preElevations, preDistances, preTotalAscent, preTotalDescent, coordinates]);
 
-  // Generate SVG line path (no area fill)
+  // Generate smooth Catmull-Rom spline SVG path
+  const svgPoints = useMemo(() => {
+    if (!elevationData || elevationData.elevations.length < 2) return [];
+    return elevationData.elevations.map((elev, i) => ({
+      x: (elevationData.distances[i] / elevationData.totalDistance) * 400,
+      y: 100 - ((elev - elevationData.minElevation) / elevationData.range) * 100,
+    }));
+  }, [elevationData]);
+
   const svgLinePath = useMemo(() => {
-    if (!elevationData || elevationData.elevations.length < 2) return "";
+    if (svgPoints.length < 2) return "";
+    return catmullRomToSvg(svgPoints);
+  }, [svgPoints]);
 
-    const points = elevationData.elevations.map((elev, i) => {
-      const x = (elevationData.distances[i] / elevationData.totalDistance) * 400;
-      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 100;
-      return `${x},${y}`;
-    });
-
-    return `M${points[0]} L${points.join(" L")}`;
-  }, [elevationData]);
-
-  // Generate SVG area fill path (Komoot-style)
+  // Generate SVG area fill path (gradient below line, stops partway)
   const svgAreaPath = useMemo(() => {
-    if (!elevationData || elevationData.elevations.length < 2) return "";
-
-    const points = elevationData.elevations.map((elev, i) => {
-      const x = (elevationData.distances[i] / elevationData.totalDistance) * 400;
-      const y = 100 - ((elev - elevationData.minElevation) / elevationData.range) * 100;
-      return `${x},${y}`;
-    });
-
-    const firstX = (elevationData.distances[0] / elevationData.totalDistance) * 400;
-    const lastX = (elevationData.distances[elevationData.distances.length - 1] / elevationData.totalDistance) * 400;
-
-    return `M${points[0]} L${points.join(" L")} L${lastX},100 L${firstX},100 Z`;
-  }, [elevationData]);
+    if (svgPoints.length < 2) return "";
+    // Find the lowest point on the line (highest Y in SVG coords)
+    const maxY = Math.max(...svgPoints.map((p) => p.y));
+    // Gradient fade-out target: 40% of the distance from line bottom to chart bottom
+    const fadeBottom = Math.min(maxY + (100 - maxY) * 0.45, 98);
+    const curvePath = catmullRomToSvg(svgPoints);
+    const lastPt = svgPoints[svgPoints.length - 1];
+    const firstPt = svgPoints[0];
+    return `${curvePath} L${lastPt.x},${fadeBottom} L${firstPt.x},${fadeBottom} Z`;
+  }, [svgPoints]);
 
   // Key points: start, end, highest, lowest (inline mode only)
   const keyPoints = useMemo(() => {
@@ -359,23 +383,9 @@ export function ElevationProfile({
   const activeElevation = activeIndex !== null ? elevationData.elevations[activeIndex] : null;
   const activeDistance = activeIndex !== null ? elevationData.distances[activeIndex] : null;
 
-  const yMin = elevationData.minElevation;
-  const yMax = elevationData.maxElevation;
-  const yMid = Math.round((yMin + yMax) / 2);
-
   return (
-    <div className={cn("bg-[#f8f6f3] rounded-lg p-3 flex flex-col overflow-hidden", className)}>
-      <div className="flex gap-1 flex-1 min-h-0">
-        {/* Y-axis */}
-        <div className="flex flex-col justify-end text-[9px] text-slate-400 font-light pr-1 w-10 text-right flex-shrink-0 pb-0.5">
-          <div className="h-14 flex-shrink-0" />
-          <div className="flex flex-col justify-between flex-1 py-0.5">
-            <span>{Math.round(yMax)}m</span>
-            <span>{yMid}m</span>
-            <span>{Math.round(yMin)}m</span>
-          </div>
-        </div>
-
+    <div className={cn("rounded-lg p-3 flex flex-col overflow-hidden", className)}>
+      <div className="flex flex-1 min-h-0">
         {/* Chart + markers column */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Floating markers gutter (always present for layout consistency) */}
@@ -429,26 +439,11 @@ export function ElevationProfile({
             >
               <defs>
                 <linearGradient id="elevationGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#8B9D83" stopOpacity="0.04" />
-                  <stop offset="50%" stopColor="#A8B99E" stopOpacity="0.025" />
-                  <stop offset="100%" stopColor="#C5D3BC" stopOpacity="0.01" />
+                  <stop offset="0%" stopColor="#267347" stopOpacity="0.35" />
+                  <stop offset="60%" stopColor="#267347" stopOpacity="0.08" />
+                  <stop offset="100%" stopColor="#267347" stopOpacity="0" />
                 </linearGradient>
               </defs>
-
-              {/* Subtle horizontal grid lines */}
-              {[20, 40, 60, 80].map(y => (
-                <line
-                  key={`grid-${y}`}
-                  x1="0"
-                  y1={y}
-                  x2="400"
-                  y2={y}
-                  stroke="#B8B8B8"
-                  strokeWidth="0.4"
-                  strokeDasharray="2,4"
-                  opacity="0.55"
-                />
-              ))}
 
               {/* Area fill (Komoot-style soft gradient) */}
               <path
@@ -471,12 +466,12 @@ export function ElevationProfile({
                 />
               ))}
 
-              {/* Line path (refined stroke like Komoot) */}
+              {/* Elevation line */}
               <path
                 d={svgLinePath}
                 fill="none"
-                stroke="#7A8F6F"
-                strokeWidth="1.2"
+                stroke="#267347"
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 vectorEffect="non-scaling-stroke"
@@ -489,7 +484,7 @@ export function ElevationProfile({
                   y1="0"
                   x2={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 400}
                   y2="100"
-                  stroke="#16A34A"
+                  stroke="#267347"
                   strokeWidth="0.5"
                   strokeDasharray="2,2"
                 />
@@ -520,7 +515,7 @@ export function ElevationProfile({
                   transform: "translate(-50%, -50%)",
                 }}
               >
-                <div className="w-2.5 h-2.5 rounded-full bg-white border-2 border-green-600" />
+                <div className="w-2.5 h-2.5 rounded-full bg-white border-2 border-[#267347]" />
                 <div
                   className="absolute left-1/2 -translate-x-1/2 text-[10px] font-semibold text-gray-700 whitespace-nowrap"
                   style={{
@@ -582,7 +577,7 @@ export function ElevationProfile({
                   transform: "translate(-50%, -50%)",
                 }}
               >
-                <div className="w-3 h-3 rounded-full bg-green-600 border-2 border-white shadow" />
+                <div className="w-3 h-3 rounded-full bg-[#267347] border-2 border-white shadow" />
               </div>
             )}
 
@@ -604,7 +599,7 @@ export function ElevationProfile({
       </div>
 
       {/* X-axis labels */}
-      <div className="flex justify-between text-[9px] text-slate-400 font-light mt-1 ml-11 flex-shrink-0">
+      <div className="flex justify-between text-[9px] text-slate-400 font-light mt-1 flex-shrink-0">
         <span>0</span>
         <span>{(distanceKm / 4).toFixed(1)}</span>
         <span>{(distanceKm / 2).toFixed(1)}</span>
