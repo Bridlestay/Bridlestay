@@ -4,8 +4,8 @@ import { useState, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
 // SVG coordinate padding — gives curves room to overshoot without clipping
-const SVG_Y_TOP = 8;
-const SVG_Y_BOTTOM = 85;
+const SVG_Y_TOP = 5;
+const SVG_Y_BOTTOM = 72;
 const SVG_Y_RANGE = SVG_Y_BOTTOM - SVG_Y_TOP;
 
 // Map elevation to padded SVG y coordinate
