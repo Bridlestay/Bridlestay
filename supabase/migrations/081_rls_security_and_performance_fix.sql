@@ -15,20 +15,40 @@
 -- STEP 1: ENABLE RLS ON ALL TABLES
 -- ============================================
 -- These are safe to re-run; ENABLE is idempotent.
+-- Tables that may not exist on live DB are wrapped in DO blocks.
 
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE host_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
-ALTER TABLE property_facilities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE property_photos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE availability_blocks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
-ALTER TABLE host_replies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE routes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE route_pins ENABLE ROW LEVEL SECURITY;
-ALTER TABLE property_amenities ENABLE ROW LEVEL SECURITY;
-ALTER TABLE property_equine ENABLE ROW LEVEL SECURITY;
+
+-- Tables that may not exist (created in early migrations but possibly never applied)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_facilities') THEN
+    ALTER TABLE property_facilities ENABLE ROW LEVEL SECURITY;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'reviews') THEN
+    ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'host_replies') THEN
+    ALTER TABLE host_replies ENABLE ROW LEVEL SECURITY;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'route_pins') THEN
+    ALTER TABLE route_pins ENABLE ROW LEVEL SECURITY;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_amenities') THEN
+    ALTER TABLE property_amenities ENABLE ROW LEVEL SECURITY;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_equine') THEN
+    ALTER TABLE property_equine ENABLE ROW LEVEL SECURITY;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'route_recordings') THEN
+    ALTER TABLE route_recordings ENABLE ROW LEVEL SECURITY;
+  END IF;
+END $$;
 ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE property_questions ENABLE ROW LEVEL SECURITY;
@@ -116,9 +136,13 @@ DROP POLICY IF EXISTS "Hosts can insert their own properties" ON properties;
 DROP POLICY IF EXISTS "Hosts can update their own properties" ON properties;
 DROP POLICY IF EXISTS "Hosts can delete their own properties" ON properties;
 
--- property_facilities
-DROP POLICY IF EXISTS "Anyone can view facilities" ON property_facilities;
-DROP POLICY IF EXISTS "Hosts can manage own facilities" ON property_facilities;
+-- property_facilities (may not exist on live DB)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_facilities') THEN
+    DROP POLICY IF EXISTS "Anyone can view facilities" ON property_facilities;
+    DROP POLICY IF EXISTS "Hosts can manage own facilities" ON property_facilities;
+  END IF;
+END $$;
 
 -- property_photos
 DROP POLICY IF EXISTS "Anyone can view photos" ON property_photos;
@@ -133,13 +157,21 @@ DROP POLICY IF EXISTS "Guests can view own bookings" ON bookings;
 DROP POLICY IF EXISTS "Guests can create bookings" ON bookings;
 DROP POLICY IF EXISTS "Hosts and guests can update relevant bookings" ON bookings;
 
--- reviews (legacy)
-DROP POLICY IF EXISTS "Anyone can view reviews" ON reviews;
-DROP POLICY IF EXISTS "Guests can create reviews for their bookings" ON reviews;
+-- reviews (legacy — may not exist)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'reviews') THEN
+    DROP POLICY IF EXISTS "Anyone can view reviews" ON reviews;
+    DROP POLICY IF EXISTS "Guests can create reviews for their bookings" ON reviews;
+  END IF;
+END $$;
 
--- host_replies (legacy)
-DROP POLICY IF EXISTS "Anyone can view host replies" ON host_replies;
-DROP POLICY IF EXISTS "Hosts can reply to reviews of their properties" ON host_replies;
+-- host_replies (legacy — may not exist)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'host_replies') THEN
+    DROP POLICY IF EXISTS "Anyone can view host replies" ON host_replies;
+    DROP POLICY IF EXISTS "Hosts can reply to reviews of their properties" ON host_replies;
+  END IF;
+END $$;
 
 -- routes
 DROP POLICY IF EXISTS "Anyone can view routes" ON routes;
@@ -147,17 +179,29 @@ DROP POLICY IF EXISTS "Admins can manage routes" ON routes;
 DROP POLICY IF EXISTS "routes_visibility_select" ON routes;
 DROP POLICY IF EXISTS routes_public_select ON routes;
 
--- route_pins
-DROP POLICY IF EXISTS "Anyone can view route pins" ON route_pins;
-DROP POLICY IF EXISTS "Admins can manage route pins" ON route_pins;
+-- route_pins (legacy — may not exist)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'route_pins') THEN
+    DROP POLICY IF EXISTS "Anyone can view route pins" ON route_pins;
+    DROP POLICY IF EXISTS "Admins can manage route pins" ON route_pins;
+  END IF;
+END $$;
 
--- property_amenities
-DROP POLICY IF EXISTS "Public can read amenities for published properties" ON property_amenities;
-DROP POLICY IF EXISTS "Hosts can manage their own property amenities" ON property_amenities;
+-- property_amenities (may not exist)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_amenities') THEN
+    DROP POLICY IF EXISTS "Public can read amenities for published properties" ON property_amenities;
+    DROP POLICY IF EXISTS "Hosts can manage their own property amenities" ON property_amenities;
+  END IF;
+END $$;
 
--- property_equine
-DROP POLICY IF EXISTS "Public can read equine facilities for published properties" ON property_equine;
-DROP POLICY IF EXISTS "Hosts can manage their own property equine facilities" ON property_equine;
+-- property_equine (should exist but wrapping for safety)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_equine') THEN
+    DROP POLICY IF EXISTS "Public can read equine facilities for published properties" ON property_equine;
+    DROP POLICY IF EXISTS "Hosts can manage their own property equine facilities" ON property_equine;
+  END IF;
+END $$;
 
 -- favorites
 DROP POLICY IF EXISTS "Users can view their own favorites" ON favorites;
@@ -290,11 +334,15 @@ DROP POLICY IF EXISTS "route_point_comments_insert" ON route_point_comments;
 DROP POLICY IF EXISTS "route_point_comments_update" ON route_point_comments;
 DROP POLICY IF EXISTS "route_point_comments_delete" ON route_point_comments;
 
--- route_recordings
-DROP POLICY IF EXISTS "route_recordings_select" ON route_recordings;
-DROP POLICY IF EXISTS "route_recordings_insert" ON route_recordings;
-DROP POLICY IF EXISTS "route_recordings_update" ON route_recordings;
-DROP POLICY IF EXISTS "route_recordings_delete" ON route_recordings;
+-- route_recordings (may not exist)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'route_recordings') THEN
+    DROP POLICY IF EXISTS "route_recordings_select" ON route_recordings;
+    DROP POLICY IF EXISTS "route_recordings_insert" ON route_recordings;
+    DROP POLICY IF EXISTS "route_recordings_update" ON route_recordings;
+    DROP POLICY IF EXISTS "route_recordings_delete" ON route_recordings;
+  END IF;
+END $$;
 
 -- referral_codes
 DROP POLICY IF EXISTS "Users can view own referral code" ON referral_codes;
@@ -521,20 +569,14 @@ CREATE POLICY "properties_delete" ON properties
   );
 
 -- ----------------------------------------
--- property_facilities
+-- property_facilities (may not exist on live DB)
 -- ----------------------------------------
-CREATE POLICY "property_facilities_select" ON property_facilities
-  FOR SELECT USING (true);
-
-CREATE POLICY "property_facilities_manage" ON property_facilities
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM properties
-      WHERE properties.id = property_facilities.property_id
-      AND properties.host_id = (select auth.uid())
-    ) OR
-    EXISTS (SELECT 1 FROM users WHERE id = (select auth.uid()) AND role = 'admin')
-  );
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_facilities') THEN
+    EXECUTE 'CREATE POLICY "property_facilities_select" ON property_facilities FOR SELECT USING (true)';
+    EXECUTE 'CREATE POLICY "property_facilities_manage" ON property_facilities FOR ALL USING (EXISTS (SELECT 1 FROM properties WHERE properties.id = property_facilities.property_id AND properties.host_id = (select auth.uid())) OR EXISTS (SELECT 1 FROM users WHERE id = (select auth.uid()) AND role = ''admin''))';
+  END IF;
+END $$;
 
 -- ----------------------------------------
 -- property_photos
@@ -597,38 +639,24 @@ CREATE POLICY "bookings_update" ON bookings
   );
 
 -- ----------------------------------------
--- reviews (legacy table)
+-- reviews (legacy table — may not exist)
 -- ----------------------------------------
-CREATE POLICY "reviews_select" ON reviews
-  FOR SELECT USING (true);
-
-CREATE POLICY "reviews_insert" ON reviews
-  FOR INSERT WITH CHECK (
-    (select auth.uid()) = guest_id AND
-    EXISTS (
-      SELECT 1 FROM bookings
-      WHERE bookings.id = reviews.booking_id
-      AND bookings.guest_id = (select auth.uid())
-      AND bookings.status = 'completed'
-    )
-  );
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'reviews') THEN
+    EXECUTE 'CREATE POLICY "reviews_select" ON reviews FOR SELECT USING (true)';
+    EXECUTE 'CREATE POLICY "reviews_insert" ON reviews FOR INSERT WITH CHECK ((select auth.uid()) = guest_id AND EXISTS (SELECT 1 FROM bookings WHERE bookings.id = reviews.booking_id AND bookings.guest_id = (select auth.uid()) AND bookings.status = ''completed''))';
+  END IF;
+END $$;
 
 -- ----------------------------------------
--- host_replies (legacy table)
+-- host_replies (legacy table — may not exist)
 -- ----------------------------------------
-CREATE POLICY "host_replies_select" ON host_replies
-  FOR SELECT USING (true);
-
-CREATE POLICY "host_replies_insert" ON host_replies
-  FOR INSERT WITH CHECK (
-    (select auth.uid()) = host_id AND
-    EXISTS (
-      SELECT 1 FROM reviews
-      JOIN properties ON reviews.property_id = properties.id
-      WHERE reviews.id = host_replies.review_id
-      AND properties.host_id = (select auth.uid())
-    )
-  );
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'host_replies') THEN
+    EXECUTE 'CREATE POLICY "host_replies_select" ON host_replies FOR SELECT USING (true)';
+    EXECUTE 'CREATE POLICY "host_replies_insert" ON host_replies FOR INSERT WITH CHECK ((select auth.uid()) = host_id AND EXISTS (SELECT 1 FROM reviews JOIN properties ON reviews.property_id = properties.id WHERE reviews.id = host_replies.review_id AND properties.host_id = (select auth.uid())))';
+  END IF;
+END $$;
 
 -- ----------------------------------------
 -- routes
@@ -653,57 +681,34 @@ CREATE POLICY "routes_owner_manage" ON routes
   WITH CHECK (owner_user_id = (select auth.uid()));
 
 -- ----------------------------------------
--- route_pins (legacy)
+-- route_pins (legacy — may not exist)
 -- ----------------------------------------
-CREATE POLICY "route_pins_select" ON route_pins
-  FOR SELECT USING (true);
-
-CREATE POLICY "route_pins_admin_manage" ON route_pins
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM users WHERE id = (select auth.uid()) AND role = 'admin')
-  );
-
--- ----------------------------------------
--- property_amenities
--- ----------------------------------------
-CREATE POLICY "property_amenities_select" ON property_amenities
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM properties
-      WHERE properties.id = property_amenities.property_id
-      AND properties.published = true
-    )
-  );
-
-CREATE POLICY "property_amenities_manage" ON property_amenities
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM properties
-      WHERE properties.id = property_amenities.property_id
-      AND properties.host_id = (select auth.uid())
-    )
-  );
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'route_pins') THEN
+    EXECUTE 'CREATE POLICY "route_pins_select" ON route_pins FOR SELECT USING (true)';
+    EXECUTE 'CREATE POLICY "route_pins_admin_manage" ON route_pins FOR ALL USING (EXISTS (SELECT 1 FROM users WHERE id = (select auth.uid()) AND role = ''admin''))';
+  END IF;
+END $$;
 
 -- ----------------------------------------
--- property_equine
+-- property_amenities (may not exist)
 -- ----------------------------------------
-CREATE POLICY "property_equine_select" ON property_equine
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM properties
-      WHERE properties.id = property_equine.property_id
-      AND properties.published = true
-    )
-  );
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_amenities') THEN
+    EXECUTE 'CREATE POLICY "property_amenities_select" ON property_amenities FOR SELECT USING (EXISTS (SELECT 1 FROM properties WHERE properties.id = property_amenities.property_id AND properties.published = true))';
+    EXECUTE 'CREATE POLICY "property_amenities_manage" ON property_amenities FOR ALL USING (EXISTS (SELECT 1 FROM properties WHERE properties.id = property_amenities.property_id AND properties.host_id = (select auth.uid())))';
+  END IF;
+END $$;
 
-CREATE POLICY "property_equine_manage" ON property_equine
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM properties
-      WHERE properties.id = property_equine.property_id
-      AND properties.host_id = (select auth.uid())
-    )
-  );
+-- ----------------------------------------
+-- property_equine (wrapping for safety)
+-- ----------------------------------------
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_equine') THEN
+    EXECUTE 'CREATE POLICY "property_equine_select" ON property_equine FOR SELECT USING (EXISTS (SELECT 1 FROM properties WHERE properties.id = property_equine.property_id AND properties.published = true))';
+    EXECUTE 'CREATE POLICY "property_equine_manage" ON property_equine FOR ALL USING (EXISTS (SELECT 1 FROM properties WHERE properties.id = property_equine.property_id AND properties.host_id = (select auth.uid())))';
+  END IF;
+END $$;
 
 -- ----------------------------------------
 -- favorites
@@ -1137,19 +1142,16 @@ CREATE POLICY "route_point_comments_delete" ON route_point_comments
   FOR DELETE USING (user_id = (select auth.uid()));
 
 -- ----------------------------------------
--- route_recordings
+-- route_recordings (may not exist)
 -- ----------------------------------------
-CREATE POLICY "route_recordings_select" ON route_recordings
-  FOR SELECT USING (user_id = (select auth.uid()));
-
-CREATE POLICY "route_recordings_insert" ON route_recordings
-  FOR INSERT WITH CHECK (user_id = (select auth.uid()));
-
-CREATE POLICY "route_recordings_update" ON route_recordings
-  FOR UPDATE USING (user_id = (select auth.uid()));
-
-CREATE POLICY "route_recordings_delete" ON route_recordings
-  FOR DELETE USING (user_id = (select auth.uid()));
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'route_recordings') THEN
+    EXECUTE 'CREATE POLICY "route_recordings_select" ON route_recordings FOR SELECT USING (user_id = (select auth.uid()))';
+    EXECUTE 'CREATE POLICY "route_recordings_insert" ON route_recordings FOR INSERT WITH CHECK (user_id = (select auth.uid()))';
+    EXECUTE 'CREATE POLICY "route_recordings_update" ON route_recordings FOR UPDATE USING (user_id = (select auth.uid()))';
+    EXECUTE 'CREATE POLICY "route_recordings_delete" ON route_recordings FOR DELETE USING (user_id = (select auth.uid()))';
+  END IF;
+END $$;
 
 -- ----------------------------------------
 -- referral_codes
