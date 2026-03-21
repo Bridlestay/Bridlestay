@@ -3,6 +3,16 @@
 import { useState, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
+// SVG coordinate padding — gives curves room to overshoot without clipping
+const SVG_Y_TOP = 8;
+const SVG_Y_BOTTOM = 85;
+const SVG_Y_RANGE = SVG_Y_BOTTOM - SVG_Y_TOP;
+
+// Map elevation to padded SVG y coordinate
+function elevToY(elev: number, minElev: number, range: number): number {
+  return SVG_Y_BOTTOM - ((elev - minElev) / range) * SVG_Y_RANGE;
+}
+
 // Catmull-Rom spline → cubic Bezier SVG path
 function catmullRomToSvg(
   points: { x: number; y: number }[],
@@ -95,7 +105,13 @@ export function ElevationProfile({
   onWaypointClick,
   onHazardClick,
 }: ElevationProfileProps) {
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [hoverData, setHoverData] = useState<{
+    xPercent: number;
+    yPercent: number;
+    elevation: number;
+    distance: number;
+    index: number;
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isFloating = markerStyle === "floating";
 
@@ -167,7 +183,7 @@ export function ElevationProfile({
     if (!elevationData || elevationData.elevations.length < 2) return [];
     return elevationData.elevations.map((elev, i) => ({
       x: (elevationData.distances[i] / elevationData.totalDistance) * 400,
-      y: 100 - ((elev - elevationData.minElevation) / elevationData.range) * 100,
+      y: elevToY(elev, elevationData.minElevation, elevationData.range),
     }));
   }, [elevationData]);
 
@@ -179,14 +195,12 @@ export function ElevationProfile({
   // Generate SVG area fill path (gradient below line, stops partway)
   const svgAreaPath = useMemo(() => {
     if (svgPoints.length < 2) return "";
-    // Find the lowest point on the line (highest Y in SVG coords)
-    const maxY = Math.max(...svgPoints.map((p) => p.y));
-    // Gradient fade-out target: 40% of the distance from line bottom to chart bottom
-    const fadeBottom = Math.min(maxY + (100 - maxY) * 0.45, 98);
+    // Area extends from the line down to 95 (leaving some space above 100)
+    const areaBottom = 95;
     const curvePath = catmullRomToSvg(svgPoints);
     const lastPt = svgPoints[svgPoints.length - 1];
     const firstPt = svgPoints[0];
-    return `${curvePath} L${lastPt.x},${fadeBottom} L${firstPt.x},${fadeBottom} Z`;
+    return `${curvePath} L${lastPt.x},${areaBottom} L${firstPt.x},${areaBottom} Z`;
   }, [svgPoints]);
 
   // Key points: start, end, highest, lowest (inline mode only)
@@ -197,7 +211,7 @@ export function ElevationProfile({
 
     const toSvg = (i: number) => ({
       x: (distances[i] / totalDistance) * 100,
-      y: 100 - ((elevations[i] - minElevation) / range) * 100,
+      y: elevToY(elevations[i], minElevation, range),
       elevation: Math.round(elevations[i]),
     });
 
@@ -238,7 +252,7 @@ export function ElevationProfile({
       .filter((wp) => wp.elevation !== undefined)
       .map((wp) => {
         const x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 100, 1), 99);
-        const y = 100 - ((wp.elevation! - minElevation) / range) * 100;
+        const y = elevToY(wp.elevation!, minElevation, range);
         return { ...wp, x, y };
       });
   }, [elevationData, waypoints, isFloating]);
@@ -253,7 +267,7 @@ export function ElevationProfile({
       .filter((h) => h.elevation !== undefined)
       .map((h) => {
         const x = Math.min(Math.max((h.distanceFromStart / totalDistance) * 100, 1), 99);
-        const y = 100 - ((h.elevation! - minElevation) / range) * 100;
+        const y = elevToY(h.elevation!, minElevation, range);
         return { ...h, x, y };
       });
   }, [elevationData, hazards, isFloating]);
@@ -289,7 +303,7 @@ export function ElevationProfile({
       } else {
         x = Math.min(Math.max((wp.distanceFromStart / totalDistance) * 100, 1), 99);
       }
-      const y = 100 - ((wp.elevation - minElevation) / range) * 100;
+      const y = elevToY(wp.elevation, minElevation, range);
       const label =
         wp.type === "start" ? "S" :
         wp.type === "finish" ? "F" :
@@ -316,7 +330,7 @@ export function ElevationProfile({
       if (h.elevation === undefined) return;
       // Hazards use GPS-based position, but clamp to 0.5%-99.5% to avoid edge overlap
       const x = Math.min(Math.max((h.distanceFromStart / totalDistance) * 100, 0.5), 99.5);
-      const y = 100 - ((h.elevation - minElevation) / range) * 100;
+      const y = elevToY(h.elevation, minElevation, range);
       all.push({
         id: h.id,
         markerType: "hazard",
@@ -352,36 +366,54 @@ export function ElevationProfile({
     if (!containerRef.current || !elevationData) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const targetDist = x * elevationData.totalDistance;
+    const xFrac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const targetDist = xFrac * elevationData.totalDistance;
 
     const dists = elevationData.distances;
-    let lo = 0;
-    let hi = dists.length - 1;
-    while (lo < hi) {
-      const mid = Math.floor((lo + hi) / 2);
-      if (dists[mid] < targetDist) lo = mid + 1;
-      else hi = mid;
-    }
-    let idx = lo;
-    if (idx > 0 && Math.abs(dists[idx - 1] - targetDist) < Math.abs(dists[idx] - targetDist)) {
-      idx = idx - 1;
-    }
+    const elevs = elevationData.elevations;
 
-    setHoverIndex(idx);
-    if (coordinates && coordinates[idx]) {
-      onHover?.(idx, { lat: coordinates[idx][1], lng: coordinates[idx][0] });
+    // Find surrounding indices for interpolation
+    let hi = 1;
+    while (hi < dists.length - 1 && dists[hi] < targetDist) hi++;
+    const lo = hi - 1;
+
+    // Linearly interpolate between the two surrounding points
+    const segLen = dists[hi] - dists[lo];
+    const t = segLen > 0 ? (targetDist - dists[lo]) / segLen : 0;
+    const interpElev = elevs[lo] + t * (elevs[hi] - elevs[lo]);
+    const interpY = elevToY(interpElev, elevationData.minElevation, elevationData.range);
+
+    // Nearest index for callback
+    const nearIdx = Math.abs(dists[lo] - targetDist) <= Math.abs(dists[hi] - targetDist) ? lo : hi;
+
+    setHoverData({
+      xPercent: xFrac * 100,
+      yPercent: interpY,
+      elevation: interpElev,
+      distance: targetDist,
+      index: nearIdx,
+    });
+
+    if (coordinates && coordinates[nearIdx]) {
+      onHover?.(nearIdx, { lat: coordinates[nearIdx][1], lng: coordinates[nearIdx][0] });
     }
   };
 
   const handleMouseLeave = () => {
-    setHoverIndex(null);
+    setHoverData(null);
     onHover?.(null, null);
   };
 
-  const activeIndex = highlightIndex ?? hoverIndex;
-  const activeElevation = activeIndex !== null ? elevationData.elevations[activeIndex] : null;
-  const activeDistance = activeIndex !== null ? elevationData.distances[activeIndex] : null;
+  // Highlight from external prop falls back to discrete index positioning
+  const externalHighlight = highlightIndex !== null && highlightIndex !== undefined ? {
+    xPercent: (elevationData.distances[highlightIndex] / elevationData.totalDistance) * 100,
+    yPercent: elevToY(elevationData.elevations[highlightIndex], elevationData.minElevation, elevationData.range),
+    elevation: elevationData.elevations[highlightIndex],
+    distance: elevationData.distances[highlightIndex],
+    index: highlightIndex,
+  } : null;
+
+  const active = externalHighlight ?? hoverData;
 
   return (
     <div className={cn("rounded-lg p-3 flex flex-col overflow-hidden", className)}>
@@ -428,7 +460,8 @@ export function ElevationProfile({
           {/* Chart area */}
           <div
             ref={containerRef}
-            className="relative flex-1 min-h-0 cursor-crosshair"
+            className="relative flex-1 cursor-crosshair"
+            style={{ minHeight: 180 }}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
           >
@@ -478,11 +511,11 @@ export function ElevationProfile({
               />
 
               {/* Hover line */}
-              {activeIndex !== null && (
+              {active && (
                 <line
-                  x1={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 400}
+                  x1={active.xPercent * 4}
                   y1="0"
-                  x2={(elevationData.distances[activeIndex] / elevationData.totalDistance) * 400}
+                  x2={active.xPercent * 4}
                   y2="100"
                   stroke="#267347"
                   strokeWidth="0.5"
@@ -568,12 +601,12 @@ export function ElevationProfile({
             ))}
 
             {/* Hover point */}
-            {activeIndex !== null && (
+            {active && (
               <div
                 className="absolute pointer-events-none"
                 style={{
-                  left: `${(elevationData.distances[activeIndex] / elevationData.totalDistance) * 100}%`,
-                  top: `${100 - ((elevationData.elevations[activeIndex] - elevationData.minElevation) / elevationData.range) * 100}%`,
+                  left: `${active.xPercent}%`,
+                  top: `${active.yPercent}%`,
                   transform: "translate(-50%, -50%)",
                 }}
               >
@@ -582,16 +615,17 @@ export function ElevationProfile({
             )}
 
             {/* Hover tooltip */}
-            {activeIndex !== null && activeElevation !== null && activeDistance !== null && (
+            {active && (
               <div
-                className="absolute top-0 bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg pointer-events-none z-10"
+                className="absolute bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg pointer-events-none z-10"
                 style={{
-                  left: `${Math.min(Math.max((elevationData.distances[activeIndex] / elevationData.totalDistance) * 100, 10), 90)}%`,
-                  transform: "translateX(-50%)",
+                  left: `${Math.min(Math.max(active.xPercent, 8), 92)}%`,
+                  top: `${Math.max(active.yPercent - 2, 0)}%`,
+                  transform: "translate(-50%, -100%)",
                 }}
               >
-                <div>{Math.round(activeElevation)}m</div>
-                <div className="text-gray-400">{activeDistance.toFixed(2)} km</div>
+                <div>{Math.round(active.elevation)}m</div>
+                <div className="text-gray-400">{active.distance.toFixed(2)} km</div>
               </div>
             )}
           </div>
