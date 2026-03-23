@@ -9,7 +9,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Tooltip,
   TooltipContent,
@@ -386,64 +385,55 @@ export function RouteCreator({
 
         {/* Visibility */}
         <div className="space-y-3">
-          <Label className="text-sm font-medium">Who can see this route?</Label>
-          <RadioGroup
-            value={visibility}
-            onValueChange={(v) => setVisibility(v as typeof visibility)}
-            className="space-y-2"
-          >
-            <label 
-              htmlFor="private"
-              className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                visibility === "private" ? "border-primary bg-primary/5" : "hover:bg-muted/50"
-              }`}
-            >
-              <RadioGroupItem value="private" id="private" className="mt-0.5" />
-              <div className="flex-1">
-                <div className="font-medium flex items-center gap-2">
-                  <Lock className="h-4 w-4" />
-                  Private
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Only you can see this route
+          <Label className="text-sm font-medium">Visibility</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              {
+                value: "public" as const,
+                icon: Globe,
+                label: "Public",
+                desc: "Public access to this route",
+              },
+              {
+                value: "link" as const,
+                icon: Link2,
+                label: "Anyone with\nLink",
+                desc: "Anyone with a link can access this route",
+              },
+              {
+                value: "private" as const,
+                icon: Lock,
+                label: "Private",
+                desc: "Private link to access to this route",
+              },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setVisibility(opt.value)}
+                className={cn(
+                  "flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 cursor-pointer transition-all text-center",
+                  visibility === opt.value
+                    ? "border-[#267347] bg-[#267347]/5 shadow-sm"
+                    : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
+                )}
+              >
+                <opt.icon className={cn(
+                  "h-5 w-5",
+                  visibility === opt.value ? "text-[#267347]" : "text-muted-foreground"
+                )} />
+                <span className={cn(
+                  "text-xs font-medium leading-tight whitespace-pre-line",
+                  visibility === opt.value ? "text-foreground" : "text-muted-foreground"
+                )}>
+                  {opt.label}
+                </span>
+                <p className="text-[10px] text-muted-foreground leading-tight">
+                  {opt.desc}
                 </p>
-              </div>
-            </label>
-            <label 
-              htmlFor="link"
-              className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                visibility === "link" ? "border-primary bg-primary/5" : "hover:bg-muted/50"
-              }`}
-            >
-              <RadioGroupItem value="link" id="link" className="mt-0.5" />
-              <div className="flex-1">
-                <div className="font-medium flex items-center gap-2">
-                  <Link2 className="h-4 w-4" />
-                  Anyone with Link
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Only people with a link can see
-                </p>
-              </div>
-            </label>
-            <label 
-              htmlFor="public"
-              className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                visibility === "public" ? "border-primary bg-primary/5" : "hover:bg-muted/50"
-              }`}
-            >
-              <RadioGroupItem value="public" id="public" className="mt-0.5" />
-              <div className="flex-1">
-                <div className="font-medium flex items-center gap-2">
-                  <Globe className="h-4 w-4" />
-                  Public
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Anyone can see the route
-                </p>
-              </div>
-            </label>
-          </RadioGroup>
+              </button>
+            ))}
+          </div>
         </div>
 
         <Separator />

@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -527,60 +526,54 @@ export function SaveRouteModal({
             {/* Visibility */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Visibility</Label>
-              <RadioGroup
-                value={visibility}
-                onValueChange={(v) =>
-                  setVisibility(v as typeof visibility)
-                }
-                className="space-y-1.5"
-              >
+              <div className="grid grid-cols-3 gap-2">
                 {[
                   {
                     value: "public" as const,
                     icon: Globe,
                     label: "Public",
-                    desc: "Anyone can see the route",
+                    desc: "Public access to this route",
                   },
                   {
                     value: "link" as const,
                     icon: Link2,
-                    label: "Anyone with Link",
-                    desc: "Only people with a link can see",
+                    label: "Anyone with\nLink",
+                    desc: "Anyone with a link can access this route",
                   },
                   {
                     value: "private" as const,
                     icon: Lock,
                     label: "Private",
-                    desc: "Only you can see this route",
+                    desc: "Private link to access to this route",
                   },
                 ].map((opt) => (
-                  <label
+                  <button
                     key={opt.value}
-                    htmlFor={`vis-${opt.value}`}
+                    type="button"
+                    onClick={() => setVisibility(opt.value)}
                     className={cn(
-                      "flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                      "flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 cursor-pointer transition-all text-center",
                       visibility === opt.value
-                        ? "border-green-600 bg-green-50/50"
-                        : "hover:bg-muted/50"
+                        ? "border-[#267347] bg-[#267347]/5 shadow-sm"
+                        : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
                     )}
                   >
-                    <RadioGroupItem
-                      value={opt.value}
-                      id={`vis-${opt.value}`}
-                      className="mt-0.5"
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium text-sm flex items-center gap-2">
-                        <opt.icon className="h-3.5 w-3.5" />
-                        {opt.label}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {opt.desc}
-                      </p>
-                    </div>
-                  </label>
+                    <opt.icon className={cn(
+                      "h-5 w-5",
+                      visibility === opt.value ? "text-[#267347]" : "text-muted-foreground"
+                    )} />
+                    <span className={cn(
+                      "text-xs font-medium leading-tight whitespace-pre-line",
+                      visibility === opt.value ? "text-foreground" : "text-muted-foreground"
+                    )}>
+                      {opt.label}
+                    </span>
+                    <p className="text-[10px] text-muted-foreground leading-tight">
+                      {opt.desc}
+                    </p>
+                  </button>
                 ))}
-              </RadioGroup>
+              </div>
             </div>
 
             {/* Difficulty */}

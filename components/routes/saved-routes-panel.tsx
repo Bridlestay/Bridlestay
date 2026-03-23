@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X, Search, ImageIcon, Shuffle } from "lucide-react";
+import { X, Search, ImageIcon, Shuffle, Globe, Link2, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getRouteThumbnailUrlAuto } from "@/lib/routes/route-thumbnail";
 
@@ -353,7 +353,7 @@ export function SavedRoutesPanel({
                           </div>
                         </div>
 
-                        {/* Difficulty + reviews */}
+                        {/* Difficulty + visibility */}
                         <div className="flex items-center justify-between mt-3">
                           <Badge
                             variant="outline"
@@ -368,6 +368,23 @@ export function SavedRoutesPanel({
                               .toUpperCase() +
                               route.difficulty?.slice(1) || "Unrated"}
                           </Badge>
+                          {activeTab === "my-routes" && route.visibility && route.visibility !== "public" && (
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[10px] h-5 font-medium gap-1",
+                                route.visibility === "link"
+                                  ? "text-blue-600 border-blue-200 bg-blue-50"
+                                  : "text-gray-500 border-gray-200 bg-gray-50"
+                              )}
+                            >
+                              {route.visibility === "link" ? (
+                                <><Link2 className="h-3 w-3" /> Link Only</>
+                              ) : (
+                                <><Lock className="h-3 w-3" /> Private</>
+                              )}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </div>
