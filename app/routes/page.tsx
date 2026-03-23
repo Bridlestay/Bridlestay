@@ -701,17 +701,15 @@ export default function RoutesPage() {
     setClusterBrowseIndex(newIndex >= 0 ? newIndex : 0);
   }, [exploreRoutes, clusterBrowseIndex]);
 
-  // Handle waypoint marker click on map — open drawer to waypoints panel
+  // Handle waypoint marker click on map — scroll to waypoint in panel
   const handleWaypointClick = (waypointId: string) => {
-    if (mapViewMode === "waypoints") {
-      // In view mode, hover popup already shows info
-      return;
-    }
     if (!drawerOpen && selectedRouteId) {
       setDrawerOpen(true);
       setMobileRouteDetailOpen(true);
     }
-    setInitialWaypointId(waypointId);
+    // Clear then set to force re-trigger even if same waypoint clicked twice
+    setInitialWaypointId(null);
+    setTimeout(() => setInitialWaypointId(waypointId), 0);
   };
 
   // Enter map view mode — hide drawer, show markers on map

@@ -739,7 +739,11 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           const zoom = map.getZoom();
           const snapToleranceKm = zoom >= 14 ? 0.05 : zoom >= 12 ? 0.1 : 0.2;
           if (minDistKm > snapToleranceKm) {
-            toast.error("Click closer to the route line to place a waypoint");
+            const distM = Math.round(minDistKm * 1000);
+            const toleranceM = Math.round(snapToleranceKm * 1000);
+            toast.error(
+              `Too far from the route line (${distM}m away). Click within ${toleranceM}m of the route to place a waypoint.`
+            );
             return;
           }
 
@@ -1565,9 +1569,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           popup.remove();
         });
 
-        // Click handler — open drawer waypoints panel or fallback to popup
+        // Click handler — scroll to waypoint in panel (dismiss popup)
         el.addEventListener("click", (e) => {
           e.stopPropagation();
+          popup.remove();
           if (onWaypointClick) {
             onWaypointClick(wp.id);
           }

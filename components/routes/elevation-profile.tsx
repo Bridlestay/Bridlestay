@@ -239,7 +239,23 @@ export function ElevationProfile({
     }
     points.push({ ...toSvg(endIdx), labelPosition: "above" });
 
-    return points;
+    // De-overlap: spread points that are too close horizontally (< 12%)
+    const sorted = [...points].sort((a, b) => a.x - b.x);
+    const minGap = 12;
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i].x - sorted[i - 1].x < minGap) {
+        // Push apart symmetrically
+        const mid = (sorted[i].x + sorted[i - 1].x) / 2;
+        sorted[i - 1].x = Math.max(0, mid - minGap / 2);
+        sorted[i].x = Math.min(100, mid + minGap / 2);
+        // Alternate label positions to avoid overlap
+        if (sorted[i].labelPosition === sorted[i - 1].labelPosition) {
+          sorted[i].labelPosition = sorted[i - 1].labelPosition === "above" ? "below" : "above";
+        }
+      }
+    }
+
+    return sorted;
   }, [elevationData, isFloating]);
 
   // Inline-mode waypoint markers
@@ -416,7 +432,7 @@ export function ElevationProfile({
   const active = externalHighlight ?? hoverData;
 
   return (
-    <div className={cn("rounded-lg p-3 flex flex-col overflow-hidden", className)}>
+    <div className={cn("rounded-lg p-3 flex flex-col", className)}>
       <div className="flex flex-1 min-h-0">
         {/* Chart + markers column */}
         <div className="flex-1 flex flex-col min-w-0">
@@ -460,7 +476,7 @@ export function ElevationProfile({
           {/* Chart area */}
           <div
             ref={containerRef}
-            className="relative flex-1 cursor-crosshair"
+            className="relative flex-1 cursor-crosshair overflow-visible"
             style={{ minHeight: 180 }}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
@@ -539,29 +555,37 @@ export function ElevationProfile({
             </svg>
 
             {/* Key-point markers (inline mode only) */}
-            {!isFloating && keyPoints.map((pt, i) => (
-              <div
-                key={`kp-${i}`}
-                className="absolute pointer-events-none"
-                style={{
-                  left: `${pt.x}%`,
-                  top: `${pt.y}%`,
-                  transform: "translate(-50%, -50%)",
-                }}
-              >
-                <div className="w-2.5 h-2.5 rounded-full bg-white border-2 border-[#267347]" />
+            {!isFloating && keyPoints.map((pt, i) => {
+              // Clamp label horizontal alignment at edges
+              const labelTranslateX = pt.x < 8 ? "0%" : pt.x > 92 ? "-100%" : "-50%";
+              const labelAlign = pt.x < 8 ? "left-0" : pt.x > 92 ? "right-0" : "left-1/2 -translate-x-1/2";
+              return (
                 <div
-                  className="absolute left-1/2 -translate-x-1/2 text-[10px] font-semibold text-gray-700 whitespace-nowrap"
+                  key={`kp-${i}`}
+                  className="absolute pointer-events-none"
                   style={{
-                    [pt.labelPosition === "below" ? "top" : "bottom"]: "100%",
-                    marginTop: pt.labelPosition === "below" ? "2px" : undefined,
-                    marginBottom: pt.labelPosition === "above" ? "2px" : undefined,
+                    left: `${pt.x}%`,
+                    top: `${pt.y}%`,
+                    transform: "translate(-50%, -50%)",
                   }}
                 >
-                  {pt.elevation}m
+                  <div className="w-2.5 h-2.5 rounded-full bg-white border-2 border-[#267347]" />
+                  <div
+                    className={cn(
+                      "absolute text-[10px] font-semibold text-gray-700 whitespace-nowrap",
+                      labelAlign
+                    )}
+                    style={{
+                      [pt.labelPosition === "below" ? "top" : "bottom"]: "100%",
+                      marginTop: pt.labelPosition === "below" ? "2px" : undefined,
+                      marginBottom: pt.labelPosition === "above" ? "2px" : undefined,
+                    }}
+                  >
+                    {pt.elevation}m
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Inline waypoint markers */}
             {!isFloating && waypointMarkers.map((wp, i) => (

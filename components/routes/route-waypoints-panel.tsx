@@ -83,10 +83,35 @@ export function RouteWaypointsPanel({
   const [editWaypointOpen, setEditWaypointOpen] = useState(false);
   const [editingWaypoint, setEditingWaypoint] = useState<any | null>(null);
 
+  // Collapsible waypoint list
+  const [showAllWaypoints, setShowAllWaypoints] = useState(false);
+  const COLLAPSED_LIMIT = 4;
+
   // Waypoint suggestions (owner view only)
   const [pendingSuggestions, setPendingSuggestions] = useState<any[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [processingSuggestion, setProcessingSuggestion] = useState<string | null>(null);
+
+  // Auto-scroll and expand when initialExpandedId changes (e.g. from map click)
+  useEffect(() => {
+    if (!initialExpandedId) return;
+    setExpandedWaypoints((prev) => new Set(prev).add(initialExpandedId));
+    // Also show all waypoints if the target is hidden in collapsed view
+    setShowAllWaypoints(true);
+    // Scroll to the waypoint with a small delay to let DOM render
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`waypoint-${initialExpandedId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        // Brief highlight animation
+        el.classList.add("ring-2", "ring-primary", "ring-offset-1");
+        setTimeout(() => {
+          el.classList.remove("ring-2", "ring-primary", "ring-offset-1");
+        }, 1500);
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [initialExpandedId]);
 
   const canEditWaypoint = (wp: any) => {
     if (!userId) return false;
@@ -469,110 +494,150 @@ export function RouteWaypointsPanel({
 
       {/* Waypoints Content */}
       <ScrollArea className="flex-1 p-4">
-        <div className="space-y-2">
-          {fullWaypointList.length > 0 ? (
-            fullWaypointList
-              .filter((wp: any) => {
-                if (waypointTagFilters.size === 0) return true;
-                if (wp.type === "start" || wp.type === "finish") return true;
-                return waypointTagFilters.has(wp.tag || "note");
-              })
-              .map((wp: any, index: number) => {
-                const isExpanded = expandedWaypoints.has(wp.id);
-                const isStart = wp.type === "start";
-                const isFinish = wp.type === "finish";
-                const circleColor = isStart
-                  ? "bg-green-500 text-white"
-                  : isFinish
-                    ? "bg-red-500 text-white"
-                    : "bg-slate-200 text-slate-700";
-                const circleLabel = isStart
-                  ? "S"
-                  : isFinish
-                    ? "F"
-                    : `${index}`;
-                const wpElevation = waypointElevationMap[wp.id];
-                const gridRef = latLngToOSGridRef(wp.lat, wp.lng);
-                const canEdit = canEditWaypoint(wp);
+        <div className="relative">
+          {(() => {
+            const filtered = fullWaypointList.filter((wp: any) => {
+              if (waypointTagFilters.size === 0) return true;
+              if (wp.type === "start" || wp.type === "finish") return true;
+              return waypointTagFilters.has(wp.tag || "note");
+            });
+            const shouldCollapse = filtered.length > COLLAPSED_LIMIT && !showAllWaypoints;
+            const visibleWaypoints = shouldCollapse
+              ? [...filtered.slice(0, 3), filtered[filtered.length - 1]]
+              : filtered;
+            const hiddenCount = filtered.length - 4;
 
-                // Calculate ascent/descent from previous using elevation data
-                const prevWp =
-                  index > 0 ? fullWaypointList[index - 1] : null;
-                const prevElevation = prevWp
-                  ? waypointElevationMap[prevWp.id]
-                  : undefined;
-                let ascentFromPrev: number | undefined;
-                let descentFromPrev: number | undefined;
-                if (
-                  wpElevation !== undefined &&
-                  prevElevation !== undefined
-                ) {
-                  const diff = wpElevation - prevElevation;
-                  ascentFromPrev = diff > 0 ? diff : 0;
-                  descentFromPrev = diff < 0 ? Math.abs(diff) : 0;
-                }
+            return filtered.length > 0 ? (
+              <>
+                {visibleWaypoints.map((wp: any, visIdx: number) => {
+                  const index = filtered.indexOf(wp);
+                  const isExpanded = expandedWaypoints.has(wp.id);
+                  const isStart = wp.type === "start";
+                  const isFinish = wp.type === "finish";
+                  const isLast = visIdx === visibleWaypoints.length - 1;
+                  const circleColor = isStart
+                    ? "bg-green-600 text-white ring-2 ring-green-200"
+                    : isFinish
+                      ? "bg-red-500 text-white ring-2 ring-red-200"
+                      : "bg-slate-700 text-white";
+                  const circleLabel = isStart
+                    ? "S"
+                    : isFinish
+                      ? "F"
+                      : `${index}`;
+                  const wpElevation = waypointElevationMap[wp.id];
+                  const gridRef = latLngToOSGridRef(wp.lat, wp.lng);
+                  const canEdit = canEditWaypoint(wp);
 
-                const photos = waypointPhotos[wp.id] || [];
-                const isLoadingPhotos = loadingPhotos[wp.id];
+                  // Calculate ascent/descent from previous using elevation data
+                  const prevWp =
+                    index > 0 ? fullWaypointList[index - 1] : null;
+                  const prevElevation = prevWp
+                    ? waypointElevationMap[prevWp.id]
+                    : undefined;
+                  let ascentFromPrev: number | undefined;
+                  let descentFromPrev: number | undefined;
+                  if (
+                    wpElevation !== undefined &&
+                    prevElevation !== undefined
+                  ) {
+                    const diff = wpElevation - prevElevation;
+                    ascentFromPrev = diff > 0 ? diff : 0;
+                    descentFromPrev = diff < 0 ? Math.abs(diff) : 0;
+                  }
 
-                return (
-                  <div
-                    key={wp.id}
-                    id={`waypoint-${wp.id}`}
-                    className="border rounded-lg overflow-hidden"
-                  >
-                    {/* Collapsed row */}
-                    <button
-                      onClick={() => handleToggleExpand(wp.id)}
-                      className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 transition-colors text-left"
-                    >
-                      <div
-                        className={cn(
-                          "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs",
-                          circleColor
-                        )}
-                      >
-                        {circleLabel}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {wp.name || `Waypoint ${index}`}
-                        </p>
-                      </div>
-                      {wp.tag && wp.tag !== "note" && (
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[10px] h-5 px-1.5 flex-shrink-0",
-                            {
-                              "bg-blue-50 text-blue-700 border-blue-200":
-                                wp.tag === "instruction",
-                              "bg-purple-50 text-purple-700 border-purple-200":
-                                wp.tag === "poi",
-                              "bg-amber-50 text-amber-700 border-amber-200":
-                                wp.tag === "caution",
-                            }
+                  const photos = waypointPhotos[wp.id] || [];
+                  const isLoadingPhotos = loadingPhotos[wp.id];
+
+                  // Show "X more waypoints" divider before the last item when collapsed
+                  const showCollapseGap = shouldCollapse && visIdx === 3;
+
+                  return (
+                    <div key={wp.id}>
+                      {showCollapseGap && (
+                        <div className="flex items-center gap-3 py-2 pl-[3px]">
+                          {/* Timeline connector through expand button */}
+                          <div className="w-9 flex justify-center">
+                            <div className="w-0.5 h-full border-l-[3px] border-dotted border-slate-300" />
+                          </div>
+                          <button
+                            onClick={() => setShowAllWaypoints(true)}
+                            className="flex-1 text-center py-2 text-sm font-medium text-primary hover:text-primary/80 hover:bg-primary/5 rounded-lg transition-colors"
+                          >
+                            Show {hiddenCount} more waypoint{hiddenCount !== 1 ? "s" : ""}
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex gap-3 pl-[3px]">
+                        {/* Timeline column */}
+                        <div className="flex flex-col items-center">
+                          {/* Dotted line above (except first) */}
+                          {visIdx > 0 && (
+                            <div className="w-0.5 flex-1 min-h-[8px] border-l-[3px] border-dotted border-slate-300" />
                           )}
+                          {/* Number circle */}
+                          <div
+                            className={cn(
+                              "flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-sm",
+                              circleColor
+                            )}
+                          >
+                            {circleLabel}
+                          </div>
+                          {/* Dotted line below (except last) */}
+                          {!isLast && (
+                            <div className="w-0.5 flex-1 min-h-[8px] border-l-[3px] border-dotted border-slate-300" />
+                          )}
+                        </div>
+                        {/* Content */}
+                        <div
+                          id={`waypoint-${wp.id}`}
+                          className="flex-1 min-w-0 mb-1 border rounded-lg overflow-hidden"
                         >
-                          {wp.tag === "instruction"
-                            ? "Instruction"
-                            : wp.tag === "poi"
-                              ? "POI"
-                              : "Caution"}
-                        </Badge>
-                      )}
-                      {wp._distFromStart > 0 && (
-                        <span className="text-xs text-muted-foreground flex-shrink-0">
-                          {wp._distFromStart.toFixed(2)} km
-                        </span>
-                      )}
-                      <ChevronDown
-                        className={cn(
-                          "h-4 w-4 text-muted-foreground transition-transform flex-shrink-0",
-                          isExpanded && "rotate-180"
-                        )}
-                      />
-                    </button>
+                          {/* Collapsed row */}
+                          <button
+                            onClick={() => handleToggleExpand(wp.id)}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 transition-colors text-left"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">
+                                {wp.name || `Waypoint ${index}`}
+                              </p>
+                            </div>
+                            {wp.tag && wp.tag !== "note" && (
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-[10px] h-5 px-1.5 flex-shrink-0",
+                                  {
+                                    "bg-blue-50 text-blue-700 border-blue-200":
+                                      wp.tag === "instruction",
+                                    "bg-purple-50 text-purple-700 border-purple-200":
+                                      wp.tag === "poi",
+                                    "bg-amber-50 text-amber-700 border-amber-200":
+                                      wp.tag === "caution",
+                                  }
+                                )}
+                              >
+                                {wp.tag === "instruction"
+                                  ? "Instruction"
+                                  : wp.tag === "poi"
+                                    ? "POI"
+                                    : "Caution"}
+                              </Badge>
+                            )}
+                            {wp._distFromStart > 0 && (
+                              <span className="text-xs text-muted-foreground flex-shrink-0">
+                                {wp._distFromStart.toFixed(2)} km
+                              </span>
+                            )}
+                            <ChevronDown
+                              className={cn(
+                                "h-4 w-4 text-muted-foreground transition-transform flex-shrink-0",
+                                isExpanded && "rotate-180"
+                              )}
+                            />
+                          </button>
 
                     {/* Expanded details */}
                     {isExpanded && (
@@ -814,17 +879,32 @@ export function RouteWaypointsPanel({
                         </div>
                       </div>
                     )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* Collapse button when expanded */}
+                {!shouldCollapse && filtered.length > COLLAPSED_LIMIT && showAllWaypoints && (
+                  <div className="flex justify-center pt-2">
+                    <button
+                      onClick={() => setShowAllWaypoints(false)}
+                      className="text-sm font-medium text-primary hover:text-primary/80 hover:bg-primary/5 px-4 py-1.5 rounded-lg transition-colors"
+                    >
+                      Show fewer waypoints
+                    </button>
                   </div>
-                );
-              })
-          ) : (
-            <div className="text-center py-8">
-              <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                No waypoints added to this route yet.
-              </p>
-            </div>
-          )}
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">
+                  No waypoints added to this route yet.
+                </p>
+              </div>
+            );
+          })()}
         </div>
       </ScrollArea>
 

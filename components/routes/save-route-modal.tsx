@@ -30,6 +30,7 @@ import {
   Loader2,
   Shuffle,
   Copy,
+  Check,
 } from "lucide-react";
 
 // --- Types ---
@@ -552,12 +553,17 @@ export function SaveRouteModal({
                     type="button"
                     onClick={() => setVisibility(opt.value)}
                     className={cn(
-                      "flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 cursor-pointer transition-all text-center",
+                      "relative flex flex-col items-center gap-2 px-3 py-4 rounded-xl border-2 cursor-pointer transition-all text-center",
                       visibility === opt.value
                         ? "border-[#267347] bg-[#267347]/5 shadow-sm"
                         : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
                     )}
                   >
+                    {visibility === opt.value && (
+                      <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#267347] flex items-center justify-center">
+                        <Check className="h-3 w-3 text-white" />
+                      </div>
+                    )}
                     <opt.icon className={cn(
                       "h-5 w-5",
                       visibility === opt.value ? "text-[#267347]" : "text-muted-foreground"
