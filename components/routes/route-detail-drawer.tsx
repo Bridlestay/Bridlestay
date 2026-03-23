@@ -437,11 +437,19 @@ export function RouteDetailDrawer({
 
   useEffect(() => {
     if (initialWaypointId) {
-      setActiveFullPanel("waypoints");
+      // Stay on main route card — scroll to the inline waypoint timeline
+      setActiveFullPanel(null);
       onWaypointFocused?.();
       setTimeout(() => {
-        const el = document.getElementById(`waypoint-${initialWaypointId}`);
-        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        const el = document.getElementById(`waypoint-timeline-${initialWaypointId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          // Brief highlight
+          el.classList.add("ring-2", "ring-green-500", "ring-offset-1", "rounded-lg");
+          setTimeout(() => {
+            el.classList.remove("ring-2", "ring-green-500", "ring-offset-1", "rounded-lg");
+          }, 1500);
+        }
       }, 300);
     }
   }, [initialWaypointId]);
@@ -1996,6 +2004,7 @@ export function RouteDetailDrawer({
                     isOwner={isOwner}
                     onEditWaypoint={handleEditWaypoint}
                     onSuggestEdit={handleSuggestEdit}
+                    initialExpandedWaypointId={initialWaypointId}
                   />
                 </>
               )}

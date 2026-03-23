@@ -553,7 +553,7 @@ export function SaveRouteModal({
                     type="button"
                     onClick={() => setVisibility(opt.value)}
                     className={cn(
-                      "relative flex flex-col items-center gap-2 px-3 py-4 rounded-xl border-2 cursor-pointer transition-all text-center",
+                      "relative flex flex-col items-center gap-2.5 px-3 py-5 rounded-xl border-2 cursor-pointer transition-all text-center",
                       visibility === opt.value
                         ? "border-[#267347] bg-[#267347]/5 shadow-sm"
                         : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
@@ -565,11 +565,11 @@ export function SaveRouteModal({
                       </div>
                     )}
                     <opt.icon className={cn(
-                      "h-5 w-5",
+                      "h-6 w-6",
                       visibility === opt.value ? "text-[#267347]" : "text-muted-foreground"
                     )} />
                     <span className={cn(
-                      "text-xs font-medium leading-tight whitespace-pre-line",
+                      "text-sm font-medium leading-tight whitespace-pre-line",
                       visibility === opt.value ? "text-foreground" : "text-muted-foreground"
                     )}>
                       {opt.label}
