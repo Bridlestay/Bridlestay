@@ -650,6 +650,8 @@ export default function RoutesPage() {
     setSelectedRouteData(null);
     setHighlightedRouteId(null);
     setSelectedRouteWaypoints([]);
+    setSelectedRouteHazards([]);
+    setMapViewMode(null);
     setClusterBrowseRoutes([]);
     setClusterBrowseIndex(0);
   };

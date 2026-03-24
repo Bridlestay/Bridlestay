@@ -1275,19 +1275,29 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         }
       };
 
-      // Update markers when map moves or zooms
-      map.on("moveend", updatePinMarkers);
+      // Debounced update — avoids overlapping calls during zoom/pan
+      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+      const debouncedUpdate = () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(updatePinMarkers, 50);
+      };
+
+      // Use "idle" instead of "moveend" — fires after all rendering
+      // (tiles loaded, clustering resolved, layers painted)
+      map.on("idle", debouncedUpdate);
       map.on("data", (e) => {
         if (e.sourceId === sourceId && e.isSourceLoaded) {
-          updatePinMarkers();
+          debouncedUpdate();
         }
       });
 
-      // Initial update
-      setTimeout(updatePinMarkers, 500);
+      // Initial update after clustering settles
+      map.once("idle", updatePinMarkers);
 
-      // No cleanup — markers persist and are updated incrementally above
-      // Only clean up when entering creation mode (handled by isCreating guard at top)
+      return () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        map.off("idle", debouncedUpdate);
+      };
     }, [routes, mapLoaded, isCreating, followUser, onRouteClick, onRoutePreview, styleLoadCount]);
 
     // Display POI markers

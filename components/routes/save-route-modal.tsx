@@ -23,7 +23,7 @@ import {
   Route,
   Lock,
   Globe,
-  Link2,
+  Link,
   ImagePlus,
   GripVertical,
   Trash2,
@@ -537,7 +537,7 @@ export function SaveRouteModal({
                   },
                   {
                     value: "link" as const,
-                    icon: Link2,
+                    icon: Link,
                     label: "Anyone with\nLink",
                     desc: "Anyone with a link can access this route",
                   },
@@ -553,7 +553,7 @@ export function SaveRouteModal({
                     type="button"
                     onClick={() => setVisibility(opt.value)}
                     className={cn(
-                      "relative flex flex-col items-center gap-2.5 px-3 py-5 rounded-xl border-2 cursor-pointer transition-all text-center",
+                      "relative flex flex-col items-center justify-center gap-2.5 px-2 py-6 min-h-[150px] rounded-xl border-2 cursor-pointer transition-all text-center",
                       visibility === opt.value
                         ? "border-[#267347] bg-[#267347]/5 shadow-sm"
                         : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
