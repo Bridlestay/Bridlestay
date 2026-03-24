@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { WaypointCard } from "./waypoint-card";
+import { cn } from "@/lib/utils";
 
 const COLLAPSED_LIMIT = 4;
 
@@ -31,6 +32,8 @@ export function WaypointTimeline({
   initialExpandedWaypointId,
 }: WaypointTimelineProps) {
   const [showAll, setShowAll] = useState(false);
+  const [animating, setAnimating] = useState(false);
+  const hiddenRef = useRef<HTMLDivElement>(null);
 
   // Auto-expand if the target waypoint is hidden in collapsed view
   useEffect(() => {
@@ -38,20 +41,82 @@ export function WaypointTimeline({
     const idx = fullWaypointList.findIndex(
       (wp: any) => wp.id === initialExpandedWaypointId
     );
-    // If target is beyond the first 3 and not the last, expand
-    if (idx >= 3 && idx < fullWaypointList.length - 1) {
-      setShowAll(true);
+    if (idx >= 3) {
+      handleExpand();
     }
   }, [initialExpandedWaypointId, fullWaypointList]);
 
   if (fullWaypointList.length === 0) return null;
 
   const shouldCollapse = fullWaypointList.length > COLLAPSED_LIMIT && !showAll;
-  // When collapsed: show first 3 + last (finish)
+  const hiddenCount = fullWaypointList.length - 3;
+
+  // Only show first 3 when collapsed (no finish)
   const visibleWaypoints = shouldCollapse
-    ? [...fullWaypointList.slice(0, 3), fullWaypointList[fullWaypointList.length - 1]]
+    ? fullWaypointList.slice(0, 3)
     : fullWaypointList;
-  const hiddenCount = fullWaypointList.length - 4;
+
+  const handleExpand = () => {
+    setShowAll(true);
+    setAnimating(true);
+    // Let the animation play, then clear the flag
+    setTimeout(() => setAnimating(false), 400);
+  };
+
+  const handleCollapse = () => {
+    setShowAll(false);
+  };
+
+  const renderWaypoint = (wp: any, visIdx: number, isHidden?: boolean) => {
+    const index = fullWaypointList.indexOf(wp);
+    const isStart = wp.type === "start";
+    const isFinish = wp.type === "finish";
+
+    const waypointNumber = isStart
+      ? "S"
+      : isFinish
+      ? "F"
+      : `${(wp.listIndex ?? index) + 1}`;
+
+    const distanceFromPrevious = wp._distFromPrev
+      ? wp._distFromPrev * 1000
+      : undefined;
+
+    const showConnector = visIdx > 0 && distanceFromPrevious;
+    const distanceText = distanceFromPrevious
+      ? distanceFromPrevious < 1000
+        ? `${Math.round(distanceFromPrevious)} m`
+        : `${(distanceFromPrevious / 1000).toFixed(1)} km`
+      : null;
+
+    return (
+      <div key={wp.id}>
+        <div id={`waypoint-timeline-${wp.id}`} className="relative">
+          {showConnector && distanceText && (
+            <div className="absolute left-[-40px] top-[-26px] z-10 w-8 flex items-center justify-center">
+              <span className="text-[10px] text-slate-400 bg-white px-1.5 py-0.5 leading-none whitespace-nowrap rounded-sm">
+                {distanceText}
+              </span>
+            </div>
+          )}
+
+          <WaypointCard
+            waypoint={wp}
+            waypointNumber={waypointNumber}
+            distanceFromPrevious={distanceFromPrevious}
+            onShowOnMap={
+              wp.lat && wp.lng
+                ? () => onFlyToLocation?.(wp.lat, wp.lng)
+                : undefined
+            }
+            onEdit={isOwner && onEditWaypoint && !isStart && !isFinish ? () => onEditWaypoint(wp) : undefined}
+            onSuggestEdit={!isOwner && onSuggestEdit && !isStart && !isFinish ? () => onSuggestEdit(wp) : undefined}
+            isOwner={isOwner}
+          />
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -73,83 +138,56 @@ export function WaypointTimeline({
         )}
       </div>
 
-      {/* Waypoint Timeline - Komoot Style */}
+      {/* Waypoint Timeline */}
       <div className="relative pl-10">
         {/* Continuous dotted line behind all waypoints */}
         <div className="absolute left-[16px] top-0 bottom-0 border-l-2 border-dotted border-slate-300 z-0" />
 
-        {visibleWaypoints.map((wp: any, visIdx: number) => {
-          const index = fullWaypointList.indexOf(wp);
-          const isStart = wp.type === "start";
-          const isFinish = wp.type === "finish";
+        {/* Always-visible waypoints (first 3 when collapsed, all when expanded) */}
+        {visibleWaypoints.map((wp: any, visIdx: number) =>
+          renderWaypoint(wp, visIdx)
+        )}
 
-          const waypointNumber = isStart
-            ? "S"
-            : isFinish
-            ? "F"
-            : `${(wp.listIndex ?? index) + 1}`;
-
-          // Convert km to meters for distance from previous
-          const distanceFromPrevious = wp._distFromPrev
-            ? wp._distFromPrev * 1000
-            : undefined;
-
-          const showConnector = visIdx > 0 && distanceFromPrevious;
-          const distanceText = distanceFromPrevious
-            ? distanceFromPrevious < 1000
-              ? `${Math.round(distanceFromPrevious)} m`
-              : `${(distanceFromPrevious / 1000).toFixed(1)} km`
-            : null;
-
-          // Show expand button before the last item when collapsed
-          const showExpandGap = shouldCollapse && visIdx === 3;
-
-          return (
-            <div key={wp.id}>
-              {showExpandGap && (
-                <div className="relative z-10 flex justify-center py-1.5">
-                  <button
-                    onClick={() => setShowAll(true)}
-                    className="text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-3 py-1 rounded-full transition-colors"
-                  >
-                    Show {hiddenCount} more waypoint{hiddenCount !== 1 ? "s" : ""}
-                  </button>
-                </div>
-              )}
-              <div id={`waypoint-timeline-${wp.id}`} className="relative">
-                {/* Distance label on the line */}
-                {showConnector && distanceText && !showExpandGap && (
-                  <div className="absolute left-[-40px] top-[-26px] z-10 w-8 flex items-center justify-center">
-                    <span className="text-[10px] text-slate-400 bg-white px-1.5 py-0.5 leading-none whitespace-nowrap rounded-sm">
-                      {distanceText}
-                    </span>
-                  </div>
-                )}
-
-                <WaypointCard
-                  waypoint={wp}
-                  waypointNumber={waypointNumber}
-                  distanceFromPrevious={distanceFromPrevious}
-                  onShowOnMap={
-                    wp.lat && wp.lng
-                      ? () => onFlyToLocation?.(wp.lat, wp.lng)
-                      : undefined
-                  }
-                  onEdit={isOwner && onEditWaypoint && !isStart && !isFinish ? () => onEditWaypoint(wp) : undefined}
-                  onSuggestEdit={!isOwner && onSuggestEdit && !isStart && !isFinish ? () => onSuggestEdit(wp) : undefined}
-                  isOwner={isOwner}
-                />
-              </div>
+        {/* Fade-out gradient overlay when collapsed */}
+        {shouldCollapse && (
+          <div className="relative -mt-16 pt-16 z-10">
+            {/* White gradient fade */}
+            <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-transparent to-white pointer-events-none" />
+            {/* Show more button */}
+            <div className="flex justify-center py-2">
+              <button
+                onClick={handleExpand}
+                className="text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-4 py-1.5 rounded-full transition-colors"
+              >
+                Show {hiddenCount} more waypoint{hiddenCount !== 1 ? "s" : ""}
+              </button>
             </div>
-          );
-        })}
+          </div>
+        )}
+
+        {/* Hidden waypoints that animate in */}
+        {showAll && fullWaypointList.length > COLLAPSED_LIMIT && (
+          <div
+            ref={hiddenRef}
+            className={cn(
+              "overflow-hidden",
+              animating
+                ? "animate-in slide-in-from-top-2 fade-in duration-300 ease-out"
+                : ""
+            )}
+          >
+            {fullWaypointList.slice(3).map((wp: any, i: number) =>
+              renderWaypoint(wp, i + 3)
+            )}
+          </div>
+        )}
       </div>
 
       {/* Collapse button when expanded */}
-      {!shouldCollapse && fullWaypointList.length > COLLAPSED_LIMIT && showAll && (
+      {showAll && fullWaypointList.length > COLLAPSED_LIMIT && (
         <div className="flex justify-center pt-2">
           <button
-            onClick={() => setShowAll(false)}
+            onClick={handleCollapse}
             className="flex items-center gap-1 text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-3 py-1.5 rounded-full transition-colors"
           >
             <ChevronDown className="h-3.5 w-3.5 rotate-180" />

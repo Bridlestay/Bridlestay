@@ -629,6 +629,10 @@ export default function RoutesPage() {
     setMobilePanelOpen(false);
     setMobileRouteDetailOpen(true);
     
+    // Clear old waypoints/hazards immediately to prevent stale markers
+    setSelectedRouteWaypoints([]);
+    setSelectedRouteHazards([]);
+
     // Fetch full route data and waypoints
     const fullRoute = await fetchRouteData(routeId);
     setSelectedRouteData(fullRoute);
