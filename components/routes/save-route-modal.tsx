@@ -527,25 +527,25 @@ export function SaveRouteModal({
             {/* Visibility */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Visibility</Label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="flex justify-center gap-3">
                 {[
                   {
                     value: "public" as const,
                     icon: Globe,
                     label: "Public",
-                    desc: "Public access to this route",
+                    desc: "Visible to everyone",
                   },
                   {
                     value: "link" as const,
                     icon: Link,
                     label: "Anyone with\nLink",
-                    desc: "Anyone with a link can access this route",
+                    desc: "Shared via link",
                   },
                   {
                     value: "private" as const,
                     icon: Lock,
                     label: "Private",
-                    desc: "Private link to access to this route",
+                    desc: "Only you can see",
                   },
                 ].map((opt) => (
                   <button
@@ -553,28 +553,28 @@ export function SaveRouteModal({
                     type="button"
                     onClick={() => setVisibility(opt.value)}
                     className={cn(
-                      "relative flex flex-col items-center justify-center gap-2.5 px-2 py-4 aspect-[3/4] rounded-xl border-2 cursor-pointer transition-all text-center",
+                      "relative flex flex-col items-center justify-center gap-2 w-[90px] py-5 rounded-xl border-2 cursor-pointer transition-all text-center",
                       visibility === opt.value
                         ? "border-[#267347] bg-[#267347]/5 shadow-sm"
                         : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
                     )}
                   >
                     {visibility === opt.value && (
-                      <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#267347] flex items-center justify-center">
-                        <Check className="h-3 w-3 text-white" />
+                      <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#267347] flex items-center justify-center">
+                        <Check className="h-2.5 w-2.5 text-white" />
                       </div>
                     )}
                     <opt.icon className={cn(
-                      "h-6 w-6",
+                      "h-7 w-7",
                       visibility === opt.value ? "text-[#267347]" : "text-muted-foreground"
                     )} />
                     <span className={cn(
-                      "text-sm font-medium leading-tight whitespace-pre-line",
+                      "text-xs font-semibold leading-tight whitespace-pre-line",
                       visibility === opt.value ? "text-foreground" : "text-muted-foreground"
                     )}>
                       {opt.label}
                     </span>
-                    <p className="text-[10px] text-muted-foreground leading-tight">
+                    <p className="text-[10px] text-muted-foreground leading-tight px-1">
                       {opt.desc}
                     </p>
                   </button>

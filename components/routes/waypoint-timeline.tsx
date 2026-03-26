@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { WaypointCard } from "./waypoint-card";
@@ -32,7 +32,7 @@ export function WaypointTimeline({
   initialExpandedWaypointId,
 }: WaypointTimelineProps) {
   const [showAll, setShowAll] = useState(false);
-  const [animating, setAnimating] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const hiddenRef = useRef<HTMLDivElement>(null);
 
   // Auto-expand if the target waypoint is hidden in collapsed view
@@ -58,16 +58,19 @@ export function WaypointTimeline({
 
   const handleExpand = () => {
     setShowAll(true);
-    setAnimating(true);
-    // Let the animation play, then clear the flag
-    setTimeout(() => setAnimating(false), 400);
+    // After DOM mounts the hidden content, trigger the expand animation
+    requestAnimationFrame(() => {
+      setExpanded(true);
+    });
   };
 
   const handleCollapse = () => {
-    setShowAll(false);
+    setExpanded(false);
+    // Wait for collapse animation to finish before unmounting
+    setTimeout(() => setShowAll(false), 300);
   };
 
-  const renderWaypoint = (wp: any, visIdx: number, isHidden?: boolean) => {
+  const renderWaypoint = (wp: any, visIdx: number) => {
     const index = fullWaypointList.indexOf(wp);
     const isStart = wp.type === "start";
     const isFinish = wp.type === "finish";
@@ -150,11 +153,11 @@ export function WaypointTimeline({
 
         {/* Fade-out gradient overlay when collapsed */}
         {shouldCollapse && (
-          <div className="relative -mt-16 pt-16 z-10">
+          <div className="relative -mt-20 pt-20 z-20">
             {/* White gradient fade */}
-            <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-transparent to-white pointer-events-none" />
+            <div className="absolute inset-x-[-10px] top-0 h-20 bg-gradient-to-b from-transparent via-white/80 to-white pointer-events-none" />
             {/* Show more button */}
-            <div className="flex justify-center py-2">
+            <div className="relative flex justify-center py-2">
               <button
                 onClick={handleExpand}
                 className="text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-4 py-1.5 rounded-full transition-colors"
@@ -165,15 +168,15 @@ export function WaypointTimeline({
           </div>
         )}
 
-        {/* Hidden waypoints that animate in */}
+        {/* Hidden waypoints that expand/collapse with animation */}
         {showAll && fullWaypointList.length > COLLAPSED_LIMIT && (
           <div
             ref={hiddenRef}
             className={cn(
-              "overflow-hidden",
-              animating
-                ? "animate-in slide-in-from-top-2 fade-in duration-300 ease-out"
-                : ""
+              "transition-all duration-300 ease-out overflow-hidden",
+              expanded
+                ? "max-h-[5000px] opacity-100"
+                : "max-h-0 opacity-0"
             )}
           >
             {fullWaypointList.slice(3).map((wp: any, i: number) =>
@@ -184,7 +187,7 @@ export function WaypointTimeline({
       </div>
 
       {/* Collapse button when expanded */}
-      {showAll && fullWaypointList.length > COLLAPSED_LIMIT && (
+      {showAll && expanded && fullWaypointList.length > COLLAPSED_LIMIT && (
         <div className="flex justify-center pt-2">
           <button
             onClick={handleCollapse}

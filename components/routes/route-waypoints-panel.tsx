@@ -639,9 +639,9 @@ export function RouteWaypointsPanel({
                             />
                           </button>
 
-                    {/* Expanded details */}
-                    {isExpanded && (
-                      <div className="px-3 pb-3 pt-1 border-t bg-slate-50/50 space-y-2">
+                          {/* Expanded details */}
+                          {isExpanded && (
+                            <div className="px-3 pb-3 pt-1 border-t bg-slate-50/50 space-y-2">
                         {/* Description */}
                         {editingDescription === wp.id ? (
                           <div className="space-y-2">
@@ -876,9 +876,9 @@ export function RouteWaypointsPanel({
                               Show on map
                             </Button>
                           )}
-                        </div>
-                      </div>
-                    )}
+                            </div>
+                          </div>
+                          )}
                         </div>
                       </div>
                     </div>

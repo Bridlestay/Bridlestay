@@ -1600,6 +1600,35 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       };
     }, [routeWaypoints, showWaypoints, mapLoaded, onWaypointClick]);
 
+    // Hide waypoint markers when zoomed out (prevents overlap with clusters)
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!map || !mapLoaded) return;
+
+      const WAYPOINT_HIDE_ZOOM = 11; // Hide waypoints below this zoom level
+
+      const handleZoom = () => {
+        const zoom = map.getZoom();
+        const shouldShow = zoom >= WAYPOINT_HIDE_ZOOM;
+        routeWaypointMarkersRef.current.forEach((m) => {
+          const el = m.getElement();
+          if (el) el.style.display = shouldShow ? "" : "none";
+        });
+        hazardMarkersRef.current.forEach((m) => {
+          const el = m.getElement();
+          if (el) el.style.display = shouldShow ? "" : "none";
+        });
+      };
+
+      map.on("zoom", handleZoom);
+      // Run once on mount to set initial visibility
+      handleZoom();
+
+      return () => {
+        map.off("zoom", handleZoom);
+      };
+    }, [mapLoaded, routeWaypoints, showWaypoints]);
+
     // Hazard markers for selected route
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;

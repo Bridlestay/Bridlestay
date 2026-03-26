@@ -135,28 +135,30 @@ export function MapLayerControls({
             </Tooltip>
           )}
 
-          {/* Locate me button */}
+          {/* Locate me button — mobile only */}
           {onLocateMe && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className={cn(
-                    "h-11 w-11 rounded-full shadow-lg",
-                    isLocating
-                      ? "bg-green-50 hover:bg-green-100 border border-green-200"
-                      : "bg-white hover:bg-gray-100"
-                  )}
-                  onClick={onLocateMe}
-                >
-                  <Crosshair className={cn("h-5 w-5", isLocating ? "text-green-600" : "text-gray-700")} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                <p>{isLocating ? "Re-centre on location" : "Find my location"}</p>
-              </TooltipContent>
-            </Tooltip>
+            <div className="md:hidden">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className={cn(
+                      "h-11 w-11 rounded-full shadow-lg",
+                      isLocating
+                        ? "bg-green-50 hover:bg-green-100 border border-green-200"
+                        : "bg-white hover:bg-gray-100"
+                    )}
+                    onClick={onLocateMe}
+                  >
+                    <Crosshair className={cn("h-5 w-5", isLocating ? "text-green-600" : "text-gray-700")} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  <p>{isLocating ? "Re-centre on location" : "Find my location"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           )}
 
           {/* Layer toggle button */}
