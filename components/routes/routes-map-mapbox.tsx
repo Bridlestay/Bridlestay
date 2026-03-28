@@ -1118,7 +1118,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             features,
           },
           cluster: true,
-          clusterMaxZoom: 13,
+          clusterMaxZoom: 12,
           clusterRadius: 60,
         });
 
@@ -1143,7 +1143,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           filter: ["!", ["has", "point_count"]],
           layout: {
             "icon-image": "route-pin",
-            "icon-size": 0.2,
+            "icon-size": 0.6,
             "icon-anchor": "bottom",
             "icon-allow-overlap": true,
           },
@@ -1404,7 +1404,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
         const el = document.createElement("div");
         el.className = "mapbox-property-marker";
-        el.innerHTML = `<img src="/Pins/property-pin.png" style="width: 28px; height: 40px; cursor: pointer; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));" alt="" />`;
+        el.innerHTML = `<img src="/Pins/property-pin.png" style="width: 42px; height: 60px; cursor: pointer; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));" alt="" />`;
         el.style.cursor = "pointer";
 
         const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
