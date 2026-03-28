@@ -2,17 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,19 +15,10 @@ import {
   Menu,
   Search,
   ChevronLeft,
-  User,
-  LogOut,
-  Settings,
-  LayoutDashboard,
-  Heart,
-  MessageCircle,
-  MessageSquarePlus,
-  HelpCircle,
-  AlertTriangle,
-  Route,
   MapPin,
   Map,
 } from "lucide-react";
+import { UserDropdownMenu } from "@/components/user-dropdown-menu";
 
 interface RoutesPanelHeaderProps {
   onClose: () => void;
@@ -51,7 +36,6 @@ export function RoutesPanelHeader({
   const [user, setUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
-  const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
@@ -93,13 +77,6 @@ export function RoutesPanelHeader({
     fetchUnreadCount();
   }, [user]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    router.push("/");
-    router.refresh();
-  };
-
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch?.(searchQuery);
@@ -114,130 +91,13 @@ export function RoutesPanelHeader({
             <Menu className="h-5 w-5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-64">
-          {/* Logo at top */}
-          <div className="px-3 py-2 border-b">
-            <Link href="/" className="flex items-center gap-2">
-              <Image
-                src="/logo.png"
-                alt="padoq"
-                width={100}
-                height={32}
-                className="object-contain"
-              />
-            </Link>
-          </div>
-
-          {user ? (
-            <>
-              <DropdownMenuLabel>
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    Hi, {user.name}!
-                  </p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {user.email}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              
-              {/* Routes Section */}
-              <DropdownMenuItem asChild>
-                <Link href="/routes" className="cursor-pointer">
-                  <Route className="mr-2 h-4 w-4" />
-                  Routes
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem asChild>
-                <Link href="/messages" className="cursor-pointer">
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Messages
-                  {unreadCount > 0 && (
-                    <Badge className="ml-auto bg-primary text-white text-xs">
-                      {unreadCount}
-                    </Badge>
-                  )}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/favorites" className="cursor-pointer">
-                  <Heart className="mr-2 h-4 w-4" />
-                  My Favorites
-                </Link>
-              </DropdownMenuItem>
-              {(user.role === "host" || user.role === "admin") && (
-                <DropdownMenuItem asChild>
-                  <Link href="/host/listings" className="cursor-pointer">
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    My Listings
-                  </Link>
-                </DropdownMenuItem>
-              )}
-              {user.role === "admin" && (
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/dashboard" className="cursor-pointer text-primary font-semibold">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Admin Dashboard
-                  </Link>
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem asChild>
-                <Link href="/profile" className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/account" className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Account Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/help" className="cursor-pointer">
-                  <HelpCircle className="mr-2 h-4 w-4" />
-                  Help
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/feedback" className="cursor-pointer">
-                  <MessageSquarePlus className="mr-2 h-4 w-4" />
-                  Send Feedback
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/claims" className="cursor-pointer">
-                  <AlertTriangle className="mr-2 h-4 w-4" />
-                  Claims
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="cursor-pointer text-red-600 focus:text-red-600"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Log Out
-              </DropdownMenuItem>
-            </>
-          ) : (
-            <>
-              <div className="p-3 space-y-2">
-                <Link href="/auth/sign-in">
-                  <Button variant="outline" className="w-full">Sign In</Button>
-                </Link>
-                <Link href="/auth/sign-up">
-                  <Button className="w-full">Sign Up</Button>
-                </Link>
-              </div>
-            </>
-          )}
-        </DropdownMenuContent>
+        <UserDropdownMenu
+          user={user}
+          unreadCount={unreadCount}
+          notifCount={notifCount}
+          align="start"
+          showRoutesLink
+        />
       </DropdownMenu>
 
       {/* Search Bar */}

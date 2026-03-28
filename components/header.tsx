@@ -3,27 +3,21 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Settings, LayoutDashboard, Heart, MessageCircle, MessageSquarePlus, Star, Menu, HelpCircle, AlertTriangle, Bell } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Menu } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserDropdownMenu } from "@/components/user-dropdown-menu";
 
 export function Header() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifCount, setNotifCount] = useState(0);
-  const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
@@ -104,13 +98,6 @@ export function Header() {
     return () => clearInterval(interval);
   }, [user]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    router.push("/");
-    router.refresh();
-  };
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 flex h-16 items-center justify-between">
@@ -183,110 +170,12 @@ export function Header() {
                     )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {user.name}
-                      </p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
-                      </p>
-                      <p className="text-xs leading-none text-muted-foreground capitalize">
-                        {user.role} Account
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/notifications" className="cursor-pointer">
-                      <Bell className="mr-2 h-4 w-4" />
-                      Notifications
-                      {notifCount > 0 && (
-                        <span className="ml-auto flex items-center gap-1.5">
-                          <span className="text-xs text-muted-foreground">
-                            {notifCount}
-                          </span>
-                          <span className="h-2 w-2 rounded-full bg-green-500" />
-                        </span>
-                      )}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/messages" className="cursor-pointer">
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      Messages
-                      {unreadCount > 0 && (
-                        <span className="ml-auto flex items-center gap-1.5">
-                          <span className="text-xs text-muted-foreground">
-                            {unreadCount}
-                          </span>
-                          <span className="h-2 w-2 rounded-full bg-green-500" />
-                        </span>
-                      )}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/favorites" className="cursor-pointer">
-                      <Heart className="mr-2 h-4 w-4" />
-                      My Favorites
-                    </Link>
-                  </DropdownMenuItem>
-                  {(user.role === "host" || user.role === "admin") && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/host/listings" className="cursor-pointer">
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        My Listings
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  {user.role === "admin" && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin/dashboard" className="cursor-pointer text-primary font-semibold">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Admin Dashboard
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile" className="cursor-pointer">
-                      <User className="mr-2 h-4 w-4" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/account" className="cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Account Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/help" className="cursor-pointer">
-                      <HelpCircle className="mr-2 h-4 w-4" />
-                      Help
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/feedback" className="cursor-pointer">
-                      <MessageSquarePlus className="mr-2 h-4 w-4" />
-                      Send Feedback
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/claims" className="cursor-pointer">
-                      <AlertTriangle className="mr-2 h-4 w-4" />
-                      Claims
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleLogout}
-                    className="cursor-pointer text-red-600 focus:text-red-600"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
+                <UserDropdownMenu
+                  user={user}
+                  unreadCount={unreadCount}
+                  notifCount={notifCount}
+                  align="end"
+                />
               </DropdownMenu>
             </>
           ) : (
