@@ -1431,7 +1431,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           source: sourceId,
           layout: {
             "icon-image": "property-pin",
-            "icon-size": 0.55,
+            "icon-size": 0.6,
             "icon-anchor": "bottom",
             "icon-allow-overlap": true,
           },
