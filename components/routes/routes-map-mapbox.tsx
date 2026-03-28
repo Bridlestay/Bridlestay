@@ -210,53 +210,59 @@ const POI_ICON_SVGS: Record<string, string> = {
   other: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><circle cx="8" cy="6" r="2.5" fill="none" stroke="white" stroke-width="1.5"/><path d="M8 9v3" stroke="white" stroke-width="1.5"/><circle cx="8" cy="14" r="1" fill="white"/></svg>`,
 };
 
-// Draw a pin icon on a canvas matching the old SVG teardrop pin design:
-// <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z"/>
-// Returns {width, height, data} format that map.addImage() accepts
-function createPinImage(): { width: number; height: number; data: Uint8Array } {
-  const w = 56;
-  const h = 80;
+// Cluster colours
+const CLUSTER_COLOR = "#2D6A3F"; // Dark green inner
+const CLUSTER_GLOW = "rgba(62, 120, 80, 0.45)"; // Lighter green outer glow
+
+// Draw a cluster image with count baked in (dark green circle + glow border)
+// Returns {width, height, data} for map.addImage()
+function createClusterImage(
+  count: number,
+  radius: number
+): { width: number; height: number; data: Uint8Array } {
+  const glowPad = 8;
+  const size = (radius + glowPad) * 2;
   const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width = size;
+  canvas.height = size;
   const ctx = canvas.getContext("2d")!;
+  const cx = size / 2;
 
-  // Scale the old SVG viewBox (0 0 24 32) to fit canvas with padding for stroke
-  const pad = 4;
-  const sx = (w - pad * 2) / 24;
-  const sy = (h - pad * 2) / 32;
-
-  ctx.save();
-  ctx.translate(pad, pad);
-  ctx.scale(sx, sy);
-
-  // Recreate the SVG teardrop path: M12 0 C5.4 0 0 5.4 0 12 c0 9 12 20 12 20 s12-11 12-20 C24 5.4 18.6 0 12 0z
+  // Outer glow ring
   ctx.beginPath();
-  ctx.moveTo(12, 0);
-  ctx.bezierCurveTo(5.4, 0, 0, 5.4, 0, 12);
-  ctx.bezierCurveTo(0, 21, 12, 32, 12, 32);
-  ctx.bezierCurveTo(12, 32, 24, 21, 24, 12);
-  ctx.bezierCurveTo(24, 5.4, 18.6, 0, 12, 0);
-  ctx.closePath();
-
-  // Fill green
-  ctx.fillStyle = PIN_COLOR;
-  ctx.fill();
-  // White stroke
-  ctx.lineWidth = 3 / sx; // Compensate for scale
-  ctx.strokeStyle = PIN_BORDER;
-  ctx.stroke();
-
-  // Inner white dot (matching <circle cx="12" cy="11" r="4"/>)
-  ctx.beginPath();
-  ctx.arc(12, 11, 4, 0, Math.PI * 2);
-  ctx.fillStyle = PIN_BORDER;
+  ctx.arc(cx, cx, radius + 4, 0, Math.PI * 2);
+  ctx.fillStyle = CLUSTER_GLOW;
   ctx.fill();
 
-  ctx.restore();
+  // Inner dark green circle
+  ctx.beginPath();
+  ctx.arc(cx, cx, radius - 2, 0, Math.PI * 2);
+  ctx.fillStyle = CLUSTER_COLOR;
+  ctx.fill();
+
+  // Count text
+  const label = count >= 1000 ? `${Math.round(count / 1000)}k` : String(count);
+  const fontSize = label.length > 2 ? radius * 0.7 : radius * 0.85;
+  ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, cx, cx + 1);
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   return { width: canvas.width, height: canvas.height, data: new Uint8Array(imageData.data.buffer) };
+}
+
+// Pre-generate cluster images for all needed counts and register them on the map
+function ensureClusterImages(map: mapboxgl.Map, counts: number[]) {
+  for (const count of counts) {
+    const id = `cluster-${count}`;
+    if (map.hasImage(id)) continue;
+    // Scale radius by count
+    const radius = count < 10 ? 24 : count < 30 ? 28 : count < 100 ? 32 : 36;
+    const img = createClusterImage(count, radius);
+    map.addImage(id, img, { pixelRatio: 2 });
+  }
 }
 
 // Map style options
@@ -670,10 +676,20 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
       // Function to add sources and layers (called on load and style change)
       const setupSourcesAndLayers = () => {
-        // Register pin image for native symbol layers (survives style reloads)
+        // Load custom pin images (survives style reloads)
         if (!map.hasImage("route-pin")) {
-          const pinCanvas = createPinImage();
-          map.addImage("route-pin", pinCanvas, { pixelRatio: 2 });
+          map.loadImage("/Pins/route-pin.png", (err, img) => {
+            if (!err && img && !map.hasImage("route-pin")) {
+              map.addImage("route-pin", img, { pixelRatio: 2 });
+            }
+          });
+        }
+        if (!map.hasImage("property-pin")) {
+          map.loadImage("/Pins/property-pin.png", (err, img) => {
+            if (!err && img && !map.hasImage("property-pin")) {
+              map.addImage("property-pin", img, { pixelRatio: 2 });
+            }
+          });
         }
 
         if (!map.getSource("routes")) {
@@ -1031,7 +1047,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
 
-      const pinLayers = ["clusters", "cluster-count", "unclustered-point"];
+      const pinLayers = ["clusters", "unclustered-point"];
 
       // Hide all route pins/clusters when entering creation mode or navigating
       if (isCreating || followUser) {
@@ -1079,8 +1095,19 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           type: "FeatureCollection",
           features,
         });
-        // Notify visible routes after data settles
-        map.once("idle", () => notifyVisibleRoutes(map, sourceId));
+        // Generate cluster images + notify visible routes after data settles
+        map.once("idle", () => {
+          if (map.isStyleLoaded()) {
+            const clusterFeatures = map.querySourceFeatures(sourceId, { filter: ["has", "point_count"] });
+            const counts: number[] = [];
+            clusterFeatures.forEach((f) => {
+              const c = f.properties?.point_count;
+              if (c && !map.hasImage(`cluster-${c}`)) counts.push(c);
+            });
+            if (counts.length > 0) ensureClusterImages(map, counts);
+          }
+          notifyVisibleRoutes(map, sourceId);
+        });
         return; // Skip re-adding layers/listeners
       } else {
         // Add source with clustering
@@ -1095,43 +1122,20 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           clusterRadius: 60,
         });
 
-        // Cluster circles (dark green - Padoq brand)
+        // Cluster layer — single symbol layer with canvas-drawn images (circle + count baked in)
         map.addLayer({
           id: "clusters",
-          type: "circle",
-          source: sourceId,
-          filter: ["has", "point_count"],
-          paint: {
-            "circle-color": PIN_COLOR,
-            "circle-radius": [
-              "step",
-              ["get", "point_count"],
-              22,   // size for count < 10
-              10, 26, // size for count >= 10
-              30, 32, // size for count >= 30
-            ],
-            "circle-stroke-width": 3,
-            "circle-stroke-color": PIN_BORDER,
-          },
-        });
-
-        // Cluster count labels
-        map.addLayer({
-          id: "cluster-count",
           type: "symbol",
           source: sourceId,
           filter: ["has", "point_count"],
           layout: {
-            "text-field": ["get", "point_count_abbreviated"],
-            "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
-            "text-size": 14,
-          },
-          paint: {
-            "text-color": "#ffffff",
+            "icon-image": ["concat", "cluster-", ["get", "point_count"]],
+            "icon-size": 1.0,
+            "icon-allow-overlap": true,
           },
         });
 
-        // Individual route pins (unclustered) — native symbol layer using canvas-drawn pin
+        // Individual route pins (unclustered) — custom PNG pin image
         map.addLayer({
           id: "unclustered-point",
           type: "symbol",
@@ -1139,7 +1143,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           filter: ["!", ["has", "point_count"]],
           layout: {
             "icon-image": "route-pin",
-            "icon-size": 1.0,
+            "icon-size": 0.35,
             "icon-anchor": "bottom",
             "icon-allow-overlap": true,
           },
@@ -1242,15 +1246,39 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         }
       };
 
-      // Notify visible routes on idle (lightweight — no DOM work)
-      const onIdle = () => notifyVisibleRoutes(map, sourceId);
+      // Generate cluster images on the fly for any counts that appear
+      const generateMissingClusterImages = () => {
+        if (!map.isStyleLoaded()) return;
+        const clusterFeatures = map.querySourceFeatures(sourceId, {
+          filter: ["has", "point_count"],
+        });
+        const counts = new Set<number>();
+        clusterFeatures.forEach((f) => {
+          const count = f.properties?.point_count;
+          if (count && !map.hasImage(`cluster-${count}`)) counts.add(count);
+        });
+        if (counts.size > 0) ensureClusterImages(map, Array.from(counts));
+      };
+
+      // Combined idle handler: generate cluster images + notify visible routes
+      const onIdle = () => {
+        generateMissingClusterImages();
+        notifyVisibleRoutes(map, sourceId);
+      };
       map.on("idle", onIdle);
 
-      // Initial notification
+      // Also generate on data source load for faster image availability during zoom
+      const onData = (e: any) => {
+        if (e.sourceId === sourceId && e.isSourceLoaded) generateMissingClusterImages();
+      };
+      map.on("data", onData);
+
+      // Initial run
       map.once("idle", onIdle);
 
       return () => {
         map.off("idle", onIdle);
+        map.off("data", onData);
       };
     }, [routes, mapLoaded, isCreating, followUser, onRouteClick, onRoutePreview, styleLoadCount]);
 
