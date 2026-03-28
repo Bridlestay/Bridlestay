@@ -169,9 +169,9 @@ export function WaypointTimeline({
 
         {/* Fade-out gradient overlay when collapsed — covers content AND dotted timeline */}
         {shouldCollapse && (
-          <div className="relative -mt-20 pt-20 z-20">
+          <div className="relative -mt-32 pt-32 z-20">
             {/* White gradient fade — extends left to cover the dotted timeline */}
-            <div className="absolute inset-x-[-50px] top-0 h-20 bg-gradient-to-b from-transparent via-white/80 to-white pointer-events-none" />
+            <div className="absolute inset-x-[-50px] top-0 h-32 bg-gradient-to-b from-transparent via-white/60 to-white pointer-events-none" />
             {/* Show more button */}
             <div className="relative flex justify-center py-2">
               <button
