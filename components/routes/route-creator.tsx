@@ -385,9 +385,9 @@ export function RouteCreator({
         <Separator />
 
         {/* Visibility */}
-        <div className="space-y-3">
+        <div className="space-y-3 mx-1">
           <Label className="text-sm font-medium">Visibility</Label>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3.5">
             {[
               {
                 value: "public" as const,
@@ -413,7 +413,7 @@ export function RouteCreator({
                 type="button"
                 onClick={() => setVisibility(opt.value)}
                 className={cn(
-                  "relative flex flex-col items-center justify-center gap-1.5 aspect-[5/6] px-2 rounded-xl border-2 cursor-pointer transition-all text-center",
+                  "relative flex flex-col items-center pt-3 pb-2.5 gap-1 px-2 rounded-xl border-2 cursor-pointer transition-all text-center",
                   visibility === opt.value
                     ? "border-[#267347] bg-[#267347]/5 shadow-sm"
                     : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
@@ -425,16 +425,16 @@ export function RouteCreator({
                   </div>
                 )}
                 <opt.icon className={cn(
-                  "h-7 w-7",
+                  "h-8 w-8",
                   visibility === opt.value ? "text-[#267347]" : "text-muted-foreground"
                 )} />
                 <span className={cn(
-                  "text-xs font-semibold leading-tight whitespace-pre-line",
+                  "text-sm font-semibold leading-tight whitespace-pre-line",
                   visibility === opt.value ? "text-foreground" : "text-muted-foreground"
                 )}>
                   {opt.label}
                 </span>
-                <p className="text-[10px] text-muted-foreground leading-tight px-1">
+                <p className="text-xs text-muted-foreground leading-tight px-1">
                   {opt.desc}
                 </p>
               </button>
