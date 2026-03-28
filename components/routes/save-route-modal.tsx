@@ -6,11 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -585,22 +580,7 @@ export function SaveRouteModal({
 
             {/* Difficulty */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label className="text-base font-semibold">Difficulty</Label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-muted-foreground cursor-help text-xs">
-                      &#9432;
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs text-xs">
-                      Rate the difficulty based on terrain, elevation, and
-                      obstacles
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
+              <Label className="text-base font-semibold">Difficulty</Label>
               <div className="flex flex-wrap gap-2">
                 {(
                   [
