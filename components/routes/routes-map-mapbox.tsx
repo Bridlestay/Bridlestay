@@ -471,7 +471,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const mapRef = useRef<mapboxgl.Map | null>(null);
     const markersRef = useRef<mapboxgl.Marker[]>([]);
     const poiMarkersRef = useRef<mapboxgl.Marker[]>([]);
-    const propertyMarkersRef = useRef<mapboxgl.Marker[]>([]);
+    const propertyDataRef = useRef<Map<string, any>>(new Map());
     const popupRef = useRef<mapboxgl.Popup | null>(null);
     const waypointMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
     const routeWaypointMarkersRef = useRef<mapboxgl.Marker[]>([]);
@@ -1036,7 +1036,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
 
-      const pinLayers = ["clusters", "unclustered-point"];
+      const pinLayers = ["clusters", "unclustered-point", "property-pins"];
 
       // Hide all route pins/clusters when entering creation mode or navigating
       if (isCreating || followUser) {
@@ -1183,6 +1183,11 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           if (popupRef.current) {
             popupRef.current.remove();
             popupRef.current = null;
+          }
+
+          // Move route pins above property pins
+          if (map.getLayer("unclustered-point") && map.getLayer("property-pins")) {
+            map.moveLayer("unclustered-point");
           }
 
           // Directly trigger route preview - parent will draw route + show quick card
@@ -1384,32 +1389,64 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       };
     }, [pois, mapLoaded, onPoiClick]);
 
-    // Draw property pin markers
+    // Draw property pins as native GL symbol layer (enables layer reordering with route pins)
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
       const map = mapRef.current;
 
-      // Clear existing property markers
-      propertyMarkersRef.current.forEach((marker) => marker.remove());
-      propertyMarkersRef.current = [];
+      const sourceId = "property-pins-source";
+      const layerId = "property-pins";
 
-      if (!propertyPins || propertyPins.length === 0) return;
+      // Build property data lookup
+      propertyDataRef.current.clear();
+      const features: any[] = [];
 
-      propertyPins.forEach((property) => {
-        if (!property.latitude || !property.longitude) return;
+      if (propertyPins && propertyPins.length > 0) {
+        propertyPins.forEach((property) => {
+          if (!property.latitude || !property.longitude) return;
+          propertyDataRef.current.set(property.id, property);
+          features.push({
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [property.longitude, property.latitude],
+            },
+            properties: { id: property.id },
+          });
+        });
+      }
 
-        const el = document.createElement("div");
-        el.className = "mapbox-property-marker";
-        el.innerHTML = `<img src="/Pins/property-pin.png" style="width: 40px; height: auto; cursor: pointer; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));" alt="" />`;
-        el.style.cursor = "pointer";
+      const geojson = { type: "FeatureCollection" as const, features };
 
-        const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
-          .setLngLat([property.longitude, property.latitude])
-          .addTo(map);
+      // Update or create source
+      const existingSource = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
+      if (existingSource) {
+        existingSource.setData(geojson);
+      } else {
+        map.addSource(sourceId, { type: "geojson", data: geojson });
+
+        map.addLayer({
+          id: layerId,
+          type: "symbol",
+          source: sourceId,
+          layout: {
+            "icon-image": "property-pin",
+            "icon-size": 0.55,
+            "icon-anchor": "bottom",
+            "icon-allow-overlap": true,
+          },
+          paint: {
+            "icon-opacity-transition": { duration: 600, delay: 0 },
+          },
+        });
 
         // Click handler — zoom to property and show quick card
-        el.addEventListener("click", (e) => {
-          e.stopPropagation();
+        map.on("click", layerId, (e) => {
+          if (!e.features?.[0]) return;
+          const props = e.features[0].properties;
+          const property = propertyDataRef.current.get(props?.id);
+          if (!property) return;
+
           if (popupRef.current) {
             popupRef.current.remove();
             popupRef.current = null;
@@ -1422,18 +1459,23 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             duration: 500,
           });
 
-          // Notify parent to show property quick card
+          // Move property pins above route pins
+          if (map.getLayer(layerId) && map.getLayer("unclustered-point")) {
+            map.moveLayer(layerId);
+          }
+
           onPropertyPreview?.(property);
         });
 
-        propertyMarkersRef.current.push(marker);
-      });
-
-      return () => {
-        propertyMarkersRef.current.forEach((marker) => marker.remove());
-        propertyMarkersRef.current = [];
-      };
-    }, [propertyPins, mapLoaded, onPropertyPreview]);
+        // Cursor changes
+        map.on("mouseenter", layerId, () => {
+          map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", layerId, () => {
+          map.getCanvas().style.cursor = "";
+        });
+      }
+    }, [propertyPins, mapLoaded, onPropertyPreview, styleLoadCount]);
 
     // Draw route waypoint markers (from selected route)
     useEffect(() => {
