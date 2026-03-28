@@ -83,7 +83,7 @@ export function WaypointTimeline({
     const tick = () => {
       const elapsed = performance.now() - startTime;
       if (elapsed < duration) {
-        endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+        endRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
         scrollRafRef.current = requestAnimationFrame(tick);
       }
     };
@@ -230,10 +230,10 @@ export function WaypointTimeline({
         {/* Gradient fade + distance label + "Show more" when collapsed or collapsing */}
         {showCollapsedUI && (
           <>
-            {/* Distance to next hidden waypoint */}
+            {/* Distance to next hidden waypoint — matches other distance label positions */}
             {nextDistanceText && (
-              <div className="relative h-6">
-                <div className="absolute left-[-40px] top-0 z-10 w-8 flex items-center justify-center">
+              <div className="relative">
+                <div className="absolute left-[-40px] top-[-26px] z-10 w-8 flex items-center justify-center">
                   <span className="text-[10px] text-slate-400 bg-white px-1.5 py-0.5 leading-none whitespace-nowrap rounded-sm">
                     {nextDistanceText}
                   </span>
