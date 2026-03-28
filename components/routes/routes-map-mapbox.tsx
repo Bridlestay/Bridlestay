@@ -1398,7 +1398,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
         const el = document.createElement("div");
         el.className = "mapbox-property-marker";
-        el.innerHTML = `<img src="/Pins/property-pin.png" style="width: 22px; height: auto; cursor: pointer; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));" alt="" />`;
+        el.innerHTML = `<img src="/Pins/property-pin.png" style="width: 36px; height: auto; cursor: pointer; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));" alt="" />`;
         el.style.cursor = "pointer";
 
         const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
