@@ -7,6 +7,8 @@ import { WaypointCard } from "./waypoint-card";
 import { cn } from "@/lib/utils";
 
 const COLLAPSED_LIMIT = 4;
+const STAGGER_DELAY = 80; // ms between each card
+const CARD_DURATION = 300; // ms per card transition
 
 interface WaypointTimelineProps {
   fullWaypointList: any[];
@@ -31,9 +33,11 @@ export function WaypointTimeline({
   onSuggestEdit,
   initialExpandedWaypointId,
 }: WaypointTimelineProps) {
+  // showAll: whether hidden waypoints are mounted in the DOM
+  // isRevealed: whether CSS transitions are in "visible" state
   const [showAll, setShowAll] = useState(false);
-  const [isCollapsing, setIsCollapsing] = useState(false);
-  const [expandHeight, setExpandHeight] = useState(0);
+  const [isRevealed, setIsRevealed] = useState(false);
+  const [containerHeight, setContainerHeight] = useState(0);
   const hiddenRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -60,36 +64,43 @@ export function WaypointTimeline({
       : fullWaypointList;
 
   const canCollapse = truncatedList.length > COLLAPSED_LIMIT;
-  const shouldCollapse = canCollapse && !showAll;
   const hiddenCount = truncatedList.length - 3;
+  const hiddenWaypoints = canCollapse ? truncatedList.slice(3) : [];
+  const totalHidden = hiddenWaypoints.length;
+  const totalAnimTime = (totalHidden - 1) * STAGGER_DELAY + CARD_DURATION;
 
   // Always show only first 3 when collapsible — hidden section renders the rest
   const visibleWaypoints = canCollapse
     ? truncatedList.slice(0, 3)
     : truncatedList;
 
+  // Collapsed = canCollapse AND hidden section not mounted
+  const isCollapsed = canCollapse && !showAll;
+
   const handleExpand = () => {
     setShowAll(true);
-    // Measure content height after DOM render, then animate
+    // Frame 1: mount cards (invisible). Frame 2: measure + reveal (triggers CSS stagger)
     requestAnimationFrame(() => {
       if (hiddenRef.current) {
-        setExpandHeight(hiddenRef.current.scrollHeight);
+        setContainerHeight(hiddenRef.current.scrollHeight);
       }
-      // Scroll to bottom of waypoint section after animation
+      requestAnimationFrame(() => {
+        setIsRevealed(true);
+      });
+      // Scroll to end after full stagger completes
       setTimeout(() => {
         endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-      }, 350);
+      }, totalAnimTime + 100);
     });
   };
 
   const handleCollapse = () => {
-    setIsCollapsing(true);
-    setExpandHeight(0);
-    // Wait for collapse animation to finish before unmounting
+    setIsRevealed(false);
+    setContainerHeight(0);
+    // Wait for reverse stagger to finish, then unmount
     setTimeout(() => {
       setShowAll(false);
-      setIsCollapsing(false);
-    }, 400);
+    }, totalAnimTime + 50);
   };
 
   const renderWaypoint = (wp: any, visIdx: number) => {
@@ -165,62 +176,75 @@ export function WaypointTimeline({
 
       {/* Waypoint Timeline */}
       <div className="relative pl-10">
-        {/* Continuous dotted line behind all waypoints — clip when collapsed so it doesn't bleed through gradient */}
+        {/* Continuous dotted line behind all waypoints */}
         <div className={cn(
           "absolute left-[16px] top-0 border-l-2 border-dotted border-slate-300 z-0",
-          (shouldCollapse || isCollapsing) ? "bottom-16" : "bottom-0"
+          isCollapsed ? "bottom-16" : "bottom-0"
         )} />
 
-        {/* Always-visible waypoints (first 3 when collapsed, all when expanded) */}
+        {/* Always-visible waypoints (first 3 when collapsible, all otherwise) */}
         {visibleWaypoints.map((wp: any, visIdx: number) =>
           renderWaypoint(wp, visIdx)
         )}
 
-        {/* Fade-out gradient + show more button when collapsed or collapsing */}
-        {(shouldCollapse || isCollapsing) && (
+        {/* Gradient fade + "Show more" button when collapsed */}
+        {isCollapsed && (
           <>
-            {/* Gradient fade — sits below last visible waypoint, fades upward */}
             <div className="relative h-16 z-20 pointer-events-none">
               <div className="absolute inset-x-[-50px] bottom-0 h-16 bg-gradient-to-t from-white via-white/80 to-transparent" />
             </div>
-            {/* Show more button — below gradient */}
-            {!isCollapsing && (
-              <div className="relative z-20 flex justify-center py-1">
-                <button
-                  onClick={handleExpand}
-                  className="text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-4 py-1.5 rounded-full transition-colors"
-                >
-                  Show {hiddenCount} more waypoint{hiddenCount !== 1 ? "s" : ""}
-                </button>
-              </div>
-            )}
+            <div className="relative z-20 flex justify-center py-1">
+              <button
+                onClick={handleExpand}
+                className="text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-4 py-1.5 rounded-full transition-colors"
+              >
+                Show {hiddenCount} more waypoint{hiddenCount !== 1 ? "s" : ""}
+              </button>
+            </div>
           </>
         )}
 
-        {/* Hidden waypoints that expand/collapse with smooth height animation */}
-        {showAll && truncatedList.length > COLLAPSED_LIMIT && (
+        {/* Hidden waypoints — staggered cascade animation */}
+        {showAll && canCollapse && (
           <div
             ref={hiddenRef}
-            className="transition-all duration-400 ease-out overflow-hidden"
+            className="overflow-hidden transition-all ease-out"
             style={{
-              maxHeight: expandHeight > 0 ? `${expandHeight}px` : "0px",
-              opacity: expandHeight > 0 ? 1 : 0,
+              maxHeight: containerHeight > 0 ? `${containerHeight}px` : "0px",
+              transitionDuration: `${totalAnimTime}ms`,
               marginLeft: "-50px",
               paddingLeft: "50px",
             }}
           >
-            {truncatedList.slice(3).map((wp: any, i: number) =>
-              renderWaypoint(wp, i + 3)
-            )}
+            {hiddenWaypoints.map((wp: any, i: number) => (
+              <div
+                key={wp.id}
+                className="transition-all ease-out"
+                style={{
+                  opacity: isRevealed ? 1 : 0,
+                  transform: isRevealed ? "translateY(0)" : "translateY(-12px)",
+                  transitionDuration: `${CARD_DURATION}ms`,
+                  transitionDelay: isRevealed
+                    ? `${i * STAGGER_DELAY}ms`
+                    : `${(totalHidden - 1 - i) * STAGGER_DELAY}ms`,
+                }}
+              >
+                {renderWaypoint(wp, i + 3)}
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Collapse button when expanded */}
-      {showAll && expandHeight > 0 && truncatedList.length > COLLAPSED_LIMIT && (
-        <div className="flex justify-center pt-2">
+      {/* "Show fewer" button when expanded */}
+      {showAll && canCollapse && (
+        <div
+          className="flex justify-center pt-2 transition-opacity duration-300"
+          style={{ opacity: isRevealed ? 1 : 0 }}
+        >
           <button
             onClick={handleCollapse}
+            disabled={!isRevealed}
             className="flex items-center gap-1 text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-3 py-1.5 rounded-full transition-colors"
           >
             <ChevronDown className="h-3.5 w-3.5 rotate-180" />
