@@ -58,11 +58,12 @@ export function WaypointTimeline({
       ? fullWaypointList.slice(0, finishIdx + 1)
       : fullWaypointList;
 
-  const shouldCollapse = truncatedList.length > COLLAPSED_LIMIT && !showAll;
+  const canCollapse = truncatedList.length > COLLAPSED_LIMIT;
+  const shouldCollapse = canCollapse && !showAll;
   const hiddenCount = truncatedList.length - 3;
 
-  // Only show first 3 when collapsed (no finish)
-  const visibleWaypoints = shouldCollapse
+  // Always show only first 3 when collapsible — hidden section renders the rest
+  const visibleWaypoints = canCollapse
     ? truncatedList.slice(0, 3)
     : truncatedList;
 
@@ -159,21 +160,26 @@ export function WaypointTimeline({
 
       {/* Waypoint Timeline */}
       <div className="relative pl-10">
-        {/* Continuous dotted line behind all waypoints */}
-        <div className="absolute left-[16px] top-0 bottom-0 border-l-2 border-dotted border-slate-300 z-0" />
+        {/* Continuous dotted line behind all waypoints — clip when collapsed so it doesn't bleed through gradient */}
+        <div className={cn(
+          "absolute left-[16px] top-0 border-l-2 border-dotted border-slate-300 z-0",
+          shouldCollapse ? "bottom-16" : "bottom-0"
+        )} />
 
         {/* Always-visible waypoints (first 3 when collapsed, all when expanded) */}
         {visibleWaypoints.map((wp: any, visIdx: number) =>
           renderWaypoint(wp, visIdx)
         )}
 
-        {/* Fade-out gradient overlay when collapsed — covers content AND dotted timeline */}
+        {/* Fade-out gradient + show more button when collapsed */}
         {shouldCollapse && (
-          <div className="relative -mt-32 pt-32 z-20">
-            {/* White gradient fade — extends left to cover the dotted timeline */}
-            <div className="absolute inset-x-[-50px] top-0 h-32 bg-gradient-to-b from-transparent via-white/60 to-white pointer-events-none" />
-            {/* Show more button */}
-            <div className="relative flex justify-center py-2">
+          <>
+            {/* Gradient fade — sits below last visible waypoint, fades upward */}
+            <div className="relative h-16 z-20 pointer-events-none">
+              <div className="absolute inset-x-[-50px] bottom-0 h-16 bg-gradient-to-t from-white via-white/80 to-transparent" />
+            </div>
+            {/* Show more button — below gradient */}
+            <div className="relative z-20 flex justify-center py-1">
               <button
                 onClick={handleExpand}
                 className="text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-4 py-1.5 rounded-full transition-colors"
@@ -181,7 +187,7 @@ export function WaypointTimeline({
                 Show {hiddenCount} more waypoint{hiddenCount !== 1 ? "s" : ""}
               </button>
             </div>
-          </div>
+          </>
         )}
 
         {/* Hidden waypoints that expand/collapse with smooth height animation */}
