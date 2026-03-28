@@ -286,6 +286,7 @@ export interface RoutesMapMapboxProps {
   onRouteClick?: (routeId: string) => void;
   onRoutePreview?: (route: any) => void;
   onClusterClick?: (routeIds: string[], count: number) => void;
+  onPropertyPreview?: (property: any) => void;
   onVisibleRoutesChange?: (routeIds: string[]) => void;
   center?: { lat: number; lng: number };
   zoom?: number;
@@ -416,6 +417,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       onRouteClick,
       onRoutePreview,
       onClusterClick,
+      onPropertyPreview,
       onVisibleRoutesChange,
       center = { lat: 52.2, lng: -2.2 },
       zoom = 10,
@@ -1405,60 +1407,23 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           .setLngLat([property.longitude, property.latitude])
           .addTo(map);
 
-        // Add click handler with popup
+        // Click handler — zoom to property and show quick card
         el.addEventListener("click", (e) => {
           e.stopPropagation();
-          if (popupRef.current) popupRef.current.remove();
+          if (popupRef.current) {
+            popupRef.current.remove();
+            popupRef.current = null;
+          }
 
-          const priceDisplay = property.nightly_price_pennies
-            ? `£${(property.nightly_price_pennies / 100).toFixed(0)}/night`
-            : "";
-          const ratingDisplay = property.average_rating
-            ? `★ ${property.average_rating.toFixed(1)}${property.review_count ? ` (${property.review_count})` : ""}`
-            : "";
-
-          const popup = new mapboxgl.Popup({
-            closeButton: true,
-            closeOnClick: true,
-            maxWidth: "260px",
-            offset: 20,
+          // Zoom to property
+          map.easeTo({
+            center: [property.longitude, property.latitude],
+            zoom: Math.max(map.getZoom(), 14),
+            duration: 500,
           });
 
-          popup.setLngLat([property.longitude, property.latitude])
-            .setHTML(`
-              <div style="
-                padding: 12px;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              ">
-                <h3 style="
-                  margin: 0 0 4px 0;
-                  font-size: 15px;
-                  font-weight: 600;
-                  color: #1f2937;
-                ">${property.name}</h3>
-                ${property.city ? `
-                  <p style="
-                    margin: 0 0 6px 0;
-                    font-size: 13px;
-                    color: #6b7280;
-                  ">${property.city}${property.county ? `, ${property.county}` : ""}</p>
-                ` : ""}
-                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                  ${priceDisplay ? `<span style="font-size: 14px; font-weight: 600; color: #2E8B57;">${priceDisplay}</span>` : ""}
-                  ${ratingDisplay ? `<span style="font-size: 13px; color: #f59e0b;">${ratingDisplay}</span>` : ""}
-                </div>
-                ${property.max_horses ? `
-                  <p style="
-                    margin: 6px 0 0 0;
-                    font-size: 12px;
-                    color: #6b7280;
-                  ">Up to ${property.max_horses} horse${property.max_horses > 1 ? "s" : ""}</p>
-                ` : ""}
-              </div>
-            `)
-            .addTo(map);
-
-          popupRef.current = popup;
+          // Notify parent to show property quick card
+          onPropertyPreview?.(property);
         });
 
         propertyMarkersRef.current.push(marker);
@@ -1468,7 +1433,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         propertyMarkersRef.current.forEach((marker) => marker.remove());
         propertyMarkersRef.current = [];
       };
-    }, [propertyPins, mapLoaded]);
+    }, [propertyPins, mapLoaded, onPropertyPreview]);
 
     // Draw route waypoint markers (from selected route)
     useEffect(() => {

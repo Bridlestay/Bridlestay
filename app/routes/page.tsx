@@ -13,6 +13,7 @@ import { RoutesNavTabs, RouteTab } from "@/components/routes/routes-nav-tabs";
 import { FindRoutesPanel } from "@/components/routes/find-routes-panel";
 import { RouteBottomSheet } from "@/components/routes/route-bottom-sheet";
 import { RouteQuickCard } from "@/components/routes/route-quick-card";
+import { PropertyQuickCard } from "@/components/routes/property-quick-card";
 import { RouteNavigator } from "@/components/routes/route-navigator";
 import { PostRideReview } from "@/components/routes/post-ride-review";
 import { ElevationProfile } from "@/components/routes/elevation-profile";
@@ -170,6 +171,9 @@ export default function RoutesPage() {
 
   // Route preview (quick card at bottom)
   const [previewRoute, setPreviewRoute] = useState<any | null>(null);
+
+  // Property preview (quick card at bottom)
+  const [previewProperty, setPreviewProperty] = useState<any | null>(null);
 
   // Layer settings - paths hidden by default in explore mode
   const [layerSettings, setLayerSettings] = useState<LayerSettings>(() => {
@@ -573,9 +577,10 @@ export default function RoutesPage() {
     setHighlightedRouteId(route.id);
     setPreviewRoute(route);
 
-    // Close any existing drawer
+    // Close any existing drawer or property preview
     setDrawerOpen(false);
     setShowBottomSheet(false);
+    setPreviewProperty(null);
 
     // Clear cluster browse state — individual pin click exits cluster mode
     setClusterBrowseRoutes([]);
@@ -594,6 +599,15 @@ export default function RoutesPage() {
         mapRef.current?.fitBounds(route.geometry.coordinates);
       }, 100);
     }
+  };
+
+  // Handle property pin click — show property quick card at bottom
+  const handlePropertyPreview = (property: any) => {
+    setPreviewProperty(property);
+    // Close any route preview
+    setPreviewRoute(null);
+    setDrawerOpen(false);
+    setShowBottomSheet(false);
   };
 
   // Handle click from Find panel — fly to route and show quick card
@@ -1824,6 +1838,7 @@ export default function RoutesPage() {
             routes={exploreRoutes}
             onRouteClick={handleRouteClick}
             onRoutePreview={handleRoutePreview}
+            onPropertyPreview={handlePropertyPreview}
             onClusterClick={handleClusterClick}
             onVisibleRoutesChange={handleVisibleRoutesChange}
             selectedRouteId={drawnRouteId}
@@ -2011,6 +2026,17 @@ export default function RoutesPage() {
                 setSelectedRouteId(r.id);
                 fetchRouteWaypoints(r.id);
               }
+            }}
+          />
+        )}
+
+        {/* Property Quick Card - appears when a property pin is clicked */}
+        {previewProperty && !previewRoute && !drawerOpen && activeTab !== "find" && (
+          <PropertyQuickCard
+            property={previewProperty}
+            onClose={() => setPreviewProperty(null)}
+            onClick={() => {
+              router.push(`/property/${previewProperty.id}`);
             }}
           />
         )}
