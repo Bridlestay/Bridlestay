@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { WaypointCard } from "./waypoint-card";
 import { cn } from "@/lib/utils";
 
 const COLLAPSED_LIMIT = 4;
-const STAGGER_DELAY = 80; // ms between each card
-const CARD_DURATION = 300; // ms per card transition
+const STAGGER_DELAY = 120; // ms between each card
+const CARD_DURATION = 400; // ms per card transition
 
 interface WaypointTimelineProps {
   fullWaypointList: any[];
@@ -33,24 +33,13 @@ export function WaypointTimeline({
   onSuggestEdit,
   initialExpandedWaypointId,
 }: WaypointTimelineProps) {
-  // showAll: whether hidden waypoints are mounted in the DOM
-  // isRevealed: whether CSS transitions are in "visible" state
   const [showAll, setShowAll] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
+  const [isCollapsing, setIsCollapsing] = useState(false);
   const [containerHeight, setContainerHeight] = useState(0);
   const hiddenRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
-
-  // Auto-expand if the target waypoint is hidden in collapsed view
-  useEffect(() => {
-    if (!initialExpandedWaypointId) return;
-    const idx = fullWaypointList.findIndex(
-      (wp: any) => wp.id === initialExpandedWaypointId
-    );
-    if (idx >= 3) {
-      handleExpand();
-    }
-  }, [initialExpandedWaypointId, fullWaypointList]);
+  const scrollRafRef = useRef<number>(0);
 
   if (fullWaypointList.length === 0) return null;
 
@@ -74,34 +63,85 @@ export function WaypointTimeline({
     ? truncatedList.slice(0, 3)
     : truncatedList;
 
-  // Collapsed = canCollapse AND hidden section not mounted
-  const isCollapsed = canCollapse && !showAll;
+  // Show gradient + button when collapsed OR collapsing
+  const showCollapsedUI = canCollapse && (!showAll || isCollapsing);
 
-  const handleExpand = () => {
+  // Distance from last visible waypoint to first hidden (for collapsed state)
+  const firstHiddenWp = hiddenWaypoints[0];
+  const nextDistanceMetres = firstHiddenWp?._distFromPrev
+    ? firstHiddenWp._distFromPrev * 1000
+    : undefined;
+  const nextDistanceText = nextDistanceMetres
+    ? nextDistanceMetres < 1000
+      ? `${Math.round(nextDistanceMetres)} m`
+      : `${(nextDistanceMetres / 1000).toFixed(1)} km`
+    : null;
+
+  // Progressive scroll — follows content as it reveals
+  const startProgressiveScroll = useCallback((duration: number) => {
+    const startTime = performance.now();
+    const tick = () => {
+      const elapsed = performance.now() - startTime;
+      if (elapsed < duration) {
+        endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+        scrollRafRef.current = requestAnimationFrame(tick);
+      }
+    };
+    scrollRafRef.current = requestAnimationFrame(tick);
+  }, []);
+
+  const stopProgressiveScroll = useCallback(() => {
+    if (scrollRafRef.current) {
+      cancelAnimationFrame(scrollRafRef.current);
+      scrollRafRef.current = 0;
+    }
+  }, []);
+
+  const handleExpand = useCallback(() => {
     setShowAll(true);
-    // Frame 1: mount cards (invisible). Frame 2: measure + reveal (triggers CSS stagger)
+    setIsCollapsing(false);
+    // Frame 1: mount cards (invisible). Frame 2: measure + reveal
     requestAnimationFrame(() => {
       if (hiddenRef.current) {
         setContainerHeight(hiddenRef.current.scrollHeight);
       }
       requestAnimationFrame(() => {
         setIsRevealed(true);
+        // Start progressive scroll that follows the cascade
+        startProgressiveScroll(totalAnimTime + 200);
       });
-      // Scroll to end after full stagger completes
-      setTimeout(() => {
-        endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-      }, totalAnimTime + 100);
     });
-  };
+  }, [totalAnimTime, startProgressiveScroll]);
 
-  const handleCollapse = () => {
+  const handleCollapse = useCallback(() => {
+    stopProgressiveScroll();
     setIsRevealed(false);
+    setIsCollapsing(true);
     setContainerHeight(0);
     // Wait for reverse stagger to finish, then unmount
     setTimeout(() => {
       setShowAll(false);
+      setIsCollapsing(false);
     }, totalAnimTime + 50);
-  };
+  }, [totalAnimTime, stopProgressiveScroll]);
+
+  // Auto-expand if the target waypoint is hidden in collapsed view
+  useEffect(() => {
+    if (!initialExpandedWaypointId) return;
+    const idx = fullWaypointList.findIndex(
+      (wp: any) => wp.id === initialExpandedWaypointId
+    );
+    if (idx >= 3) {
+      handleExpand();
+    }
+  }, [initialExpandedWaypointId, fullWaypointList, handleExpand]);
+
+  // Cleanup scroll on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    };
+  }, []);
 
   const renderWaypoint = (wp: any, visIdx: number) => {
     const index = truncatedList.indexOf(wp);
@@ -179,7 +219,7 @@ export function WaypointTimeline({
         {/* Continuous dotted line behind all waypoints */}
         <div className={cn(
           "absolute left-[16px] top-0 border-l-2 border-dotted border-slate-300 z-0",
-          isCollapsed ? "bottom-16" : "bottom-0"
+          showCollapsedUI ? "bottom-16" : "bottom-0"
         )} />
 
         {/* Always-visible waypoints (first 3 when collapsible, all otherwise) */}
@@ -187,20 +227,34 @@ export function WaypointTimeline({
           renderWaypoint(wp, visIdx)
         )}
 
-        {/* Gradient fade + "Show more" button when collapsed */}
-        {isCollapsed && (
+        {/* Gradient fade + distance label + "Show more" when collapsed or collapsing */}
+        {showCollapsedUI && (
           <>
-            <div className="relative h-16 z-20 pointer-events-none">
-              <div className="absolute inset-x-[-50px] bottom-0 h-16 bg-gradient-to-t from-white via-white/80 to-transparent" />
+            {/* Distance to next hidden waypoint */}
+            {nextDistanceText && (
+              <div className="relative h-6">
+                <div className="absolute left-[-40px] top-0 z-10 w-8 flex items-center justify-center">
+                  <span className="text-[10px] text-slate-400 bg-white px-1.5 py-0.5 leading-none whitespace-nowrap rounded-sm">
+                    {nextDistanceText}
+                  </span>
+                </div>
+              </div>
+            )}
+            {/* Gradient fade */}
+            <div className="relative h-12 z-20 pointer-events-none">
+              <div className="absolute inset-x-[-50px] bottom-0 h-12 bg-gradient-to-t from-white via-white/80 to-transparent" />
             </div>
-            <div className="relative z-20 flex justify-center py-1">
-              <button
-                onClick={handleExpand}
-                className="text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-4 py-1.5 rounded-full transition-colors"
-              >
-                Show {hiddenCount} more waypoint{hiddenCount !== 1 ? "s" : ""}
-              </button>
-            </div>
+            {/* Show more button */}
+            {!isCollapsing && (
+              <div className="relative z-20 flex justify-center py-1">
+                <button
+                  onClick={handleExpand}
+                  className="text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-4 py-1.5 rounded-full transition-colors"
+                >
+                  Show {hiddenCount} more waypoint{hiddenCount !== 1 ? "s" : ""}
+                </button>
+              </div>
+            )}
           </>
         )}
 
@@ -239,8 +293,11 @@ export function WaypointTimeline({
       {/* "Show fewer" button when expanded */}
       {showAll && canCollapse && (
         <div
-          className="flex justify-center pt-2 transition-opacity duration-300"
-          style={{ opacity: isRevealed ? 1 : 0 }}
+          className="flex justify-center pt-2 transition-opacity"
+          style={{
+            opacity: isRevealed ? 1 : 0,
+            transitionDuration: `${CARD_DURATION}ms`,
+          }}
         >
           <button
             onClick={handleCollapse}
