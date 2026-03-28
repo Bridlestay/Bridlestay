@@ -123,7 +123,7 @@ export function UserDropdownMenu({
         </DropdownMenuItem>
       </div>
 
-      <DropdownMenuSeparator className="my-0" />
+      <DropdownMenuSeparator className="my-0 mx-4" />
 
       {/* Section 2: Routes, Listings, Admin */}
       <div className="py-1.5">
@@ -162,7 +162,7 @@ export function UserDropdownMenu({
         )}
       </div>
 
-      <DropdownMenuSeparator className="my-0" />
+      <DropdownMenuSeparator className="my-0 mx-4" />
 
       {/* Section 3: Account */}
       <div className="py-1.5">
@@ -195,7 +195,7 @@ export function UserDropdownMenu({
         </DropdownMenuItem>
       </div>
 
-      <DropdownMenuSeparator className="my-0" />
+      <DropdownMenuSeparator className="my-0 mx-4" />
 
       {/* Section 4: Feedback, Claims */}
       <div className="py-1.5">
@@ -219,7 +219,7 @@ export function UserDropdownMenu({
         </DropdownMenuItem>
       </div>
 
-      <DropdownMenuSeparator className="my-0" />
+      <DropdownMenuSeparator className="my-0 mx-4" />
 
       {/* Log out */}
       <div className="py-1.5">
