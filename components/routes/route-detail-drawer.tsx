@@ -851,7 +851,14 @@ export function RouteDetailDrawer({
   const fullWaypointList = useMemo(() => {
     const geo = route?.geometry || route?.route_geometry;
     const coords = geo?.coordinates || [];
-    const sorted = [...(waypoints || [])].sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0));
+    // Deduplicate waypoints by id, then sort by order_index
+    const seen = new Set<string>();
+    const deduped = (waypoints || []).filter((wp: any) => {
+      if (!wp.id || seen.has(wp.id)) return false;
+      seen.add(wp.id);
+      return true;
+    });
+    const sorted = [...deduped].sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0));
     const list: any[] = [];
 
     if (coords.length > 0) {

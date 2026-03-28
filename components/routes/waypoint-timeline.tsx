@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { WaypointCard } from "./waypoint-card";
@@ -32,8 +32,9 @@ export function WaypointTimeline({
   initialExpandedWaypointId,
 }: WaypointTimelineProps) {
   const [showAll, setShowAll] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expandHeight, setExpandHeight] = useState(0);
   const hiddenRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
 
   // Auto-expand if the target waypoint is hidden in collapsed view
   useEffect(() => {
@@ -48,30 +49,45 @@ export function WaypointTimeline({
 
   if (fullWaypointList.length === 0) return null;
 
-  const shouldCollapse = fullWaypointList.length > COLLAPSED_LIMIT && !showAll;
-  const hiddenCount = fullWaypointList.length - 3;
+  // Truncate list at Finish — nothing should appear after it
+  const finishIdx = fullWaypointList.findIndex(
+    (wp: any) => wp.type === "finish"
+  );
+  const truncatedList =
+    finishIdx >= 0
+      ? fullWaypointList.slice(0, finishIdx + 1)
+      : fullWaypointList;
+
+  const shouldCollapse = truncatedList.length > COLLAPSED_LIMIT && !showAll;
+  const hiddenCount = truncatedList.length - 3;
 
   // Only show first 3 when collapsed (no finish)
   const visibleWaypoints = shouldCollapse
-    ? fullWaypointList.slice(0, 3)
-    : fullWaypointList;
+    ? truncatedList.slice(0, 3)
+    : truncatedList;
 
   const handleExpand = () => {
     setShowAll(true);
-    // After DOM mounts the hidden content, trigger the expand animation
+    // Measure content height after DOM render, then animate
     requestAnimationFrame(() => {
-      setExpanded(true);
+      if (hiddenRef.current) {
+        setExpandHeight(hiddenRef.current.scrollHeight);
+      }
+      // Scroll to bottom of waypoint section after animation
+      setTimeout(() => {
+        endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      }, 350);
     });
   };
 
   const handleCollapse = () => {
-    setExpanded(false);
+    setExpandHeight(0);
     // Wait for collapse animation to finish before unmounting
-    setTimeout(() => setShowAll(false), 300);
+    setTimeout(() => setShowAll(false), 400);
   };
 
   const renderWaypoint = (wp: any, visIdx: number) => {
-    const index = fullWaypointList.indexOf(wp);
+    const index = truncatedList.indexOf(wp);
     const isStart = wp.type === "start";
     const isFinish = wp.type === "finish";
 
@@ -151,11 +167,11 @@ export function WaypointTimeline({
           renderWaypoint(wp, visIdx)
         )}
 
-        {/* Fade-out gradient overlay when collapsed */}
+        {/* Fade-out gradient overlay when collapsed — covers content AND dotted timeline */}
         {shouldCollapse && (
           <div className="relative -mt-20 pt-20 z-20">
-            {/* White gradient fade */}
-            <div className="absolute inset-x-[-10px] top-0 h-20 bg-gradient-to-b from-transparent via-white/80 to-white pointer-events-none" />
+            {/* White gradient fade — extends left to cover the dotted timeline */}
+            <div className="absolute inset-x-[-50px] top-0 h-20 bg-gradient-to-b from-transparent via-white/80 to-white pointer-events-none" />
             {/* Show more button */}
             <div className="relative flex justify-center py-2">
               <button
@@ -168,18 +184,17 @@ export function WaypointTimeline({
           </div>
         )}
 
-        {/* Hidden waypoints that expand/collapse with animation */}
-        {showAll && fullWaypointList.length > COLLAPSED_LIMIT && (
+        {/* Hidden waypoints that expand/collapse with smooth height animation */}
+        {showAll && truncatedList.length > COLLAPSED_LIMIT && (
           <div
             ref={hiddenRef}
-            className={cn(
-              "transition-all duration-300 ease-out overflow-hidden",
-              expanded
-                ? "max-h-[5000px] opacity-100"
-                : "max-h-0 opacity-0"
-            )}
+            className="transition-all duration-400 ease-out overflow-hidden"
+            style={{
+              maxHeight: expandHeight > 0 ? `${expandHeight}px` : "0px",
+              opacity: expandHeight > 0 ? 1 : 0,
+            }}
           >
-            {fullWaypointList.slice(3).map((wp: any, i: number) =>
+            {truncatedList.slice(3).map((wp: any, i: number) =>
               renderWaypoint(wp, i + 3)
             )}
           </div>
@@ -187,7 +202,7 @@ export function WaypointTimeline({
       </div>
 
       {/* Collapse button when expanded */}
-      {showAll && expanded && fullWaypointList.length > COLLAPSED_LIMIT && (
+      {showAll && expandHeight > 0 && truncatedList.length > COLLAPSED_LIMIT && (
         <div className="flex justify-center pt-2">
           <button
             onClick={handleCollapse}
@@ -198,6 +213,9 @@ export function WaypointTimeline({
           </button>
         </div>
       )}
+
+      {/* Scroll target for auto-scroll after expand */}
+      <div ref={endRef} />
     </div>
   );
 }
