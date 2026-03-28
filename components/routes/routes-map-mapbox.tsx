@@ -259,7 +259,7 @@ function ensureClusterImages(map: mapboxgl.Map, counts: number[]) {
     const id = `cluster-${count}`;
     if (map.hasImage(id)) continue;
     // Scale radius by count
-    const radius = count < 10 ? 36 : count < 30 ? 42 : count < 100 ? 48 : 54;
+    const radius = count < 10 ? 72 : count < 30 ? 84 : count < 100 ? 96 : 108;
     const img = createClusterImage(count, radius);
     map.addImage(id, img, { pixelRatio: 2 });
   }
@@ -1118,8 +1118,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             features,
           },
           cluster: true,
-          clusterMaxZoom: 12,
-          clusterRadius: 60,
+          clusterMaxZoom: 11,
+          clusterRadius: 80,
         });
 
         // Cluster layer — single symbol layer with canvas-drawn images (circle + count baked in)
