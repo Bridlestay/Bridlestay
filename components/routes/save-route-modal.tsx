@@ -553,7 +553,7 @@ export function SaveRouteModal({
                     type="button"
                     onClick={() => setVisibility(opt.value)}
                     className={cn(
-                      "relative flex flex-col items-center pt-3 pb-2.5 gap-1 px-2 rounded-xl border-2 cursor-pointer transition-all text-center",
+                      "relative flex flex-col items-center justify-center gap-1 px-2 aspect-[4/5] rounded-xl border-2 cursor-pointer transition-all text-center",
                       visibility === opt.value
                         ? "border-[#267347] bg-[#267347]/5 shadow-sm"
                         : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
