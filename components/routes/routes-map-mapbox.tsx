@@ -210,47 +210,51 @@ const POI_ICON_SVGS: Record<string, string> = {
   other: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><circle cx="8" cy="6" r="2.5" fill="none" stroke="white" stroke-width="1.5"/><path d="M8 9v3" stroke="white" stroke-width="1.5"/><circle cx="8" cy="14" r="1" fill="white"/></svg>`,
 };
 
-// Draw a pin icon on a canvas for use as a Mapbox symbol image
+// Draw a pin icon on a canvas matching the old SVG teardrop pin design:
+// <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z"/>
 // Returns {width, height, data} format that map.addImage() accepts
 function createPinImage(): { width: number; height: number; data: Uint8Array } {
-  const size = 64; // High-res for retina
+  const w = 56;
+  const h = 80;
   const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = Math.round(size * 1.3); // Taller for pin shape
+  canvas.width = w;
+  canvas.height = h;
   const ctx = canvas.getContext("2d")!;
 
-  const cx = size / 2;
-  const r = size * 0.35; // Circle radius
-  const cy = r + 4; // Circle center Y (with top padding)
+  // Scale the old SVG viewBox (0 0 24 32) to fit canvas with padding for stroke
+  const pad = 4;
+  const sx = (w - pad * 2) / 24;
+  const sy = (h - pad * 2) / 32;
 
-  // Pin tail (triangle pointing down)
+  ctx.save();
+  ctx.translate(pad, pad);
+  ctx.scale(sx, sy);
+
+  // Recreate the SVG teardrop path: M12 0 C5.4 0 0 5.4 0 12 c0 9 12 20 12 20 s12-11 12-20 C24 5.4 18.6 0 12 0z
   ctx.beginPath();
-  ctx.moveTo(cx - r * 0.55, cy + r * 0.7);
-  ctx.lineTo(cx, canvas.height - 4);
-  ctx.lineTo(cx + r * 0.55, cy + r * 0.7);
+  ctx.moveTo(12, 0);
+  ctx.bezierCurveTo(5.4, 0, 0, 5.4, 0, 12);
+  ctx.bezierCurveTo(0, 21, 12, 32, 12, 32);
+  ctx.bezierCurveTo(12, 32, 24, 21, 24, 12);
+  ctx.bezierCurveTo(24, 5.4, 18.6, 0, 12, 0);
   ctx.closePath();
+
+  // Fill green
   ctx.fillStyle = PIN_COLOR;
   ctx.fill();
+  // White stroke
+  ctx.lineWidth = 3 / sx; // Compensate for scale
   ctx.strokeStyle = PIN_BORDER;
-  ctx.lineWidth = 3;
   ctx.stroke();
 
-  // Main circle (drawn after tail so it overlaps the tail top)
+  // Inner white dot (matching <circle cx="12" cy="11" r="4"/>)
   ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = PIN_COLOR;
-  ctx.fill();
-  ctx.strokeStyle = PIN_BORDER;
-  ctx.lineWidth = 3.5;
-  ctx.stroke();
-
-  // Inner white dot
-  ctx.beginPath();
-  ctx.arc(cx, cy - 1, r * 0.32, 0, Math.PI * 2);
+  ctx.arc(12, 11, 4, 0, Math.PI * 2);
   ctx.fillStyle = PIN_BORDER;
   ctx.fill();
 
-  // Return as {width, height, data} — the format map.addImage() expects
+  ctx.restore();
+
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   return { width: canvas.width, height: canvas.height, data: new Uint8Array(imageData.data.buffer) };
 }
@@ -1135,7 +1139,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           filter: ["!", ["has", "point_count"]],
           layout: {
             "icon-image": "route-pin",
-            "icon-size": 0.55,
+            "icon-size": 1.0,
             "icon-anchor": "bottom",
             "icon-allow-overlap": true,
           },

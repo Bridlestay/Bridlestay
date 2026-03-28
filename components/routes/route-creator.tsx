@@ -413,7 +413,7 @@ export function RouteCreator({
                 type="button"
                 onClick={() => setVisibility(opt.value)}
                 className={cn(
-                  "relative flex flex-col items-center justify-center gap-2 aspect-[3/4] rounded-xl border-2 cursor-pointer transition-all text-center",
+                  "relative flex flex-col items-center justify-center gap-1.5 aspect-[5/6] px-2 rounded-xl border-2 cursor-pointer transition-all text-center",
                   visibility === opt.value
                     ? "border-[#267347] bg-[#267347]/5 shadow-sm"
                     : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"

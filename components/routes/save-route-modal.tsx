@@ -467,7 +467,7 @@ export function SaveRouteModal({
           <div className="px-6 py-4 space-y-5">
             {/* Route name */}
             <div className="space-y-1.5">
-              <Label htmlFor="save-route-name" className="text-sm font-medium">
+              <Label htmlFor="save-route-name" className="text-base font-semibold">
                 Route name *
               </Label>
               <div className="relative">
@@ -488,7 +488,7 @@ export function SaveRouteModal({
             {/* Description */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="save-route-desc" className="text-sm font-medium">
+                <Label htmlFor="save-route-desc" className="text-base font-semibold">
                   Description
                 </Label>
                 {variantOfRouteId && (
@@ -526,7 +526,7 @@ export function SaveRouteModal({
 
             {/* Visibility */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Visibility</Label>
+              <Label className="text-base font-semibold">Visibility</Label>
               <div className="grid grid-cols-3 gap-3">
                 {[
                   {
@@ -553,7 +553,7 @@ export function SaveRouteModal({
                     type="button"
                     onClick={() => setVisibility(opt.value)}
                     className={cn(
-                      "relative flex flex-col items-center justify-center gap-2 aspect-[3/4] rounded-xl border-2 cursor-pointer transition-all text-center",
+                      "relative flex flex-col items-center justify-center gap-1.5 aspect-[5/6] px-2 rounded-xl border-2 cursor-pointer transition-all text-center",
                       visibility === opt.value
                         ? "border-[#267347] bg-[#267347]/5 shadow-sm"
                         : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
@@ -585,7 +585,7 @@ export function SaveRouteModal({
             {/* Difficulty */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Label className="text-sm font-medium">Difficulty</Label>
+                <Label className="text-base font-semibold">Difficulty</Label>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="text-muted-foreground cursor-help text-xs">
@@ -615,7 +615,7 @@ export function SaveRouteModal({
                     size="sm"
                     onClick={() => setDifficulty(level)}
                     className={cn(
-                      "text-xs",
+                      "text-xs rounded-full",
                       difficulty === level
                         ? level === "easy"
                           ? "bg-green-600 hover:bg-green-700"
@@ -635,7 +635,7 @@ export function SaveRouteModal({
 
             {/* Photos */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">
+              <Label className="text-base font-semibold">
                 Photos{" "}
                 <span className="text-muted-foreground font-normal">
                   ({photos.length}/10)
@@ -747,15 +747,15 @@ export function SaveRouteModal({
         {/* Fixed bottom actions */}
         <div className="border-t bg-white px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex gap-3">
           <Button
-            variant="outline"
-            className="flex-1 hidden md:flex"
+            variant="ghost"
+            className="flex-1 hidden md:flex text-[#2E8B57] hover:text-[#256b45] hover:bg-transparent text-base font-medium"
             onClick={onClose}
             disabled={saving}
           >
             Cancel
           </Button>
           <Button
-            className="flex-1 bg-[#2E8B57] hover:bg-[#256b45]"
+            className="flex-1 bg-[#2E8B57] hover:bg-[#256b45] rounded-full text-base"
             onClick={handleSave}
             disabled={saving || !title.trim()}
           >
