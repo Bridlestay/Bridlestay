@@ -32,6 +32,7 @@ export function WaypointTimeline({
   initialExpandedWaypointId,
 }: WaypointTimelineProps) {
   const [showAll, setShowAll] = useState(false);
+  const [isCollapsing, setIsCollapsing] = useState(false);
   const [expandHeight, setExpandHeight] = useState(0);
   const hiddenRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -82,9 +83,13 @@ export function WaypointTimeline({
   };
 
   const handleCollapse = () => {
+    setIsCollapsing(true);
     setExpandHeight(0);
     // Wait for collapse animation to finish before unmounting
-    setTimeout(() => setShowAll(false), 400);
+    setTimeout(() => {
+      setShowAll(false);
+      setIsCollapsing(false);
+    }, 400);
   };
 
   const renderWaypoint = (wp: any, visIdx: number) => {
@@ -163,7 +168,7 @@ export function WaypointTimeline({
         {/* Continuous dotted line behind all waypoints — clip when collapsed so it doesn't bleed through gradient */}
         <div className={cn(
           "absolute left-[16px] top-0 border-l-2 border-dotted border-slate-300 z-0",
-          shouldCollapse ? "bottom-16" : "bottom-0"
+          (shouldCollapse || isCollapsing) ? "bottom-16" : "bottom-0"
         )} />
 
         {/* Always-visible waypoints (first 3 when collapsed, all when expanded) */}
@@ -171,22 +176,24 @@ export function WaypointTimeline({
           renderWaypoint(wp, visIdx)
         )}
 
-        {/* Fade-out gradient + show more button when collapsed */}
-        {shouldCollapse && (
+        {/* Fade-out gradient + show more button when collapsed or collapsing */}
+        {(shouldCollapse || isCollapsing) && (
           <>
             {/* Gradient fade — sits below last visible waypoint, fades upward */}
             <div className="relative h-16 z-20 pointer-events-none">
               <div className="absolute inset-x-[-50px] bottom-0 h-16 bg-gradient-to-t from-white via-white/80 to-transparent" />
             </div>
             {/* Show more button — below gradient */}
-            <div className="relative z-20 flex justify-center py-1">
-              <button
-                onClick={handleExpand}
-                className="text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-4 py-1.5 rounded-full transition-colors"
-              >
-                Show {hiddenCount} more waypoint{hiddenCount !== 1 ? "s" : ""}
-              </button>
-            </div>
+            {!isCollapsing && (
+              <div className="relative z-20 flex justify-center py-1">
+                <button
+                  onClick={handleExpand}
+                  className="text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-4 py-1.5 rounded-full transition-colors"
+                >
+                  Show {hiddenCount} more waypoint{hiddenCount !== 1 ? "s" : ""}
+                </button>
+              </div>
+            )}
           </>
         )}
 
@@ -198,6 +205,8 @@ export function WaypointTimeline({
             style={{
               maxHeight: expandHeight > 0 ? `${expandHeight}px` : "0px",
               opacity: expandHeight > 0 ? 1 : 0,
+              marginLeft: "-50px",
+              paddingLeft: "50px",
             }}
           >
             {truncatedList.slice(3).map((wp: any, i: number) =>
