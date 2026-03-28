@@ -525,7 +525,7 @@ export function SaveRouteModal({
             </div>
 
             {/* Visibility */}
-            <div className="space-y-2 mx-1">
+            <div className="space-y-2 px-3">
               <Label className="text-base font-semibold">Visibility</Label>
               <div className="grid grid-cols-3 gap-3.5">
                 {[
@@ -552,8 +552,9 @@ export function SaveRouteModal({
                     key={opt.value}
                     type="button"
                     onClick={() => setVisibility(opt.value)}
+                    style={{ aspectRatio: "4 / 5" }}
                     className={cn(
-                      "relative flex flex-col items-center justify-center gap-1 px-2 aspect-[4/5] rounded-xl border-2 cursor-pointer transition-all text-center",
+                      "relative flex flex-col items-center pt-4 gap-1 px-2 rounded-xl border-2 cursor-pointer transition-all text-center overflow-hidden",
                       visibility === opt.value
                         ? "border-[#267347] bg-[#267347]/5 shadow-sm"
                         : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
@@ -565,7 +566,7 @@ export function SaveRouteModal({
                       </div>
                     )}
                     <opt.icon className={cn(
-                      "h-8 w-8",
+                      "h-8 w-8 shrink-0",
                       visibility === opt.value ? "text-[#267347]" : "text-muted-foreground"
                     )} />
                     <span className={cn(
