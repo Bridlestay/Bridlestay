@@ -44,7 +44,6 @@ export interface RoutesMapV2Props {
   highlightedRouteId?: string | null;
   selectedRouteId?: string | null; // Route to draw on map (polyline visible)
   mapType?: "roadmap" | "satellite" | "terrain" | "hybrid";
-  monochrome?: boolean;
   // Route creation props
   isCreating?: boolean;
   isPlotting?: boolean;
@@ -93,7 +92,6 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       highlightedRouteId,
       selectedRouteId,
       mapType = "terrain",
-      monochrome = false,
       isCreating = false,
       isPlotting = false,
       snapEnabled = true,
@@ -1231,20 +1229,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
       if (!mapRef.current) return;
       
       mapRef.current.setMapTypeId(mapType);
-      
-      // Apply monochrome styling if enabled
-      if (monochrome) {
-        mapRef.current.setOptions({
-          styles: [
-            { elementType: "geometry", stylers: [{ saturation: -100 }] },
-            { elementType: "labels.text.fill", stylers: [{ saturation: -100 }] },
-            { elementType: "labels.text.stroke", stylers: [{ saturation: -100 }] },
-          ],
-        });
-      } else {
-        mapRef.current.setOptions({ styles: [] });
-      }
-    }, [mapType, monochrome]);
+    }, [mapType]);
 
     // User position marker for navigation
     useEffect(() => {

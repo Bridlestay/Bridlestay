@@ -23,7 +23,6 @@ import {
   MapPin,
   AlertTriangle,
   Home,
-  Palette,
   Landmark,
   Crosshair,
   Save,
@@ -56,7 +55,6 @@ export interface LayerSettings {
   routeColor: string;
   routeThickness: number;
   routeOpacity: number;
-  monochrome?: boolean;
 }
 
 interface MapLayerControlsProps {
@@ -487,25 +485,6 @@ export function MapLayerControls({
                 </div>
               </div>
 
-              {/* Visual Settings */}
-              <div>
-                <Label className="text-sm font-medium text-gray-600 mb-3 block">
-                  Visual Settings
-                </Label>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Palette className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">Monochrome Map</span>
-                  </div>
-                  <Switch
-                    checked={settings.monochrome || false}
-                    onCheckedChange={(v) => updateSetting("monochrome", v)}
-                  />
-                </div>
-                <p className="text-xs text-gray-400 mt-1 ml-6">
-                  Grayscale map makes routes stand out
-                </p>
-              </div>
             </div>
           </Card>
         </div>

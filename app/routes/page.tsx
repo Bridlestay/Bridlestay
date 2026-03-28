@@ -197,7 +197,6 @@ export default function RoutesPage() {
       routeColor: defaults.routeColor,
       routeThickness: defaults.routeThickness,
       routeOpacity: defaults.routeOpacity,
-      monochrome: false,
     };
   });
 
@@ -1622,7 +1621,6 @@ export default function RoutesPage() {
               toolMode={toolMode}
               pathLayers={pathLayers}
               mapType={getGoogleMapType()}
-              monochrome={layerSettings.monochrome}
               displayRouteColor={layerSettings.routeColor}
               displayRouteThickness={layerSettings.routeThickness}
               displayRouteOpacity={layerSettings.routeOpacity}
@@ -1834,7 +1832,6 @@ export default function RoutesPage() {
             propertyPins={layerSettings.showProperties ? nearbyProperties : []}
             highlightedRouteId={highlightedRouteId}
             mapType={getGoogleMapType()}
-            monochrome={layerSettings.monochrome}
             displayRouteColor={layerSettings.routeColor}
             displayRouteThickness={layerSettings.routeThickness}
             displayRouteOpacity={layerSettings.routeOpacity}
