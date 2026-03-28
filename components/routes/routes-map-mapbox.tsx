@@ -259,7 +259,7 @@ function ensureClusterImages(map: mapboxgl.Map, counts: number[]) {
     const id = `cluster-${count}`;
     if (map.hasImage(id)) continue;
     // Scale radius by count
-    const radius = count < 10 ? 72 : count < 30 ? 84 : count < 100 ? 96 : 108;
+    const radius = count < 10 ? 54 : count < 30 ? 63 : count < 100 ? 72 : 81;
     const img = createClusterImage(count, radius);
     map.addImage(id, img, { pixelRatio: 2 });
   }
@@ -990,35 +990,27 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     // Counter to trigger re-snapping after segments are cleared (e.g. undo)
     const [resnapTrigger, setResnapTrigger] = useState(0);
 
-    // Update map style when mapType changes
+    // Update map style when mapType or monochrome changes
+    // When monochrome is on, use light-v11 style (clean near-monochrome base map)
+    // Our custom layers (pins, clusters, routes) are re-added via style.load → setupSourcesAndLayers
+    // so they stay in full colour regardless
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
-      
+
       const map = mapRef.current;
-      
+
       // Listen for style load completion to re-add sources/layers
       const handleStyleLoad = () => {
-        // Increment style load count to trigger re-renders of all useEffects
-        // that depend on sources/layers existing
         setStyleLoadCount(prev => prev + 1);
       };
-      
+
       map.once("style.load", handleStyleLoad);
-      map.setStyle(getMapboxStyle(mapType));
-      
+      map.setStyle(monochrome ? MAP_STYLES.light : getMapboxStyle(mapType));
+
       return () => {
         map.off("style.load", handleStyleLoad);
       };
-    }, [mapType, mapLoaded]);
-
-    // Monochrome mode — apply CSS grayscale filter to the map canvas
-    useEffect(() => {
-      if (!mapContainerRef.current) return;
-      const canvas = mapContainerRef.current.querySelector(".mapboxgl-canvas") as HTMLElement;
-      if (canvas) {
-        canvas.style.filter = monochrome ? "grayscale(100%)" : "none";
-      }
-    }, [monochrome, mapLoaded]);
+    }, [mapType, monochrome, mapLoaded]);
 
     // Update cursor based on mode — use mousemove handler to enforce it
     // because Mapbox internally resets cursor on hover/drag events
@@ -1136,6 +1128,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         });
 
         // Individual route pins (unclustered) — custom PNG pin image
+        // Fade in as clusters dissolve (zoom 10→11 = 0→1 opacity)
         map.addLayer({
           id: "unclustered-point",
           type: "symbol",
@@ -1146,6 +1139,15 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             "icon-size": 0.6,
             "icon-anchor": "bottom",
             "icon-allow-overlap": true,
+          },
+          paint: {
+            "icon-opacity": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              10, 0,
+              11.5, 1,
+            ],
           },
         });
 
@@ -1404,7 +1406,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
         const el = document.createElement("div");
         el.className = "mapbox-property-marker";
-        el.innerHTML = `<img src="/Pins/property-pin.png" style="width: 42px; height: auto; cursor: pointer; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));" alt="" />`;
+        el.innerHTML = `<img src="/Pins/property-pin.png" style="width: 60px; height: auto; cursor: pointer; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));" alt="" />`;
         el.style.cursor = "pointer";
 
         const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
