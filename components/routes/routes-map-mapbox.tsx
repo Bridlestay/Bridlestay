@@ -211,8 +211,8 @@ const POI_ICON_SVGS: Record<string, string> = {
 };
 
 // Draw a pin icon on a canvas for use as a Mapbox symbol image
-// This gives us native GL performance with custom pin styling
-function createPinImage(): HTMLCanvasElement {
+// Returns {width, height, data} format that map.addImage() accepts
+function createPinImage(): { width: number; height: number; data: Uint8Array } {
   const size = 64; // High-res for retina
   const canvas = document.createElement("canvas");
   canvas.width = size;
@@ -231,7 +231,6 @@ function createPinImage(): HTMLCanvasElement {
   ctx.closePath();
   ctx.fillStyle = PIN_COLOR;
   ctx.fill();
-  // White stroke on tail
   ctx.strokeStyle = PIN_BORDER;
   ctx.lineWidth = 3;
   ctx.stroke();
@@ -251,7 +250,9 @@ function createPinImage(): HTMLCanvasElement {
   ctx.fillStyle = PIN_BORDER;
   ctx.fill();
 
-  return canvas;
+  // Return as {width, height, data} — the format map.addImage() expects
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  return { width: canvas.width, height: canvas.height, data: new Uint8Array(imageData.data.buffer) };
 }
 
 // Map style options
