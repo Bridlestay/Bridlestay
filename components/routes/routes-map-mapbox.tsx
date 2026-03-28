@@ -259,7 +259,7 @@ function ensureClusterImages(map: mapboxgl.Map, counts: number[]) {
     const id = `cluster-${count}`;
     if (map.hasImage(id)) continue;
     // Scale radius by count
-    const radius = count < 10 ? 24 : count < 30 ? 28 : count < 100 ? 32 : 36;
+    const radius = count < 10 ? 36 : count < 30 ? 42 : count < 100 ? 48 : 54;
     const img = createClusterImage(count, radius);
     map.addImage(id, img, { pixelRatio: 2 });
   }
@@ -1143,7 +1143,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           filter: ["!", ["has", "point_count"]],
           layout: {
             "icon-image": "route-pin",
-            "icon-size": 0.35,
+            "icon-size": 0.2,
             "icon-anchor": "bottom",
             "icon-allow-overlap": true,
           },
@@ -1404,28 +1404,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
         const el = document.createElement("div");
         el.className = "mapbox-property-marker";
-        el.innerHTML = `
-          <div style="
-            width: 32px;
-            height: 32px;
-            background: #2E8B57;
-            border: 2px solid white;
-            border-radius: 50%;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-          ">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-              <polyline points="9 22 9 12 15 12 15 22"/>
-            </svg>
-          </div>
-        `;
+        el.innerHTML = `<img src="/Pins/property-pin.png" style="width: 28px; height: 40px; cursor: pointer; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));" alt="" />`;
         el.style.cursor = "pointer";
 
-        const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
+        const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
           .setLngLat([property.longitude, property.latitude])
           .addTo(map);
 
