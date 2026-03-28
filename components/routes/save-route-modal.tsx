@@ -527,7 +527,7 @@ export function SaveRouteModal({
             {/* Visibility */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Visibility</Label>
-              <div className="flex justify-center gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {[
                   {
                     value: "public" as const,
@@ -553,7 +553,7 @@ export function SaveRouteModal({
                     type="button"
                     onClick={() => setVisibility(opt.value)}
                     className={cn(
-                      "relative flex flex-col items-center justify-center gap-2 w-[90px] py-5 rounded-xl border-2 cursor-pointer transition-all text-center",
+                      "relative flex flex-col items-center justify-center gap-2 py-5 rounded-xl border-2 cursor-pointer transition-all text-center",
                       visibility === opt.value
                         ? "border-[#267347] bg-[#267347]/5 shadow-sm"
                         : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"

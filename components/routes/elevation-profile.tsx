@@ -203,59 +203,28 @@ export function ElevationProfile({
     return `${curvePath} L${lastPt.x},${areaBottom} L${firstPt.x},${areaBottom} Z`;
   }, [svgPoints]);
 
-  // Key points: start, end, highest, lowest (inline mode only)
+  // Key points: start and end only (inline mode)
   const keyPoints = useMemo(() => {
     if (isFloating) return [];
     if (!elevationData || elevationData.elevations.length < 2) return [];
     const { elevations, distances, totalDistance, minElevation, range } = elevationData;
 
-    const toSvg = (i: number) => ({
-      x: (distances[i] / totalDistance) * 100,
-      y: elevToY(elevations[i], minElevation, range),
-      elevation: Math.round(elevations[i]),
-    });
-
     const endIdx = elevations.length - 1;
-    let maxIdx = 0;
-    let minIdx = 0;
-    for (let i = 1; i < elevations.length; i++) {
-      if (elevations[i] > elevations[maxIdx]) maxIdx = i;
-      if (elevations[i] < elevations[minIdx]) minIdx = i;
-    }
 
-    const points: Array<{
-      x: number;
-      y: number;
-      elevation: number;
-      labelPosition: "above" | "below";
-    }> = [];
-
-    points.push({ ...toSvg(0), labelPosition: "above" });
-    if (maxIdx !== 0 && maxIdx !== endIdx) {
-      points.push({ ...toSvg(maxIdx), labelPosition: "above" });
-    }
-    if (minIdx !== 0 && minIdx !== endIdx && minIdx !== maxIdx) {
-      points.push({ ...toSvg(minIdx), labelPosition: "below" });
-    }
-    points.push({ ...toSvg(endIdx), labelPosition: "above" });
-
-    // De-overlap: spread points that are too close horizontally (< 12%)
-    const sorted = [...points].sort((a, b) => a.x - b.x);
-    const minGap = 12;
-    for (let i = 1; i < sorted.length; i++) {
-      if (sorted[i].x - sorted[i - 1].x < minGap) {
-        // Push apart symmetrically
-        const mid = (sorted[i].x + sorted[i - 1].x) / 2;
-        sorted[i - 1].x = Math.max(0, mid - minGap / 2);
-        sorted[i].x = Math.min(100, mid + minGap / 2);
-        // Alternate label positions to avoid overlap
-        if (sorted[i].labelPosition === sorted[i - 1].labelPosition) {
-          sorted[i].labelPosition = sorted[i - 1].labelPosition === "above" ? "below" : "above";
-        }
-      }
-    }
-
-    return sorted;
+    return [
+      {
+        x: (distances[0] / totalDistance) * 100,
+        y: elevToY(elevations[0], minElevation, range),
+        elevation: Math.round(elevations[0]),
+        labelPosition: "above" as const,
+      },
+      {
+        x: (distances[endIdx] / totalDistance) * 100,
+        y: elevToY(elevations[endIdx], minElevation, range),
+        elevation: Math.round(elevations[endIdx]),
+        labelPosition: "above" as const,
+      },
+    ];
   }, [elevationData, isFloating]);
 
   // Inline-mode waypoint markers

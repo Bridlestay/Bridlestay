@@ -210,6 +210,50 @@ const POI_ICON_SVGS: Record<string, string> = {
   other: `<svg viewBox="0 0 16 16" fill="white" width="12" height="12"><circle cx="8" cy="6" r="2.5" fill="none" stroke="white" stroke-width="1.5"/><path d="M8 9v3" stroke="white" stroke-width="1.5"/><circle cx="8" cy="14" r="1" fill="white"/></svg>`,
 };
 
+// Draw a pin icon on a canvas for use as a Mapbox symbol image
+// This gives us native GL performance with custom pin styling
+function createPinImage(): HTMLCanvasElement {
+  const size = 64; // High-res for retina
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = Math.round(size * 1.3); // Taller for pin shape
+  const ctx = canvas.getContext("2d")!;
+
+  const cx = size / 2;
+  const r = size * 0.35; // Circle radius
+  const cy = r + 4; // Circle center Y (with top padding)
+
+  // Pin tail (triangle pointing down)
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.55, cy + r * 0.7);
+  ctx.lineTo(cx, canvas.height - 4);
+  ctx.lineTo(cx + r * 0.55, cy + r * 0.7);
+  ctx.closePath();
+  ctx.fillStyle = PIN_COLOR;
+  ctx.fill();
+  // White stroke on tail
+  ctx.strokeStyle = PIN_BORDER;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Main circle (drawn after tail so it overlaps the tail top)
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = PIN_COLOR;
+  ctx.fill();
+  ctx.strokeStyle = PIN_BORDER;
+  ctx.lineWidth = 3.5;
+  ctx.stroke();
+
+  // Inner white dot
+  ctx.beginPath();
+  ctx.arc(cx, cy - 1, r * 0.32, 0, Math.PI * 2);
+  ctx.fillStyle = PIN_BORDER;
+  ctx.fill();
+
+  return canvas;
+}
+
 // Map style options
 const MAP_STYLES = {
   outdoors: "mapbox://styles/mapbox/outdoors-v12", // Shows trails!
@@ -415,7 +459,6 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map | null>(null);
     const markersRef = useRef<mapboxgl.Marker[]>([]);
-    const pinMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
     const poiMarkersRef = useRef<mapboxgl.Marker[]>([]);
     const propertyMarkersRef = useRef<mapboxgl.Marker[]>([]);
     const popupRef = useRef<mapboxgl.Popup | null>(null);
@@ -622,6 +665,12 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
       // Function to add sources and layers (called on load and style change)
       const setupSourcesAndLayers = () => {
+        // Register pin image for native symbol layers (survives style reloads)
+        if (!map.hasImage("route-pin")) {
+          const pinCanvas = createPinImage();
+          map.addImage("route-pin", pinCanvas, { pixelRatio: 2 });
+        }
+
         if (!map.getSource("routes")) {
           map.addSource("routes", {
             type: "geojson",
@@ -972,28 +1021,27 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
     // Store routes data for click handlers
     const routesDataRef = useRef<Map<string, any>>(new Map());
 
-    // Add clustered route pins using Mapbox native clustering
+    // Add clustered route pins using Mapbox native clustering + symbol layers
+    // All pins are rendered as native GL layers (no HTML DOM markers) for snappy performance
     useEffect(() => {
       if (!mapRef.current || !mapLoaded) return;
+
+      const pinLayers = ["clusters", "cluster-count", "unclustered-point"];
 
       // Hide all route pins/clusters when entering creation mode or navigating
       if (isCreating || followUser) {
         const map = mapRef.current;
-        // Remove all pin markers
-        pinMarkersRef.current.forEach((marker) => marker.remove());
-        pinMarkersRef.current.clear();
-        // Hide cluster layers
-        if (map.getLayer("clusters")) map.setLayoutProperty("clusters", "visibility", "none");
-        if (map.getLayer("cluster-count")) map.setLayoutProperty("cluster-count", "visibility", "none");
-        if (map.getLayer("unclustered-point")) map.setLayoutProperty("unclustered-point", "visibility", "none");
+        for (const layer of pinLayers) {
+          if (map.getLayer(layer)) map.setLayoutProperty(layer, "visibility", "none");
+        }
         return;
       }
 
       // Restore cluster layer visibility when leaving creation mode
       const map = mapRef.current;
-      if (map.getLayer("clusters")) map.setLayoutProperty("clusters", "visibility", "visible");
-      if (map.getLayer("cluster-count")) map.setLayoutProperty("cluster-count", "visibility", "visible");
-      if (map.getLayer("unclustered-point")) map.setLayoutProperty("unclustered-point", "visibility", "visible");
+      for (const layer of pinLayers) {
+        if (map.getLayer(layer)) map.setLayoutProperty(layer, "visibility", "visible");
+      }
 
       // Store routes data for later lookup
       routesDataRef.current.clear();
@@ -1021,48 +1069,13 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       const existingSource = map.getSource(sourceId) as mapboxgl.GeoJSONSource;
 
       if (existingSource) {
-        // Silent update — just swap the data, markers will sync via updatePinMarkers
+        // Silent update — just swap the data, native layers auto-sync
         existingSource.setData({
           type: "FeatureCollection",
           features,
         });
-        // Sync pin markers without clearing all first
-        setTimeout(() => {
-          if (!map.isStyleLoaded()) return;
-          const visibleFeatures = map.querySourceFeatures(sourceId, {
-            filter: ["!", ["has", "point_count"]],
-          });
-          const seenIds = new Set<string>();
-          visibleFeatures.forEach((f) => {
-            const id = f.properties?.id;
-            if (!id) return;
-            seenIds.add(id);
-            if (pinMarkersRef.current.has(id)) {
-              // Update position if changed
-              const coords = (f.geometry as any).coordinates;
-              pinMarkersRef.current.get(id)!.setLngLat(coords);
-              return;
-            }
-            const coords = (f.geometry as any).coordinates;
-            const el = document.createElement("div");
-            el.style.zIndex = "3";
-            el.innerHTML = `
-              <div style="cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
-                <svg width="32" height="42" viewBox="-2 -2 28 36" fill="none">
-                  <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z" fill="${PIN_COLOR}" stroke="${PIN_BORDER}" stroke-width="3"/>
-                  <circle cx="12" cy="11" r="4" fill="${PIN_BORDER}"/>
-                </svg>
-              </div>
-            `;
-            const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
-              .setLngLat(coords)
-              .addTo(map);
-            pinMarkersRef.current.set(id, marker);
-          });
-          pinMarkersRef.current.forEach((marker, id) => {
-            if (!seenIds.has(id)) { marker.remove(); pinMarkersRef.current.delete(id); }
-          });
-        }, 100);
+        // Notify visible routes after data settles
+        map.once("idle", () => notifyVisibleRoutes(map, sourceId));
         return; // Skip re-adding layers/listeners
       } else {
         // Add source with clustering
@@ -1113,20 +1126,19 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           },
         });
 
-        // Individual route pins (unclustered) - dark green pin markers
-        // We'll use HTML markers for these instead of a layer
-        // This layer is just for hit detection
+        // Individual route pins (unclustered) — native symbol layer using canvas-drawn pin
         map.addLayer({
           id: "unclustered-point",
-          type: "circle",
+          type: "symbol",
           source: sourceId,
           filter: ["!", ["has", "point_count"]],
-          paint: {
-            "circle-color": "transparent",
-            "circle-radius": 30,
+          layout: {
+            "icon-image": "route-pin",
+            "icon-size": 0.55,
+            "icon-anchor": "bottom",
+            "icon-allow-overlap": true,
           },
         });
-
 
         // Click on cluster to zoom + show route cards
         map.on("click", "clusters", (e) => {
@@ -1139,10 +1151,6 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
             map.easeTo({
               center: (features[0].geometry as any).coordinates,
               zoom: zoom,
-            });
-            // Ensure pins appear after zoom animation completes
-            map.once("idle", () => {
-              updatePinMarkers();
             });
           });
 
@@ -1163,7 +1171,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           if (!e.features?.[0]) return;
           const props = e.features[0].properties;
           const route = routesDataRef.current.get(props?.id);
-          
+
           if (!route) return;
 
           // Close any existing popup
@@ -1191,67 +1199,21 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         });
       }
 
-      // Function to update pin markers for unclustered points
-      const updatePinMarkers = () => {
+      // Gather visible route IDs from unclustered pins + cluster leaves
+      const notifyVisibleRoutes = (map: mapboxgl.Map, srcId: string) => {
         if (!map.isStyleLoaded()) return;
-        
-        const features = map.querySourceFeatures(sourceId, {
+        const allIds = new Set<string>();
+
+        // Unclustered pins visible on screen
+        const unclusteredFeatures = map.querySourceFeatures(srcId, {
           filter: ["!", ["has", "point_count"]],
         });
-
-        // Track which markers we've seen
-        const seenIds = new Set<string>();
-
-        features.forEach((feature) => {
-          const id = feature.properties?.id;
-          if (!id) return;
-          seenIds.add(id);
-
-          // Skip if marker already exists
-          if (pinMarkersRef.current.has(id)) return;
-
-          const coords = (feature.geometry as any).coordinates;
-          
-          // Create pin marker element (OS Maps–inspired: thick white outline, green fill, white dot)
-          const el = document.createElement("div");
-          el.style.zIndex = "3";
-          el.innerHTML = `
-            <div style="cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); padding: 8px;">
-              <svg width="36" height="47" viewBox="-2 -2 28 36" fill="none">
-                <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z" fill="${PIN_COLOR}" stroke="${PIN_BORDER}" stroke-width="3"/>
-                <circle cx="12" cy="11" r="4" fill="${PIN_BORDER}"/>
-              </svg>
-            </div>
-          `;
-
-          const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
-            .setLngLat(coords)
-            .addTo(map);
-
-          pinMarkersRef.current.set(id, marker);
+        unclusteredFeatures.forEach((f) => {
+          if (f.properties?.id) allIds.add(f.properties.id);
         });
 
-        // Remove markers that are no longer visible (clustered)
-        pinMarkersRef.current.forEach((marker, id) => {
-          if (!seenIds.has(id)) {
-            marker.remove();
-            pinMarkersRef.current.delete(id);
-          }
-        });
-
-        // Notify parent about ALL visible route IDs (unclustered + inside clusters)
-        notifyVisibleRoutes(map, sourceId, seenIds);
-      };
-
-      // Gather route IDs from visible clusters + unclustered pins
-      const notifyVisibleRoutes = (map: mapboxgl.Map, srcId: string, unclusteredIds: Set<string>) => {
-        const allIds = new Set(unclusteredIds);
+        // Expand visible clusters
         const source = map.getSource(srcId) as mapboxgl.GeoJSONSource;
-        if (!source) {
-          if (allIds.size > 0) onVisibleRoutesChangeRef.current?.(Array.from(allIds));
-          return;
-        }
-        // Find visible clusters and expand them
         const clusterFeatures = map.queryRenderedFeatures(undefined, { layers: ["clusters"] });
         if (clusterFeatures.length === 0) {
           if (allIds.size > 0) onVisibleRoutesChangeRef.current?.(Array.from(allIds));
@@ -1275,28 +1237,15 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         }
       };
 
-      // Debounced update — avoids overlapping calls during zoom/pan
-      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-      const debouncedUpdate = () => {
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(updatePinMarkers, 50);
-      };
+      // Notify visible routes on idle (lightweight — no DOM work)
+      const onIdle = () => notifyVisibleRoutes(map, sourceId);
+      map.on("idle", onIdle);
 
-      // Use "idle" instead of "moveend" — fires after all rendering
-      // (tiles loaded, clustering resolved, layers painted)
-      map.on("idle", debouncedUpdate);
-      map.on("data", (e) => {
-        if (e.sourceId === sourceId && e.isSourceLoaded) {
-          debouncedUpdate();
-        }
-      });
-
-      // Initial update after clustering settles
-      map.once("idle", updatePinMarkers);
+      // Initial notification
+      map.once("idle", onIdle);
 
       return () => {
-        if (debounceTimer) clearTimeout(debounceTimer);
-        map.off("idle", debouncedUpdate);
+        map.off("idle", onIdle);
       };
     }, [routes, mapLoaded, isCreating, followUser, onRouteClick, onRoutePreview, styleLoadCount]);
 
