@@ -470,19 +470,18 @@ export function SaveRouteModal({
               <Label htmlFor="save-route-name" className="text-base font-semibold">
                 Route name *
               </Label>
-              <div className="relative">
-                <Input
-                  id="save-route-name"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value.slice(0, 100))}
-                  placeholder="Name your route"
-                  maxLength={100}
-                  autoFocus
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                  {title.length}/100
-                </span>
-              </div>
+              <Input
+                id="save-route-name"
+                value={title}
+                onChange={(e) => setTitle(e.target.value.slice(0, 100))}
+                placeholder="Name your route"
+                maxLength={100}
+                autoFocus
+                className="bg-white"
+              />
+              <span className="text-xs text-muted-foreground text-right block">
+                {title.length}/100
+              </span>
             </div>
 
             {/* Description */}
@@ -518,8 +517,9 @@ export function SaveRouteModal({
                 placeholder="Describe the terrain, scenery, or anything riders should know..."
                 rows={3}
                 maxLength={5000}
+                className="bg-white"
               />
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground text-right block">
                 {description.length}/5000
               </span>
             </div>
