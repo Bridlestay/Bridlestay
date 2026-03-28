@@ -525,7 +525,7 @@ export function SaveRouteModal({
             </div>
 
             {/* Visibility */}
-            <div className="space-y-2 px-3">
+            <div className="space-y-2 px-6">
               <Label className="text-base font-semibold">Visibility</Label>
               <div className="grid grid-cols-3 gap-3.5">
                 {[
@@ -552,17 +552,17 @@ export function SaveRouteModal({
                     key={opt.value}
                     type="button"
                     onClick={() => setVisibility(opt.value)}
-                    style={{ aspectRatio: "4 / 5" }}
+                    style={{ aspectRatio: "4 / 4.5" }}
                     className={cn(
-                      "relative flex flex-col items-center pt-4 gap-1 px-2 rounded-xl border-2 cursor-pointer transition-all text-center overflow-hidden",
+                      "relative flex flex-col items-center pt-3 gap-1 px-2 rounded-xl border-2 cursor-pointer transition-all text-center overflow-hidden",
                       visibility === opt.value
                         ? "border-[#267347] bg-[#267347]/5 shadow-sm"
                         : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
                     )}
                   >
                     {visibility === opt.value && (
-                      <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#267347] flex items-center justify-center">
-                        <Check className="h-2.5 w-2.5 text-white" />
+                      <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[#267347] flex items-center justify-center">
+                        <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
                       </div>
                     )}
                     <opt.icon className={cn(
@@ -570,12 +570,12 @@ export function SaveRouteModal({
                       visibility === opt.value ? "text-[#267347]" : "text-muted-foreground"
                     )} />
                     <span className={cn(
-                      "text-sm font-semibold leading-tight whitespace-pre-line",
+                      "text-base font-semibold leading-tight whitespace-pre-line",
                       visibility === opt.value ? "text-foreground" : "text-muted-foreground"
                     )}>
                       {opt.label}
                     </span>
-                    <p className="text-xs text-muted-foreground leading-tight px-1">
+                    <p className="text-sm text-muted-foreground leading-tight px-1">
                       {opt.desc}
                     </p>
                   </button>
