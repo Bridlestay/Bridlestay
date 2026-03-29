@@ -201,6 +201,7 @@ export function RouteDetailDrawer({
     waypointElevations: number[];
   } | null>(null);
   const [loadingElevation, setLoadingElevation] = useState(false);
+  const [chartTargetWaypointId, setChartTargetWaypointId] = useState<string | null>(null);
 
   // --- Weather ---
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
@@ -1082,9 +1083,15 @@ export function RouteDetailDrawer({
       (wp: any) => waypointElevationMap[wp.id] !== undefined || wp.type === "start" || wp.type === "finish"
     );
     const wp = waypointEntries[index];
-    if (wp) {
-      const el = document.getElementById(`waypoint-timeline-${wp.id}`);
-      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (!wp) return;
+
+    // Set the target — timeline will auto-expand if needed and scroll to it
+    setChartTargetWaypointId(wp.id);
+
+    // If the element already exists in DOM (visible waypoint), scroll immediately
+    const el = document.getElementById(`waypoint-timeline-${wp.id}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   };
 
@@ -2040,7 +2047,7 @@ export function RouteDetailDrawer({
                     isOwner={isOwner}
                     onEditWaypoint={handleEditWaypoint}
                     onSuggestEdit={handleSuggestEdit}
-                    initialExpandedWaypointId={initialWaypointId}
+                    initialExpandedWaypointId={chartTargetWaypointId || initialWaypointId}
                   />
                 </>
               )}

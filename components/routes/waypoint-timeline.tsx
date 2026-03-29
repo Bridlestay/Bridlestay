@@ -97,7 +97,7 @@ export function WaypointTimeline({
     }
   }, []);
 
-  const handleExpand = useCallback(() => {
+  const handleExpand = useCallback((scrollToId?: string) => {
     setShowAll(true);
     setIsCollapsing(false);
     // Frame 1: mount cards (invisible). Frame 2: measure + reveal
@@ -107,8 +107,16 @@ export function WaypointTimeline({
       }
       requestAnimationFrame(() => {
         setIsRevealed(true);
-        // Start progressive scroll that follows the cascade
-        startProgressiveScroll(totalAnimTime + 200);
+        if (scrollToId) {
+          // Scroll to specific waypoint after cascade completes
+          setTimeout(() => {
+            const el = document.getElementById(`waypoint-timeline-${scrollToId}`);
+            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, totalAnimTime + 100);
+        } else {
+          // Default: progressive scroll follows the cascade
+          startProgressiveScroll(totalAnimTime + 200);
+        }
       });
     });
   }, [totalAnimTime, startProgressiveScroll]);
@@ -132,7 +140,11 @@ export function WaypointTimeline({
       (wp: any) => wp.id === initialExpandedWaypointId
     );
     if (idx >= 3) {
-      handleExpand();
+      handleExpand(initialExpandedWaypointId);
+    } else {
+      // Waypoint is visible — just scroll to it
+      const el = document.getElementById(`waypoint-timeline-${initialExpandedWaypointId}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [initialExpandedWaypointId, fullWaypointList, handleExpand]);
 
