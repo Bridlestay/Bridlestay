@@ -401,8 +401,8 @@ export function ElevationProfile({
       <div className="flex flex-1 min-h-0">
         {/* Chart + markers column */}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Floating markers gutter (always present for layout consistency) */}
-          <div className="relative h-14 flex-shrink-0 overflow-visible">
+          {/* Floating markers gutter — extra height keeps circles clear of chart */}
+          <div className="relative h-10 flex-shrink-0 overflow-visible">
             {isFloating && floatingMarkers.map((m, i) => (
                 <div
                   key={`fm-${m.id}-${i}`}
@@ -450,6 +450,7 @@ export function ElevationProfile({
               viewBox="0 0 400 100"
               preserveAspectRatio="none"
               className="w-full h-full"
+              style={{ overflow: "visible" }}
             >
               <defs>
                 <linearGradient id="elevationGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -466,18 +467,18 @@ export function ElevationProfile({
                 fill="url(#elevationGradient)"
               />
 
-              {/* Soft drop-lines for floating markers (top to graph line only) */}
+              {/* Soft drop-lines for floating markers — extend up into gutter, down to curve */}
               {isFloating && floatingMarkers.map((m, i) => (
                 <line
                   key={`drop-${i}`}
                   x1={m.xPercent * 4}
-                  y1="0"
+                  y1="-20"
                   x2={m.xPercent * 4}
-                  y2={m.yOnLine}
+                  y2={m.yOnLine + 1}
                   stroke="#94A3B8"
                   strokeWidth="0.6"
                   strokeDasharray="2,2"
-                  opacity="0.5"
+                  opacity="0.45"
                 />
               ))}
 
