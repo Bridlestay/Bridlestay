@@ -293,18 +293,14 @@ export function ElevationProfile({
         wp.type === "start" ? "S" :
         wp.type === "finish" ? "F" :
         `${(wp.listIndex ?? i) + 1}`;
-      const bgColor =
-        wp.type === "start" ? "bg-green-500" :
-        wp.type === "finish" ? "bg-red-500" :
-        "bg-blue-500";
       all.push({
         id: wp.id,
         markerType: "waypoint",
         xPercent: x,
         yOnLine: y,
         label,
-        color: wp.type === "start" ? "#22C55E" : wp.type === "finish" ? "#EF4444" : "#3B82F6",
-        bgColor,
+        color: "#267347",
+        bgColor: "bg-[#267347]",
         tier: 0,
         originalIndex: i,
         waypointType: wp.type,
@@ -470,18 +466,18 @@ export function ElevationProfile({
                 fill="url(#elevationGradient)"
               />
 
-              {/* Dotted drop-lines for floating markers (full height) */}
+              {/* Soft drop-lines for floating markers (top to graph line only) */}
               {isFloating && floatingMarkers.map((m, i) => (
                 <line
                   key={`drop-${i}`}
                   x1={m.xPercent * 4}
                   y1="0"
                   x2={m.xPercent * 4}
-                  y2="100"
-                  stroke={m.color}
-                  strokeWidth="0.8"
+                  y2={m.yOnLine}
+                  stroke="#94A3B8"
+                  strokeWidth="0.6"
                   strokeDasharray="2,2"
-                  opacity="0.65"
+                  opacity="0.5"
                 />
               ))}
 
@@ -509,15 +505,15 @@ export function ElevationProfile({
                 />
               )}
 
-              {/* Small dots at drop-line intersection points */}
+              {/* Small dots at drop-line intersection with graph line */}
               {isFloating && floatingMarkers.map((m, i) => (
                 <circle
                   key={`dot-${i}`}
                   cx={m.xPercent * 4}
                   cy={m.yOnLine}
-                  r="0.8"
-                  fill={m.color}
-                  opacity="0.7"
+                  r="1.2"
+                  fill="#267347"
+                  opacity="0.8"
                 />
               ))}
 

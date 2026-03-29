@@ -164,6 +164,8 @@ export function RouteDetailDrawer({
   // --- Panel view ---
   const [activeFullPanel, setActiveFullPanel] = useState<"discussion" | "reviews" | "waypoints" | "photos" | null>(null);
   const [activeInfoTab, setActiveInfoTab] = useState<"elevation" | "waypoints" | "hazards" | "warnings" | "variants" | "weather">("elevation");
+  const infoTabOrder = ["elevation", "waypoints", "hazards", "warnings", "variants", "weather"] as const;
+  const tabSwipeRef = useRef<{ startX: number; startY: number } | null>(null);
 
   // --- Photo carousel ---
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
@@ -1086,6 +1088,29 @@ export function RouteDetailDrawer({
     }
   };
 
+  // Swipe between info tabs on mobile
+  const handleTabTouchStart = useCallback((e: React.TouchEvent) => {
+    tabSwipeRef.current = {
+      startX: e.touches[0].clientX,
+      startY: e.touches[0].clientY,
+    };
+  }, []);
+
+  const handleTabTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!tabSwipeRef.current) return;
+    const dx = e.changedTouches[0].clientX - tabSwipeRef.current.startX;
+    const dy = e.changedTouches[0].clientY - tabSwipeRef.current.startY;
+    tabSwipeRef.current = null;
+    // Only trigger if horizontal swipe is dominant and > 50px
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
+    const currentIdx = infoTabOrder.indexOf(activeInfoTab);
+    if (dx < 0 && currentIdx < infoTabOrder.length - 1) {
+      setActiveInfoTab(infoTabOrder[currentIdx + 1]);
+    } else if (dx > 0 && currentIdx > 0) {
+      setActiveInfoTab(infoTabOrder[currentIdx - 1]);
+    }
+  }, [activeInfoTab, infoTabOrder]);
+
   // Edit waypoint (owner only)
   const handleEditWaypoint = (waypoint: any) => {
     setEditingWaypointId(waypoint.id);
@@ -1615,8 +1640,12 @@ export function RouteDetailDrawer({
                 ))}
               </div>
 
-              {/* Tab content area */}
-              <div className="min-h-[200px]">
+              {/* Tab content area — swipeable on mobile */}
+              <div
+                className="min-h-[200px]"
+                onTouchStart={handleTabTouchStart}
+                onTouchEnd={handleTabTouchEnd}
+              >
                 {/* ELEVATION tab — clean chart, no markers */}
                 {activeInfoTab === "elevation" && (
                   <div className="space-y-2">
