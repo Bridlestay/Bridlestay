@@ -401,7 +401,7 @@ export function ElevationProfile({
       <div className="flex flex-1 min-h-0">
         {/* Chart + markers column */}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Floating markers gutter — markers centered on the gutter/chart boundary */}
+          {/* Floating markers gutter — markers sit above drop lines */}
           <div className="relative h-8 flex-shrink-0 overflow-visible">
             {isFloating && floatingMarkers.map((m, i) => (
                 <div
@@ -409,7 +409,7 @@ export function ElevationProfile({
                   className="absolute z-10"
                   style={{
                     left: `${m.xPercent}%`,
-                    bottom: `${-12 + m.tier * 22}px`,
+                    bottom: `${4 + m.tier * 22}px`,
                     transform: "translateX(-50%)",
                   }}
                 >
@@ -472,7 +472,7 @@ export function ElevationProfile({
                 <line
                   key={`drop-${i}`}
                   x1={m.xPercent * 4}
-                  y1="-15"
+                  y1="-3"
                   x2={m.xPercent * 4}
                   y2={m.yOnLine + 2}
                   stroke="#94A3B8"
