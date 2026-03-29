@@ -78,12 +78,19 @@ export function WaypointTimeline({
     : null;
 
   // Progressive scroll — follows content as it reveals
-  const startProgressiveScroll = useCallback((duration: number) => {
+  // If targetId is provided, follows the cascade until that element is revealed, then stops there
+  const startProgressiveScroll = useCallback((duration: number, targetId?: string) => {
     const startTime = performance.now();
     const tick = () => {
       const elapsed = performance.now() - startTime;
       if (elapsed < duration) {
-        endRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+        if (targetId) {
+          // Follow cascade by scrolling to the target element as it animates in
+          const el = document.getElementById(`waypoint-timeline-${targetId}`);
+          el?.scrollIntoView({ behavior: "auto", block: "center" });
+        } else {
+          endRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+        }
         scrollRafRef.current = requestAnimationFrame(tick);
       }
     };
@@ -108,18 +115,20 @@ export function WaypointTimeline({
       requestAnimationFrame(() => {
         setIsRevealed(true);
         if (scrollToId) {
-          // Scroll to specific waypoint after cascade completes
-          setTimeout(() => {
-            const el = document.getElementById(`waypoint-timeline-${scrollToId}`);
-            el?.scrollIntoView({ behavior: "smooth", block: "center" });
-          }, totalAnimTime + 100);
+          // Find the target's index in hidden waypoints to calculate its reveal time
+          const targetIdx = hiddenWaypoints.findIndex((wp: any) => wp.id === scrollToId);
+          // Follow cascade until target is fully revealed, then stop
+          const stopAt = targetIdx >= 0
+            ? (targetIdx * STAGGER_DELAY) + CARD_DURATION + 200
+            : totalAnimTime + 200;
+          startProgressiveScroll(stopAt, scrollToId);
         } else {
-          // Default: progressive scroll follows the cascade
+          // Default: progressive scroll follows the cascade to the end
           startProgressiveScroll(totalAnimTime + 200);
         }
       });
     });
-  }, [totalAnimTime, startProgressiveScroll]);
+  }, [totalAnimTime, startProgressiveScroll, hiddenWaypoints]);
 
   const handleCollapse = useCallback(() => {
     stopProgressiveScroll();

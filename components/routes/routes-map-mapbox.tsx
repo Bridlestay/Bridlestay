@@ -678,14 +678,14 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       const setupSourcesAndLayers = () => {
         // Load custom pin images (survives style reloads)
         if (!map.hasImage("route-pin")) {
-          map.loadImage("/Pins/route-pin-2.png", (err, img) => {
+          map.loadImage("/Pins/route-pin.png", (err, img) => {
             if (!err && img && !map.hasImage("route-pin")) {
               map.addImage("route-pin", img, { pixelRatio: 2 });
             }
           });
         }
         if (!map.hasImage("property-pin")) {
-          map.loadImage("/Pins/property-pin-2.png", (err, img) => {
+          map.loadImage("/Pins/property-pin.png", (err, img) => {
             if (!err && img && !map.hasImage("property-pin")) {
               map.addImage("property-pin", img, { pixelRatio: 2 });
             }
