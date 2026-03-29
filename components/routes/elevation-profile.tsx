@@ -401,15 +401,15 @@ export function ElevationProfile({
       <div className="flex flex-1 min-h-0">
         {/* Chart + markers column */}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Floating markers gutter — extra height keeps circles clear of chart */}
-          <div className="relative h-10 flex-shrink-0 overflow-visible">
+          {/* Floating markers gutter — markers centered on the gutter/chart boundary */}
+          <div className="relative h-8 flex-shrink-0 overflow-visible">
             {isFloating && floatingMarkers.map((m, i) => (
                 <div
                   key={`fm-${m.id}-${i}`}
                   className="absolute z-10"
                   style={{
                     left: `${m.xPercent}%`,
-                    bottom: `${m.tier * 22}px`,
+                    bottom: `${-12 + m.tier * 22}px`,
                     transform: "translateX(-50%)",
                   }}
                 >
@@ -467,14 +467,14 @@ export function ElevationProfile({
                 fill="url(#elevationGradient)"
               />
 
-              {/* Soft drop-lines for floating markers — extend up into gutter, down to curve */}
+              {/* Soft drop-lines from marker down to graph line */}
               {isFloating && floatingMarkers.map((m, i) => (
                 <line
                   key={`drop-${i}`}
                   x1={m.xPercent * 4}
-                  y1="-20"
+                  y1="-15"
                   x2={m.xPercent * 4}
-                  y2={m.yOnLine + 1}
+                  y2={m.yOnLine + 2}
                   stroke="#94A3B8"
                   strokeWidth="0.6"
                   strokeDasharray="2,2"
@@ -506,17 +506,6 @@ export function ElevationProfile({
                 />
               )}
 
-              {/* Small dots at drop-line intersection with graph line */}
-              {isFloating && floatingMarkers.map((m, i) => (
-                <circle
-                  key={`dot-${i}`}
-                  cx={m.xPercent * 4}
-                  cy={m.yOnLine}
-                  r="1.2"
-                  fill="#267347"
-                  opacity="0.8"
-                />
-              ))}
 
             </svg>
 
