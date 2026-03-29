@@ -1136,7 +1136,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           filter: ["!", ["has", "point_count"]],
           layout: {
             "icon-image": "route-pin",
-            "icon-size": 0.6,
+            "icon-size": 0.5,
             "icon-anchor": "bottom",
             "icon-allow-overlap": true,
           },
@@ -1431,7 +1431,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           source: sourceId,
           layout: {
             "icon-image": "property-pin",
-            "icon-size": 0.6,
+            "icon-size": 0.5,
             "icon-anchor": "bottom",
             "icon-allow-overlap": true,
           },

@@ -40,6 +40,7 @@ export function WaypointTimeline({
   const hiddenRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const scrollRafRef = useRef<number>(0);
+  const hiddenWaypointsRef = useRef<any[]>([]);
 
   if (fullWaypointList.length === 0) return null;
 
@@ -55,6 +56,7 @@ export function WaypointTimeline({
   const canCollapse = truncatedList.length > COLLAPSED_LIMIT;
   const hiddenCount = truncatedList.length - 3;
   const hiddenWaypoints = canCollapse ? truncatedList.slice(3) : [];
+  hiddenWaypointsRef.current = hiddenWaypoints;
   const totalHidden = hiddenWaypoints.length;
   const totalAnimTime = (totalHidden - 1) * STAGGER_DELAY + CARD_DURATION;
 
@@ -116,7 +118,7 @@ export function WaypointTimeline({
         setIsRevealed(true);
         if (scrollToId) {
           // Find the target's index in hidden waypoints to calculate its reveal time
-          const targetIdx = hiddenWaypoints.findIndex((wp: any) => wp.id === scrollToId);
+          const targetIdx = hiddenWaypointsRef.current.findIndex((wp: any) => wp.id === scrollToId);
           // Follow cascade until target is fully revealed, then stop
           const stopAt = targetIdx >= 0
             ? (targetIdx * STAGGER_DELAY) + CARD_DURATION + 200
@@ -128,7 +130,7 @@ export function WaypointTimeline({
         }
       });
     });
-  }, [totalAnimTime, startProgressiveScroll, hiddenWaypoints]);
+  }, [totalAnimTime, startProgressiveScroll]);
 
   const handleCollapse = useCallback(() => {
     stopProgressiveScroll();
