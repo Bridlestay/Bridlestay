@@ -440,20 +440,12 @@ export function RouteDetailDrawer({
 
   useEffect(() => {
     if (initialWaypointId) {
-      // Stay on main route card — scroll to the inline waypoint timeline
+      // Stay on main route card, switch to Waypoints tab
       setActiveFullPanel(null);
+      setActiveInfoTab("waypoints");
+      // Feed into the cascade system — timeline handles expand + scroll
+      setChartTargetWaypointId(initialWaypointId);
       onWaypointFocused?.();
-      setTimeout(() => {
-        const el = document.getElementById(`waypoint-timeline-${initialWaypointId}`);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-          // Brief highlight
-          el.classList.add("ring-2", "ring-green-500", "ring-offset-1", "rounded-lg");
-          setTimeout(() => {
-            el.classList.remove("ring-2", "ring-green-500", "ring-offset-1", "rounded-lg");
-          }, 1500);
-        }
-      }, 300);
     }
   }, [initialWaypointId]);
 
