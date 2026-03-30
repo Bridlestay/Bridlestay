@@ -154,7 +154,7 @@ export function getMapboxThumbnailUrl(
     height = 150,
     routeColor = "5E35B1", // Purple
     routeWeight = 4,
-    mapType = "cmnd09v21000201sfdwg93b5a", // Custom Padoq style (terrain, no labels)
+    mapType = "outdoors-v12", // Mapbox Outdoors — terrain colours
   } = options;
 
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -165,7 +165,7 @@ export function getMapboxThumbnailUrl(
 
   // Encode the route as a polyline for Mapbox
   const encodedPath = encodePolyline(geometry.coordinates);
-  
+
   // Calculate bounds for auto-fit
   let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
   geometry.coordinates.forEach(([lng, lat]) => {
@@ -182,10 +182,8 @@ export function getMapboxThumbnailUrl(
   // Mapbox Static Images URL
   // path-{strokeWidth}+{strokeColor}({encodedPolyline})
   const pathOverlay = `path-${routeWeight}+${routeColor}(${encodeURIComponent(encodedPath)})`;
-  
-  // Use custom Padoq style (terrain colours, no labels) — falls back to mapbox/ prefix for built-in styles
-  const styleOwner = mapType.startsWith("cm") ? "kingcouch" : "mapbox";
-  const baseUrl = `https://api.mapbox.com/styles/v1/${styleOwner}`;
+
+  const baseUrl = "https://api.mapbox.com/styles/v1/mapbox";
   return `${baseUrl}/${mapType}/static/${pathOverlay}/auto/${width}x${height}@2x?access_token=${token}&padding=30&attribution=false&logo=false`;
 }
 
