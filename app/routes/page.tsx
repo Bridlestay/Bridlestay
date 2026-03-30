@@ -108,6 +108,7 @@ const HAZARD_TYPES = [
 export default function RoutesPage() {
   const router = useRouter();
   const mapRef = useRef<RoutesMapV2Handle>(null);
+  const lastDeselectedAtRef = useRef(0);
   const [userId, setUserId] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
 
@@ -572,6 +573,8 @@ export default function RoutesPage() {
 
   // Handle pin click - draws route on map + shows quick card at bottom
   const handleRoutePreview = (route: any) => {
+    // Guard: ignore re-selection within 300ms of closing a route
+    if (Date.now() - lastDeselectedAtRef.current < 300) return;
     // Draw the route polyline on the map immediately
     setDrawnRouteId(route.id);
     setHighlightedRouteId(route.id);
@@ -661,6 +664,7 @@ export default function RoutesPage() {
 
   // Close the quick card and clear route preview
   const handleClosePreview = () => {
+    lastDeselectedAtRef.current = Date.now();
     setPreviewRoute(null);
     setDrawnRouteId(null);
     setSelectedRouteId(null);
