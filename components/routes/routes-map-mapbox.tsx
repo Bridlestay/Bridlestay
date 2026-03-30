@@ -1175,6 +1175,8 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
         // Click on individual pin - directly show route + trigger preview (no popup card)
         map.on("click", "unclustered-point", (e) => {
+          // Skip if a property pin already handled this click (overlapping pins)
+          if ((e.originalEvent as any)._propertyPinHandled) return;
           if (!e.features?.[0]) return;
           const props = e.features[0].properties;
           const route = routesDataRef.current.get(props?.id);
@@ -1448,6 +1450,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           const props = e.features[0].properties;
           const property = propertyDataRef.current.get(props?.id);
           if (!property) return;
+
+          // Mark this click as handled by property pin — prevents route pin handler from also firing
+          (e.originalEvent as any)._propertyPinHandled = true;
 
           if (popupRef.current) {
             popupRef.current.remove();
