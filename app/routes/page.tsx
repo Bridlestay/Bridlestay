@@ -607,10 +607,14 @@ export default function RoutesPage() {
   // Handle property pin click — show property quick card at bottom
   const handlePropertyPreview = (property: any) => {
     setPreviewProperty(property);
-    // Close any route preview
+    // Close any route preview and clear route selection
     setPreviewRoute(null);
     setDrawerOpen(false);
     setShowBottomSheet(false);
+    setSelectedRouteId(null);
+    setSelectedRouteData(null);
+    setDrawnRouteId(null);
+    setHighlightedRouteId(null);
   };
 
   // Handle click from Find panel — fly to route and show quick card
@@ -2038,7 +2042,14 @@ export default function RoutesPage() {
         {previewProperty && !previewRoute && !drawerOpen && activeTab !== "find" && (
           <PropertyQuickCard
             property={previewProperty}
-            onClose={() => setPreviewProperty(null)}
+            onClose={() => {
+              setPreviewProperty(null);
+              // Clear any lingering route state
+              setSelectedRouteId(null);
+              setSelectedRouteData(null);
+              setDrawnRouteId(null);
+              setHighlightedRouteId(null);
+            }}
             onClick={() => {
               router.push(`/property/${previewProperty.id}`);
             }}
