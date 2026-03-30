@@ -1058,8 +1058,10 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
       routes.forEach(r => routesDataRef.current.set(r.id, r));
 
       // Create GeoJSON features for clustering
+      // Exclude the selected route — it already has its own S/E markers
+      // and should not be absorbed into clusters
       const features = routes
-        .filter(route => route.geometry?.coordinates?.length > 0)
+        .filter(route => route.geometry?.coordinates?.length > 0 && route.id !== selectedRouteId)
         .map(route => ({
           type: "Feature" as const,
           properties: {
@@ -1281,7 +1283,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
         map.off("idle", onIdle);
         map.off("data", onData);
       };
-    }, [routes, mapLoaded, isCreating, followUser, onRouteClick, onRoutePreview, styleLoadCount]);
+    }, [routes, mapLoaded, isCreating, followUser, onRouteClick, onRoutePreview, styleLoadCount, selectedRouteId]);
 
     // Display POI markers
     useEffect(() => {
