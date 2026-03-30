@@ -1175,8 +1175,9 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
 
         // Click on individual pin - directly show route + trigger preview (no popup card)
         map.on("click", "unclustered-point", (e) => {
-          // Skip if a property pin already handled this click (overlapping pins)
-          if ((e.originalEvent as any)._propertyPinHandled) return;
+          // Skip if click also hits a property pin — property takes priority when overlapping
+          const propertyHits = map.queryRenderedFeatures(e.point, { layers: ["property-pins"] });
+          if (propertyHits.length > 0) return;
           if (!e.features?.[0]) return;
           const props = e.features[0].properties;
           const route = routesDataRef.current.get(props?.id);
