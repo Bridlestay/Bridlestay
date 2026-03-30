@@ -1110,7 +1110,7 @@ export const RoutesMapMapbox = forwardRef<RoutesMapMapboxHandle, RoutesMapMapbox
           },
           cluster: true,
           clusterMaxZoom: 14,
-          clusterRadius: 32,
+          clusterRadius: 28,
         });
 
         // Cluster layer — single symbol layer with canvas-drawn images (circle + count baked in)
