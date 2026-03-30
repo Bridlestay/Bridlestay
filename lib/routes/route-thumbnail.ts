@@ -153,7 +153,7 @@ export function getMapboxThumbnailUrl(
     width = 200,
     height = 150,
     routeColor = "5E35B1", // Purple
-    routeWeight = 4,
+    routeWeight = 6,
     mapType = "outdoors-v12", // Mapbox Outdoors — terrain colours
   } = options;
 
@@ -184,7 +184,7 @@ export function getMapboxThumbnailUrl(
   const pathOverlay = `path-${routeWeight}+${routeColor}(${encodeURIComponent(encodedPath)})`;
 
   const baseUrl = "https://api.mapbox.com/styles/v1/mapbox";
-  return `${baseUrl}/${mapType}/static/${pathOverlay}/auto/${width}x${height}@2x?access_token=${token}&padding=30&attribution=false&logo=false`;
+  return `${baseUrl}/${mapType}/static/${pathOverlay}/auto/${width}x${height}@2x?access_token=${token}&padding=15&attribution=false&logo=false`;
 }
 
 /**

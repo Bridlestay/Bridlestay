@@ -62,10 +62,10 @@ function SingleCard({ route, onClick, onClose, onOpenSection }: { route: any; on
   const diffStyle = DIFFICULTY_STYLES[difficulty] || DIFFICULTY_STYLES.unrated;
 
   const thumbnailUrl = getMapboxThumbnailUrl(route.geometry, {
-    width: 120,
-    height: 80,
+    width: 200,
+    height: 150,
     routeColor: "166534",
-    routeWeight: 4,
+    routeWeight: 6,
   });
 
   return (
