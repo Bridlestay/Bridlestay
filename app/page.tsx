@@ -39,18 +39,18 @@ export default async function HomePage() {
       <main className="min-h-screen">
       {/* Photo Hero */}
       <section className="pt-6 md:pt-10 pb-10 md:pb-16">
-        <div className="container mx-auto px-4">
+        <div className="max-w-[1600px] mx-auto px-2 md:px-4">
           <div className="relative overflow-hidden rounded-3xl shadow-xl h-[420px] md:h-[560px]">
             <Image
               src="/photo-hero.png"
               alt="Horses grazing in a UK countryside paddock"
               fill
               priority
-              sizes="(max-width: 768px) 100vw, 1280px"
+              sizes="(max-width: 768px) 100vw, 1600px"
               className="object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-6 md:p-12 text-white">
+            <div className="absolute inset-x-0 bottom-0 px-6 md:px-12 pb-16 md:pb-24 text-white">
               <div className="max-w-4xl mx-auto text-center">
                 <h1 className="font-serif text-3xl md:text-6xl font-bold mb-3 md:mb-4 drop-shadow-lg">
                   Discover Your Perfect Equestrian Escape

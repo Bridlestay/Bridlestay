@@ -102,14 +102,14 @@ export function Header() {
     !loading && (!user || (user.role !== "host" && user.role !== "admin"));
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto px-4 flex h-20 items-center justify-between">
         <Link href="/" className="flex items-center">
           <Image
             src="/logo-test.png"
             alt="padoq"
-            width={120}
-            height={40}
+            width={160}
+            height={56}
             className="object-contain"
             priority
           />

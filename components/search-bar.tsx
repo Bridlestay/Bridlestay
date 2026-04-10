@@ -95,9 +95,15 @@ export function SearchBar() {
           />
         </div>
       </div>
-      <div className="flex items-end">
-        <Button type="submit" className="w-full" size="lg">
-          <Search className="mr-2 h-4 w-4" />
+      <div className="flex flex-col">
+        <label
+          className="block text-sm font-medium mb-1 invisible select-none"
+          aria-hidden="true"
+        >
+          Search
+        </label>
+        <Button type="submit" className="w-full h-full" size="lg">
+          <Search className="mr-2 h-5 w-5" />
           Search
         </Button>
       </div>
