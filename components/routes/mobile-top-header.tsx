@@ -109,7 +109,7 @@ export function MobileTopHeader() {
               unreadCount={unreadCount}
               notifCount={notifCount}
               align="start"
-              showRoutesLink
+              showHomeLink
             />
           </DropdownMenu>
 

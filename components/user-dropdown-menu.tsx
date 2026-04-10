@@ -18,7 +18,7 @@ import {
   MessageSquarePlus,
   HelpCircle,
   AlertTriangle,
-  Route,
+  Home,
   Bell,
 } from "lucide-react";
 
@@ -27,7 +27,7 @@ interface UserDropdownMenuProps {
   unreadCount?: number;
   notifCount?: number;
   align?: "start" | "end";
-  showRoutesLink?: boolean;
+  showHomeLink?: boolean;
 }
 
 export function UserDropdownMenu({
@@ -35,7 +35,7 @@ export function UserDropdownMenu({
   unreadCount = 0,
   notifCount = 0,
   align = "end",
-  showRoutesLink = false,
+  showHomeLink = false,
 }: UserDropdownMenuProps) {
   const router = useRouter();
   const supabase = createClient();
@@ -76,6 +76,24 @@ export function UserDropdownMenu({
       align={align}
       className="w-60 rounded-xl p-0 shadow-xl border border-gray-200 overflow-hidden"
     >
+      {/* Section 0: Return to Home (only on routes pages) */}
+      {showHomeLink && (
+        <>
+          <div className="py-1.5">
+            <DropdownMenuItem asChild>
+              <Link
+                href="/"
+                className="cursor-pointer flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-primary"
+              >
+                <Home className="h-[18px] w-[18px] text-primary shrink-0" strokeWidth={1.5} />
+                <span>Return to Home</span>
+              </Link>
+            </DropdownMenuItem>
+          </div>
+          <DropdownMenuSeparator className="my-0 mx-4" />
+        </>
+      )}
+
       {/* Section 1: Notifications & Messages */}
       <div className="py-1.5">
         <DropdownMenuItem asChild>
@@ -125,19 +143,8 @@ export function UserDropdownMenu({
 
       <DropdownMenuSeparator className="my-0 mx-4" />
 
-      {/* Section 2: Routes, Listings, Admin */}
+      {/* Section 2: Listings, Admin */}
       <div className="py-1.5">
-        {showRoutesLink && (
-          <DropdownMenuItem asChild>
-            <Link
-              href="/routes"
-              className="cursor-pointer flex items-center gap-3 px-4 py-2.5 text-sm"
-            >
-              <Route className="h-[18px] w-[18px] text-gray-600 shrink-0" strokeWidth={1.5} />
-              <span>Routes</span>
-            </Link>
-          </DropdownMenuItem>
-        )}
         {(user.role === "host" || user.role === "admin") && (
           <DropdownMenuItem asChild>
             <Link

@@ -91,7 +91,7 @@ export function RoutesMapHeader() {
           unreadCount={unreadCount}
           notifCount={notifCount}
           align="start"
-          showRoutesLink
+          showHomeLink
         />
       </DropdownMenu>
 

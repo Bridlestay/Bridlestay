@@ -96,7 +96,7 @@ export function RoutesPanelHeader({
           unreadCount={unreadCount}
           notifCount={notifCount}
           align="start"
-          showRoutesLink
+          showHomeLink
         />
       </DropdownMenu>
 
