@@ -18,7 +18,16 @@
       "Bash(ls:*)",
       "Bash(\"c:\\\\Users\\\\Richard\\\\OneDrive\\\\Desktop\\\\Git Bridlestay\\\\Bridlestay\\\\components\\\\routes\\\\edit-waypoint-dialog.tsx\":*)",
       "Bash(git restore:*)",
-      "Bash(npx next lint)"
+      "Bash(npx next lint)",
+      "Bash(wc -l '/c/Users/Richard/OneDrive/Desktop/Git Bridlestay/Bridlestay/supabase/migrations'/*.sql)",
+      "WebSearch",
+      "Bash(echo \"exit: $?\")",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(cp public/Pins/route-pin-2.png public/Pins/route-pin.png)",
+      "Bash(cp public/Pins/property-pin-2.png public/Pins/property-pin.png)",
+      "Bash(mv \"public/Test Logo.png\" \"public/logo-test.png\")",
+      "Bash(mv \"public/Photo Hero.png\" \"public/photo-hero.png\")",
+      "Bash(xargs -0 sed -i 's/green-600/primary/g; s/emerald-600/primary/g; s/teal-600/primary/g')"
     ]
   }
 }
