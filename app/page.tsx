@@ -5,7 +5,7 @@ import { PropertyCard } from "@/components/property-card";
 import { createClient } from "@/lib/supabase/server";
 import Image from "next/image";
 import Link from "next/link";
-import { Home, Shield, MapPin, Users, Compass } from "lucide-react";
+import { Home, Shield, Users, Compass } from "lucide-react";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -172,28 +172,20 @@ export default async function HomePage() {
               </Link>
             </div>
             <div className="flex-1">
-              <div className="relative bg-gradient-to-br from-green-100 to-green-50 rounded-xl h-80 overflow-hidden shadow-lg">
-                {/* Decorative map illustration */}
-                <div className="absolute inset-0 opacity-20">
-                  <svg viewBox="0 0 400 300" className="w-full h-full" preserveAspectRatio="xMidYMid slice">
-                    {/* Paths representing routes */}
-                    <path d="M50,150 Q100,100 150,120 T250,100 T350,150" stroke="#92400e" strokeWidth="3" fill="none" strokeDasharray="5,3"/>
-                    <path d="M30,200 Q80,180 130,220 T230,180 T330,220" stroke="#2563eb" strokeWidth="3" fill="none"/>
-                    <path d="M70,250 Q120,200 170,230 T270,200 T370,240" stroke="#16a34a" strokeWidth="3" fill="none"/>
-                    {/* Decorative dots */}
-                    <circle cx="150" cy="120" r="6" fill="#92400e"/>
-                    <circle cx="250" cy="100" r="6" fill="#92400e"/>
-                    <circle cx="130" cy="220" r="6" fill="#2563eb"/>
-                    <circle cx="230" cy="180" r="6" fill="#2563eb"/>
-                    <circle cx="170" cy="230" r="6" fill="#16a34a"/>
-                    <circle cx="270" cy="200" r="6" fill="#16a34a"/>
-                  </svg>
-                </div>
+              <div className="relative rounded-2xl h-80 overflow-hidden shadow-lg">
+                <Image
+                  src="/Find-Routes-Image-2.png"
+                  alt="Riding routes across UK countryside"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 600px"
+                />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center px-6">
-                    <MapPin className="h-12 w-12 mx-auto mb-4 text-primary" />
-                    <p className="text-lg font-semibold text-primary">Find routes near your stay</p>
-                    <p className="text-sm text-muted-foreground mt-2">
+                    <p className="text-xl md:text-2xl font-semibold text-primary drop-shadow-md">
+                      Find routes near your stay
+                    </p>
+                    <p className="text-sm text-foreground/80 mt-2 drop-shadow-sm">
                       Browse bridleways, byways, and community-created riding trails
                     </p>
                   </div>
