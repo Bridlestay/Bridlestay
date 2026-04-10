@@ -163,7 +163,7 @@ export default async function HomePage() {
                   src="/Find-Routes-Image-2.png"
                   alt="Curated riding routes across the UK"
                   fill
-                  className="object-cover scale-110"
+                  className="object-cover scale-[1.5]"
                   sizes="(max-width: 768px) 100vw, 512px"
                 />
               </div>
