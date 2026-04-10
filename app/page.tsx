@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Header } from "@/components/header";
 import { PropertyCard } from "@/components/property-card";
 import { createClient } from "@/lib/supabase/server";
+import Image from "next/image";
 import Link from "next/link";
-import { Home, Shield, MapPin, Star, Users, Compass } from "lucide-react";
+import { Home, Shield, MapPin, Users, Compass } from "lucide-react";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -36,26 +37,61 @@ export default async function HomePage() {
     <>
       <Header />
       <main className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative min-h-[auto] py-12 md:h-[600px] flex items-center justify-center bg-gradient-to-br from-green-900 via-green-800 to-green-700">
-        <div className="absolute inset-0 bg-black/20" />
-        <div className="relative z-10 container mx-auto px-4 text-center text-white">
-          <h1 className="font-serif text-4xl md:text-7xl font-bold mb-4 md:mb-6">
-            Discover Your Perfect
-            <br />
-            Equestrian Escape
-          </h1>
-          <p className="text-lg md:text-2xl mb-6 md:mb-12 text-green-50">
-            Explore the UK&apos;s finest countryside stays for you and your horses
-          </p>
-          <div className="max-w-4xl mx-auto">
-            <SearchBar />
+      {/* Photo Hero */}
+      <section className="pt-6 md:pt-10 pb-10 md:pb-16">
+        <div className="container mx-auto px-4">
+          <div className="relative overflow-hidden rounded-3xl shadow-xl h-[420px] md:h-[560px]">
+            <Image
+              src="/photo-hero.png"
+              alt="Horses grazing in a UK countryside paddock"
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 1280px"
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-6 md:p-12 text-white">
+              <div className="max-w-4xl mx-auto text-center">
+                <h1 className="font-serif text-3xl md:text-6xl font-bold mb-3 md:mb-4 drop-shadow-lg">
+                  Discover Your Perfect Equestrian Escape
+                </h1>
+                <p className="text-base md:text-xl mb-6 md:mb-8 text-white/95 drop-shadow">
+                  Explore the UK&apos;s finest countryside stays for you and your horses
+                </p>
+                <SearchBar />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
+      {/* Featured Properties */}
+      <section className="pb-10 md:pb-16">
+        <div className="container mx-auto px-4">
+          <h2 className="font-serif text-2xl md:text-4xl font-bold mb-6 md:mb-8">
+            Featured Properties
+          </h2>
+          {properties && properties.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {properties.map((property) => (
+                <PropertyCard key={property.id} property={property} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-muted/50 rounded-lg">
+              <p className="text-muted-foreground mb-4">
+                No properties available yet
+              </p>
+              <Link href="/host">
+                <Button>Become a Host</Button>
+              </Link>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Why padoq */}
-      <section className="py-10 md:py-16 bg-background border-b">
+      <section className="py-10 md:py-16 bg-background border-y">
         <div className="container mx-auto px-4">
           <h2 className="font-serif text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">
             Why Choose padoq?
@@ -98,31 +134,6 @@ export default async function HomePage() {
               </p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Featured Properties */}
-      <section className="py-10 md:py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="font-serif text-2xl md:text-4xl font-bold mb-6 md:mb-8">
-            Featured Properties
-          </h2>
-          {properties && properties.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {properties.map((property) => (
-                <PropertyCard key={property.id} property={property} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-muted/50 rounded-lg">
-              <p className="text-muted-foreground mb-4">
-                No properties available yet
-              </p>
-              <Link href="/host">
-                <Button>Become a Host</Button>
-              </Link>
-            </div>
-          )}
         </div>
       </section>
 

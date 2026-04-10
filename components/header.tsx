@@ -98,12 +98,15 @@ export function Header() {
     return () => clearInterval(interval);
   }, [user]);
 
+  const showBecomeHost =
+    !loading && (!user || (user.role !== "host" && user.role !== "admin"));
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center">
           <Image
-            src="/logo.png"
+            src="/logo-test.png"
             alt="padoq"
             width={120}
             height={40}
@@ -112,30 +115,31 @@ export function Header() {
           />
         </Link>
 
-        <nav className="hidden md:flex items-center space-x-6 flex-1 justify-center">
-          <Link
-            href="/search"
-            className="text-sm font-medium transition-colors hover:text-primary"
-          >
-            Search
-          </Link>
-          <Link
-            href="/routes"
-            className="text-sm font-medium transition-colors hover:text-primary"
-          >
-            Routes
-          </Link>
-          {(!user || (user.role !== "host" && user.role !== "admin")) && (
+        <div className="flex items-center space-x-6">
+          <nav className="hidden md:flex items-center space-x-6">
             <Link
-              href="/host"
+              href="/search"
               className="text-sm font-medium transition-colors hover:text-primary"
             >
-              Become a Host
+              Search
             </Link>
-          )}
-        </nav>
+            <Link
+              href="/routes"
+              className="text-sm font-medium transition-colors hover:text-primary"
+            >
+              Routes
+            </Link>
+            {showBecomeHost && (
+              <Link
+                href="/host"
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                Become a Host
+              </Link>
+            )}
+          </nav>
 
-        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3">
           {loading ? (
             <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
           ) : user ? (
@@ -188,6 +192,7 @@ export function Header() {
               </Link>
             </div>
           )}
+          </div>
         </div>
       </div>
     </header>
