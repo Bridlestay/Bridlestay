@@ -146,9 +146,9 @@ export default async function HomePage() {
                 Explore Riding Routes
               </h2>
               <p className="text-lg text-muted-foreground mb-6">
-                Discover curated trails across the Cotswolds, New Forest, and
-                Exmoor. Each route includes points of interest, terrain details,
-                and local recommendations.
+                Discover curated equestrian trails across the Cotswolds, New
+                Forest, and Exmoor, featuring points of interest, terrain
+                details, and local insights.
               </p>
               <div className="flex flex-wrap gap-4 mb-6">
                 <div className="flex items-center gap-2 text-sm">
@@ -172,24 +172,14 @@ export default async function HomePage() {
               </Link>
             </div>
             <div className="flex-1">
-              <div className="relative rounded-2xl h-80 overflow-hidden shadow-lg">
+              <div className="relative h-80 rounded-2xl overflow-hidden shadow-lg">
                 <Image
                   src="/Find-Routes-Image-2.png"
                   alt="Riding routes across UK countryside"
                   fill
-                  className="object-cover"
+                  className="object-cover rounded-2xl"
                   sizes="(max-width: 768px) 100vw, 600px"
                 />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center px-6">
-                    <p className="text-xl md:text-2xl font-semibold text-primary drop-shadow-md">
-                      Find routes near your stay
-                    </p>
-                    <p className="text-sm text-foreground/80 mt-2 drop-shadow-sm">
-                      Browse bridleways, byways, and community-created riding trails
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
