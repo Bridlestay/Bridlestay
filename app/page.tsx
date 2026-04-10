@@ -20,7 +20,7 @@ export default async function HomePage() {
     `)
     .eq("published", true)
     .order("created_at", { ascending: false })
-    .limit(6);
+    .limit(8);
 
   // Add favorite counts to each property
   if (properties) {
@@ -38,15 +38,15 @@ export default async function HomePage() {
       <Header />
       <main className="min-h-screen">
       {/* Photo Hero */}
-      <section className="pt-6 md:pt-10 pb-10 md:pb-16">
-        <div className="max-w-[1600px] mx-auto px-2 md:px-4">
+      <section className="pt-2 md:pt-3 pb-10 md:pb-16">
+        <div className="max-w-[1800px] mx-auto px-2 md:px-4">
           <div className="relative overflow-hidden rounded-3xl shadow-xl h-[420px] md:h-[560px]">
             <Image
               src="/photo-hero.png"
               alt="Horses grazing in a UK countryside paddock"
               fill
               priority
-              sizes="(max-width: 768px) 100vw, 1600px"
+              sizes="(max-width: 768px) 100vw, 1800px"
               className="object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
@@ -65,14 +65,14 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured Properties */}
+      {/* Featured Stays */}
       <section className="pb-10 md:pb-16">
-        <div className="container mx-auto px-4">
+        <div className="max-w-[1800px] mx-auto px-2 md:px-4">
           <h2 className="font-serif text-2xl md:text-4xl font-bold mb-6 md:mb-8">
-            Featured Properties
+            Featured Stays
           </h2>
           {properties && properties.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {properties.map((property) => (
                 <PropertyCard key={property.id} property={property} />
               ))}

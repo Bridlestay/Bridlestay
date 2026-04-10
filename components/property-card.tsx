@@ -97,11 +97,6 @@ export function PropertyCard({ property, variant = "default" }: PropertyCardProp
               <span>•</span>
               <span>{maxHorses} horses</span>
             </div>
-            {!isHorizontal && property.favorite_count > 0 && (
-              <p className="text-xs text-muted-foreground mt-2">
-                ❤️ Saved by {property.favorite_count} {property.favorite_count === 1 ? 'person' : 'people'}
-              </p>
-            )}
           </CardContent>
           
           <CardFooter className={cn("p-4 pt-0", isHorizontal && "p-3 pt-0")}>

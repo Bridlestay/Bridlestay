@@ -103,7 +103,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 flex h-20 items-center justify-between">
+      <div className="max-w-[1800px] mx-auto px-2 md:px-4 flex h-20 items-center justify-between">
         <Link href="/" className="flex items-center">
           <Image
             src="/logo-test.png"
@@ -115,24 +115,24 @@ export function Header() {
           />
         </Link>
 
-        <div className="flex items-center space-x-6">
-          <nav className="hidden md:flex items-center space-x-6">
+        <div className="flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-8">
             <Link
               href="/search"
-              className="text-sm font-medium transition-colors hover:text-primary"
+              className="text-base font-medium transition-colors hover:text-primary"
             >
               Search
             </Link>
             <Link
               href="/routes"
-              className="text-sm font-medium transition-colors hover:text-primary"
+              className="text-base font-medium transition-colors hover:text-primary"
             >
               Routes
             </Link>
             {showBecomeHost && (
               <Link
                 href="/host"
-                className="text-sm font-medium transition-colors hover:text-primary"
+                className="text-base font-medium transition-colors hover:text-primary"
               >
                 Become a Host
               </Link>
