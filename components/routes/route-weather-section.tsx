@@ -154,7 +154,7 @@ export function RouteWeatherSection({ weatherData, loading }: RouteWeatherSectio
           {weatherData.forecast.length > 3 && (
             <button
               onClick={() => setShowAllDays(!showAllDays)}
-              className="w-full text-xs text-green-600 hover:text-green-700 font-medium py-1"
+              className="w-full text-xs text-primary hover:text-green-700 font-medium py-1"
             >
               {showAllDays ? "Show less" : `Show ${weatherData.forecast.length - 3} more days`}
             </button>

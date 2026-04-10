@@ -411,7 +411,7 @@ export function RouteRecorder({
             size="lg"
             className={cn(
               "gap-2 rounded-full w-32 h-16",
-              isPaused ? "bg-green-600 hover:bg-green-700" : "bg-yellow-600 hover:bg-yellow-700"
+              isPaused ? "bg-primary hover:bg-green-700" : "bg-yellow-600 hover:bg-yellow-700"
             )}
             onClick={isPaused ? handleResume : handlePause}
           >

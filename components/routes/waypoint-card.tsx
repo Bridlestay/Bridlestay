@@ -60,9 +60,9 @@ const ICON_MAP: Record<string, { icon: any; color: string; label: string }> = {
   parking: { icon: Car, color: "text-gray-600", label: "Parking" },
   pub: { icon: Beer, color: "text-amber-600", label: "Pub" },
   gate: { icon: DoorOpen, color: "text-slate-600", label: "Gate" },
-  rest: { icon: Coffee, color: "text-green-600", label: "Rest Area" },
+  rest: { icon: Coffee, color: "text-primary", label: "Rest Area" },
   historic: { icon: Landmark, color: "text-purple-600", label: "Historic Site" },
-  wildlife: { icon: Squirrel, color: "text-emerald-600", label: "Wildlife Spot" },
+  wildlife: { icon: Squirrel, color: "text-primary", label: "Wildlife Spot" },
   bridge: { icon: Navigation, color: "text-indigo-600", label: "Bridge" },
   ford: { icon: Droplet, color: "text-blue-600", label: "Ford/Crossing" },
   stile: { icon: DoorOpen, color: "text-amber-600", label: "Stile" },
@@ -99,7 +99,7 @@ export function WaypointCard({
   ];
 
   const getNumberCircleColor = () => {
-    if (waypointNumber === "S") return "bg-green-600 text-white";
+    if (waypointNumber === "S") return "bg-primary text-white";
     if (waypointNumber === "F") return "bg-red-600 text-white";
     return "bg-slate-800 text-white";
   };
@@ -267,7 +267,7 @@ export function WaypointCard({
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs text-green-600 hover:text-green-700 hover:bg-green-50 h-7 px-2"
+            className="text-xs text-primary hover:text-green-700 hover:bg-green-50 h-7 px-2"
             onClick={onShowOnMap}
           >
             <MapPin className="h-3.5 w-3.5 mr-1" />

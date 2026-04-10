@@ -154,23 +154,46 @@ export function Header() {
                 </Link>
               )}
 
-              {/* Profile Picture - clickable to profile */}
-              <Link href="/profile">
-                <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
+              {/* Profile Picture - clickable to profile, with animated green outline on hover */}
+              <Link
+                href="/profile"
+                className="relative group inline-block h-10 w-10"
+              >
+                <Avatar className="h-10 w-10 cursor-pointer">
                   <AvatarImage src={user.avatar_url || undefined} alt={user.name} />
                   <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                     {user.name?.charAt(0).toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
+                <svg
+                  className="absolute -inset-[2px] h-11 w-11 pointer-events-none"
+                  viewBox="0 0 44 44"
+                  fill="none"
+                >
+                  <path
+                    d="M 22 42 A 20 20 0 0 1 22 2"
+                    className="stroke-primary [stroke-width:2] [stroke-dasharray:63] [stroke-dashoffset:63] group-hover:[stroke-dashoffset:0] transition-[stroke-dashoffset] duration-500 ease-out"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M 22 42 A 20 20 0 0 0 22 2"
+                    className="stroke-primary [stroke-width:2] [stroke-dasharray:63] [stroke-dashoffset:63] group-hover:[stroke-dashoffset:0] transition-[stroke-dashoffset] duration-500 ease-out"
+                    strokeLinecap="round"
+                  />
+                </svg>
               </Link>
 
               {/* Hamburger Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative hover:bg-transparent hover:text-primary"
+                  >
                     <Menu className="h-5 w-5" />
                     {(unreadCount > 0 || notifCount > 0) && (
-                      <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-green-500" />
+                      <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
                     )}
                   </Button>
                 </DropdownMenuTrigger>

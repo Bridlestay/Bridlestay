@@ -412,7 +412,7 @@ export function AdminDamageClaims() {
                       <Button
                         onClick={() => handleDecision("approved")}
                         disabled={submitting}
-                        className="flex-1 bg-green-600 hover:bg-green-700"
+                        className="flex-1 bg-primary hover:bg-green-700"
                       >
                         {submitting ? (
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />

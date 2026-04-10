@@ -142,7 +142,7 @@ export function AmenitiesList({ amenities }: AmenitiesListProps) {
                       }`}
                     >
                       {amenity.available ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+                        <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                       ) : (
                         <X className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       )}
@@ -163,7 +163,7 @@ export function AmenitiesList({ amenities }: AmenitiesListProps) {
           // When collapsed, show only available amenities
           displayedAmenities.map((amenity) => (
             <div key={amenity.key} className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+              <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
               <p className="font-medium">{amenity.label}</p>
             </div>
           ))

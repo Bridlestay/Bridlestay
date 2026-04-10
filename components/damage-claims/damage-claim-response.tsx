@@ -250,7 +250,7 @@ export function DamageClaimResponse({ claim, onResponse }: DamageClaimResponsePr
                 <Button
                   onClick={() => handleResponse("accept")}
                   disabled={responding}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  className="flex-1 bg-primary hover:bg-green-700"
                 >
                   {responding ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -294,7 +294,7 @@ export function DamageClaimResponse({ claim, onResponse }: DamageClaimResponsePr
             <Button 
               onClick={() => submitResponse("accept")} 
               disabled={responding}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-primary hover:bg-green-700"
             >
               {responding ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

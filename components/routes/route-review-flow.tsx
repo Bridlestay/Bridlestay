@@ -175,7 +175,7 @@ export function RouteReviewFlow({
                 className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all",
                   isActive
-                    ? "bg-green-600 text-white ring-2 ring-green-200"
+                    ? "bg-primary text-white ring-2 ring-green-200"
                     : isCompleted
                     ? "bg-green-100 text-green-700 hover:bg-green-200 cursor-pointer"
                     : isClickable
@@ -224,7 +224,7 @@ export function RouteReviewFlow({
               Cancel
             </Button>
             <Button
-              className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
+              className="flex-1 rounded-full bg-primary hover:bg-green-700"
               onClick={() => { setReviewStep(2); setMaxVisitedStep((p) => Math.max(p, 2)); }}
               disabled={reviewRating === 0}
             >
@@ -293,7 +293,7 @@ export function RouteReviewFlow({
                 className={cn(
                   "cursor-pointer transition-colors px-3 py-1",
                   reviewPhotoCategory === cat.id
-                    ? "bg-green-600 hover:bg-green-700 text-white"
+                    ? "bg-primary hover:bg-green-700 text-white"
                     : "hover:bg-green-50"
                 )}
                 onClick={() => setReviewPhotoCategory(cat.id)}
@@ -369,7 +369,7 @@ export function RouteReviewFlow({
             </Button>
             {reviewPhotoFile && reviewPhotoCategory ? (
               <Button
-                className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
+                className="flex-1 rounded-full bg-primary hover:bg-green-700"
                 onClick={async () => {
                   await handleUploadReviewPhoto();
                   await onCompletionsRefresh();
@@ -381,7 +381,7 @@ export function RouteReviewFlow({
                 {uploadingPhoto ? "Uploading..." : "Upload & Next"}
               </Button>
             ) : (
-              <Button className="flex-1 rounded-full bg-green-600 hover:bg-green-700" onClick={() => { setReviewStep(3); setMaxVisitedStep((p) => Math.max(p, 3)); }}>
+              <Button className="flex-1 rounded-full bg-primary hover:bg-green-700" onClick={() => { setReviewStep(3); setMaxVisitedStep((p) => Math.max(p, 3)); }}>
                 {reviewPhotoFile ? "Next" : "Skip / Next"}
               </Button>
             )}
@@ -411,7 +411,7 @@ export function RouteReviewFlow({
                 <Checkbox
                   checked={reviewTags.includes(tag.id)}
                   onCheckedChange={() => toggleReviewTag(tag.id)}
-                  className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                 />
                 <span className="text-lg">{tag.emoji}</span>
                 <span className="text-sm font-medium text-gray-700">{tag.label}</span>
@@ -424,7 +424,7 @@ export function RouteReviewFlow({
               Back
             </Button>
             <Button
-              className="flex-1 rounded-full bg-green-600 hover:bg-green-700"
+              className="flex-1 rounded-full bg-primary hover:bg-green-700"
               onClick={handleSubmitRideReview}
               disabled={submittingReview}
             >

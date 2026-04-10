@@ -664,7 +664,7 @@ export function AdminDashboard({ user }: { user: any }) {
                         ) : u.soft_banned ? (
                           <Badge variant="outline" className="text-amber-600 border-amber-600">Restricted</Badge>
                         ) : (
-                          <Badge variant="outline" className="text-green-600 border-green-600">Active</Badge>
+                          <Badge variant="outline" className="text-primary border-primary">Active</Badge>
                         )}
                       </TableCell>
                       <TableCell>
@@ -918,7 +918,7 @@ export function AdminDashboard({ user }: { user: any }) {
                         {property.removed ? (
                           <span className="text-red-600 text-sm">Removed</span>
                         ) : property.published ? (
-                          <span className="text-green-600 text-sm">Published</span>
+                          <span className="text-primary text-sm">Published</span>
                         ) : (
                           <span className="text-yellow-600 text-sm">Draft</span>
                         )}

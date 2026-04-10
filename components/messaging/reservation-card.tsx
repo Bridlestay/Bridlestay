@@ -69,7 +69,7 @@ export function ReservationCard({ propertyId, otherUserId }: ReservationCardProp
     switch (status) {
       case "accepted":
       case "confirmed":
-        return "bg-green-600";
+        return "bg-primary";
       case "requested":
         return "bg-orange-600";
       case "cancelled":

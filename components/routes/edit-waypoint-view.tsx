@@ -522,7 +522,7 @@ export function EditWaypointView({
           {/* Title area */}
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-7 h-7 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                 <MapPin className="h-3.5 w-3.5 text-white" />
               </div>
               <h2 className="text-lg font-bold text-slate-900">
@@ -713,7 +713,7 @@ export function EditWaypointView({
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="text-xs h-7 text-green-600 border-green-200 hover:bg-green-50"
+                              className="text-xs h-7 text-primary border-green-200 hover:bg-green-50"
                               disabled={processingId === s.id}
                               onClick={() => handleApprovePhotosOnly(s)}
                             >
@@ -728,7 +728,7 @@ export function EditWaypointView({
                         <Button
                           type="button"
                           size="sm"
-                          className="text-xs h-7 bg-green-600 hover:bg-green-700 text-white"
+                          className="text-xs h-7 bg-primary hover:bg-green-700 text-white"
                           disabled={processingId === s.id}
                           onClick={() => handleApproveSuggestion(s)}
                         >

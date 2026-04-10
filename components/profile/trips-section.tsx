@@ -97,7 +97,7 @@ export function TripsSection({ bookings }: TripsSectionProps) {
       {activeBookings.length > 0 && (
         <div className="mb-8">
           <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
+            <CheckCircle className="h-5 w-5 text-primary" />
             Current Stay
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

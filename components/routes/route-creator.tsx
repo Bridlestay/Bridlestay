@@ -276,7 +276,7 @@ export function RouteCreator({
           <div className="flex items-center gap-2">
             <Badge 
               variant={routeType === "circular" ? "default" : "secondary"}
-              className={routeType === "circular" ? "bg-green-600" : ""}
+              className={routeType === "circular" ? "bg-primary" : ""}
             >
               {routeType === "circular" ? (
                 <>
@@ -472,7 +472,7 @@ export function RouteCreator({
                 className={
                   difficulty === level
                     ? level === "easy"
-                      ? "bg-green-600 hover:bg-green-700"
+                      ? "bg-primary hover:bg-green-700"
                       : level === "moderate"
                       ? "bg-blue-600 hover:bg-blue-700"
                       : level === "difficult"

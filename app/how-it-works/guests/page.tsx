@@ -101,7 +101,7 @@ export default function GuestsGuidePage() {
                           <li>• Guest reviews and ratings</li>
                           <li>• Host response time</li>
                           <li>• <Badge className="bg-blue-600 text-white text-xs">Verified Property</Badge> badge</li>
-                          <li>• <Badge className="bg-green-600 text-white text-xs">⚡ Instant Book</Badge> availability</li>
+                          <li>• <Badge className="bg-primary text-white text-xs">⚡ Instant Book</Badge> availability</li>
                         </ul>
                       </div>
                       <div>
@@ -198,23 +198,23 @@ export default function GuestsGuidePage() {
                       <h3 className="font-semibold mb-3">Your booking includes:</h3>
                       <ul className="space-y-2 text-muted-foreground">
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600 mt-1">✓</span>
+                          <span className="text-primary mt-1">✓</span>
                           <span>Clear pricing breakdown (no hidden fees)</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600 mt-1">✓</span>
+                          <span className="text-primary mt-1">✓</span>
                           <span>Secure payment through Stripe</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600 mt-1">✓</span>
+                          <span className="text-primary mt-1">✓</span>
                           <span>Instant confirmation email</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600 mt-1">✓</span>
+                          <span className="text-primary mt-1">✓</span>
                           <span>Host contact information</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600 mt-1">✓</span>
+                          <span className="text-primary mt-1">✓</span>
                           <span>Clear cancellation terms</span>
                         </li>
                       </ul>
@@ -223,7 +223,7 @@ export default function GuestsGuidePage() {
                     <div className="grid md:grid-cols-2 gap-4 mt-4">
                       <div className="p-4 border rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
-                          <Badge className="bg-green-600 text-white">⚡ Instant Book</Badge>
+                          <Badge className="bg-primary text-white">⚡ Instant Book</Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
                           Your reservation is confirmed immediately. Payment is processed right away, and you'll get instant confirmation.

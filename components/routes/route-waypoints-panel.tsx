@@ -479,7 +479,7 @@ export function RouteWaypointsPanel({
                   </Button>
                   <Button
                     size="sm"
-                    className="h-7 text-xs bg-green-600 hover:bg-green-700"
+                    className="h-7 text-xs bg-primary hover:bg-green-700"
                     disabled={processingSuggestion === suggestion.id}
                     onClick={() => handleApproveSuggestion(suggestion.id)}
                   >
@@ -516,7 +516,7 @@ export function RouteWaypointsPanel({
                   const isFinish = wp.type === "finish";
                   const isLast = visIdx === visibleWaypoints.length - 1;
                   const circleColor = isStart
-                    ? "bg-green-600 text-white ring-2 ring-green-200"
+                    ? "bg-primary text-white ring-2 ring-green-200"
                     : isFinish
                       ? "bg-red-500 text-white ring-2 ring-red-200"
                       : "bg-slate-700 text-white";
@@ -665,7 +665,7 @@ export function RouteWaypointsPanel({
                               </Button>
                               <Button
                                 size="sm"
-                                className="text-xs h-7 bg-green-600 hover:bg-green-700"
+                                className="text-xs h-7 bg-primary hover:bg-green-700"
                                 disabled={savingDescription}
                                 onClick={() => handleSaveDescription(wp.id)}
                               >

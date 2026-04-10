@@ -91,7 +91,7 @@ export default function HelpPage() {
                         <p>5. Review the pricing breakdown and click "Book Now"</p>
                         <p>6. Complete payment to confirm your reservation</p>
                         <p className="mt-4 text-sm">
-                          Some properties offer <Badge className="bg-green-600">⚡ Instant Book</Badge>, which confirms immediately. Others require host approval within 24 hours.
+                          Some properties offer <Badge className="bg-primary">⚡ Instant Book</Badge>, which confirms immediately. Others require host approval within 24 hours.
                         </p>
                       </div>
                     </AccordionContent>
@@ -102,7 +102,7 @@ export default function HelpPage() {
                     <AccordionContent>
                       <p className="text-muted-foreground">
                         Instant Book allows you to confirm your reservation immediately without waiting for host approval. 
-                        Properties with the <Badge className="bg-green-600 mx-1">⚡ Instant Book</Badge> badge can be booked instantly. 
+                        Properties with the <Badge className="bg-primary mx-1">⚡ Instant Book</Badge> badge can be booked instantly. 
                         Your payment is processed immediately, and you'll receive a confirmation email right away.
                       </p>
                     </AccordionContent>

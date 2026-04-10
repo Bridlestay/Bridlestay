@@ -229,7 +229,7 @@ export function TwoFactorSettings() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {hasMFA ? (
-                <ShieldCheck className="h-10 w-10 text-green-600" />
+                <ShieldCheck className="h-10 w-10 text-primary" />
               ) : (
                 <ShieldOff className="h-10 w-10 text-muted-foreground" />
               )}
@@ -244,7 +244,7 @@ export function TwoFactorSettings() {
                 </p>
               </div>
             </div>
-            <Badge className={hasMFA ? "bg-green-600" : "bg-muted"}>
+            <Badge className={hasMFA ? "bg-primary" : "bg-muted"}>
               {hasMFA ? "Active" : "Inactive"}
             </Badge>
           </div>
@@ -328,7 +328,7 @@ export function TwoFactorSettings() {
                     className="shrink-0"
                   >
                     {copied ? (
-                      <Check className="h-4 w-4 text-green-600" />
+                      <Check className="h-4 w-4 text-primary" />
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}

@@ -50,7 +50,7 @@ export default function VerificationCompletePage() {
             {status === "success" && (
               <>
                 <div className="p-4 bg-green-100 rounded-full w-fit mx-auto">
-                  <CheckCircle2 className="h-16 w-16 text-green-600" />
+                  <CheckCircle2 className="h-16 w-16 text-primary" />
                 </div>
                 <h2 className="text-2xl font-bold">Identity Verified!</h2>
                 <p className="text-muted-foreground">

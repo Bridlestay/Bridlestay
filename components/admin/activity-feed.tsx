@@ -74,7 +74,7 @@ const activityConfig: Record<string, {
   },
   booking_accepted: {
     icon: CheckCircle,
-    color: "text-green-600",
+    color: "text-primary",
     bgColor: "bg-green-100",
     label: "Booking Accepted",
     description: (item) => `booking at ${item.property?.name || "a property"} was accepted`,
@@ -116,7 +116,7 @@ const activityConfig: Record<string, {
   },
   property_verified: {
     icon: CheckCircle,
-    color: "text-green-600",
+    color: "text-primary",
     bgColor: "bg-green-100",
     label: "Property Verified",
     description: (item) => `${item.property?.name || "property"} was verified`,
@@ -137,7 +137,7 @@ const activityConfig: Record<string, {
   },
   route_created: {
     icon: Route,
-    color: "text-teal-600",
+    color: "text-primary",
     bgColor: "bg-teal-100",
     label: "Route Created",
     description: (item) => `created route "${item.metadata.routeName}"`,

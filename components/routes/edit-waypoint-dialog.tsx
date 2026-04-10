@@ -187,7 +187,7 @@ export function EditWaypointDialog({
           <Button
             onClick={handleSubmit}
             disabled={submitting || !name.trim()}
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-primary hover:bg-green-700"
           >
             {submitting ? "Saving..." : "Save Changes"}
           </Button>

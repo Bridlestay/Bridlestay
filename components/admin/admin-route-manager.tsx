@@ -81,7 +81,7 @@ const BOOST_PRESETS = [
   { value: 0.5, label: "Suppressed", color: "text-orange-600", icon: TrendingDown },
   { value: 1.0, label: "Normal", color: "text-gray-600", icon: Eye },
   { value: 1.5, label: "Boosted", color: "text-blue-600", icon: TrendingUp },
-  { value: 2.0, label: "Featured", color: "text-green-600", icon: Star },
+  { value: 2.0, label: "Featured", color: "text-primary", icon: Star },
 ];
 
 function getBoostInfo(multiplier: number | null) {

@@ -400,7 +400,7 @@ export function BadgesDashboard() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center">
-                <Eye className="h-6 w-6 text-green-600" />
+                <Eye className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{activeBadges}</p>
@@ -551,7 +551,7 @@ export function BadgesDashboard() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {badge.is_active ? (
-                          <Badge variant="default" className="bg-green-600">Active</Badge>
+                          <Badge variant="default" className="bg-primary">Active</Badge>
                         ) : (
                           <Badge variant="secondary">Inactive</Badge>
                         )}
@@ -891,7 +891,7 @@ export function BadgesDashboard() {
             )}
 
             {awardUserId && (
-              <p className="text-sm text-green-600">
+              <p className="text-sm text-primary">
                 ✓ User selected
               </p>
             )}

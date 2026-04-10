@@ -1447,7 +1447,7 @@ export function RouteDetailDrawer({
                 {parentRoute && (
                   <button
                     onClick={() => onViewVariantRoute?.(parentRoute.id)}
-                    className="text-sm text-gray-400 hover:text-green-600 transition-colors mt-0.5 text-left"
+                    className="text-sm text-gray-400 hover:text-primary transition-colors mt-0.5 text-left"
                   >
                     Variant of <span className="underline">{parentRoute.title}</span>
                   </button>
@@ -1504,7 +1504,7 @@ export function RouteDetailDrawer({
                   {route.description.length > 150 && (
                     <button
                       onClick={() => setShowFullDescription(!showFullDescription)}
-                      className="text-sm text-green-600 hover:text-green-700 font-medium mt-1"
+                      className="text-sm text-primary hover:text-green-700 font-medium mt-1"
                     >
                       {showFullDescription ? "Show less" : "Show more"}
                     </button>
@@ -1593,7 +1593,7 @@ export function RouteDetailDrawer({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs text-green-600 hover:text-green-700 gap-1 h-8"
+                  className="text-xs text-primary hover:text-green-700 gap-1 h-8"
                   onClick={(e) => { e.stopPropagation(); setActiveFullPanel("discussion"); }}
                 >
                   <MessageCircle className="h-3.5 w-3.5" />
@@ -1620,7 +1620,7 @@ export function RouteDetailDrawer({
                     className={cn(
                       "flex items-center gap-1 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
                       activeInfoTab === tab.key
-                        ? "border-green-600 text-green-700"
+                        ? "border-primary text-green-700"
                         : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                     )}
                   >
@@ -1865,7 +1865,7 @@ export function RouteDetailDrawer({
                     )}
                     {loadingVariants ? (
                       <div className="flex items-center justify-center py-10">
-                        <div className="animate-spin h-5 w-5 border-2 border-green-600 border-t-transparent rounded-full" />
+                        <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
                       </div>
                     ) : (variants.length > 0 || parentRoute) ? (
                       <>
@@ -1909,7 +1909,7 @@ export function RouteDetailDrawer({
                                     {Number(parentVariant.distance_km || 0).toFixed(1)} km
                                   </span>
                                   {parentVariant.similarity_score > 0 && (
-                                    <span className="absolute bottom-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-green-600/80 backdrop-blur-sm text-white font-medium">
+                                    <span className="absolute bottom-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-primary/80 backdrop-blur-sm text-white font-medium">
                                       {Math.round(parentVariant.similarity_score)}% similar
                                     </span>
                                   )}
@@ -1971,7 +1971,7 @@ export function RouteDetailDrawer({
                                   <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
                                   <span className={cn(
                                     "absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full backdrop-blur-sm text-white font-semibold flex items-center gap-1",
-                                    isOriginal ? "bg-green-700/90" : "bg-green-600/80 font-medium"
+                                    isOriginal ? "bg-green-700/90" : "bg-primary/80 font-medium"
                                   )}>
                                     {isOriginal ? "Original" : <><Shuffle className="h-3 w-3" /> Variant</>}
                                   </span>
@@ -1979,7 +1979,7 @@ export function RouteDetailDrawer({
                                     {Number(v.distance_km || 0).toFixed(1)} km
                                   </span>
                                   {v.similarity_score > 0 && (
-                                    <span className="absolute bottom-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-green-600/80 backdrop-blur-sm text-white font-medium">
+                                    <span className="absolute bottom-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-primary/80 backdrop-blur-sm text-white font-medium">
                                       {Math.round(v.similarity_score)}% similar
                                     </span>
                                   )}
@@ -2188,7 +2188,7 @@ export function RouteDetailDrawer({
                 onClick={handleFavorite}
                 className={cn(
                   "gap-1.5 rounded-full",
-                  favorited && "bg-green-600 hover:bg-green-700"
+                  favorited && "bg-primary hover:bg-green-700"
                 )}
               >
                 <Bookmark className={cn("h-4 w-4", favorited && "fill-current")} />
@@ -2215,9 +2215,9 @@ export function RouteDetailDrawer({
                           className={cn(
                             "gap-1.5 rounded-full text-xs",
                             !rideStatus?.hasRidden
-                              ? "bg-green-600 hover:bg-green-700 text-white"
+                              ? "bg-primary hover:bg-green-700 text-white"
                               : rideStatus?.canRideAgain
-                                ? "border-green-600 text-green-700 hover:bg-green-50"
+                                ? "border-primary text-green-700 hover:bg-green-50"
                                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
                           )}
                         >
@@ -2243,8 +2243,8 @@ export function RouteDetailDrawer({
                 className={cn(
                   "gap-1.5 rounded-full md:hidden",
                   onStartNavigation
-                    ? "bg-green-600 hover:bg-green-700 text-white"
-                    : "bg-green-600 text-white opacity-50 cursor-not-allowed"
+                    ? "bg-primary hover:bg-green-700 text-white"
+                    : "bg-primary text-white opacity-50 cursor-not-allowed"
                 )}
               >
                 <Navigation className="h-4 w-4" />
@@ -2268,7 +2268,7 @@ export function RouteDetailDrawer({
                 type="submit"
                 form="edit-waypoint-form"
                 size="sm"
-                className="flex-1 rounded-full bg-green-600 hover:bg-green-700 text-white"
+                className="flex-1 rounded-full bg-primary hover:bg-green-700 text-white"
               >
                 Save Changes
               </Button>

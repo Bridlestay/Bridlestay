@@ -66,23 +66,23 @@ export default function SafetyPage() {
                   </h3>
                   <div className="space-y-2 text-muted-foreground pl-6">
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Read property descriptions, reviews, and house rules carefully</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Look for <Badge className="bg-blue-600 text-white mx-1">Verified Property</Badge> badges</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Message the host with questions about facilities and safety measures</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Check the host's response time and ratings</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Verify your horse insurance is valid and adequate</span>
                     </div>
                   </div>
@@ -95,27 +95,27 @@ export default function SafetyPage() {
                   </h3>
                   <div className="space-y-2 text-muted-foreground pl-6">
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Inspect stables and facilities before settling your horses</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Report any hazards or safety concerns immediately</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Keep emergency contact numbers (vet, farrier) accessible</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Follow all property rules and biosecurity measures</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Keep valuables secure (tack, equipment) and lock vehicles</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Stay in communication with your host</span>
                     </div>
                   </div>
@@ -155,27 +155,27 @@ export default function SafetyPage() {
                   </h3>
                   <div className="space-y-2 text-muted-foreground pl-6">
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Install working smoke alarms and carbon monoxide detectors</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Provide fire extinguisher and first aid kit (human & equine)</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Ensure all electrical installations are safe and certified</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Maintain secure fencing with no protruding nails or sharp edges</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Regular maintenance of stables, gates, and facilities</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Provide clear emergency exit routes</span>
                     </div>
                   </div>
@@ -188,23 +188,23 @@ export default function SafetyPage() {
                   </h3>
                   <div className="space-y-2 text-muted-foreground pl-6">
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Review guest profiles and previous host reviews</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Communicate clearly about house rules before accepting bookings</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Request horse vaccination records and passports</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Confirm guest's experience level with horses</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Trust your instincts - decline if something feels wrong</span>
                     </div>
                   </div>
@@ -217,23 +217,23 @@ export default function SafetyPage() {
                   </h3>
                   <div className="space-y-2 text-muted-foreground pl-6">
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Meet guests on arrival and show them around</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Explain emergency procedures and contact numbers</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Check horses are settled and facilities are adequate</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Be available for questions and concerns</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">✓</span>
+                      <span className="text-primary mt-1">✓</span>
                       <span>Document property condition before and after stays (photos)</span>
                     </div>
                   </div>

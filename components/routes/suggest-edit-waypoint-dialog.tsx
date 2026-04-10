@@ -333,7 +333,7 @@ export function SuggestEditWaypointDialog({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="w-full border-2 border-dashed border-slate-200 rounded-lg py-3 flex items-center justify-center gap-2 text-sm text-slate-500 hover:border-green-300 hover:text-green-600 transition-colors"
+                className="w-full border-2 border-dashed border-slate-200 rounded-lg py-3 flex items-center justify-center gap-2 text-sm text-slate-500 hover:border-green-300 hover:text-primary transition-colors"
               >
                 {uploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -381,7 +381,7 @@ export function SuggestEditWaypointDialog({
           <Button
             onClick={handleSubmit}
             disabled={submitting}
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-primary hover:bg-green-700"
           >
             {submitting ? "Submitting..." : "Submit Suggestion"}
           </Button>

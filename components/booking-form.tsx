@@ -489,7 +489,7 @@ export function BookingForm({ propertyId, property }: BookingFormProps) {
               
               {/* Discount display */}
               {discount && discountAmountPennies > 0 && (
-                <div className="flex justify-between text-green-600">
+                <div className="flex justify-between text-primary">
                   <span>{discount.name} ({discount.percent}% off)</span>
                   <span>-£{(discountAmountPennies / 100).toFixed(2)}</span>
                 </div>

@@ -173,14 +173,14 @@ export function AnalyticsDashboard() {
 
   const getChangeIcon = (change: string) => {
     const changeNum = parseFloat(change);
-    if (changeNum > 0) return <ArrowUpRight className="h-4 w-4 text-green-600" />;
+    if (changeNum > 0) return <ArrowUpRight className="h-4 w-4 text-primary" />;
     if (changeNum < 0) return <ArrowDownRight className="h-4 w-4 text-red-600" />;
     return <Minus className="h-4 w-4 text-muted-foreground" />;
   };
 
   const getChangeColor = (change: string) => {
     const changeNum = parseFloat(change);
-    if (changeNum > 0) return "text-green-600";
+    if (changeNum > 0) return "text-primary";
     if (changeNum < 0) return "text-red-600";
     return "text-muted-foreground";
   };
@@ -331,7 +331,7 @@ export function AnalyticsDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Active Users (30d)</CardTitle>
-              <UserCheck className="h-4 w-4 text-green-600" />
+              <UserCheck className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{summary.activeUsersCount}</div>
@@ -357,7 +357,7 @@ export function AnalyticsDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Avg Booking Value</CardTitle>
-              <DollarSign className="h-4 w-4 text-green-600" />
+              <DollarSign className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -449,7 +449,7 @@ export function AnalyticsDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Avg Guests per Booking</CardTitle>
-              <Users className="h-4 w-4 text-green-600" />
+              <Users className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">

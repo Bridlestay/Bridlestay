@@ -776,7 +776,7 @@ export function InspectDashboard({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Accepted</span>
-                      <span className="text-green-600">{userData.guestStats.byStatus.accepted}</span>
+                      <span className="text-primary">{userData.guestStats.byStatus.accepted}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Declined</span>
@@ -1079,7 +1079,7 @@ export function InspectDashboard({
                           <div className="flex items-center gap-2">
                             {prop.removed && <Badge variant="destructive">Removed</Badge>}
                             {prop.published ? (
-                              <Badge className="bg-green-600">Published</Badge>
+                              <Badge className="bg-primary">Published</Badge>
                             ) : (
                               <Badge variant="secondary">Draft</Badge>
                             )}
@@ -1167,7 +1167,7 @@ export function InspectDashboard({
                         </div>
                         <div className="flex flex-col items-end gap-1">
                           {property.published ? (
-                            <Badge className="bg-green-600 text-xs">Published</Badge>
+                            <Badge className="bg-primary text-xs">Published</Badge>
                           ) : (
                             <Badge variant="secondary" className="text-xs">Draft</Badge>
                           )}
@@ -1201,7 +1201,7 @@ export function InspectDashboard({
                         <div className="flex gap-1">
                           {property.removed && <Badge variant="destructive" className="text-xs">Removed</Badge>}
                           {property.published ? (
-                            <Badge className="bg-green-600 text-xs">Published</Badge>
+                            <Badge className="bg-primary text-xs">Published</Badge>
                           ) : (
                             <Badge variant="secondary" className="text-xs">Draft</Badge>
                           )}
@@ -1243,7 +1243,7 @@ export function InspectDashboard({
                         <Badge variant="destructive">Removed</Badge>
                       )}
                       {propertyData.property.published ? (
-                        <Badge className="bg-green-600">Published</Badge>
+                        <Badge className="bg-primary">Published</Badge>
                       ) : (
                         <Badge variant="secondary">Draft</Badge>
                       )}
@@ -1389,10 +1389,10 @@ export function InspectDashboard({
                       <span>{propertyData.bookingStats.byStatus.requested}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-green-600 flex items-center gap-1">
+                      <span className="text-primary flex items-center gap-1">
                         <CheckCircle className="h-3 w-3" /> Accepted
                       </span>
-                      <span className="text-green-600">{propertyData.bookingStats.byStatus.accepted}</span>
+                      <span className="text-primary">{propertyData.bookingStats.byStatus.accepted}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-red-600 flex items-center gap-1">
@@ -1478,7 +1478,7 @@ export function InspectDashboard({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Answered</span>
-                      <span className="text-green-600">{propertyData.questionStats.answered}</span>
+                      <span className="text-primary">{propertyData.questionStats.answered}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Unanswered</span>

@@ -44,7 +44,7 @@ interface FindRoutesPanelProps {
 
 const DIFFICULTY_OPTIONS = [
   { value: "unrated", label: "Unrated", color: "bg-gray-600" },
-  { value: "easy", label: "Easy", color: "bg-green-600" },
+  { value: "easy", label: "Easy", color: "bg-primary" },
   { value: "moderate", label: "Moderate", color: "bg-blue-600" },
   { value: "difficult", label: "Difficult", color: "bg-orange-600" },
   { value: "severe", label: "Severe", color: "bg-red-600" },
@@ -504,7 +504,7 @@ export function FindRoutesPanel({
                     <SlidersHorizontal className="h-3.5 w-3.5" />
                     Filters
                     {activeFilterCount > 0 && (
-                      <span className="bg-green-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                      <span className="bg-primary text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
                         {activeFilterCount}
                       </span>
                     )}
@@ -689,7 +689,7 @@ export function FindRoutesPanel({
               <div className="px-5 pt-4 pb-2">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-green-600" />
+                    <Sparkles className="h-4 w-4 text-primary" />
                     <h3 className="text-sm font-semibold text-gray-900">Featured Routes</h3>
                   </div>
                   {featuredRoutes.length > 2 && (
@@ -774,7 +774,7 @@ export function FindRoutesPanel({
                                 className={cn(
                                   "absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-md",
                                   isSaved
-                                    ? "bg-green-600 text-white hover:bg-green-700"
+                                    ? "bg-primary text-white hover:bg-green-700"
                                     : "bg-white/80 backdrop-blur-sm text-gray-500 hover:bg-white hover:text-gray-700"
                                 )}
                                 title={isSaved ? "Remove from saved" : "Save route"}
@@ -794,7 +794,7 @@ export function FindRoutesPanel({
                                 )}
                                 {route.variant_of_id && (
                                   <span
-                                    className="text-[10px] px-2 py-0.5 rounded-full bg-green-600/80 backdrop-blur-sm text-white font-medium flex items-center gap-1"
+                                    className="text-[10px] px-2 py-0.5 rounded-full bg-primary/80 backdrop-blur-sm text-white font-medium flex items-center gap-1"
                                     title="This is a variant of an original route"
                                   >
                                     <Shuffle className="h-3 w-3" />
@@ -917,7 +917,7 @@ export function FindRoutesPanel({
                           className={cn(
                             "absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-md",
                             isSaved
-                              ? "bg-green-600 text-white hover:bg-green-700"
+                              ? "bg-primary text-white hover:bg-green-700"
                               : "bg-white/80 backdrop-blur-sm text-gray-500 hover:bg-white hover:text-gray-700"
                           )}
                           title={isSaved ? "Remove from saved" : "Save route"}
@@ -937,7 +937,7 @@ export function FindRoutesPanel({
                             </span>
                           )}
                           {route.variant_of_id && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-600/80 backdrop-blur-sm text-white font-medium flex items-center gap-1">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/80 backdrop-blur-sm text-white font-medium flex items-center gap-1">
                               <Shuffle className="h-3 w-3" />
                               Variant
                             </span>

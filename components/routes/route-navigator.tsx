@@ -592,7 +592,7 @@ export function RouteNavigator({
     bannerContent = {
       text: nextWaypoint.name,
       subtext: `${formatDistance(distanceToNextWaypoint)} ahead`,
-      bg: "bg-green-600",
+      bg: "bg-primary",
       icon: <MapPin className="h-5 w-5 text-white" />,
     };
   }
@@ -669,7 +669,7 @@ export function RouteNavigator({
         <div className="px-4 pb-4 flex items-center justify-between">
           <div className="flex-1 min-w-0">
             {/* Remaining distance — large green text */}
-            <span className="text-xl font-bold text-green-600">
+            <span className="text-xl font-bold text-primary">
               {distanceRemainingKm >= 1
                 ? `${distanceRemainingKm.toFixed(1)} km`
                 : `${Math.round(distanceRemainingM)}m`}
@@ -810,7 +810,7 @@ export function RouteNavigator({
                   className="resize-none"
                 />
                 <Button
-                  className="w-full bg-green-600 hover:bg-green-700"
+                  className="w-full bg-primary hover:bg-green-700"
                   onClick={handleSubmitReport}
                   disabled={reportSubmitting}
                 >

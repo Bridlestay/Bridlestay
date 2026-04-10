@@ -43,7 +43,7 @@ export default async function NewsPage() {
     const colors: Record<string, string> = {
       announcement: "bg-blue-600",
       feature: "bg-purple-600",
-      update: "bg-green-600",
+      update: "bg-primary",
       community: "bg-orange-600",
       tips: "bg-yellow-600",
       event: "bg-pink-600",

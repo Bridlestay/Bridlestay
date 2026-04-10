@@ -277,7 +277,7 @@ export function PropertyFacilityPhotosStep({ data, onNext, propertyId, userId }:
                       <CardTitle className="text-lg flex items-center gap-2">
                         {category.name}
                         {status.status === "complete" && (
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
                         )}
                       </CardTitle>
                       <CardDescription>{category.description}</CardDescription>

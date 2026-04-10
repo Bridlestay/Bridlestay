@@ -45,7 +45,7 @@ export function GuestDashboard({ user }: { user: any }) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "accepted":
-        return "bg-green-600";
+        return "bg-primary";
       case "requested":
         return "bg-yellow-600";
       case "declined":

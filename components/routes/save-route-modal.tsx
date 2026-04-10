@@ -383,7 +383,7 @@ export function SaveRouteModal({
                 variant={routeType === "circular" ? "default" : "secondary"}
                 className={cn(
                   "text-xs",
-                  routeType === "circular" ? "bg-green-600" : ""
+                  routeType === "circular" ? "bg-primary" : ""
                 )}
               >
                 {routeType === "circular" ? (
@@ -599,7 +599,7 @@ export function SaveRouteModal({
                       "text-xs rounded-full",
                       difficulty === level
                         ? level === "easy"
-                          ? "bg-green-600 hover:bg-green-700"
+                          ? "bg-primary hover:bg-green-700"
                           : level === "moderate"
                           ? "bg-amber-600 hover:bg-amber-700"
                           : level === "difficult"
@@ -658,7 +658,7 @@ export function SaveRouteModal({
                       {/* Order badge */}
                       {index === 0 && (
                         <div className="absolute bottom-1 left-1">
-                          <div className="bg-green-600 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">
+                          <div className="bg-primary text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">
                             Cover
                           </div>
                         </div>

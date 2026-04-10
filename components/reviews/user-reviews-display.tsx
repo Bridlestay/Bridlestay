@@ -89,7 +89,7 @@ export function UserReviewsDisplay({ userId }: UserReviewsDisplayProps) {
                 <div className="text-sm text-muted-foreground">Total Reviews</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">
+                <div className="text-3xl font-bold text-primary">
                   {stats.recommendationRate}%
                 </div>
                 <div className="text-sm text-muted-foreground">Would Host Again</div>
@@ -138,7 +138,7 @@ export function UserReviewsDisplay({ userId }: UserReviewsDisplayProps) {
                     <div className="flex flex-col items-end gap-1">
                       {renderStars(review.overall_rating)}
                       {review.would_recommend && (
-                        <Badge variant="outline" className="gap-1 text-green-600 border-green-300">
+                        <Badge variant="outline" className="gap-1 text-primary border-green-300">
                           <ThumbsUp className="h-3 w-3" />
                           Would host again
                         </Badge>

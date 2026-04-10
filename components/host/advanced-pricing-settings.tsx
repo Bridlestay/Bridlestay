@@ -730,7 +730,7 @@ export function AdvancedPricingSettings({
               <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Users className="h-5 w-5 text-green-600" />
+                    <Users className="h-5 w-5 text-primary" />
                     <div>
                       <CardTitle className="text-lg">First-Time Rider Discount</CardTitle>
                       <CardDescription>Welcome new platform users</CardDescription>
@@ -954,7 +954,7 @@ export function AdvancedPricingSettings({
                     £{previewPrices.total.toFixed(2)}
                   </p>
                   {previewDiscount && (
-                    <p className="text-sm text-green-600 font-medium">
+                    <p className="text-sm text-primary font-medium">
                       {previewDiscount.totalPercent}% discount applied
                     </p>
                   )}
@@ -969,7 +969,7 @@ export function AdvancedPricingSettings({
                   </div>
                   
                   {previewDiscount && (
-                    <div className="flex justify-between text-green-600">
+                    <div className="flex justify-between text-primary">
                       <span>
                         Discount ({previewDiscount.discounts.map(d => d.name).join(" + ")})
                       </span>

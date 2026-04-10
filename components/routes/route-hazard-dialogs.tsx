@@ -185,7 +185,7 @@ export function HazardReportDialog({
         )}
         {locationStatus === "near" && (
           <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-green-600" />
+            <MapPin className="h-4 w-4 text-primary" />
             <span className="text-sm text-green-700">Location verified - you&apos;re near the route</span>
           </div>
         )}

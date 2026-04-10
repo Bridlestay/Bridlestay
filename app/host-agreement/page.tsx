@@ -16,7 +16,7 @@ export default function HostAgreementPage() {
           <Card className="mb-8 border-green-200 bg-green-50 dark:bg-green-950">
             <CardContent className="pt-6">
               <div className="flex items-start gap-3">
-                <Home className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+                <Home className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
                 <div>
                   <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">
                     For Hosts Only

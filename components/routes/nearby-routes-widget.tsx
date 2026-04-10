@@ -152,7 +152,7 @@ export function NearbyRoutesWidget({ propertyId }: NearbyRoutesWidgetProps) {
                           <Badge variant="outline" className="gap-1 text-xs text-blue-600">
                             🐴 {Math.floor((route.distance_km / 12) * 60)}m
                           </Badge>
-                          <Badge variant="outline" className="gap-1 text-xs text-green-600">
+                          <Badge variant="outline" className="gap-1 text-xs text-primary">
                             🚶 {Math.floor((route.distance_km / 5) * 60)}m
                           </Badge>
                         </>

@@ -225,7 +225,7 @@ export function EarningsDashboard() {
                         <TableCell className="text-red-600">
                           -{formatGBP(booking.hostFee + booking.hostVat)}
                         </TableCell>
-                        <TableCell className="font-semibold text-green-600">
+                        <TableCell className="font-semibold text-primary">
                           {formatGBP(booking.netEarnings)}
                         </TableCell>
                         <TableCell>
@@ -274,7 +274,7 @@ export function EarningsDashboard() {
                   </div>
                   <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border-2 border-green-200">
                     <span className="text-sm font-bold">Net Earnings</span>
-                    <span className="text-2xl font-bold text-green-600">
+                    <span className="text-2xl font-bold text-primary">
                       {formatGBP(data.taxBreakdown.netEarnings)}
                     </span>
                   </div>

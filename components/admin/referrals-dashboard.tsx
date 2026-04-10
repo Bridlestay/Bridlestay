@@ -477,7 +477,7 @@ export function ReferralsDashboard() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center">
-                <Eye className="h-6 w-6 text-green-600" />
+                <Eye className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{activeCodes}</p>
@@ -658,7 +658,7 @@ export function ReferralsDashboard() {
                     </TableCell>
                     <TableCell>
                       {code.is_active ? (
-                        <Badge variant="default" className="bg-green-600">Active</Badge>
+                        <Badge variant="default" className="bg-primary">Active</Badge>
                       ) : (
                         <Badge variant="secondary">Inactive</Badge>
                       )}
@@ -898,7 +898,7 @@ export function ReferralsDashboard() {
                   {/* Referrer Benefits Section */}
                   <div className="space-y-4 pt-4 border-t">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-green-600" />
+                      <TrendingUp className="h-5 w-5 text-primary" />
                       Referrer Benefits (Code Owner)
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

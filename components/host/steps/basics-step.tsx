@@ -267,7 +267,7 @@ export function PropertyBasicsStep({ data, onNext }: BasicsStepProps) {
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               {isGeocoding && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-              {!isGeocoding && geocodeStatus === 'success' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+              {!isGeocoding && geocodeStatus === 'success' && <CheckCircle2 className="h-4 w-4 text-primary" />}
               {!isGeocoding && geocodeStatus === 'error' && <AlertCircle className="h-4 w-4 text-amber-500" />}
             </div>
           </div>
@@ -277,7 +277,7 @@ export function PropertyBasicsStep({ data, onNext }: BasicsStepProps) {
             </p>
           )}
           {geocodeMessage && !errors.postcode && (
-            <p className={`text-xs mt-1 flex items-center gap-1 ${geocodeStatus === 'success' ? 'text-green-600' : 'text-amber-600'}`}>
+            <p className={`text-xs mt-1 flex items-center gap-1 ${geocodeStatus === 'success' ? 'text-primary' : 'text-amber-600'}`}>
               <MapPin className="h-3 w-3" />
               {geocodeMessage}
             </p>

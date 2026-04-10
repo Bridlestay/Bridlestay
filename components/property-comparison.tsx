@@ -212,7 +212,7 @@ export function PropertyComparison({ properties }: PropertyComparisonProps) {
                     return (
                       <TableCell key={property.id} className="text-center">
                         {equine?.has_arena ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto" />
+                          <CheckCircle2 className="h-5 w-5 text-primary mx-auto" />
                         ) : (
                           <X className="h-5 w-5 text-red-600 mx-auto" />
                         )}
@@ -231,7 +231,7 @@ export function PropertyComparison({ properties }: PropertyComparisonProps) {
                     return (
                       <TableCell key={property.id} className="text-center">
                         {equine?.has_turnout ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto" />
+                          <CheckCircle2 className="h-5 w-5 text-primary mx-auto" />
                         ) : (
                           <X className="h-5 w-5 text-red-600 mx-auto" />
                         )}
@@ -254,7 +254,7 @@ export function PropertyComparison({ properties }: PropertyComparisonProps) {
                       return (
                         <TableCell key={property.id} className="text-center">
                           {hasAmenity ? (
-                            <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto" />
+                            <CheckCircle2 className="h-5 w-5 text-primary mx-auto" />
                           ) : (
                             <X className="h-5 w-5 text-red-600 mx-auto" />
                           )}

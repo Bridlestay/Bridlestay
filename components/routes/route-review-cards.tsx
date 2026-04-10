@@ -123,7 +123,7 @@ export function RouteReviewCards({
                         <p className="text-xs text-gray-400 mt-1">{completion.tags.length} tag{completion.tags.length !== 1 ? "s" : ""}</p>
                       )}
                       {hasMore && !isExpanded && (
-                        <span className="text-xs font-medium text-green-600 mt-1 inline-block">
+                        <span className="text-xs font-medium text-primary mt-1 inline-block">
                           Tap to read more
                         </span>
                       )}

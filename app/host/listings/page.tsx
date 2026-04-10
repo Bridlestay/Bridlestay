@@ -240,7 +240,7 @@ export default function MyListingsPage() {
                               </p>
                             </div>
                             {property.published ? (
-                              <Badge variant="default" className="bg-green-600">
+                              <Badge variant="default" className="bg-primary">
                                 <CheckCircle2 className="mr-1 h-3 w-3" />
                                 Published
                               </Badge>

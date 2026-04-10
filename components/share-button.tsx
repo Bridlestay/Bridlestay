@@ -143,7 +143,7 @@ export function ShareButton({ propertyId, propertyName, variant = "default" }: S
         <DropdownMenuItem onClick={handleCopyLink}>
           {copied ? (
             <>
-              <Check className="h-4 w-4 mr-2 text-green-600" />
+              <Check className="h-4 w-4 mr-2 text-primary" />
               Copied!
             </>
           ) : (

@@ -223,9 +223,9 @@ export function BookingCalendar() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Confirmed</p>
-                <p className="text-2xl font-bold text-green-600">{stats?.confirmedBookings || 0}</p>
+                <p className="text-2xl font-bold text-primary">{stats?.confirmedBookings || 0}</p>
               </div>
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <CheckCircle2 className="h-8 w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -273,7 +273,7 @@ export function BookingCalendar() {
           </div>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
-              <span className="w-2 h-2 rounded-full bg-green-600 mr-1"></span>
+              <span className="w-2 h-2 rounded-full bg-primary mr-1"></span>
               Accepted
             </Badge>
             <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300">

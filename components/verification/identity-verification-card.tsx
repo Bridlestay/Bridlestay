@@ -98,7 +98,7 @@ export function IdentityVerificationCard() {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-full">
-                <CheckCircle2 className="h-6 w-6 text-green-600" />
+                <CheckCircle2 className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <CardTitle className="text-lg">Identity Verified</CardTitle>
@@ -108,7 +108,7 @@ export function IdentityVerificationCard() {
                 </CardDescription>
               </div>
             </div>
-            <Badge className="bg-green-600">
+            <Badge className="bg-primary">
               <Shield className="h-3 w-3 mr-1" />
               Verified
             </Badge>
@@ -179,19 +179,19 @@ export function IdentityVerificationCard() {
           <h4 className="font-semibold text-sm">Why verify?</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
               <span>Required to publish property listings</span>
             </li>
             <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
               <span>Increases booking acceptance rate</span>
             </li>
             <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
               <span>Adds verification badge to your profile</span>
             </li>
             <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
               <span>Builds trust in the community</span>
             </li>
           </ul>

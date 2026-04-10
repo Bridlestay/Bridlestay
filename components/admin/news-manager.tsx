@@ -298,7 +298,7 @@ export function NewsManager() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "published":
-        return "bg-green-600";
+        return "bg-primary";
       case "draft":
         return "bg-gray-600";
       case "archived":
@@ -675,7 +675,7 @@ Supports Markdown:
                     <Badge className={`${
                       previewPost.category === "announcement" ? "bg-blue-600" :
                       previewPost.category === "feature" ? "bg-purple-600" :
-                      previewPost.category === "update" ? "bg-green-600" :
+                      previewPost.category === "update" ? "bg-primary" :
                       previewPost.category === "community" ? "bg-orange-600" :
                       previewPost.category === "tips" ? "bg-yellow-600" :
                       previewPost.category === "event" ? "bg-pink-600" : "bg-gray-600"

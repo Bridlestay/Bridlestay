@@ -73,22 +73,22 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   message_reply: "text-blue-600 bg-blue-50",
   route_comment: "text-blue-600 bg-blue-50",
   route_liked: "text-red-500 bg-red-50",
-  route_completed: "text-green-600 bg-green-50",
+  route_completed: "text-primary bg-green-50",
   route_review: "text-amber-500 bg-amber-50",
   suggestion_received: "text-violet-600 bg-violet-50",
   suggestion_photo: "text-violet-600 bg-violet-50",
-  suggestion_approved: "text-green-600 bg-green-50",
+  suggestion_approved: "text-primary bg-green-50",
   suggestion_rejected: "text-red-500 bg-red-50",
   hazard_reported: "text-orange-600 bg-orange-50",
-  booking_request: "text-green-600 bg-green-50",
-  booking_accepted: "text-green-600 bg-green-50",
+  booking_request: "text-primary bg-green-50",
+  booking_accepted: "text-primary bg-green-50",
   booking_declined: "text-red-500 bg-red-50",
   booking_cancelled: "text-slate-600 bg-slate-50",
-  payment_received: "text-green-600 bg-green-50",
+  payment_received: "text-primary bg-green-50",
   refund_processed: "text-blue-600 bg-blue-50",
   listing_review: "text-amber-500 bg-amber-50",
-  listing_approved: "text-green-600 bg-green-50",
-  route_variant: "text-green-600 bg-green-50",
+  listing_approved: "text-primary bg-green-50",
+  route_variant: "text-primary bg-green-50",
   report_filed: "text-red-500 bg-red-50",
   host_application: "text-blue-600 bg-blue-50",
   damage_claim: "text-orange-600 bg-orange-50",
@@ -220,7 +220,7 @@ export function NotificationsFeed() {
           <Button
             variant="outline"
             size="sm"
-            className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+            className="text-primary border-green-200 hover:bg-green-50 hover:text-green-700"
             onClick={handleMarkAllRead}
             disabled={markingAll}
           >

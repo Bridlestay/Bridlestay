@@ -1830,7 +1830,7 @@ export default function RoutesPage() {
   if (!authChecked) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }

@@ -1500,7 +1500,7 @@ export const RoutesMapV2 = forwardRef<RoutesMapV2Handle, RoutesMapV2Props>(
         {!pathsLoading && pathsCount > 0 && (
           <div className="absolute top-16 left-2 z-10">
             <div className="bg-white/90 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-lg flex items-center gap-2">
-              <Info className="h-4 w-4 text-green-600" />
+              <Info className="h-4 w-4 text-primary" />
               <span className="text-sm text-muted-foreground">
                 {pathsCount.toLocaleString()} paths loaded
               </span>

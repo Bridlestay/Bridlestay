@@ -69,7 +69,7 @@ export function RouteCard({ route, onClick, showVisibility = false }: RouteCardP
             <Badge 
               className={`shadow-lg ${
                 route.visibility === 'public' 
-                  ? 'bg-green-600 text-white' 
+                  ? 'bg-primary text-white' 
                   : route.visibility === 'link' 
                     ? 'bg-blue-600 text-white' 
                     : 'bg-gray-600 text-white'
@@ -149,7 +149,7 @@ export function RouteCard({ route, onClick, showVisibility = false }: RouteCardP
               <Badge variant="outline" className="gap-1 text-blue-600 border-blue-300">
                 🐴 {Math.floor((route.distance_km / 12) * 60)} min
               </Badge>
-              <Badge variant="outline" className="gap-1 text-green-600 border-green-300">
+              <Badge variant="outline" className="gap-1 text-primary border-green-300">
                 🚶 {Math.floor((route.distance_km / 5) * 60)} min
               </Badge>
             </>

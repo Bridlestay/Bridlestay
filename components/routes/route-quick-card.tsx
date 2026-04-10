@@ -150,7 +150,7 @@ function SingleCard({ route, onClick, onClose, onOpenSection }: { route: any; on
                   e.stopPropagation();
                   onOpenSection?.("nearby-stays");
                 }}
-                className="text-xs text-gray-600 flex items-center gap-1 hover:text-green-600 transition-colors rounded px-0.5 -mx-0.5"
+                className="text-xs text-gray-600 flex items-center gap-1 hover:text-primary transition-colors rounded px-0.5 -mx-0.5"
                 title="Nearby stays"
               >
                 <Home className="h-3 w-3" />
@@ -163,7 +163,7 @@ function SingleCard({ route, onClick, onClose, onOpenSection }: { route: any; on
                   e.stopPropagation();
                   onOpenSection?.("variants");
                 }}
-                className="text-xs text-gray-600 flex items-center gap-1 hover:text-green-600 transition-colors rounded px-0.5 -mx-0.5"
+                className="text-xs text-gray-600 flex items-center gap-1 hover:text-primary transition-colors rounded px-0.5 -mx-0.5"
                 title="Route variants"
               >
                 <Shuffle className="h-3 w-3" />
@@ -362,7 +362,7 @@ export function RouteQuickCard({
               className={cn(
                 "h-1.5 rounded-full transition-all duration-300",
                 idx === activeIdx
-                  ? "bg-green-600 w-4"
+                  ? "bg-primary w-4"
                   : "bg-gray-300 w-1.5"
               )}
             />

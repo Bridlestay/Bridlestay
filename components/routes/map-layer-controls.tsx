@@ -149,7 +149,7 @@ export function MapLayerControls({
                     )}
                     onClick={onLocateMe}
                   >
-                    <Crosshair className={cn("h-5 w-5", isLocating ? "text-green-600" : "text-gray-700")} />
+                    <Crosshair className={cn("h-5 w-5", isLocating ? "text-primary" : "text-gray-700")} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="left">
@@ -332,7 +332,7 @@ export function MapLayerControls({
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Home className="h-4 w-4 text-emerald-600" />
+                      <Home className="h-4 w-4 text-primary" />
                       <span className="text-sm">Properties</span>
                     </div>
                     <Switch
@@ -378,7 +378,7 @@ export function MapLayerControls({
                         className={cn(
                           "w-8 h-8 rounded-full transition-all",
                           settings.routeColor === c.value
-                            ? "ring-2 ring-offset-2 ring-green-600 scale-110"
+                            ? "ring-2 ring-offset-2 ring-primary scale-110"
                             : "hover:scale-105"
                         )}
                         style={{ backgroundColor: c.value }}
@@ -401,7 +401,7 @@ export function MapLayerControls({
                         className={cn(
                           "flex-1 h-8 rounded border-2 transition-all flex items-center justify-center",
                           settings.routeThickness === t
-                            ? "border-green-600 bg-green-50"
+                            ? "border-primary bg-green-50"
                             : "border-gray-200 hover:border-gray-300"
                         )}
                       >

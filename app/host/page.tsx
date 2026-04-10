@@ -263,7 +263,7 @@ export default function HostPage() {
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+                    <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
                     <div>
                       <p className="font-semibold">Just 2.5% Host Fee</p>
                       <p className="text-muted-foreground">
@@ -273,7 +273,7 @@ export default function HostPage() {
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+                    <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
                     <div>
                       <p className="font-semibold">VAT Handled for You</p>
                       <p className="text-muted-foreground">
@@ -282,7 +282,7 @@ export default function HostPage() {
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+                    <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
                     <div>
                       <p className="font-semibold">No Upfront Costs</p>
                       <p className="text-muted-foreground">

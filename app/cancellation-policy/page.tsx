@@ -40,7 +40,7 @@ export default function CancellationPolicyPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
                 <Card className="border-green-200 bg-green-50 dark:bg-green-950">
                   <CardContent className="pt-6">
-                    <CheckCircle className="h-8 w-8 text-green-600 mb-3" />
+                    <CheckCircle className="h-8 w-8 text-primary mb-3" />
                     <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">
                       Full Refund
                     </h3>

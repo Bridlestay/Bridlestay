@@ -442,7 +442,7 @@ export function WaypointMapPicker({
       <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
         <MapPin className="h-3 w-3 shrink-0" />
         <span>
-          Click directly on the <span className="text-green-600 font-medium">green route line</span> to place a waypoint. 
+          Click directly on the <span className="text-primary font-medium">green route line</span> to place a waypoint. 
           Must be within {maxDistanceFromRoute}m of the route.
         </span>
       </div>

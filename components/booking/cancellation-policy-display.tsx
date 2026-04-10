@@ -169,7 +169,7 @@ export function CancellationPolicyDisplay({
               }>
                 <div className="flex items-start gap-2">
                   {refundStatus.currentRefundPercent === 100 ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
                   ) : refundStatus.currentRefundPercent > 0 ? (
                     <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
                   ) : (

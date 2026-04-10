@@ -193,7 +193,7 @@ export function QuickAddWaypointDialog({
           <Button
             onClick={handleAdd}
             disabled={!name.trim()}
-            className="bg-green-600 hover:bg-green-700 h-9"
+            className="bg-primary hover:bg-green-700 h-9"
           >
             {isEditing ? "Save Changes" : "Add Waypoint"}
           </Button>

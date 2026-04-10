@@ -13,7 +13,7 @@ export default function HostsGuidePage() {
         <div className="container mx-auto px-4 py-8 md:py-12 max-w-5xl">
           {/* Hero Section */}
           <div className="text-center mb-10 md:mb-16">
-            <Badge className="mb-4 text-base px-4 py-1 bg-green-600">For Hosts</Badge>
+            <Badge className="mb-4 text-base px-4 py-1 bg-primary">For Hosts</Badge>
             <h1 className="font-serif text-3xl md:text-5xl font-bold mb-4">
               How padoq Works for Hosts
             </h1>
@@ -309,28 +309,28 @@ export default function HostsGuidePage() {
                     <h3 className="font-semibold mb-3">Calendar features:</h3>
                     <div className="space-y-3">
                       <div className="flex items-start gap-3">
-                        <span className="text-green-600 mt-1">✓</span>
+                        <span className="text-primary mt-1">✓</span>
                         <div>
                           <p className="font-medium">Block specific dates</p>
                           <p className="text-sm text-muted-foreground">Mark dates unavailable for personal use or maintenance</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <span className="text-green-600 mt-1">✓</span>
+                        <span className="text-primary mt-1">✓</span>
                         <div>
                           <p className="font-medium">Recurring availability rules</p>
                           <p className="text-sm text-muted-foreground">Block every Monday for weekly maintenance, etc.</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <span className="text-green-600 mt-1">✓</span>
+                        <span className="text-primary mt-1">✓</span>
                         <div>
                           <p className="font-medium">Dynamic pricing</p>
                           <p className="text-sm text-muted-foreground">Set weekend rates, seasonal pricing, and long-stay discounts</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <span className="text-green-600 mt-1">✓</span>
+                        <span className="text-primary mt-1">✓</span>
                         <div>
                           <p className="font-medium">Automatic updates</p>
                           <p className="text-sm text-muted-foreground">Bookings automatically block your calendar</p>

@@ -96,7 +96,7 @@ export function PostRideReview({
         <DialogHeader>
           <div className="flex items-center justify-center mb-4">
             <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-              <Trophy className="h-8 w-8 text-green-600" />
+              <Trophy className="h-8 w-8 text-primary" />
             </div>
           </div>
           <DialogTitle className="text-center text-xl">Route Completed! 🎉</DialogTitle>

@@ -197,7 +197,7 @@ export default async function PropertyPage({
                           {property.name}
                         </h1>
                         {property.instant_book && (
-                          <Badge className="bg-green-600 text-white">
+                          <Badge className="bg-primary text-white">
                             <Zap className="mr-1 h-4 w-4" />
                             Instant Book
                           </Badge>
@@ -288,7 +288,7 @@ export default async function PropertyPage({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {equine.max_horses > 0 && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
                       <div>
                         <p className="font-medium">
                           Accommodates {equine.max_horses} horse{equine.max_horses > 1 ? 's' : ''}
@@ -298,7 +298,7 @@ export default async function PropertyPage({
                   )}
                   {equine.stable_count > 0 && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
                       <div>
                         <p className="font-medium">
                           {equine.stable_count} stable{equine.stable_count > 1 ? 's' : ''}
@@ -313,7 +313,7 @@ export default async function PropertyPage({
                   )}
                   {equine.paddock_available && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
                       <div>
                         <p className="font-medium">Paddock</p>
                         {equine.paddock_size_acres && (
@@ -326,7 +326,7 @@ export default async function PropertyPage({
                   )}
                   {equine.arena_indoor && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
                       <div>
                         <p className="font-medium">Indoor Arena</p>
                         {equine.arena_size_m && (
@@ -339,7 +339,7 @@ export default async function PropertyPage({
                   )}
                   {equine.arena_outdoor && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
                       <div>
                         <p className="font-medium">Outdoor Arena</p>
                         {equine.arena_size_m && (
@@ -352,7 +352,7 @@ export default async function PropertyPage({
                   )}
                   {equine.direct_bridleway_access && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
                       <div>
                         <p className="font-medium">Direct Bridleway Access</p>
                       </div>
@@ -360,7 +360,7 @@ export default async function PropertyPage({
                   )}
                   {equine.trailer_parking && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
                       <div>
                         <p className="font-medium">Trailer Parking</p>
                       </div>
@@ -368,7 +368,7 @@ export default async function PropertyPage({
                   )}
                   {equine.lorry_parking && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
                       <div>
                         <p className="font-medium">Lorry Parking</p>
                       </div>
@@ -376,7 +376,7 @@ export default async function PropertyPage({
                   )}
                   {equine.wash_bay && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
                       <div>
                         <p className="font-medium">Wash Bay</p>
                       </div>
@@ -384,7 +384,7 @@ export default async function PropertyPage({
                   )}
                   {equine.tack_room && (
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
                       <div>
                         <p className="font-medium">Tack Room</p>
                       </div>

@@ -286,7 +286,7 @@ export function ReportButton({
 
           {step === 'success' && (
             <div className="py-8 text-center">
-              <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-4" />
+              <CheckCircle2 className="h-12 w-12 text-primary mx-auto mb-4" />
               <h3 className="font-semibold text-lg mb-2">Report Submitted</h3>
               <p className="text-muted-foreground text-sm">
                 Thank you for helping keep our community safe. Our team will review your report.

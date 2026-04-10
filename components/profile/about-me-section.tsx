@@ -334,7 +334,7 @@ export function AboutMeSection({
                           title={horse.public ? "Make private" : "Make public"}
                         >
                           {horse.public ? (
-                            <Eye className="h-4 w-4 text-green-600" />
+                            <Eye className="h-4 w-4 text-primary" />
                           ) : (
                             <EyeOff className="h-4 w-4 text-muted-foreground" />
                           )}

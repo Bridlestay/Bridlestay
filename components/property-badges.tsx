@@ -47,7 +47,7 @@ export function PropertyBadges({
       label: "Quick Response",
       icon: Zap,
       variant: "default" as const,
-      color: "bg-green-600",
+      color: "bg-primary",
     });
   }
 

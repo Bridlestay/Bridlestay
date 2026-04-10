@@ -254,7 +254,7 @@ export function HostDashboard({ user }: { user: any }) {
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-green-100 rounded-lg">
-                  <DollarSign className="h-6 w-6 text-green-600" />
+                  <DollarSign className="h-6 w-6 text-primary" />
                 </div>
                 <div>
                   <p className="font-semibold">Earnings Dashboard</p>
@@ -282,7 +282,7 @@ export function HostDashboard({ user }: { user: any }) {
               </Button>
             </div>
           ) : hostProfile.payout_enabled ? (
-            <div className="flex items-center gap-2 text-green-600">
+            <div className="flex items-center gap-2 text-primary">
               <CheckCircle2 className="h-5 w-5" />
               <span className="font-medium">Payouts enabled</span>
             </div>
@@ -457,7 +457,7 @@ export function HostDashboard({ user }: { user: any }) {
                       <Badge
                         className={
                           booking.status === "accepted"
-                            ? "bg-green-600"
+                            ? "bg-primary"
                             : booking.status === "requested"
                             ? "bg-yellow-600"
                             : "bg-gray-600"

@@ -228,7 +228,7 @@ export function WaypointTimeline({
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs text-green-600 hover:text-green-700 h-7"
+            className="text-xs text-primary hover:text-green-700 h-7"
             onClick={onOpenFullPanel}
           >
             View all
@@ -272,7 +272,7 @@ export function WaypointTimeline({
               <div className="relative z-20 flex justify-center py-1">
                 <button
                   onClick={handleExpand}
-                  className="text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-4 py-1.5 rounded-full transition-colors"
+                  className="text-sm font-medium text-primary hover:text-green-700 hover:bg-green-50 px-4 py-1.5 rounded-full transition-colors"
                 >
                   Show {hiddenCount} more waypoint{hiddenCount !== 1 ? "s" : ""}
                 </button>
@@ -325,7 +325,7 @@ export function WaypointTimeline({
           <button
             onClick={handleCollapse}
             disabled={!isRevealed}
-            className="flex items-center gap-1 text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 px-3 py-1.5 rounded-full transition-colors"
+            className="flex items-center gap-1 text-sm font-medium text-primary hover:text-green-700 hover:bg-green-50 px-3 py-1.5 rounded-full transition-colors"
           >
             <ChevronDown className="h-3.5 w-3.5 rotate-180" />
             Show fewer

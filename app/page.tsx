@@ -160,7 +160,7 @@ export default async function HomePage() {
                   <span>BOATs</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <div className="w-3 h-3 rounded-full bg-green-600"></div>
+                  <div className="w-3 h-3 rounded-full bg-primary"></div>
                   <span>User Routes</span>
                 </div>
               </div>

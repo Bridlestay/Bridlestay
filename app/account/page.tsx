@@ -211,7 +211,7 @@ export default async function AccountPage() {
                       <Badge
                         className={
                           hostProfile.payout_enabled
-                            ? "bg-green-600"
+                            ? "bg-primary"
                             : "bg-yellow-600"
                         }
                       >
