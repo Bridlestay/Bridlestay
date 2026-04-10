@@ -146,39 +146,25 @@ export default async function HomePage() {
                 Explore Riding Routes
               </h2>
               <p className="text-lg text-muted-foreground mb-6">
-                Discover curated equestrian trails across the Cotswolds, New
-                Forest, and Exmoor, featuring points of interest, terrain
-                details, and local insights.
+                Curated riding routes from across the UK, linking stay to stay.
+                Community-created trails — all mapped, all rideable, all in one
+                place.
               </p>
-              <div className="flex flex-wrap gap-4 mb-6">
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-3 h-3 rounded-full bg-amber-600"></div>
-                  <span>Bridleways</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-3 h-3 rounded-full bg-blue-600"></div>
-                  <span>BOATs</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-3 h-3 rounded-full bg-primary"></div>
-                  <span>User Routes</span>
-                </div>
-              </div>
               <Link href="/routes">
-                <Button size="lg">
+                <Button size="lg" className="rounded-full">
                   <Compass className="mr-2 h-5 w-5" />
                   Browse Routes
                 </Button>
               </Link>
             </div>
-            <div className="flex-1">
-              <div className="relative h-80 rounded-2xl overflow-hidden shadow-lg">
+            <div className="flex-1 flex justify-center md:justify-end">
+              <div className="relative w-full max-w-lg aspect-[952/570] rounded-2xl overflow-hidden shadow-lg">
                 <Image
                   src="/Find-Routes-Image-2.png"
-                  alt="Riding routes across UK countryside"
+                  alt="Curated riding routes across the UK"
                   fill
-                  className="object-cover rounded-2xl"
-                  sizes="(max-width: 768px) 100vw, 600px"
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 512px"
                 />
               </div>
             </div>
