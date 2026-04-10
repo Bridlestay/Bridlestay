@@ -62,7 +62,7 @@ export function PropertyCard({ property, variant = "default" }: PropertyCardProp
           <CardContent className={cn("p-4", isHorizontal && "p-3 pb-0 flex-1")}>
             <div className="flex items-start justify-between mb-1">
               <h3 className={cn(
-                "font-serif font-semibold flex-1 line-clamp-1",
+                "font-sans font-bold flex-1 line-clamp-1",
                 isHorizontal ? "text-base" : "text-xl"
               )}>{property.name}</h3>
               {property.average_rating && property.review_count > 0 && (

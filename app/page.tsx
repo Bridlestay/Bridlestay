@@ -68,7 +68,7 @@ export default async function HomePage() {
       {/* Featured Stays */}
       <section className="pb-10 md:pb-16">
         <div className="max-w-[1800px] mx-auto px-2 md:px-4">
-          <h2 className="font-display text-3xl md:text-5xl font-medium mb-6 md:mb-8 tracking-tight">
+          <h2 className="font-serif text-2xl md:text-4xl font-bold mb-6 md:mb-8">
             Featured Stays
           </h2>
           {properties && properties.length > 0 ? (
@@ -91,7 +91,7 @@ export default async function HomePage() {
       </section>
 
       {/* Why padoq */}
-      <section className="py-10 md:py-16 bg-background border-y">
+      <section className="py-10 md:py-16 bg-background border-b">
         <div className="container mx-auto px-4">
           <h2 className="font-serif text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">
             Why Choose padoq?
