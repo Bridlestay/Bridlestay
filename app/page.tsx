@@ -158,12 +158,12 @@ export default async function HomePage() {
               </Link>
             </div>
             <div className="flex-1 flex justify-center md:justify-end">
-              <div className="relative w-full max-w-lg aspect-[952/570] rounded-2xl overflow-hidden shadow-lg">
+              <div className="relative w-full max-w-lg aspect-[1376/768] rounded-2xl overflow-hidden shadow-lg">
                 <Image
-                  src="/Find-Routes-Image-2.png"
+                  src="/Find-Routes.png"
                   alt="Curated riding routes across the UK"
                   fill
-                  className="object-cover scale-[1.5]"
+                  className="object-cover"
                   sizes="(max-width: 768px) 100vw, 512px"
                 />
               </div>
