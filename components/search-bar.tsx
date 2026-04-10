@@ -31,14 +31,14 @@ export function SearchBar() {
   return (
     <form
       onSubmit={handleSearch}
-      className="bg-white rounded-lg shadow-lg p-4 grid grid-cols-1 md:grid-cols-5 gap-4"
+      className="bg-white rounded-2xl shadow-lg p-4 grid grid-cols-1 md:grid-cols-5 gap-4"
     >
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           County
         </label>
         <Select defaultValue="all" onValueChange={setLocation}>
-          <SelectTrigger className="bg-white text-gray-900">
+          <SelectTrigger className="bg-white text-gray-900 h-12 rounded-xl">
             <SelectValue className="text-gray-900" />
           </SelectTrigger>
           <SelectContent>
@@ -59,6 +59,7 @@ export function SearchBar() {
           type="date"
           value={checkIn}
           onChange={(e) => setCheckIn(e.target.value)}
+          className="h-12 rounded-xl"
         />
       </div>
       <div>
@@ -69,6 +70,7 @@ export function SearchBar() {
           type="date"
           value={checkOut}
           onChange={(e) => setCheckOut(e.target.value)}
+          className="h-12 rounded-xl"
         />
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -76,28 +78,40 @@ export function SearchBar() {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Guests
           </label>
-          <Input
-            type="number"
-            min="1"
-            value={guests}
-            onChange={(e) => setGuests(e.target.value)}
-          />
+          <Select value={guests} onValueChange={setGuests}>
+            <SelectTrigger className="bg-white text-gray-900 h-12 rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 10 }, (_, i) => String(i + 1)).map((n) => (
+                <SelectItem key={n} value={n}>
+                  {n}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Horses
           </label>
-          <Input
-            type="number"
-            min="1"
-            value={horses}
-            onChange={(e) => setHorses(e.target.value)}
-          />
+          <Select value={horses} onValueChange={setHorses}>
+            <SelectTrigger className="bg-white text-gray-900 h-12 rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 10 }, (_, i) => String(i + 1)).map((n) => (
+                <SelectItem key={n} value={n}>
+                  {n}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <Button
         type="submit"
-        className="w-full h-[88px] text-base px-8 self-end"
+        className="w-full h-[88px] text-base px-8 rounded-xl self-end"
       >
         <Search className="mr-2 h-5 w-5" />
         Search
