@@ -52,6 +52,7 @@ const config: Config = {
       fontFamily: {
         serif: ["var(--font-playfair)", "serif"],
         sans: ["var(--font-inter)", "sans-serif"],
+        display: ["var(--font-cormorant)", "Georgia", "serif"],
       },
     },
   },

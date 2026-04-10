@@ -104,12 +104,12 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-[1800px] mx-auto px-2 md:px-4 flex h-20 items-center justify-between">
-        <Link href="/" className="flex items-center">
+        <Link href="/" className="flex items-center -ml-3">
           <Image
             src="/logo-test.png"
             alt="padoq"
-            width={160}
-            height={56}
+            width={200}
+            height={70}
             className="object-contain"
             priority
           />

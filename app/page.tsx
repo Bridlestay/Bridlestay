@@ -68,7 +68,7 @@ export default async function HomePage() {
       {/* Featured Stays */}
       <section className="pb-10 md:pb-16">
         <div className="max-w-[1800px] mx-auto px-2 md:px-4">
-          <h2 className="font-serif text-2xl md:text-4xl font-bold mb-6 md:mb-8">
+          <h2 className="font-display text-3xl md:text-5xl font-medium mb-6 md:mb-8 tracking-tight">
             Featured Stays
           </h2>
           {properties && properties.length > 0 ? (
