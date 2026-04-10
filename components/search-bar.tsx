@@ -111,7 +111,7 @@ export function SearchBar() {
       </div>
       <Button
         type="submit"
-        className="w-full h-[88px] text-base px-8 rounded-xl self-end"
+        className="w-full h-[72px] text-base px-8 rounded-xl self-end"
       >
         <Search className="mr-2 h-5 w-5" />
         Search
